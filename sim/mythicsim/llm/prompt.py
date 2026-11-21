@@ -204,6 +204,8 @@ def parse_reply(text: str, unit_ids: set[str], dead: set[str] = frozenset()) -> 
         mv = spec.get("move_to")
         if isinstance(mv, dict) and set(mv) >= {"x", "z"}:
             mv = [mv["x"], mv["z"]]  # {"x": .., "z": ..} is unambiguous; accept it
+        if isinstance(mv, list) and len(mv) == 1 and isinstance(mv[0], str):
+            mv = mv[0]  # ["safe"] means "safe"
         if isinstance(mv, str) and mv.strip().lower() == "safe":
             o.move_to = "safe"
         elif mv is not None:

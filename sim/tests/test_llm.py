@@ -61,6 +61,11 @@ def test_state_flags_pools_under_a_character():
     assert "STANDING IN POOL desecrate_9 (arming, 0.0 m from its centre" in line
 
 
+def test_move_to_accepts_safe_in_a_list():
+    p = parse_reply(json.dumps({"orders": {"lumi": {"move_to": ["safe"]}}}), IDS)
+    assert p.orders["lumi"].move_to == "safe" and not p.problems
+
+
 def test_move_to_accepts_xz_object():
     p = parse_reply(json.dumps({"orders": {"bao": {"move_to": {"x": 3, "z": -1.5}}}}), IDS)
     assert p.orders["bao"].move_to == (3.0, -1.5) and not p.problems

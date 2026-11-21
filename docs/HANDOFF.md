@@ -231,6 +231,16 @@ Grokka → Nyx → Bao → Bramble. Full WoW-analogy table in `README.md`.
     accepted. Orders for dead characters are ignored.
   - Billing, auth, and bad-request errors stop the run. Output budget is 16k
     because thinking shares it.
+- **First results on the final harness (2026-11-21):** claude-haiku-5-5,
+  seed 0: kill, score 121.2, no deaths, 12/12 kicks. gpt-5.4-mini, seeds 0–4:
+  mean 74.8 (95% CI 56–94), 0 wins, two near misses (boss at 1–3%). It fails
+  mostly on adds (no taunt or swap) and occasional pools. gpt-4.1-mini,
+  seeds 0–2: ~23 (herds the party onto one spot). Reference bots on seeds 0–4:
+  expert 133.5, competent 94.5, sloppy 17.0.
+- **Run-to-run variance is large:** gpt-5.4-mini scored 130.6, then 60.9, on
+  the same seed. Report many seeds, ideally repeated.
+- **Open:** OpenAI prompt caching rarely hits during runs (~1k of ~290k input
+  tokens per fight) even with `prompt_cache_key`.
 - **Observed cost and speed:** claude-haiku-5-5 thinks heavily (~1.9k output
   tokens per call, ~8 s per call, ~19 min per fight). gpt-5.4-mini makes
   ~100–130 calls per fight at ~2.7k input / ~0.3k output tokens each.
