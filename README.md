@@ -167,9 +167,10 @@ bots get, rendered as text, plus the rules (every ability's tooltip, the arena,
 the reply format, and no strategy). It answers with standing orders per
 character: an optional move, and a priority list of `[ability, target]`.
 
-- **When it's asked:** every 2 s of game time, and immediately when something
-  important happens: a boss cast starts, pools appear, adds spawn, someone is
-  standing in an armed pool, or an ally gets low or dies.
+- **When it's asked:** every 4 s of game time, and immediately when something
+  important happens: a cast starts, pools appear, adds spawn, a pack is
+  pulled or cleared, someone is standing in an armed pool, or an ally gets low
+  or dies.
 - **Same controls as the bots:** a move can be coordinates or `"safe"`, which
   uses the bots' own dodge planner to step out of pools while keeping the
   target in range. Queued interrupts react after 350 ms, like the expert bot.
@@ -177,7 +178,11 @@ character: an optional move, and a priority list of `[ability, target]`.
   the bots get for free.
 - **No time pressure:** the game pauses while the model thinks, so slow models
   aren't penalised.
-- **Bad replies:** invalid entries are dropped and counted, never guessed.
+- **Same budget for everyone:** at most 8,000 output tokens per call
+  (thinking included) and one shared effort setting.
+- **Bad replies and refusals:** invalid entries are dropped and counted, never
+  guessed. A refusal is recorded and the party keeps its orders; no other model
+  answers in its place.
 - **Replayable:** every reply is recorded, so a run can be replayed exactly
   without calling the model again.
 
@@ -194,11 +199,11 @@ python -m mythicsim llm --model anthropic:claude-haiku-5-5@none --seeds 0-9 --wo
 - **`--workers N`** plays N seeds at the same time. Fights are independent and
   mostly wait on the API, so this cuts wall-clock time roughly N-fold without
   changing any result.
-- **`--effort none|low|medium|high`**, or `model@effort`, sets how much the
-  model thinks: Anthropic thinking off or the effort level, OpenAI
-  `reasoning_effort`. Without it you get the provider's default. Note that
-  gpt-5.4-mini's default does *no* reasoning. Each effort is its own
-  configuration with its own label, recording, and results folder.
+- **`--effort none|low|medium|high|xhigh|max`**, or `model@effort`, sets how
+  much the model thinks: Anthropic's effort level (or thinking off with
+  `none`, on models that allow it), OpenAI's `reasoning_effort`. Without it
+  you get the provider's default. Each effort is its own configuration with
+  its own label, recording, and results folder.
 
 Each run prints the model's score next to the expert, competent, and sloppy
 bots on the same seeds. It also prints calls, tokens, dollars, and dropped
@@ -252,6 +257,30 @@ and memory-off doesn't, the improvement comes from learning, not luck.
 In the viewer, a progression run lists its episodes as strips of pulls. The
 **Learning** panel shows the score per pull, what the model knew going into
 the pull, and what it wrote afterwards, with new lessons highlighted.
+
+### The official protocol
+
+`protocol/v1.json` is the recipe behind the leaderboard:
+- every model, at one shared effort;
+- both tiers;
+- 3 blind episodes of up to 5 pulls each;
+- memory-off controls on the two cheap models (Haiku 5.5, GPT-6 Luna).
+
+```bash
+python -m mythicsim campaign ../protocol/v1.json --dry-run    # what's left, worst-case cost
+python -m mythicsim campaign ../protocol/v1.json --workers 3  # play it (resumable)
+python -m mythicsim results ../protocol/v1.json --out ../results/v1
+```
+
+`campaign` can be stopped and rerun at any time. It only plays episodes that
+haven't finished, and recorded replies make a replayed episode free up to the
+point where it stopped.
+
+`results` writes `leaderboard.json`. For each model and tier it gives the
+progression score with a 95% CI, the clear rate, pulls-to-clear, the learning
+gain, and the cost per pull. It also includes the gzipped replay of every
+pull, and the scripted bots scored on the same seeds. The headline
+**MythicBench score** is the mean of the Normal and +10 progression scores.
 
 ### Organizing runs
 
