@@ -1,5 +1,6 @@
 // Global playback state (zustand = a tiny state library; components can
 // subscribe to just the slice they need, so the HUD doesn't re-render the 3D scene).
+import { modelName } from '../content/display'
 import { create } from 'zustand'
 import { ReplayEngine } from './engine'
 import type { Catalog, CatalogItem, CatalogRun, Replay, ReplayIndexEntry } from './types'
@@ -31,11 +32,11 @@ interface Playback {
 const base = import.meta.env.BASE_URL
 
 function runEntries(run: CatalogRun): ReplayIndexEntry[] {
-  const who = run.name || run.label.split(':').slice(1).join(':')
+  const who = modelName(run.model)
   return run.items.map((it) => ({
     id: runItemId(run.run_id, it), policy: `llm:${run.label}`, seed: it.seed,
-    label: it.pull !== undefined ? `${who} · ep ${it.episode} pull ${it.pull}` : `${who} · seed ${it.seed}`,
-    blurb: `${run.label} · run ${run.run_id}`,
+    label: it.pull !== undefined ? `${who}, episode ${it.episode} pull ${it.pull}` : `${who}, seed ${it.seed}`,
+    blurb: `${run.label}, run ${run.run_id}`,
     file: `local/${it.file}`, outcome: it.outcome, duration_s: it.duration_s, score: it.score,
     local: true, runId: run.run_id,
   }))

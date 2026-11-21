@@ -31,10 +31,10 @@ export function LearningPanel({ onShowMeter }: { onShowMeter: () => void }) {
         <span className="label">Learning</span>
         <button onClick={onShowMeter} className="text-meta text-fg-faint transition-colors hover:text-fg">Show meter</button>
       </div>
-      <div className="num mt-1 px-3 font-mono text-meta text-fg-faint">
-        Episode {prog.episode} · pull {prog.pull}{run?.max_pulls ? ` of ${run.max_pulls}` : ''} · {engine?.replay.meta.tier_name ?? `+${engine?.replay.meta.sigil_level}`}
+      <div className="mt-1 px-3 text-meta leading-5 text-fg-faint">
+        Pull {prog.pull}{run?.max_pulls ? ` of ${run.max_pulls}` : ''} in episode {prog.episode}, {engine?.replay.meta.tier_name ?? `+${engine?.replay.meta.sigil_level}`}
         <br />
-        {prog.knowledge} knowledge · memory {prog.memory ? 'on' : 'off'}
+        {prog.knowledge === 'blind' ? 'Blind start' : 'Full boss guide'}, memory {prog.memory ? 'on' : 'off'}
       </div>
 
       {pulls.length > 0 && (
@@ -66,7 +66,7 @@ export function LearningPanel({ onShowMeter }: { onShowMeter: () => void }) {
         </p>
         {prog.memory && prog.notes_after !== prog.notes_before && (
           <>
-            <div className="mt-3 text-label text-fg-faint">After this pull it wrote <span className="text-accent">· new lines marked</span></div>
+            <div className="mt-3 text-label text-fg-faint">After this pull it wrote <span className="text-fg-faint">(new lines marked)</span></div>
             <div className="mt-1 text-[12px] leading-[18px]">
               {after.map((l, i) => (
                 <p key={i} className={before.has(l.trim()) ? 'pl-2 text-fg-muted' : 'border-l-2 border-accent/70 pl-1.5 text-fg'}>{l}</p>
