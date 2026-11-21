@@ -10,10 +10,10 @@ export function PartyFrames() {
   const { s, t, engine } = h
   const players = s.order.map((id) => s.units[id]).filter((u) => u.info.kind === 'player')
   return (
-    <div className="card w-[272px] py-1.5">
-      <div className="flex items-center justify-between px-3 pb-1 pt-0.5">
+    <div className="card w-[272px] py-2">
+      <div className="flex items-center justify-between px-3 pb-1">
         <span className="label">Party</span>
-        <span className="label num">{players.filter((u) => u.alive).length}/{players.length} alive</span>
+        <span className="num font-mono text-meta text-fg-faint">{players.filter((u) => u.alive).length}/{players.length} alive</span>
       </div>
       {players.map((u) => {
         const col = CLASS_COLORS[u.info.class]
@@ -26,13 +26,12 @@ export function PartyFrames() {
             key={u.info.id}
             className={`relative px-3 py-1.5 transition-colors ${hit ? 'bg-bad/[0.08]' : ''} ${u.alive ? '' : 'opacity-50'}`}
           >
-            <div className="flex items-baseline gap-2">
-              <span className="h-2 w-2 shrink-0 translate-y-[-1px] rounded-full" style={{ background: col }} />
-              <span className="translate-y-[1px]"><RoleIcon role={u.info.role} size={12} /></span>
-              <span className="text-[13px] font-medium text-fg">{u.info.name}</span>
-              <span className="truncate text-[11px] text-fg-faint">{cls?.name} · {ROLE_LABEL[u.info.role]}</span>
-              <span className={`num ml-auto font-mono text-[11px] ${!u.alive ? 'text-bad' : low ? 'text-warn' : 'text-fg-muted'}`}>
-                {u.alive ? `${pct}%` : <span className="flex items-center gap-1"><Skull size={11} />dead</span>}
+            <div className="flex items-center gap-2">
+              <RoleIcon role={u.info.role} size={12} />
+              <span className="text-[13px] font-medium leading-5" style={{ color: col }}>{u.info.name}</span>
+              <span className="truncate text-meta text-fg-faint">{cls?.name} · {ROLE_LABEL[u.info.role]}</span>
+              <span className={`num ml-auto font-mono text-meta ${!u.alive ? 'text-bad' : low ? 'text-warn' : 'text-fg-muted'}`}>
+                {u.alive ? `${pct}%` : <span className="flex items-center gap-1"><Skull size={12} />Dead</span>}
               </span>
             </div>
             <Bar
@@ -40,11 +39,11 @@ export function PartyFrames() {
               absorbFrac={u.absorb / u.info.max_hp}
               color={u.alive ? col : '#3f3f46'}
               height={5}
-              className="mt-1.5"
+              className="mt-1"
             />
             {u.cast ? (
-              <Bar frac={(t - u.cast.t0) / u.cast.castMs} color="rgba(255,255,255,0.55)" height={2} className="mt-[3px]" track="transparent" />
-            ) : <div className="mt-[3px] h-[2px]" />}
+              <Bar frac={(t - u.cast.t0) / u.cast.castMs} color="rgba(255,255,255,0.55)" height={2} className="mt-0.5" track="transparent" />
+            ) : <div className="mt-0.5 h-[2px]" />}
             <div className="mt-1 flex items-center gap-1">
               {(TRACKED_COOLDOWNS[u.info.class] ?? []).map((ab) => {
                 const info = engine.replay.abilities[ab]

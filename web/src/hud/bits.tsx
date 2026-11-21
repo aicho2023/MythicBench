@@ -21,7 +21,7 @@ export function AbilityIcon({
   const frac = totalMs > 0 ? Math.min(1, remainingMs / totalMs) : 0
   return (
     <div
-      className="relative shrink-0 overflow-hidden rounded-[5px]"
+      className="relative shrink-0 overflow-hidden rounded"
       style={{
         width: size, height: size,
         background: harmful ? 'rgba(248,113,113,0.12)' : 'rgba(255,255,255,0.06)',
@@ -29,12 +29,12 @@ export function AbilityIcon({
       }}
       title={title ?? info?.name ?? ability}
     >
-      <Icon className="absolute inset-0 m-auto" style={{ color: col, opacity: frac > 0 ? 0.45 : 0.95 }} size={size * 0.58} strokeWidth={2} />
+      <Icon className="absolute inset-0 m-auto" style={{ color: col, opacity: frac > 0 ? 0.45 : 0.95 }} size={Math.round(size * 0.6)} strokeWidth={1.75} />
       {frac > 0 && (
         <div className="absolute inset-0" style={{ background: `conic-gradient(rgba(0,0,0,0.6) ${frac * 360}deg, transparent 0deg)` }} />
       )}
       {label && (
-        <span className="num absolute inset-0 grid place-items-center font-mono text-[9.5px] font-medium text-white [text-shadow:0_1px_2px_#000]">
+        <span className="num absolute inset-0 grid place-items-center font-mono text-[10px] font-medium text-white [text-shadow:0_1px_2px_#000]">
           {label}
         </span>
       )}
@@ -84,16 +84,19 @@ export function secs(ms: number): string {
   return ms >= 3000 ? `${Math.ceil(ms / 1000)}` : (ms / 1000).toFixed(1)
 }
 
-/** Role glyphs: shield = tank, cross = healer, sword = damage. */
+/**
+ * Role glyphs: shield = tank, cross = healer, sword = damage. They take the
+ * text color; the class color next to them is the only hue on a unit.
+ */
 export const ROLE_ICON = { tank: Shield, healer: Cross, dps: Sword } as const
-export const ROLE_TINT: Record<string, string> = { tank: '#8fb8ff', healer: '#7dff9a', dps: '#ff8f7a' }
+export const ROLE_TINT: Record<string, string> = { tank: '#c4c4ca', healer: '#c4c4ca', dps: '#c4c4ca' }
 
 export function RoleIcon({ role, size = 12 }: { role: string; size?: number }) {
   const Icon = ROLE_ICON[role as keyof typeof ROLE_ICON]
   if (!Icon) return null
   return (
     <span title={role === 'dps' ? 'Damage' : role[0].toUpperCase() + role.slice(1)} className="inline-flex shrink-0">
-      <Icon size={size} strokeWidth={2.25} style={{ color: ROLE_TINT[role] }} fill={role === 'healer' ? ROLE_TINT[role] : 'none'} />
+      <Icon size={size} strokeWidth={2} className="text-fg-faint" fill={role === 'healer' ? 'currentColor' : 'none'} />
     </span>
   )
 }
