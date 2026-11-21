@@ -35,7 +35,7 @@ export function Scorecard() {
         <div className="flex items-baseline justify-between">
           <span className={`num font-mono text-[20px] leading-7 ${timer > limit ? 'text-bad' : 'text-fg'}`}>{fmtTime(timer)}</span>
           <span className="num font-mono text-meta text-fg-faint">
-            {dungeon && s.penaltyMs > 0 && <span className="text-bad">+{s.penaltyMs / 1000}s · </span>}
+            {dungeon && s.penaltyMs > 0 && <span className="mr-2 text-bad">+{s.penaltyMs / 1000}s</span>}
             limit {fmtTime(limit)}
           </span>
         </div>
@@ -102,7 +102,7 @@ export function DamageMeter() {
   return (
     <div className="card w-[272px] pb-3">
       <div className="flex items-center justify-between px-3 pb-2 pt-2">
-        <span className="label">Meter <span className="font-normal text-fg-faint">total · per s</span></span>
+        <span className="label" title="Each row shows the total, then the amount per second">Meter</span>
         <div className="seg">
           {(['damage', 'healing'] as Tab[]).map((k) => (
             <button key={k} aria-pressed={tab === k} onClick={() => setTab(k)} className="!py-0.5 capitalize">{k}</button>
@@ -146,7 +146,7 @@ export function RaidWarnings() {
       const tgt = e.target ? s.units[e.target]?.info.name ?? '' : ''
       items.push({ key: i, text: WARN_CASTS[e.ability].replace('{target}', tgt), style: 'warning', age, dur: e.cast_ms + 10000 })
     } else if (e.type === 'cast_success' && e.ability === 'desecrate' && age < 2000) {
-      items.push({ key: i, text: 'Desecrate · move out of the pools', style: 'warning', age, dur: 2000 })
+      items.push({ key: i, text: 'Desecrate: move out of the pools', style: 'warning', age, dur: 2000 })
     }
   }
   const shown = items.slice(-3)

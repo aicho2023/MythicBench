@@ -162,6 +162,10 @@ export function KayKitAvatar({ id, info }: { id: string; info: UnitInfo }) {
     }
     attach(load.right, 'handslot.r')
     const offHand = attach(load.left, 'handslot.l')
+    // KayKit's bow has its string on the model's -X side, which the hand slot
+    // points at the target: turned as-is, the string faces away from the
+    // archer. A half turn about the bow's long (Z) axis puts it toward him.
+    if (offHand && info.model === 'Ranger') offHand.rotation.set(0, 0, Math.PI)
 
     if (info.role === 'healer') {
       root.traverse((o) => {

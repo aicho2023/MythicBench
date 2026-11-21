@@ -16,13 +16,12 @@ const MARKER_COLOR: Record<string, string> = {
 export function TopBar({ onAbout, onRuns }: { onAbout: () => void; onRuns: () => void }) {
   const index = usePlayback((p) => p.index)
   const current = usePlayback((p) => p.currentId)
-  const load = usePlayback((p) => p.load)
   const engine = usePlayback((p) => p.engine)
   const meta = engine?.replay.meta
   const tierName = meta?.tier_name ?? (meta?.sigil_level !== undefined ? `+${meta.sigil_level}` : undefined)
   const affixes = Object.values(engine?.replay.affixes ?? {})
   const catalogSize = usePlayback((p) => p.catalog?.runs.length ?? 0)
-  const currentLocal = index.find((r) => r.id === current && r.local)
+  const watching = index.find((r) => r.id === current)
   return (
     <div className="pointer-events-auto flex h-12 items-center gap-4 whitespace-nowrap border-b border-line bg-[rgba(15,15,16,0.92)] px-4">
       <div className="flex shrink-0 items-baseline gap-3">
@@ -32,29 +31,20 @@ export function TopBar({ onAbout, onRuns }: { onAbout: () => void; onRuns: () =>
           {tierName && <span className="num font-mono text-meta text-fg-faint">{tierName}</span>}
           {affixes.length > 0 && (
             <span className="hidden truncate text-meta text-fg-faint xl:inline" title={affixes.map((a) => `${a.name}: ${a.description}`).join('\n\n')}>
-              {affixes.map((a) => a.name).join(' · ')}
+              {affixes.map((a) => a.name).join(', ')}
             </span>
           )}
         </span>
       </div>
 
       <div className="mx-auto flex min-w-0 items-center gap-2">
-        <div className="seg">
-          {index.filter((r) => !r.local).map((r) => (
-            <button key={r.id} aria-pressed={r.id === current} onClick={() => load(r.id)} title={`${r.blurb}: ${r.outcome === 'victory' ? 'kill' : 'wipe'} at ${fmtTime(r.duration_s * 1000)}`} className="flex items-baseline gap-2">
-              <span>{r.label}</span>
-              <span className={`num hidden font-mono text-meta lg:inline ${r.outcome === 'victory' ? 'text-good' : 'text-bad'}`}>
-                {fmtTime(r.duration_s * 1000)}
-              </span>
-            </button>
-          ))}
-        </div>
-        {catalogSize > 0 && (
-          <button onClick={onRuns} className={`btn ${currentLocal ? '!border-white/20' : ''}`} title="Browse model runs saved on this machine">
-            <ListTree size={16} className="text-fg-muted" />
-            {currentLocal ? <span className="max-w-[180px] truncate">{currentLocal.label}</span> : <>Model runs <span className="num font-mono text-meta text-fg-faint">{catalogSize}</span></>}
-          </button>
-        )}
+        {/* What's on screen; opens the run list. Scripted bots live in that list as a reference, not up here. */}
+        <button onClick={onRuns} className="btn min-w-0 max-w-[420px]" title="Choose a run">
+          <ListTree size={16} className="shrink-0 text-fg-muted" />
+          <span className="truncate">{watching ? watching.label : 'Choose a run'}</span>
+          {watching && !watching.local && <span className="shrink-0 text-meta text-fg-faint">reference</span>}
+          {catalogSize > 0 && <span className="num shrink-0 font-mono text-meta text-fg-faint">{catalogSize} runs</span>}
+        </button>
       </div>
 
       <button onClick={onAbout} className="btn max-md:w-8 max-md:justify-center max-md:px-0" title="About this eval">
@@ -117,7 +107,7 @@ export function ReplayControls() {
         {markers.map((m, k) => (
           <div
             key={k}
-            title={`${fmtTime(m.t)} · ${m.label}`}
+            title={`${m.label} at ${fmtTime(m.t)}`}
             className="absolute top-1/2 h-3 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-[1px]"
             style={{ left: `${(m.t / dur) * 100}%`, background: MARKER_COLOR[m.kind] ?? '#fff' }}
           />
@@ -284,7 +274,7 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
           </div>
         )}
         <div className="mt-6 text-[12px] leading-5 text-fg-faint">
-          <Key>Space</Key> play or pause · <Key>←</Key> <Key>→</Key> seek 5 s · <Key>1</Key>–<Key>4</Key> speed.
+          <Key>Space</Key> plays or pauses, <Key>←</Key> <Key>→</Key> seek 5 s, and <Key>1</Key>–<Key>4</Key> set the speed.
           Click any agent decision to rewind to it.
         </div>
       </aside>

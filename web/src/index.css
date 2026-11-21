@@ -27,7 +27,6 @@ body {
     @apply inline-flex h-8 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border border-line bg-surface-raised px-3 text-[13px] font-medium text-fg transition-colors hover:bg-[#232326];
   }
   .btn-primary { @apply border-transparent bg-fg text-bg hover:bg-white; }
-  .filter { @apply h-8 rounded-lg border border-line bg-surface-raised px-2 text-fg-muted outline-none transition-colors hover:text-fg; }
   .seg { @apply flex rounded-lg border border-line bg-white/[0.03] p-0.5; }
   .seg > button { @apply whitespace-nowrap rounded-md px-2 py-1 text-[12px] font-medium text-fg-muted transition-colors hover:text-fg; }
   .seg > button[aria-pressed='true'] { @apply bg-white/[0.1] text-fg; }
