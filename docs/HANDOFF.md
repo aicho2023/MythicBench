@@ -239,8 +239,28 @@ Grokka → Nyx → Bao → Bramble. Full WoW-analogy table in `README.md`.
   expert 133.5, competent 94.5, sloppy 17.0.
 - **Run-to-run variance is large:** gpt-5.4-mini scored 130.6, then 60.9, on
   the same seed. Report many seeds, ideally repeated.
-- **Open:** OpenAI prompt caching rarely hits during runs (~1k of ~290k input
-  tokens per fight) even with `prompt_cache_key`.
+- **OpenAI prompt caching (investigated, not fixable cheaply):** with our
+  ~1.8k-token shared rules prefix, OpenAI's automatic cache hits only when the
+  varying text after it is short.
+  - Hits: ~100 tokens of varying text. Intermittent: ~260 tokens. Never: our
+    real 500–700 tokens of state.
+  - Reproduced with `prompt_cache_key` and with `prompt_cache_retention: 24h`.
+  - Fixing it would mean restructuring the prompt (e.g. sending state diffs in
+    a running conversation), which changes what the model sees. Deferred.
+  - Anthropic caching works (~70% of input tokens are cache reads).
+- **Effort / thinking (measured on one game prompt):**
+  - claude-haiku-5-5: default 9.5 s per call and ~1.6k thinking tokens;
+    `@none` 4.4 s and 0; `@low` 6.8 s; `@high` 12.1 s.
+  - gpt-5.4-mini: default does no reasoning (2.1 s); `@low` 9 s and ~1k
+    reasoning tokens; `@medium` 44 s and ~6.7k.
+  - So the earlier gpt-5.4-mini results were without reasoning.
+  - Each effort is a separate configuration (`model@effort`).
+- **Speed:** `--workers N` runs seeds in parallel threads (tested identical to
+  sequential).
+- **claude-haiku-5-5@none, seeds 0–3, 4 workers:** 4/4 kills, mean 117.9
+  (110.2 / 126.8 / 106.1 / 128.6; expert ~131, competent ~102). 4 min 20 s
+  wall-clock for all four fights. ~105 calls, ~415k input (295k cache reads)
+  and ~55k output tokens per fight.
 - **Observed cost and speed:** claude-haiku-5-5 thinks heavily (~1.9k output
   tokens per call, ~8 s per call, ~19 min per fight). gpt-5.4-mini makes
   ~100–130 calls per fight at ~2.7k input / ~0.3k output tokens each.

@@ -144,7 +144,17 @@ python -m mythicsim llm --model mock:basic --seeds 0-2             # free smoke 
 python -m mythicsim llm --model anthropic:claude-haiku-5-5 --seeds 0-4
 python -m mythicsim llm --model openai:<model-name> --seeds 0-4
 python -m mythicsim llm --model anthropic:claude-haiku-5-5 --seeds 0-4 --offline   # replay from recording
+python -m mythicsim llm --model anthropic:claude-haiku-5-5@none --seeds 0-9 --workers 5   # thinking off, 5 fights at once
 ```
+
+- **`--workers N`** plays N seeds at the same time. Fights are independent and
+  mostly wait on the API, so this cuts wall-clock time roughly N-fold without
+  changing any result.
+- **`--effort none|low|medium|high`**, or `model@effort`, sets how much the
+  model thinks: Anthropic thinking off or the effort level, OpenAI
+  `reasoning_effort`. Without it you get the provider's default. Note that
+  gpt-5.4-mini's default does *no* reasoning. Each effort is its own
+  configuration with its own label, recording, and results folder.
 
 Each run prints the model's score next to the expert, competent, and sloppy
 bots on the same seeds. It also prints calls, tokens, and dropped entries;
