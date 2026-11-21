@@ -21,6 +21,7 @@ function tierName(r: CatalogRun) {
 function setup(r: CatalogRun) {
   const prog = r.mode === 'progression'
   const parts = [tierName(r)]
+  if (r.dungeon_mode !== 'dungeon') parts.push('boss fight only')
   if (prog) {
     parts.push(r.knowledge === 'full' ? 'full boss guide' : 'blind')
     parts.push(`up to ${r.max_pulls ?? '?'} pulls`)
