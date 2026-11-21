@@ -32,6 +32,7 @@ class Reply:
     cached: bool = False  # served from our replay cache (no API call)
     cache_read_tokens: int = 0  # input tokens the provider served from its prompt cache (cheaper)
     truncated: bool = False  # the model hit the output-token limit before finishing
+    cache_write_tokens: int = 0  # input tokens written to the provider's prompt cache (Anthropic bills these higher)
 
 
 class ChatClient(Protocol):
@@ -131,9 +132,10 @@ class AnthropicClient:
         text = "".join(b.get("text", "") for b in out.get("content", []) if b.get("type") == "text")
         u = out.get("usage", {})
         read = u.get("cache_read_input_tokens", 0) or 0
-        total_in = (u.get("input_tokens", 0) or 0) + (u.get("cache_creation_input_tokens", 0) or 0) + read
+        write = u.get("cache_creation_input_tokens", 0) or 0
+        total_in = (u.get("input_tokens", 0) or 0) + write + read
         return Reply(text, total_in, u.get("output_tokens", 0), time.monotonic() - t0, cache_read_tokens=read,
-                     truncated=out.get("stop_reason") == "max_tokens")
+                     truncated=out.get("stop_reason") == "max_tokens", cache_write_tokens=write)
 
     def effort_params(self) -> dict:
         if not self.effort:
@@ -264,13 +266,15 @@ class CachedClient:
         if k in self._mem:
             r = self._mem[k]
             return Reply(r["text"], r["input_tokens"], r["output_tokens"], 0.0, cached=True,
-                         cache_read_tokens=r.get("cache_read_tokens", 0), truncated=r.get("truncated", False))
+                         cache_read_tokens=r.get("cache_read_tokens", 0), truncated=r.get("truncated", False),
+                         cache_write_tokens=r.get("cache_write_tokens", 0))
         if self.offline:
             raise ClientError("cache miss in offline mode (prompt not in the recording)")
         reply = self.inner.complete(system, user)
         rec = {"key": k, "spec": self.spec, "text": reply.text,
                "input_tokens": reply.input_tokens, "output_tokens": reply.output_tokens,
-               "cache_read_tokens": reply.cache_read_tokens, "truncated": reply.truncated}
+               "cache_read_tokens": reply.cache_read_tokens, "cache_write_tokens": reply.cache_write_tokens,
+               "truncated": reply.truncated}
         with self._lock:
             self._mem[k] = rec
             self.path.parent.mkdir(parents=True, exist_ok=True)

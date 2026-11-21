@@ -41,6 +41,7 @@ class BrainStats:
     input_tokens: int = 0
     output_tokens: int = 0
     cache_read_tokens: int = 0  # part of input_tokens the provider served from its prompt cache
+    cache_write_tokens: int = 0  # part of input_tokens written to the provider's prompt cache
     latency_s: float = 0.0
     cached_calls: int = 0
     unusable_replies: int = 0  # not JSON / no orders: the party keeps its old orders
@@ -182,6 +183,7 @@ class PartyBrain:
         self.stats.input_tokens += reply.input_tokens
         self.stats.output_tokens += reply.output_tokens
         self.stats.cache_read_tokens += reply.cache_read_tokens
+        self.stats.cache_write_tokens += reply.cache_write_tokens
         self.stats.latency_s += reply.latency_s
         self.stats.cached_calls += reply.cached
         if reply.truncated:

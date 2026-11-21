@@ -159,11 +159,16 @@ export interface CatalogRun {
   memory?: boolean | null
   level?: number | null
   max_pulls?: number | null
+  /** "stopped": the run hit its spend budget part-way */
+  status?: string | null
+  note?: string | null
   summary: {
     score_mean: number | null; score_ci95: [number, number] | null; win_rate: number | null; reference_means: Record<string, number> | null
     kill_rate?: number | null; pulls_to_kill_mean?: number | null; pulls_to_kill_ci95?: [number, number] | null
     learning_gain_mean?: number | null; learning_gain_ci95?: [number, number] | null; curve_mean?: number[] | null
     progression_score_mean?: number | null; progression_score_ci95?: [number, number] | null
+    /** list-price USD for the whole run, and per fight (pull) */
+    cost_usd?: number | null; usd_per_fight?: number | null
   }
   items: CatalogItem[]
 }

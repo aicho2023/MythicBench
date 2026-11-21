@@ -15,6 +15,7 @@ from pathlib import Path
 
 from . import content as C
 from . import runs as runs_mod
+from . import spend
 from .engine import SIM_VERSION, Encounter
 from .llm import HARNESS_VERSION, prompt_hash
 from .llm.clients import CachedClient, ClientError, make_client
@@ -103,6 +104,54 @@ def parse_seeds(text: str) -> list[int]:
     return out
 
 
+def build_client(args, n_fights: int):
+    """The model client wrapped for recording and money: ``tally`` (outside
+    the recording) measures the run's cost from scratch; ``meter`` (inside it)
+    charges only real API calls against the run budget and the project cap."""
+    client = make_client(args.model, args.effort)
+    label = client.spec  # includes @effort when set
+    price = spend.price_for(label, args.price_in, args.price_out, args.price_cached)
+    paid = not args.offline and not label.startswith("mock:")
+    if price is None:
+        if paid:
+            raise SystemExit(f"no price known for {label}. Add it to PRICES in sim/mythicsim/spend.py, "
+                             "or pass --price-in and --price-out (USD per 1M tokens).")
+        price = spend.FREE
+    meter = None
+    if paid:
+        cap, spent = spend.project_cap(), spend.total_spent()
+        left = cap - spent
+        if left <= 0:
+            raise SystemExit(f"project budget used up: ${spent:.2f} of ${cap:.2f} spent. "
+                             "Raise MYTHICBENCH_TOTAL_BUDGET_USD in .env to allow more.")
+        limit = min(args.budget_usd, left)
+        per_fight, basis = spend.estimate_fight_usd(price, args.mode, label)
+        print(f"budget: this run may spend ${limit:.2f} (project: ${spent:.2f} of ${cap:.2f} used). "
+              f"Estimate ~${per_fight:.2f} per fight, up to {n_fights} fights = ~${per_fight * n_fights:.2f} ({basis})",
+              flush=True)
+        if per_fight * n_fights > limit:
+            print(f"  note: the estimate is above the budget; the run will stop when it reaches ${limit:.2f} "
+                  "and keep the fights finished by then", flush=True)
+        meter = spend.CostMeter(client, price, limit_usd=limit, ledger=spend.LEDGER)
+        client = meter
+    if not args.no_cache:
+        safe = label.replace(":", "_").replace("/", "_").replace("@", "_")
+        client = CachedClient(client, runs_mod.RUNS_DIR / "cache" / f"{safe}.jsonl", offline=args.offline)
+    tally = spend.CostMeter(client, price)
+    return tally, label, price, meter
+
+
+def cost_fields(price, stats: dict) -> float:
+    return round(price.cost(stats["input_tokens"], stats["output_tokens"], stats.get("cache_read_tokens", 0),
+                            stats.get("cache_write_tokens", 0)), 4)
+
+
+def money_summary(tally, meter, n_fights: int) -> dict:
+    return {"cost_usd": round(tally.usd, 4),  # what the run costs from scratch, at list prices
+            "usd_per_fight": round(tally.usd / n_fights, 4) if n_fights else None,
+            "spent_usd": round(meter.usd, 4) if meter else 0.0}  # real money this invocation (recorded replies are free)
+
+
 def play_llm_seed(client, seed: int, args, label: str, run) -> tuple[dict, dict]:
     policies, brain = make_llm_policies(client, interval_ms=args.interval_ms, max_calls=args.max_calls,
                                         level=args.level, mode=args.mode)
@@ -113,6 +162,7 @@ def play_llm_seed(client, seed: int, args, label: str, run) -> tuple[dict, dict]
                           ("run_id", "name", "label", "model", "effort", "harness_version", "prompt_hash")}
     run.replay_path(seed).write_text(json.dumps(rep, separators=(",", ":")))
     st = brain.stats.as_dict()
+    st["usd"] = cost_fields(args._price, st)
     (run.seeds_dir / f"seed-{seed}.stats.json").write_text(json.dumps(st, indent=2))
     return rep, st
 
@@ -121,20 +171,20 @@ def run_llm(args) -> None:
     """Play each seed with the model into a new run folder, then print a comparison."""
     from concurrent.futures import ThreadPoolExecutor, as_completed
     seeds = parse_seeds(args.seeds)
-    client = make_client(args.model, args.effort)
-    label = client.spec  # includes @effort when set
-    safe = label.replace(":", "_").replace("/", "_").replace("@", "_")
-    if not args.no_cache:
-        client = CachedClient(client, runs_mod.RUNS_DIR / "cache" / f"{safe}.jsonl", offline=args.offline)
+    client, label, args._price, meter = build_client(args, len(seeds))
     run = runs_mod.new_run(label, mode="single", name=args.name, tags=args.tag, config={
         "seeds": seeds, "interval_ms": args.interval_ms, "max_calls": args.max_calls, "level": args.level,
         "dungeon_mode": args.mode,
         "harness_version": HARNESS_VERSION, "prompt_hash": prompt_hash("full", args.level, args.mode),
         "sim_version": SIM_VERSION, "content_version": C.CONTENT_VERSION,
         "offline": args.offline, "cache": not args.no_cache,
+        "budget_usd": meter.limit_usd if meter else None,
     })
+    if meter:
+        meter.run_id = run.run_id
     print(f"run {run.run_id}", flush=True)
     rows = []
+    stopped = None
     # Fights are independent and mostly wait on the API, so seeds can run in
     # parallel threads; each fight's own result is unaffected.
     with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
@@ -143,10 +193,15 @@ def run_llm(args) -> None:
             seed = futures[fut]
             try:
                 rep, st = fut.result()
+            except spend.BudgetExceeded as err:
+                for f in futures:
+                    f.cancel()
+                stopped = stopped or str(err)
+                continue
             except ClientError as err:
                 for f in futures:
                     f.cancel()
-                run.manifest.update(status="failed", error=str(err)[:500])
+                run.manifest.update(status="failed", error=str(err)[:500], **money_summary(client, meter, 0))
                 run.save_manifest()
                 raise SystemExit(f"seed {seed}: {err}")
             s = rep["meta"]["metrics"]
@@ -157,10 +212,14 @@ def run_llm(args) -> None:
                          **{f"ref_{k}": v for k, v in refs.items()}, "stats": st})
             print(f"seed {seed:>3}: {s['outcome']:7s} score {s['score']:6.1f} "
                   f"(expert {refs['expert']:.1f}, competent {refs['competent']:.1f}, sloppy {refs['sloppy']:.1f})  "
-                  f"calls {st['calls']} ({st['cached_calls']} cached), tokens {st['input_tokens']}+{st['output_tokens']}, "
+                  f"calls {st['calls']} ({st['cached_calls']} cached), tokens {st['input_tokens']}+{st['output_tokens']} (${st['usd']:.2f}), "
                   f"bad replies {st['unusable_replies']} ({st['truncated_replies']} cut off), dropped entries {st['invalid_entries']}, "
                   f"api errors {st['api_errors']}", flush=True)
     rows.sort(key=lambda r: r["seed"])
+    if stopped and not rows:
+        run.manifest.update(status="stopped", error=stopped, **money_summary(client, meter, 0))
+        run.save_manifest()
+        raise SystemExit(f"stopped before any fight finished: {stopped}")
     vals = [r["score"] for r in rows]
     tin = sum(r["stats"]["input_tokens"] for r in rows)
     tout = sum(r["stats"]["output_tokens"] for r in rows)
@@ -179,13 +238,14 @@ def run_llm(args) -> None:
         "provider_cached_input_tokens_per_fight": round(sum(r["stats"]["cache_read_tokens"] for r in rows) / len(rows)),
         "model_seconds_per_fight": round(statistics.mean(r["stats"]["latency_s"] for r in rows), 1),
     }
-    if args.price_in is not None and args.price_out is not None:
-        summary["usd_per_fight"] = round((tin * args.price_in + tout * args.price_out) / 1e6 / len(rows), 4)
+    summary.update(money_summary(client, meter, len(rows)))
     items = [{"seed": r["seed"], "file": f"seeds/seed-{r['seed']}.json", "outcome": r["outcome"],
               "score": r["score"], "duration_s": r["duration_s"]} for r in rows]
-    runs_mod.finish_run(run, summary, items)
+    runs_mod.finish_run(run, summary, items, status="stopped" if stopped else "done", note=stopped)
     runs_mod.publish(only=[run.run_id])
     print(json.dumps(summary, indent=2))
+    if stopped:
+        print(f"STOPPED EARLY: {stopped}. Kept {len(rows)} of {len(seeds)} seeds.")
     print(f"run {run.run_id}: {run.dir}")
     print("watch it: cd web && npm run dev, then open Runs in the top bar")
 
@@ -196,18 +256,17 @@ def run_progress(args) -> None:
     from .llm.progress import run_episode, summarize
     episodes = parse_seeds(args.episodes)
     memory = args.memory == "on"
-    client = make_client(args.model, args.effort)
-    label = client.spec
-    safe = label.replace(":", "_").replace("/", "_").replace("@", "_")
-    if not args.no_cache:
-        client = CachedClient(client, runs_mod.RUNS_DIR / "cache" / f"{safe}.jsonl", offline=args.offline)
+    client, label, price, meter = build_client(args, len(episodes) * args.max_pulls)
     run = runs_mod.new_run(label, mode="progression", name=args.name, tags=args.tag, config={
         "episodes": episodes, "max_pulls": args.max_pulls, "memory": memory, "knowledge": args.knowledge,
         "interval_ms": args.interval_ms, "max_calls": args.max_calls, "level": args.level, "dungeon_mode": args.mode,
         "harness_version": HARNESS_VERSION, "prompt_hash": prompt_hash(args.knowledge, args.level, args.mode),
         "sim_version": SIM_VERSION, "content_version": C.CONTENT_VERSION,
         "offline": args.offline, "cache": not args.no_cache,
+        "budget_usd": meter.limit_usd if meter else None,
     })
+    if meter:
+        meter.run_id = run.run_id
     print(f"run {run.run_id}  (+{args.level} key, {args.knowledge} knowledge, memory {args.memory}, "
           f"up to {args.max_pulls} pulls)", flush=True)
 
@@ -217,15 +276,17 @@ def run_progress(args) -> None:
         pr.replay["meta"]["run"] = {k: run.manifest.get(k) for k in
                                     ("run_id", "name", "label", "model", "effort", "harness_version", "prompt_hash")}
         (d / f"pull-{pr.pull}.json").write_text(json.dumps(pr.replay, separators=(",", ":")))
+        pr.stats["usd"] = cost_fields(price, pr.stats)
         (d / f"pull-{pr.pull}.stats.json").write_text(json.dumps(pr.stats, indent=2))
         (d / f"notes-after-{pr.pull}.md").write_text(pr.notes_after)
         m = pr.metrics
         print(f"episode {ep.episode:>2} pull {pr.pull}: {m['outcome']:7s} score {m['score']:6.1f}  "
               f"deaths {len(m['deaths'])}  calls {pr.stats['calls']}  "
-              f"tokens {pr.stats['input_tokens']}+{pr.stats['output_tokens']}"
+              f"tokens {pr.stats['input_tokens']}+{pr.stats['output_tokens']} (${pr.stats['usd']:.2f})"
               + (f"  [{pr.problem}]" if pr.problem else ""), flush=True)
 
     results = []
+    stopped = None
     with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
         futures = {pool.submit(run_episode, client, e, max_pulls=args.max_pulls, memory=memory,
                                knowledge=args.knowledge, interval_ms=args.interval_ms,
@@ -234,21 +295,34 @@ def run_progress(args) -> None:
         for fut in as_completed(futures):
             try:
                 results.append(fut.result())
+            except spend.BudgetExceeded as err:
+                # The interrupted episode's finished pulls are on disk but not
+                # counted: a cut-short episode would bias pulls-to-kill.
+                for f in futures:
+                    f.cancel()
+                stopped = stopped or str(err)
             except ClientError as err:
                 for f in futures:
                     f.cancel()
-                run.manifest.update(status="failed", error=str(err)[:500])
+                run.manifest.update(status="failed", error=str(err)[:500], **money_summary(client, meter, 0))
                 run.save_manifest()
                 raise SystemExit(f"episode {futures[fut]}: {err}")
     results.sort(key=lambda e: e.episode)
+    if stopped and not results:
+        run.manifest.update(status="stopped", error=stopped, **money_summary(client, meter, 0))
+        run.save_manifest()
+        raise SystemExit(f"stopped before any episode finished: {stopped}")
     summary = summarize(results, args.max_pulls)
+    summary.update(money_summary(client, meter, sum(len(e.pulls) for e in results)))
     items = [{"episode": e.episode, "pull": p.pull, "seed": p.seed, "file": f"episodes/{e.episode}/pull-{p.pull}.json",
               "outcome": p.metrics["outcome"], "score": p.metrics["score"], "duration_s": p.metrics["duration_s"]}
              for e in results for p in e.pulls]
-    runs_mod.finish_run(run, summary, items)
+    runs_mod.finish_run(run, summary, items, status="stopped" if stopped else "done", note=stopped)
     runs_mod.publish(only=[run.run_id])
     print(json.dumps({k: v for k, v in summary.items() if k not in ("score_mean", "win_rate")}, indent=2))
     print(f"run {run.run_id}: {run.dir}")
+    if stopped:
+        print(f"STOPPED EARLY: {stopped}. Kept {len(results)} of {len(episodes)} complete episodes.")
 
 
 def run_runs(args) -> None:
@@ -280,10 +354,35 @@ def run_runs(args) -> None:
         n = runs_mod.rescore()
         runs_mod.publish(only=None)
         print(f"rescored {n} replays with the current scoring and refreshed the catalog")
+    elif args.runs_cmd == "spend":
+        if args.backfill:
+            for rid, usd in spend.backfill():
+                print(f"  added estimate for {rid}: ${usd:.2f}")
+        led = spend.summarize_ledger()
+        print(f"spent ${led['spent_usd']:.2f} of ${led['cap_usd']:.2f} "
+              f"(${led['remaining_usd']:.2f} left): {led['calls']} logged API calls"
+              + (f" + estimates for {led['estimated_runs']} earlier runs" if led["estimated_runs"] else ""))
+        if led["by_model"]:
+            print("by model:")
+            for k, v in led["by_model"].items():
+                print(f"  {k:<44} ${v:8.2f}")
+            print("most expensive runs:")
+            for k, v in list(led["by_run"].items())[:10]:
+                print(f"  {k:<52} ${v:8.2f}")
+        print("change the cap with MYTHICBENCH_TOTAL_BUDGET_USD in .env")
     elif args.runs_cmd == "import-legacy":
         made = runs_mod.import_legacy()
         runs_mod.publish()
         print(f"imported {len(made)} legacy runs" + "".join(f"\n  {r}" for r in made))
+
+
+def add_money_args(p) -> None:
+    p.add_argument("--budget-usd", type=float, default=spend.DEFAULT_RUN_BUDGET_USD,
+                   help=f"stop this run once it has spent this much on API calls "
+                        f"(default ${spend.DEFAULT_RUN_BUDGET_USD:.0f}; recorded replies are free)")
+    p.add_argument("--price-in", type=float, help="USD per 1M input tokens, for a model not in the price table")
+    p.add_argument("--price-out", type=float, help="USD per 1M output tokens")
+    p.add_argument("--price-cached", type=float, help="USD per 1M cached input tokens (default: the input price)")
 
 
 def main() -> None:
@@ -323,8 +422,7 @@ def main() -> None:
     m.add_argument("--workers", type=int, default=1, help="seeds to play in parallel (default 1)")
     m.add_argument("--name", help="a human name for this run, e.g. 'haiku baseline'")
     m.add_argument("--tag", action="append", default=[], help="label for filtering (repeatable)")
-    m.add_argument("--price-in", type=float, help="USD per 1M input tokens (to estimate cost)")
-    m.add_argument("--price-out", type=float, help="USD per 1M output tokens")
+    add_money_args(m)
     pg = sub.add_parser("progress", help="learning over pulls: repeated attempts with notes between pulls")
     pg.add_argument("--model", required=True, help="provider:model[@effort], or mock:basic")
     pg.add_argument("--effort", choices=("none", "low", "medium", "high"))
@@ -345,6 +443,7 @@ def main() -> None:
     pg.add_argument("--no-cache", action="store_true")
     pg.add_argument("--name")
     pg.add_argument("--tag", action="append", default=[])
+    add_money_args(pg)
     rs = sub.add_parser("runs", help="list, inspect, remove, and publish saved model runs")
     rsub = rs.add_subparsers(dest="runs_cmd", required=True)
     rl = rsub.add_parser("list", help="newest first")
@@ -357,6 +456,9 @@ def main() -> None:
     rp = rsub.add_parser("publish", help="copy runs into the viewer and rebuild its catalog")
     rp.add_argument("runs", nargs="*", help="run ids (default: refresh the catalog only)")
     rp.add_argument("--all", action="store_true", help="copy every run's replays")
+    rsp = rsub.add_parser("spend", help="real API spend so far, against the project cap")
+    rsp.add_argument("--backfill", action="store_true",
+                     help="first add estimated spend for runs made before the spend log existed")
     rsub.add_parser("import-legacy", help="convert old runs/<model>/ folders into run folders")
     rsub.add_parser("rescore", help="recompute every saved run's scores with the current scoring")
     g = sub.add_parser("generate", help="write the showcase replays for the viewer")

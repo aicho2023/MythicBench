@@ -128,6 +128,14 @@ export function RunBrowser({ onClose }: { onClose: () => void }) {
                         harness {r.harness_version ?? '?'}
                       </span>
                       {prog && <span className="rounded border border-accent/40 px-1 text-accent">learning · {r.knowledge ?? 'blind'} · memory {r.memory === false ? 'off' : 'on'}</span>}
+                      {r.summary.cost_usd != null && (
+                        <span title="What this run costs to play from scratch at list prices (replaying the recording is free)">
+                          {usd(r.summary.cost_usd)}
+                        </span>
+                      )}
+                      {r.status === 'stopped' && (
+                        <span className="rounded border border-warn/40 px-1 text-warn" title={r.note ?? 'Stopped at its spend budget'}>stopped at budget</span>
+                      )}
                       {r.tags.map((tag) => <span key={tag} className="text-accent">#{tag}</span>)}
                     </span>
                   </span>
@@ -157,6 +165,7 @@ export function RunBrowser({ onClose }: { onClose: () => void }) {
                     )}
                     <div className="mt-2 font-mono text-[10px] text-fg-faint">
                       {r.run_id}
+                      {r.summary.usd_per_fight != null && <span className="ml-2">· {usd(r.summary.usd_per_fight)} per {prog ? 'pull' : 'fight'}</span>}
                       {prog && r.summary.curve_mean && <span className="ml-2">· mean score by pull: {r.summary.curve_mean.join(' → ')}</span>}
                       {r.summary.reference_means && (
                         <span className="ml-2">· bots on these seeds: expert {r.summary.reference_means.expert}, competent {r.summary.reference_means.competent}</span>
@@ -185,4 +194,8 @@ function ItemChip({ run, it, current, load }: { run: CatalogRun; it: CatalogItem
       <span className={`num block font-mono text-[12px] ${win ? 'text-good' : 'text-bad'}`}>{it.score.toFixed(1)}</span>
     </button>
   )
+}
+
+function usd(x: number): string {
+  return '$' + (x < 0.1 ? x.toFixed(3) : x.toFixed(2))
 }

@@ -226,6 +226,22 @@ Grokka → Nyx → Bao → Bramble. Full WoW-analogy table in `README.md`.
   - Bump `HARNESS_VERSION` (`sim/mythicsim/llm/__init__.py`) whenever what the
     model sees or can do changes.
 - **Keys:** `.env` at the repo root (copy `.env.example`).
+- **Money (`sim/mythicsim/spend.py`):**
+  - `PRICES` holds list prices per model (as of `PRICES_AS_OF`). A paid model
+    without a price is refused unless `--price-in/--price-out` is given.
+  - The client stack is `tally(CachedClient(meter(model)))`:
+    - the inner `CostMeter` sees only real API calls. It enforces
+      `--budget-usd` (default $20) and appends every call to
+      `runs/spend.jsonl`;
+    - the outer one measures the run's list-price cost (`summary.cost_usd`,
+      `usd_per_fight`), which is the number to report next to scores.
+  - The project cap is `MYTHICBENCH_TOTAL_BUDGET_USD` (default $500). A run's
+    budget shrinks to whatever is left of it.
+  - When the budget runs out, the run ends with status `stopped`. It keeps the
+    seeds or episodes that finished; a half-played episode is dropped from the
+    summary so it can't bias pulls-to-kill.
+  - `runs spend [--backfill]` shows the totals. `--backfill` adds estimates for
+    runs made before the log existed.
 - **Prompt size:** ~1.6k tokens of rules (prompt-cached by the provider;
   OpenAI with `prompt_cache_key`) and ~0.3–0.5k of state per call.
 - **Fairness decisions from the first live runs (2026-11-21):**

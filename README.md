@@ -201,8 +201,28 @@ python -m mythicsim llm --model anthropic:claude-haiku-5-5@none --seeds 0-9 --wo
   configuration with its own label, recording, and results folder.
 
 Each run prints the model's score next to the expert, competent, and sloppy
-bots on the same seeds. It also prints calls, tokens, and dropped entries;
-add `--price-in/--price-out` (USD per 1M tokens) for a cost estimate.
+bots on the same seeds. It also prints calls, tokens, dollars, and dropped
+entries.
+
+### What runs cost, and the spend guard
+
+Every run records what it costs at list prices (`sim/mythicsim/spend.py` has
+the price table; pass `--price-in/--price-out` for a model that isn't in it).
+Two limits protect the wallet:
+
+- **Per run:** `--budget-usd` (default $20). The run stops once its API spend
+  reaches the budget, keeps every fight finished so far, and is marked
+  *stopped at budget*. It also prints an estimate before it starts.
+- **Whole project:** each real API call is appended to `runs/spend.jsonl`, and
+  no run may spend past `MYTHICBENCH_TOTAL_BUDGET_USD` (in `.env`, default
+  $500).
+
+Replies replayed from a recording are free and never charged.
+
+```bash
+python -m mythicsim runs spend               # spent so far, by model and by run
+python -m mythicsim runs spend --backfill    # also count runs made before the log existed
+```
 
 ### Learning over pulls
 
@@ -242,7 +262,7 @@ overwritten:
 runs/2026-11-21T1530_claude-haiku-5-5@none_a1b2/
   manifest.json            model, effort, seeds, harness version, prompt hash,
                            git commit, name, tags, summary
-  seeds/seed-N.json        replays (+ .stats.json with calls and tokens)
+  seeds/seed-N.json        replays (+ .stats.json with calls, tokens and cost)
 ```
 
 Name and tag runs with `--name "prompt v2" --tag ablation`. Then:
