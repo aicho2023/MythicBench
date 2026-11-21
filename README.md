@@ -308,6 +308,23 @@ browser with search, provider/effort filters, sorting, and per-seed score
 chips. Runs from an older harness version are flagged as not directly
 comparable. Links like `?run=a1b2&seed=3` open a specific fight.
 
+## The website
+
+`web/` is also the public site (mythicbench.com): `/` leaderboard and charts,
+`/watch` the replay viewer (`/watch/<model>/<tier>/<episode>/<pull>` opens one
+pull), `/paper` the write-up (`web/src/pages/paper.mdx`), `/about`. It reads
+only the dataset written by `results`, from `web/public/results/<name>/`.
+`RESULTS_DIR` in `web/src/site/config.ts` (or `VITE_RESULTS_DIR`) picks which
+one; it ships with `results/sample`, made free with the mock model:
+
+```bash
+cd web && npm run sample      # protocol/sample.json: campaign + results, no API calls
+```
+
+`npm run build` writes a static site to `web/dist`, with a copy of
+`index.html` per page so link previews work. `web/vercel.json` and
+`web/public/_redirects` (Cloudflare Pages) send every other path to the app.
+
 ## Why you can trust the numbers
 
 1. **Deterministic.** Same seed + same policy ⇒ byte-identical replay, on any

@@ -1,0 +1,430 @@
+{
+ "protocol": {
+  "name": "sample",
+  "description": "A free sample of the v1 protocol for building the site: the mock model (no API, no cost) through the Gravecrown Crypt, blind, up to 3 pulls, on Normal and +10.",
+  "mode": "dungeon",
+  "knowledge": "blind",
+  "tiers": [
+   "normal",
+   "plus10"
+  ],
+  "episodes": 2,
+  "max_pulls": 3,
+  "effort": "medium",
+  "interval_ms": 4000,
+  "max_calls": 300,
+  "run_budget_usd": 1,
+  "controls": [
+   {
+    "model": "basic",
+    "memory": false,
+    "tiers": [
+     "plus10"
+    ]
+   }
+  ],
+  "models": [
+   "basic"
+  ]
+ },
+ "harness_version": "0.7.0",
+ "content_version": "1.0.0",
+ "tiers": {
+  "normal": {
+   "name": "Normal",
+   "affixes": []
+  },
+  "plus10": {
+   "name": "+10",
+   "affixes": [
+    "Restless Graves",
+    "Marrowburst",
+    "Hollow Tyrant"
+   ]
+  }
+ },
+ "leaderboard": [
+  {
+   "model": "basic",
+   "provider": "mock",
+   "name": "Mock model",
+   "effort": "medium",
+   "tiers": {
+    "normal": {
+     "episodes": 2,
+     "pulls": 6,
+     "progression_score": 0.0,
+     "progression_score_ci95": [
+      0.0,
+      0.0
+     ],
+     "clear_rate": 0.0,
+     "pulls_to_clear_mean": 4,
+     "pulls_to_clear": [
+      4,
+      4
+     ],
+     "learning_gain_mean": 0.0,
+     "learning_gain_ci95": [
+      0.0,
+      0.0
+     ],
+     "first_pull_score_mean": 0.0,
+     "curve_mean": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "cost_usd": 0.0,
+     "usd_per_pull": 0.0,
+     "tokens_per_pull": [
+      219086,
+      16600
+     ],
+     "refusals": 0,
+     "unusable_replies": 0,
+     "harness_versions": [
+      "0.7.0"
+     ],
+     "episode_list": [
+      {
+       "episode": 0,
+       "run_id": "2026-11-21T2320_basic_c643",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 10001,
+         "score": 0.0,
+         "outcome": "timeout",
+         "duration_s": 330.0,
+         "file": "replays/basic/normal/ep0-pull1.json.gz",
+         "usd": 0.0
+        },
+        {
+         "pull": 2,
+         "seed": 10002,
+         "score": 0.0,
+         "outcome": "timeout",
+         "duration_s": 330.0,
+         "file": "replays/basic/normal/ep0-pull2.json.gz",
+         "usd": 0.0
+        },
+        {
+         "pull": 3,
+         "seed": 10003,
+         "score": 0.0,
+         "outcome": "timeout",
+         "duration_s": 330.0,
+         "file": "replays/basic/normal/ep0-pull3.json.gz",
+         "usd": 0.0
+        }
+       ]
+      },
+      {
+       "episode": 1,
+       "run_id": "2026-11-21T2320_basic_c643",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 10101,
+         "score": 0.0,
+         "outcome": "timeout",
+         "duration_s": 330.0,
+         "file": "replays/basic/normal/ep1-pull1.json.gz",
+         "usd": 0.0
+        },
+        {
+         "pull": 2,
+         "seed": 10102,
+         "score": 0.0,
+         "outcome": "timeout",
+         "duration_s": 330.0,
+         "file": "replays/basic/normal/ep1-pull2.json.gz",
+         "usd": 0.0
+        },
+        {
+         "pull": 3,
+         "seed": 10103,
+         "score": 0.0,
+         "outcome": "timeout",
+         "duration_s": 330.0,
+         "file": "replays/basic/normal/ep1-pull3.json.gz",
+         "usd": 0.0
+        }
+       ]
+      }
+     ]
+    },
+    "plus10": {
+     "episodes": 2,
+     "pulls": 6,
+     "progression_score": 0.0,
+     "progression_score_ci95": [
+      0.0,
+      0.0
+     ],
+     "clear_rate": 0.0,
+     "pulls_to_clear_mean": 4,
+     "pulls_to_clear": [
+      4,
+      4
+     ],
+     "learning_gain_mean": 0.0,
+     "learning_gain_ci95": [
+      0.0,
+      0.0
+     ],
+     "first_pull_score_mean": 0.0,
+     "curve_mean": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "cost_usd": 0.0,
+     "usd_per_pull": 0.0,
+     "tokens_per_pull": [
+      232250,
+      16600
+     ],
+     "refusals": 0,
+     "unusable_replies": 0,
+     "harness_versions": [
+      "0.7.0"
+     ],
+     "episode_list": [
+      {
+       "episode": 0,
+       "run_id": "2026-11-21T2320_basic_7b61",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 10001,
+         "score": 0.0,
+         "outcome": "timeout",
+         "duration_s": 330.0,
+         "file": "replays/basic/plus10/ep0-pull1.json.gz",
+         "usd": 0.0
+        },
+        {
+         "pull": 2,
+         "seed": 10002,
+         "score": 0.0,
+         "outcome": "timeout",
+         "duration_s": 330.0,
+         "file": "replays/basic/plus10/ep0-pull2.json.gz",
+         "usd": 0.0
+        },
+        {
+         "pull": 3,
+         "seed": 10003,
+         "score": 0.0,
+         "outcome": "timeout",
+         "duration_s": 330.0,
+         "file": "replays/basic/plus10/ep0-pull3.json.gz",
+         "usd": 0.0
+        }
+       ]
+      },
+      {
+       "episode": 1,
+       "run_id": "2026-11-21T2320_basic_7b61",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 10101,
+         "score": 0.0,
+         "outcome": "timeout",
+         "duration_s": 330.0,
+         "file": "replays/basic/plus10/ep1-pull1.json.gz",
+         "usd": 0.0
+        },
+        {
+         "pull": 2,
+         "seed": 10102,
+         "score": 0.0,
+         "outcome": "timeout",
+         "duration_s": 330.0,
+         "file": "replays/basic/plus10/ep1-pull2.json.gz",
+         "usd": 0.0
+        },
+        {
+         "pull": 3,
+         "seed": 10103,
+         "score": 0.0,
+         "outcome": "timeout",
+         "duration_s": 330.0,
+         "file": "replays/basic/plus10/ep1-pull3.json.gz",
+         "usd": 0.0
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "mythicbench_score": 0.0,
+   "mythicbench_score_ci95": [
+    0.0,
+    0.0
+   ],
+   "cost_usd": 0.0
+  }
+ ],
+ "controls": [
+  {
+   "model": "basic",
+   "tier": "plus10",
+   "memory": false,
+   "episodes": 2,
+   "pulls": 6,
+   "progression_score": 0.0,
+   "progression_score_ci95": [
+    0.0,
+    0.0
+   ],
+   "clear_rate": 0.0,
+   "pulls_to_clear_mean": 4,
+   "pulls_to_clear": [
+    4,
+    4
+   ],
+   "learning_gain_mean": 0.0,
+   "learning_gain_ci95": [
+    0.0,
+    0.0
+   ],
+   "first_pull_score_mean": 0.0,
+   "curve_mean": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "cost_usd": 0.0,
+   "usd_per_pull": 0.0,
+   "tokens_per_pull": [
+    229667,
+    16600
+   ],
+   "refusals": 0,
+   "unusable_replies": 0,
+   "harness_versions": [
+    "0.7.0"
+   ],
+   "episode_list": [
+    {
+     "episode": 0,
+     "run_id": "2026-11-21T2320_basic_3f12",
+     "pulls": [
+      {
+       "pull": 1,
+       "seed": 10001,
+       "score": 0.0,
+       "outcome": "timeout",
+       "duration_s": 330.0,
+       "file": "replays/basic/plus10/memory-off/ep0-pull1.json.gz",
+       "usd": 0.0
+      },
+      {
+       "pull": 2,
+       "seed": 10002,
+       "score": 0.0,
+       "outcome": "timeout",
+       "duration_s": 330.0,
+       "file": "replays/basic/plus10/memory-off/ep0-pull2.json.gz",
+       "usd": 0.0
+      },
+      {
+       "pull": 3,
+       "seed": 10003,
+       "score": 0.0,
+       "outcome": "timeout",
+       "duration_s": 330.0,
+       "file": "replays/basic/plus10/memory-off/ep0-pull3.json.gz",
+       "usd": 0.0
+      }
+     ]
+    },
+    {
+     "episode": 1,
+     "run_id": "2026-11-21T2320_basic_3f12",
+     "pulls": [
+      {
+       "pull": 1,
+       "seed": 10101,
+       "score": 0.0,
+       "outcome": "timeout",
+       "duration_s": 330.0,
+       "file": "replays/basic/plus10/memory-off/ep1-pull1.json.gz",
+       "usd": 0.0
+      },
+      {
+       "pull": 2,
+       "seed": 10102,
+       "score": 0.0,
+       "outcome": "timeout",
+       "duration_s": 330.0,
+       "file": "replays/basic/plus10/memory-off/ep1-pull2.json.gz",
+       "usd": 0.0
+      },
+      {
+       "pull": 3,
+       "seed": 10103,
+       "score": 0.0,
+       "outcome": "timeout",
+       "duration_s": 330.0,
+       "file": "replays/basic/plus10/memory-off/ep1-pull3.json.gz",
+       "usd": 0.0
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "bots": {
+  "normal": {
+   "expert": {
+    "progression_score_mean": 100.0,
+    "progression_score_ci95": [
+     100.0,
+     100.0
+    ]
+   },
+   "competent": {
+    "progression_score_mean": 100.0,
+    "progression_score_ci95": [
+     100.0,
+     100.0
+    ]
+   },
+   "sloppy": {
+    "progression_score_mean": 77.7,
+    "progression_score_ci95": [
+     34.0,
+     121.4
+    ]
+   }
+  },
+  "plus10": {
+   "expert": {
+    "progression_score_mean": 79.5,
+    "progression_score_ci95": [
+     66.1,
+     92.9
+    ]
+   },
+   "competent": {
+    "progression_score_mean": 75.2,
+    "progression_score_ci95": [
+     70.5,
+     79.9
+    ]
+   },
+   "sloppy": {
+    "progression_score_mean": 19.4,
+    "progression_score_ci95": [
+     12.5,
+     26.3
+    ]
+   }
+  }
+ }
+}

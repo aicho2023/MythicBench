@@ -134,6 +134,10 @@ export interface ReplayIndexEntry {
   score?: number
   local?: boolean // a model run saved on this machine (replays/local/), not a committed showcase
   runId?: string
+  /** URL of the replay file from the site root, when it isn't under replays/ (results dataset; may be .json.gz) */
+  url?: string
+  /** site path that shows this replay, e.g. /watch/<model>/<tier>/<episode>/<pull> */
+  path?: string
 }
 
 /** One seed (or, later, one pull) of a model run, as listed in the catalog. */

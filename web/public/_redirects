@@ -1,0 +1,2 @@
+# Cloudflare Pages: serve the app for every path that isn't a file (client-side routes).
+/*    /index.html   200
