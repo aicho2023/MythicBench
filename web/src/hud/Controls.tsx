@@ -33,7 +33,7 @@ export function TopBar({ onAbout }: { onAbout: () => void }) {
       <div className="mx-auto flex items-center gap-2">
         <span className="label hidden lg:inline">Run</span>
         <div className="seg">
-          {index.map((r) => (
+          {index.filter((r) => !r.local).map((r) => (
             <button key={r.id} aria-pressed={r.id === current} onClick={() => load(r.id)} title={r.blurb} className="flex items-baseline gap-2">
               <span>{r.label}</span>
               <span className={`num font-mono text-[10.5px] ${r.outcome === 'victory' ? 'text-good' : 'text-bad'}`}>
@@ -42,6 +42,21 @@ export function TopBar({ onAbout }: { onAbout: () => void }) {
             </button>
           ))}
         </div>
+        {index.some((r) => r.local) && (
+          <select
+            value={index.find((r) => r.id === current)?.local ? current ?? '' : ''}
+            onChange={(e) => e.target.value && load(e.target.value)}
+            className="h-8 max-w-[220px] rounded-lg border border-white/[0.08] bg-white/[0.03] px-2 text-[12px] text-fg-muted outline-none hover:text-fg"
+            title="Model runs saved on this machine"
+          >
+            <option value="">Model runs ({index.filter((r) => r.local).length})</option>
+            {index.filter((r) => r.local).map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.label} · {r.outcome === 'victory' ? 'kill' : 'wipe'} {fmtTime(r.duration_s * 1000)}{r.score !== undefined ? ` · ${r.score}` : ''}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       <button onClick={onAbout} className="btn">

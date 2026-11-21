@@ -199,16 +199,36 @@ Grokka → Nyx → Bao → Bramble. Full WoW-analogy table in `README.md`.
 - Dungeon props pop in slightly after characters on first load.
 - Crypt-gate glow is hidden behind KayKit's closed red door (cosmetic).
 
+## 9b. LLM harness (Phase 2, started)
+
+- `sim/mythicsim/llm/`: `clients.py` (stdlib HTTP for Anthropic/OpenAI, a
+  `mock` model, and `CachedClient`, which records replies to
+  `runs/cache/*.jsonl` so runs replay exactly; `--offline` makes a missing
+  recording an error), `prompt.py` (rules → system prompt, obs → state text,
+  strict reply parsing), `policy.py` (`PartyBrain`: one model drives all five
+  characters through standing orders).
+- **Call cadence:** every 2 s of game time plus triggers (boss cast start, new
+  pools, adds, ally < 40%, death), 0.5 s minimum gap except for boss casts,
+  capped at 300 calls per fight. The game is paused while the model thinks.
+- **Interrupts in a priority list** only fire on an interruptible cast, so
+  standing orders don't waste them.
+- **CLI:** `python -m mythicsim llm --model provider:model --seeds 0-4`. It
+  writes `runs/<model>/` and publishes to `web/public/replays/local/`, which the
+  viewer shows under "Model runs". Both folders are git-ignored.
+- **Keys:** `.env` at the repo root (copy `.env.example`).
+- **Prompt size:** ~1.6k tokens of rules (prompt-cached by the provider) and
+  ~0.3–0.5k of state per call.
+
 ## 10. Suggested next steps
 
 1. Get the owner's questions answered; merge PR #3 if approved.
 2. **Panda ranger** (owner wants Bao as a panda-inspired ranger): e.g. tint the
    Ranger model and attach panda ears/eye patches to the `head` bone.
-3. **Phase 2 — LLM agents & evals:**
-   - An `LLMPolicy` implementing `act(obs) -> list[Action]` (observation → prompt,
-     tool/JSON action schema, stated reason → `decision` event).
-   - Decision cadence (e.g. per GCD) and a latency/"thinking budget" model.
+3. **Phase 2 — LLM agents & evals:** the harness is built (see 9b). Next:
+   - First real runs (Anthropic + OpenAI); read the replays, then iterate on
+     the prompt and cadence.
    - Multi-seed evaluation with confidence intervals; held-out seeds.
+   - Compare one model controlling the party vs. five separate copies.
    - Track illegal/invalid actions as a metric.
 4. **Phase 3:** expert trajectory generation → SFT a small open model (HF
    Transformers + TRL) → preference optimization / RL.
