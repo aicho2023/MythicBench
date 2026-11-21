@@ -1,4 +1,3 @@
-import { Crown, ShieldOff, Skull, Zap } from 'lucide-react'
 import { fmtNum } from '../content/display'
 import { useHud } from '../replay/store'
 import { AbilityIcon, Bar } from './bits'
@@ -17,56 +16,50 @@ export function BossFrame() {
   const adds = s.order.map((id) => s.units[id]).filter((u) => u.info.kind === 'add' && u.alive)
   const fury = !!boss.auras.hollow_fury
   return (
-    <div className="w-[560px]">
-      <div className="panel px-3 pb-2 pt-1.5">
-        <div className="mb-1 flex items-center gap-2">
-          <Skull size={16} className="text-red-400" />
-          <span className="font-display text-[15px] font-bold tracking-wide text-gold-300">{boss.info.name}</span>
-          <Crown size={14} className="text-cyan-300" />
-          {fury && <span className="rounded bg-red-600/80 px-1.5 font-body text-[10px] font-extrabold uppercase text-white">Enraged</span>}
-          <span className="ml-auto font-body text-xs font-bold text-white/70">
-            {fmtNum(boss.hp)} / {fmtNum(boss.info.max_hp)}
-          </span>
+    <div className="w-[520px]">
+      <div className="card px-3.5 pb-2.5 pt-2">
+        <div className="flex items-baseline gap-2">
+          <span className="text-[13px] font-medium text-fg">{boss.info.name}</span>
+          {fury && <span className="rounded border border-bad/40 px-1 font-mono text-[10px] uppercase text-bad">enraged</span>}
+          <span className="num ml-auto font-mono text-[11px] text-fg-faint">{fmtNum(boss.hp)} / {fmtNum(boss.info.max_hp)}</span>
+          <span className="num w-[52px] text-right font-mono text-[13px] font-medium text-fg">{pct.toFixed(1)}%</span>
         </div>
-        <Bar frac={boss.hp / boss.info.max_hp} color={boss.alive ? '#d23a5a' : '#444'} height={22}>
-          <span />
-          <span className="text-[13px]">{pct.toFixed(1)}%</span>
-          <span />
-        </Bar>
-        <div className="mt-1.5 h-[22px]">
+        <Bar frac={boss.hp / boss.info.max_hp} color={boss.alive ? '#e5484d' : '#3f3f46'} height={6} className="mt-1.5" />
+        <div className="mt-2 h-[20px]">
           {cast && castInfo ? (
-            <div className="flex items-center gap-1.5">
-              <AbilityIcon ability={cast.ability} info={castInfo} size={22} />
-              <div className="relative flex-1">
-                <Bar
-                  frac={(t - cast.t0) / cast.castMs}
-                  color={cast.interruptible ? '#f2b636' : '#8b8ba0'}
-                  height={18}
-                >
-                  <span className="flex items-center gap-1">
-                    {cast.interruptible ? <Zap size={11} className="text-yellow-200" /> : <ShieldOff size={11} />}
-                    {castInfo.name}
-                  </span>
-                  <span>{((cast.t0 + cast.castMs - t) / 1000).toFixed(1)}s</span>
-                </Bar>
-              </div>
-              {cast.interruptible && (
-                <span className="animate-pulse rounded bg-yellow-400 px-1.5 py-0.5 font-body text-[10px] font-black uppercase text-ink-900">Kick!</span>
-              )}
+            <div className="flex items-center gap-2">
+              <AbilityIcon ability={cast.ability} info={castInfo} size={20} />
+              <Bar
+                frac={(t - cast.t0) / cast.castMs}
+                color={cast.interruptible ? 'rgba(251,191,36,0.85)' : 'rgba(161,161,170,0.6)'}
+                height={20}
+                className="flex-1"
+              >
+                <span>{castInfo.name}</span>
+                <span className="font-mono text-[10.5px]">{((cast.t0 + cast.castMs - t) / 1000).toFixed(1)}s</span>
+              </Bar>
+              <span className={`w-[92px] text-right font-mono text-[10.5px] uppercase ${cast.interruptible ? 'text-warn' : 'text-fg-faint'}`}>
+                {cast.interruptible ? 'interruptible' : 'not kickable'}
+              </span>
             </div>
           ) : flash ? (
-            <div className={`flex h-[18px] items-center justify-center rounded font-display text-[12px] font-bold uppercase tracking-widest ${flash.how === 'interrupted' ? 'bg-sky-500/30 text-sky-200 ring-1 ring-sky-400/60' : 'bg-white/5 text-white/40'}`}>
-              {flash.how === 'interrupted' ? 'Interrupted!' : engine.replay.abilities[flash.ability]?.name}
+            <div className={`flex h-[20px] items-center justify-center rounded-[3px] font-mono text-[11px] uppercase ${flash.how === 'interrupted' ? 'bg-info/10 text-info' : 'text-fg-faint'}`}>
+              {flash.how === 'interrupted' ? `${engine.replay.abilities[flash.ability]?.name ?? 'cast'} interrupted` : `${engine.replay.abilities[flash.ability]?.name} cast`}
             </div>
-          ) : null}
+          ) : (
+            <div className="h-[20px] rounded-[3px] bg-white/[0.03]" />
+          )}
         </div>
       </div>
       {adds.length > 0 && (
-        <div className="mt-1.5 flex flex-wrap justify-center gap-1.5">
+        <div className="mt-1.5 flex justify-center gap-1.5">
           {adds.map((a) => (
-            <div key={a.info.id} className="panel w-[150px] px-2 py-1">
-              <div className="font-body text-[10px] font-bold text-lime-200/90">{a.info.name}</div>
-              <Bar frac={a.hp / a.info.max_hp} color="#86c95a" height={9} />
+            <div key={a.info.id} className="card w-[140px] px-2.5 py-1.5">
+              <div className="flex justify-between text-[11px]">
+                <span className="text-fg-muted">{a.info.name.replace('Risen ', '')}</span>
+                <span className="num font-mono text-fg-faint">{Math.round((100 * a.hp) / a.info.max_hp)}%</span>
+              </div>
+              <Bar frac={a.hp / a.info.max_hp} color="#a3a3a3" height={3} className="mt-1" />
             </div>
           ))}
         </div>

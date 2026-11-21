@@ -1,58 +1,67 @@
-import { Brain, CheckCircle2, Circle, Hourglass, Skull } from 'lucide-react'
+import { AlertTriangle, Megaphone } from 'lucide-react'
 import { useState } from 'react'
 import { CLASS_COLORS, WARN_CASTS, fmtNum, fmtTime } from '../content/display'
 import { usePlayback, useHud } from '../replay/store'
 
 // ---------------------------------------------------------------------------
-// Dungeon timer ("Sigil" = our keystone level)
+// Scorecard: the eval's metrics, live as the replay plays.
 // ---------------------------------------------------------------------------
-export function DungeonTimer() {
+export function Scorecard() {
   const h = useHud()
   if (!h) return null
   const { s, engine } = h
   const t = s.ended ? Math.min(h.t, s.ended.t) : h.t // timer stops on kill/wipe
   const m = engine.replay.meta
   const limit = m.time_limit_ms
-  const over = t > limit
-  const won = s.ended?.outcome === 'victory'
+  const boss = s.units.mortisar
+  const bossPct = boss ? (100 * boss.hp) / boss.info.max_hp : 0
+  const avoidable = Object.values(s.avoidableTaken).reduce((a, b) => a + b, 0)
+  const outcome = !s.ended ? { text: 'In progress', cls: 'text-fg-muted' }
+    : s.ended.outcome === 'victory' ? { text: 'Kill', cls: 'text-good' } : { text: 'Wipe', cls: 'text-bad' }
   return (
-    <div className="panel w-[260px] p-3">
-      <div className="flex items-center justify-between">
-        <span className="font-display text-[15px] font-bold text-gold-300">Gravecrown Crypt</span>
-        <span className="rounded bg-gradient-to-b from-purple-500 to-purple-800 px-2 py-0.5 font-display text-xs font-black text-white ring-1 ring-purple-300/60">
-          +{m.sigil_level}
-        </span>
+    <div className="card w-[272px]">
+      <div className="flex items-center justify-between px-3.5 pb-2 pt-2.5">
+        <span className="label">Scorecard</span>
+        <span className={`text-[12px] font-medium ${outcome.cls}`}>{outcome.text}</span>
       </div>
-      <div className="mt-2 flex items-baseline gap-2">
-        <Hourglass size={14} className={over ? 'text-red-400' : 'text-gold-400'} />
-        <span className={`font-display text-2xl font-bold tabular-nums ${over ? 'text-red-400' : 'text-white'}`}>{fmtTime(t)}</span>
-        <span className="font-body text-sm text-white/50">/ {fmtTime(limit)}</span>
-      </div>
-      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-black/60">
-        <div className="h-full bg-gradient-to-r from-gold-500 to-gold-300" style={{ width: `${Math.min(100, (t / limit) * 100)}%` }} />
-      </div>
-      <div className="mt-2.5 space-y-1 font-body text-[12px] text-white/80">
-        <div className="flex items-center gap-1.5">
-          {won ? <CheckCircle2 size={13} className="text-emerald-400" /> : <Circle size={13} className="text-white/40" />}
-          <span className={won ? 'text-emerald-300 line-through decoration-emerald-500/60' : ''}>Defeat Mortisar, the Hollow King</span>
+      <div className="px-3.5">
+        <div className="flex items-baseline justify-between">
+          <span className={`num font-mono text-[22px] font-medium ${t > limit ? 'text-bad' : 'text-fg'}`}>{fmtTime(t)}</span>
+          <span className="num font-mono text-[11px] text-fg-faint">limit {fmtTime(limit)}</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <Skull size={13} className="text-red-300/80" />
-          <span>Party deaths: <b className="text-white">{s.deaths}</b></span>
+        <div className="mt-1.5 h-[3px] overflow-hidden rounded-full bg-white/[0.07]">
+          <div className="h-full bg-fg/70" style={{ width: `${Math.min(100, (t / limit) * 100)}%` }} />
         </div>
       </div>
-      <div className="mt-2.5 border-t border-white/10 pt-2 font-mono text-[10px] leading-relaxed text-white/45">
-        policy <span className="text-white/70">{m.policy}</span> · seed <span className="text-white/70">{m.seed}</span><br />
-        sim v{m.sim_version} · content v{m.content_version}
+      <dl className="mt-2.5 border-t border-line px-3.5 py-1.5">
+        <Metric label="Boss health left" value={`${bossPct.toFixed(1)}%`} tone={bossPct === 0 ? 'good' : 'plain'} />
+        <Metric label="Interrupts" value={`${s.kicks.interrupted} / ${s.kicks.casts}`}
+          tone={s.kicks.casts === 0 ? 'plain' : s.kicks.interrupted === s.kicks.casts ? 'good' : 'bad'} />
+        <Metric label="Party deaths" value={`${s.deaths}`} tone={s.deaths === 0 ? 'good' : 'bad'} />
+        <Metric label="Avoidable damage" value={fmtNum(avoidable)} tone={avoidable === 0 ? 'good' : 'bad'} />
+      </dl>
+      <div className="border-t border-line px-3.5 py-2 font-mono text-[10.5px] leading-[15px] text-fg-faint">
+        <div className="flex justify-between"><span>policy</span><span className="text-fg-muted">{m.policy}</span></div>
+        <div className="flex justify-between"><span>seed</span><span className="text-fg-muted">{m.seed}</span></div>
+        <div className="flex justify-between"><span>sim / content</span><span className="text-fg-muted">v{m.sim_version} / v{m.content_version}</span></div>
       </div>
     </div>
   )
 }
 
+function Metric({ label, value, tone }: { label: string; value: string; tone: 'good' | 'bad' | 'plain' }) {
+  return (
+    <div className="flex items-center justify-between py-[5px]">
+      <dt className="text-[12px] text-fg-muted">{label}</dt>
+      <dd className={`num font-mono text-[12px] ${tone === 'good' ? 'text-good' : tone === 'bad' ? 'text-bad' : 'text-fg'}`}>{value}</dd>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------------------
-// Damage meter
+// Damage / healing meter
 // ---------------------------------------------------------------------------
-type Tab = 'damage' | 'healing' | 'mechanics'
+type Tab = 'damage' | 'healing'
 export function DamageMeter() {
   const [tab, setTab] = useState<Tab>('damage')
   const h = useHud()
@@ -64,60 +73,36 @@ export function DamageMeter() {
   const max = Math.max(1, ...rows.map((r) => r.v))
   const sec = Math.max(1, t / 1000)
   return (
-    <div className="panel w-[300px] p-2">
-      <div className="mb-1.5 flex gap-1">
-        {(['damage', 'healing', 'mechanics'] as Tab[]).map((k) => (
-          <button
-            key={k}
-            onClick={() => setTab(k)}
-            className={`flex-1 rounded px-1 py-0.5 font-display text-[11px] font-bold capitalize transition ${tab === k ? 'bg-gold-500/25 text-gold-300 ring-1 ring-gold-500/60' : 'text-white/50 hover:text-white/80'}`}
-          >
-            {k}
-          </button>
-        ))}
-      </div>
-      {tab !== 'mechanics' ? (
-        <div className="space-y-1">
-          {rows.map(({ u, v }) => (
-            <div key={u.info.id} className="relative h-[19px] overflow-hidden rounded-[3px] bg-black/50">
-              <div className="absolute inset-y-0 left-0" style={{ width: `${(v / max) * 100}%`, background: `linear-gradient(90deg, ${CLASS_COLORS[u.info.class]}cc, ${CLASS_COLORS[u.info.class]}77)` }} />
-              <div className="absolute inset-0 flex items-center justify-between px-1.5 font-body text-[11px] font-bold text-white [text-shadow:0_1px_1px_#000]">
-                <span>{u.info.name}</span>
-                <span className="tabular-nums">{fmtNum(v)} <span className="text-white/60">({fmtNum(v / sec)})</span></span>
-              </div>
-            </div>
+    <div className="card w-[272px] pb-2">
+      <div className="flex items-center justify-between px-3.5 pb-1.5 pt-2">
+        <span className="label">{tab === 'damage' ? 'Damage' : 'Healing'} · per sec</span>
+        <div className="seg">
+          {(['damage', 'healing'] as Tab[]).map((k) => (
+            <button key={k} aria-pressed={tab === k} onClick={() => setTab(k)} className="!px-2 !py-0.5 capitalize">{k}</button>
           ))}
         </div>
-      ) : (
-        <div className="space-y-1.5 font-body text-[12px] text-white/85">
-          <Row label="Interrupts" value={`${s.kicks.interrupted} / ${s.kicks.casts}`} good={s.kicks.interrupted === s.kicks.casts} />
-          <Row label="Party deaths" value={`${s.deaths}`} good={s.deaths === 0} />
-          <div className="pt-1 text-[10px] uppercase tracking-wider text-white/40">Avoidable damage taken (Desecrate)</div>
-          {players.map((u) => (
-            <div key={u.info.id} className="flex justify-between">
-              <span style={{ color: CLASS_COLORS[u.info.class] }}>{u.info.name}</span>
-              <span className={`tabular-nums ${(s.avoidableTaken[u.info.id] ?? 0) > 0 ? 'text-red-300' : 'text-emerald-300'}`}>
-                {fmtNum(s.avoidableTaken[u.info.id] ?? 0)}
+      </div>
+      <div className="space-y-[7px] px-3.5">
+        {rows.map(({ u, v }) => (
+          <div key={u.info.id}>
+            <div className="flex items-baseline justify-between text-[12px]">
+              <span className="text-fg-muted">{u.info.name}</span>
+              <span className="num font-mono text-[11px] text-fg">
+                {fmtNum(v)} <span className="text-fg-faint">{fmtNum(v / sec)}</span>
               </span>
             </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function Row({ label, value, good }: { label: string; value: string; good: boolean }) {
-  return (
-    <div className="flex justify-between">
-      <span>{label}</span>
-      <span className={`font-bold tabular-nums ${good ? 'text-emerald-300' : 'text-red-300'}`}>{value}</span>
+            <div className="mt-[3px] h-[3px] rounded-full bg-white/[0.05]">
+              <div className="h-full rounded-full" style={{ width: `${(v / max) * 100}%`, background: CLASS_COLORS[u.info.class] }} />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
 
 // ---------------------------------------------------------------------------
-// Raid warnings and boss yells (center screen)
+// Callouts: boss warnings and yells (center screen)
 // ---------------------------------------------------------------------------
 export function RaidWarnings() {
   const h = useHud()
@@ -128,31 +113,32 @@ export function RaidWarnings() {
     const age = t - e.t
     if (e.type === 'emote') {
       const dur = e.style === 'yell' ? 5000 : 2500
-      if (age < dur) items.push({ key: i, text: e.style === 'yell' ? `Mortisar yells: ${e.text}` : e.text, style: e.style, age, dur })
+      if (age < dur) items.push({ key: i, text: e.style === 'yell' ? e.text : e.text, style: e.style, age, dur })
     } else if (e.type === 'cast_start' && WARN_CASTS[e.ability] && s.units[e.unit]?.cast?.t0 === e.t) {
       const tgt = e.target ? s.units[e.target]?.info.name ?? '' : ''
       items.push({ key: i, text: WARN_CASTS[e.ability].replace('{target}', tgt), style: 'warning', age, dur: e.cast_ms + 10000 })
-    } else if (e.type === 'ground_spawn' && age < 1500 && e.target === undefined) {
-      // (pools are announced below via Desecrate cast)
     } else if (e.type === 'cast_success' && e.ability === 'desecrate' && age < 2000) {
-      items.push({ key: i, text: 'Desecrate! Move out of the swirls!', style: 'warning', age, dur: 2000 })
+      items.push({ key: i, text: 'Desecrate — move out of the pools', style: 'warning', age, dur: 2000 })
     }
   }
   const shown = items.slice(-3)
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex flex-col items-center gap-1.5">
       {shown.map((w) => {
-        const fade = Math.min(1, (w.dur - w.age) / 400)
-        const pop = w.age < 150 ? 1.15 - (w.age / 150) * 0.15 : 1
+        const fade = Math.max(0, Math.min(1, (w.dur - w.age) / 400))
         return (
-          <div
-            key={w.key}
-            style={{ opacity: fade, transform: `scale(${pop})` }}
-            className={w.style === 'yell'
-              ? 'max-w-[640px] text-center font-body text-[15px] font-bold italic text-rose-300 [text-shadow:0_2px_4px_#000,0_0_8px_#000]'
-              : 'whitespace-nowrap text-center font-display text-[20px] font-black tracking-wide text-yellow-300 [text-shadow:0_2px_0_#7a3c00,0_0_12px_#000,0_0_3px_#000]'}
-          >
-            {w.text}
+          <div key={w.key} style={{ opacity: fade }} className="animate-[fadein_0.2s_ease-out]">
+            {w.style === 'yell' ? (
+              <div className="flex max-w-[560px] items-start gap-2 rounded-lg bg-black/55 px-3 py-1.5 text-[13px] italic text-fg backdrop-blur">
+                <Megaphone size={13} className="mt-[3px] shrink-0 text-fg-faint" />
+                <span><span className="not-italic text-fg-muted">Mortisar:</span> {w.text}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 whitespace-nowrap rounded-lg border border-warn/30 bg-black/65 px-3 py-1.5 text-[13.5px] font-medium text-warn backdrop-blur">
+                <AlertTriangle size={14} />
+                {w.text}
+              </div>
+            )}
           </div>
         )
       })}
@@ -168,7 +154,7 @@ export function DecisionLog() {
   const seek = usePlayback((p) => p.seek)
   if (!h) return null
   const { t, engine, s } = h
-  const rows: { key: number; t: number; who: string; cls: string; text: string; sub?: string; tone: 'info' | 'bad' | 'good' }[] = []
+  const rows: { key: number; t: number; who: string; cls: string; text: string; sub?: string; tone: 'info' | 'bad' }[] = []
   for (const { e, i } of engine.eventsBetween(t - 40000, t)) {
     if (e.type === 'decision') {
       const u = s.units[e.unit]
@@ -177,33 +163,31 @@ export function DecisionLog() {
       const u = s.units[e.unit]
       rows.push({ key: i, t: e.t, who: u.info.name, cls: u.info.class, text: `died to ${engine.replay.abilities[e.ability]?.name ?? engine.replay.auras[e.ability]?.name ?? e.ability}`, tone: 'bad' })
     } else if (e.type === 'cast_success' && e.ability === 'requiem_of_bones') {
-      rows.push({ key: i, t: e.t, who: 'Mortisar', cls: 'boss', text: 'Requiem of Bones went off!', sub: 'Nobody interrupted it.', tone: 'bad' })
+      rows.push({ key: i, t: e.t, who: 'Mortisar', cls: 'boss', text: 'Requiem of Bones not interrupted', tone: 'bad' })
     }
   }
-  const shown = rows.slice(window.innerHeight < 840 ? -3 : -6).reverse()
+  const shown = rows.slice(window.innerHeight < 840 ? -4 : -6).reverse()
   return (
-    <div className="panel w-[340px] p-2">
-      <div className="mb-1 flex items-center gap-1.5 font-display text-[12px] font-bold text-gold-300">
-        <Brain size={13} /> Agent decisions
-        <span className="ml-auto font-body text-[10px] font-normal text-white/40">click to rewind</span>
+    <div className="card w-[340px] pb-1.5">
+      <div className="flex items-center justify-between px-3.5 pb-1 pt-2">
+        <span className="label">Agent decisions</span>
+        <span className="font-mono text-[10px] text-fg-faint">click a row to rewind</span>
       </div>
-      <div className="space-y-1">
-        {shown.length === 0 && <div className="font-body text-[11px] text-white/40">Waiting for the pull…</div>}
-        {shown.map((r) => (
-          <button
-            key={r.key}
-            onClick={() => seek(r.t - 2000)}
-            className={`block w-full rounded px-1.5 py-1 text-left font-body leading-tight transition hover:bg-white/10 ${r.tone === 'bad' ? 'bg-red-900/30' : 'bg-white/[0.03]'}`}
-          >
-            <div className="flex gap-1.5 text-[11px]">
-              <span className="tabular-nums text-white/40">{fmtTime(r.t)}</span>
-              <span className="font-bold" style={{ color: CLASS_COLORS[r.cls] ?? '#ff8a8a' }}>{r.who}</span>
-              <span className={r.tone === 'bad' ? 'text-red-300' : 'text-white/85'}>{r.text}</span>
-            </div>
-            {r.sub && <div className="pl-9 text-[10.5px] italic text-white/50">“{r.sub}”</div>}
-          </button>
-        ))}
-      </div>
+      {shown.length === 0 && <div className="px-3.5 py-2 text-[12px] text-fg-faint">Nothing yet. Waiting for the pull.</div>}
+      {shown.map((r) => (
+        <button
+          key={r.key}
+          onClick={() => seek(r.t - 2000)}
+          className="grid w-full grid-cols-[36px_1fr] gap-x-2 px-3.5 py-[5px] text-left transition-colors hover:bg-white/[0.05]"
+        >
+          <span className="num pt-px font-mono text-[10.5px] text-fg-faint">{fmtTime(r.t)}</span>
+          <span className="text-[12px] leading-[17px]">
+            <span className="font-medium" style={{ color: r.tone === 'bad' && r.cls === 'boss' ? '#f87171' : CLASS_COLORS[r.cls] ?? '#ededef' }}>{r.who}</span>{' '}
+            <span className={r.tone === 'bad' ? 'text-bad' : 'text-fg'}>{r.text}</span>
+            {r.sub && <span className="block text-[11.5px] leading-[16px] text-fg-faint">{r.sub}</span>}
+          </span>
+        </button>
+      ))}
     </div>
   )
 }

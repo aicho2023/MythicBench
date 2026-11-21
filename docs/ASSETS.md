@@ -49,4 +49,4 @@ also works; Remastered is the newer version.)
 - Only original or properly licensed assets. No ripped game models, textures,
   icons, music, or logos.
 - Icons come from [Lucide](https://lucide.dev) (ISC license).
-- Fonts: Cinzel and Nunito via `@fontsource` (SIL Open Font License).
+- Fonts: IBM Plex Sans and IBM Plex Mono via `@fontsource` (SIL Open Font License).

@@ -4,12 +4,23 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['Cinzel', 'serif'],
-        body: ['Nunito', 'system-ui', 'sans-serif'],
+        sans: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'],
+        mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
       },
       colors: {
-        gold: { 300: '#f7dc8f', 400: '#e9c46a', 500: '#c9a24a', 700: '#7a5e22' },
-        ink: { 800: '#14121c', 900: '#0b0a10' },
+        // Neutral surfaces; the 3D scene supplies the color.
+        bg: '#0a0a0c',
+        fg: { DEFAULT: '#ededef', muted: '#a1a1aa', faint: '#71717a' },
+        line: 'rgba(255,255,255,0.08)',
+        // One accent, plus semantic colors that only ever mean one thing.
+        accent: '#a78bfa',
+        good: '#4ade80',
+        bad: '#f87171',
+        warn: '#fbbf24',
+        info: '#7dd3fc',
+      },
+      fontSize: {
+        label: ['10.5px', { lineHeight: '14px', letterSpacing: '0.06em' }],
       },
     },
   },

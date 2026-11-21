@@ -124,15 +124,15 @@ export function WorldOverlay() {
     <div ref={root} className="pointer-events-none absolute inset-0 overflow-hidden">
       {Array.from({ length: MAX_PLATES }, (_, i) => (
         <div key={`p${i}`} ref={(el) => { if (el) plates.current[i] = el }} className="absolute left-0 top-0 hidden text-center">
-          <div className="whitespace-nowrap font-body text-[11px] font-extrabold [text-shadow:0_1px_2px_#000,0_0_3px_#000]" />
+          <div className="whitespace-nowrap font-sans text-[11px] font-semibold [text-shadow:0_1px_2px_#000,0_0_3px_#000]" />
           <div className="mx-auto mt-0.5 h-[6px] overflow-hidden rounded-sm bg-black/80 ring-1 ring-black">
-            <div className="h-full bg-gradient-to-b from-red-400 to-red-700" />
+            <div className="h-full bg-[#e5484d]" />
           </div>
         </div>
       ))}
       {Array.from({ length: MAX_TEXT }, (_, i) => (
         <div key={`t${i}`} ref={(el) => { if (el) texts.current[i] = el }}
-          className="absolute left-0 top-0 hidden whitespace-nowrap font-display font-black [text-shadow:0_2px_0_#000,0_0_4px_#000]" />
+          className="absolute left-0 top-0 hidden whitespace-nowrap font-sans font-semibold [text-shadow:0_1px_2px_#000,0_0_4px_rgba(0,0,0,0.8)]" />
       ))}
     </div>
   )
