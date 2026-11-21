@@ -148,3 +148,65 @@ def test_harder_keys_are_harder():
     from mythicsim.metrics import score as sc
     mean = lambda lvl: sum(sc(simulate("expert", s, lvl))["score"] for s in range(6)) / 6  # noqa: E731
     assert mean(8) >= mean(14) > mean(18)
+
+
+def test_dungeon_unit_ids_are_unique_across_the_run():
+    """Trash and the boss's summoned adds must never share an id (a reused id
+    would overwrite a dead trash unit and corrupt progress)."""
+    rep = simulate("sloppy", 42, 12, "dungeon")
+    ids = [u["id"] for u in rep["units"]] + [e["unit"]["id"] for e in rep["events"] if e["type"] == "spawn"]
+    assert len(ids) == len(set(ids))
+
+
+@pytest.fixture(scope="module", params=["expert", "competent", "sloppy"])
+def dungeon_replay(request):
+    return simulate(request.param, SHOWCASE_SEED, 12, "dungeon")
+
+
+def test_dungeon_matches_schema_and_is_consistent(dungeon_replay):
+    jsonschema.validate(dungeon_replay, SCHEMA)
+    ts = [e["t"] for e in dungeon_replay["events"]]
+    assert ts == sorted(ts)
+    hp = {u["id"]: u["max_hp"] for u in dungeon_replay["units"]}
+    for e in dungeon_replay["events"]:
+        if e["type"] == "spawn":
+            hp[e["unit"]["id"]] = e["unit"]["max_hp"]
+        elif e["type"] in ("damage", "heal"):
+            hp[e["target"]] += -e["amount"] if e["type"] == "damage" else e["amount"]
+            assert hp[e["target"]] == e["hp"], e
+        elif e["type"] == "revive":
+            hp[e["unit"]] = e["hp"]
+
+
+def test_dungeon_is_deterministic_and_pulls_in_order():
+    a, b = simulate("expert", 9, 12, "dungeon"), simulate("expert", 9, 12, "dungeon")
+    assert digest(a) == digest(b)
+    pulls = [e["pack"] for e in a["events"] if e["type"] == "pull"]
+    assert pulls == ["pack1", "pack2", "boss"]
+    assert a["meta"]["mode"] == "dungeon" and a["meta"]["time_limit_ms"] == 270_000
+
+
+def test_dungeon_bosses_sleep_until_pulled():
+    rep = simulate("expert", 9, 12, "dungeon")
+    pull = next(e["t"] for e in rep["events"] if e["type"] == "pull" and e["pack"] == "boss")
+    first = next(e["t"] for e in rep["events"] if e.get("unit") == "mortisar" and e["type"] in ("cast_start", "cast_success"))
+    assert first >= pull
+
+
+def test_dungeon_revives_cost_time():
+    """A dead party member gets back up out of combat, and the timer is charged."""
+    from mythicsim.dungeon import DungeonRun
+    from mythicsim.policies import make_dungeon_policies
+    run = DungeonRun(3, make_dungeon_policies("expert", 3), "x")
+    nyx = run.units["nyx"]
+    run.kill(nyx, run.units["bramble"], "test")
+    for _ in range(40):
+        run.step()
+        run.t += 100
+    assert nyx.alive and run.penalty_ms == 10_000 and run.revives == 1
+
+
+def test_dungeon_reference_bots_rank_in_order():
+    e, c, s = (bench(p, 24, 12, "dungeon") for p in ("expert", "competent", "sloppy"))
+    assert e["score_mean"] > c["score_mean"] > s["score_mean"]
+    assert c["score_ci95"][0] > s["score_ci95"][1]

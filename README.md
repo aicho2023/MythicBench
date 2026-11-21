@@ -62,30 +62,50 @@ each):
 | +14 | 47% | 1% | 0% |
 | +16 | 0% (81% of the boss down) | 0% | 0% |
 
-## Same fight, three teams
+## The dungeon run
 
-The viewer ships three replays on **seed 42**. Each seed shuffles the boss's
-timers, but every policy on a seed faces the identical boss script, so only the
+A run of the **Gravecrown Crypt** works like a Mythic+ key: walk in from the
+entrance, clear two trash packs, then kill Mortisar, all on one **4:30 timer**.
+
+- **Chapel pack:** 4 Bonewalkers plus a **Bone Chanter**. Its Grave Volley
+  hits the whole party and can be interrupted: kick it or eat it.
+- **Ossuary pack:** 3 Bonewalkers plus a **Marrow Mender**. Its Mend Bones
+  heals the pack and can be interrupted: kill the Mender first.
+- **Pulling:** a pack attacks when anyone gets within 9 m or hits it. Mortisar
+  sleeps until someone walks into his room, and his timers and enrage start
+  then.
+- **Between pulls:** the party regenerates health, and fallen allies get back
+  up. Each revive costs **10 s** on the timer, so resting costs time and
+  pulling hurt costs lives.
+- **Scoring (0–100):** a wipe earns up to 70 for progress (each pack 15%,
+  Mortisar 70%). A clear earns 70 plus up to 30 for speed, with revive
+  penalties counted.
+
+`--mode dungeon` is the default for `run`, `bench`, `llm`, and `progress`.
+`--mode boss` plays the boss fight alone.
+
+The viewer ships three runs on **seed 42**. Each seed shuffles the boss's
+timers, but every policy on a seed faces the identical script, so only the
 decision-maker differs.
 
-| Run | Outcome | Score | Interrupts | Deaths |
-| --- | --- | --- | --- | --- |
-| Expert bots | **Kill** in 2:47 | 87.1 | 11 / 11 | 0 |
-| Competent bots | **Wipe** to the enrage at 3:19, boss at 3.8% | 67.3 | 10 / 13 | 5 |
-| Sloppy bots | **Wipe** at 1:22 (boss at 62%) | 26.8 | 3 / 5 | 5 |
+| Run | Outcome | Score | Progress | Interrupts | Deaths |
+| --- | --- | --- | --- | --- | --- |
+| Expert bots | **Clear** in 3:44 | 90.4 | 100% | 17 / 21 | 0 |
+| Competent bots | **Wipe** to the enrage, boss at 0.9% | 69.6 | 99.4% | 16 / 22 | 5 |
+| Sloppy bots | **Wipe** at 2:22, boss at 63% | 39.0 | 55.7% | 4 / 13 | 5 |
 
 Across 200 seeds (`python -m mythicsim bench --policy expert,competent,sloppy --runs 200`):
 
-| Bot | Score (95% CI) | Win rate (95% CI) | Interrupt rate |
+| Bot | Score (95% CI) | Clear rate (95% CI) | Interrupt rate |
 | --- | --- | --- | --- |
-| Expert | **87.5** (86.8–88.2) | 99.5% (97–100%) | 99.7% |
-| Competent | **72.3** (70.2–74.5) | 68.5% (62–75%) | 85.9% |
-| Sloppy | **14.9** (14.3–15.4) | 0% (0–2%) | 47.8% |
+| Expert | **89.0** (88.3–89.7) | 97% (94–99%) | 81% |
+| Competent | **74.6** (72.8–76.4) | 62% (55–68%) | 74% |
+| Sloppy | **30.8** (30.4–31.3) | 0% (0–2%) | 33% |
 
 Three known skill levels, ranked in the right order with no overlap. That's the
 check that the benchmark can tell good play from bad before any model plays it.
-At +12 the expert bots almost always win, so the score separates agents at the
-top by kill time. Higher key levels make the top end harder.
+Boss-only fights (`--mode boss`) score expert 87.5, competent 72.3, and sloppy
+14.9.
 
 ![The sloppy party's wipe](docs/media/wipe.jpg)
 

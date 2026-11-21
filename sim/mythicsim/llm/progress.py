@@ -101,15 +101,20 @@ class EpisodeResult:
 
 def run_episode(client: ChatClient, episode: int, *, max_pulls: int = 8, memory: bool = True,
                 knowledge: str = "blind", interval_ms: int = 2000, max_calls: int = 300,
-                level: int = 12, on_pull=None) -> EpisodeResult:
+                level: int = 12, mode: str = "boss", on_pull=None) -> EpisodeResult:
     result = EpisodeResult(episode)
     notes = ""
     for k in range(1, max_pulls + 1):
         seed = pull_seed(episode, k)
         notes_in = notes if memory else ""
         policies, brain = make_llm_policies(client, interval_ms=interval_ms, max_calls=max_calls,
-                                            knowledge=knowledge, notes=notes_in or None, pull=k, level=level)
-        rep = Encounter(seed, policies, f"llm:{client.spec}", level).run()
+                                            knowledge=knowledge, notes=notes_in or None, pull=k, level=level,
+                                            mode=mode)
+        if mode == "dungeon":
+            from ..dungeon import DungeonRun
+            rep = DungeonRun(seed, policies, f"llm:{client.spec}", level).run()
+        else:
+            rep = Encounter(seed, policies, f"llm:{client.spec}", level).run()
         rep["meta"]["metrics"] = score(rep)
         db = debrief_text(rep)
         problem = None

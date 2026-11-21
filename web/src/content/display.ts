@@ -61,6 +61,31 @@ export function runScore(outcome: string | null, endMs: number, bossHpPctLeft: n
   return Math.round(0.7 * (100 - bossHpPctLeft) * 10) / 10
 }
 
+/** Dungeon progress weights (mirror of content.PROGRESS_WEIGHTS). */
+export const PROGRESS_WEIGHTS: Record<string, number> = { pack1: 0.15, pack2: 0.15, boss: 0.7 }
+
+/** % of the dungeon done: each pack's health removed, then the boss's (mirror of metrics.dungeon_progress). */
+export function dungeonProgress(units: Record<string, { hp: number; info: { max_hp: number; pack?: string; kind: string } }>): number {
+  const packs: Record<string, [number, number]> = {}
+  let boss = 0
+  for (const u of Object.values(units)) {
+    if (u.info.pack) {
+      const p = (packs[u.info.pack] ??= [0, 0])
+      p[0] += u.info.max_hp - u.hp
+      p[1] += u.info.max_hp
+    } else if (u.info.kind === 'boss') boss = (u.info.max_hp - u.hp) / u.info.max_hp
+  }
+  let total = PROGRESS_WEIGHTS.boss * boss
+  for (const [k, [done, all]] of Object.entries(packs)) total += (PROGRESS_WEIGHTS[k] ?? 0) * (done / all)
+  return Math.round(1000 * total) / 10
+}
+
+/** The 0-100 dungeon-run score (mirror of metrics.dungeon_score); timer includes revive penalties. */
+export function dungeonScore(outcome: string | null, timerMs: number, progressPct: number, limitMs: number): number {
+  if (outcome === 'victory') return runScore('victory', timerMs, 0, limitMs)
+  return Math.round(0.7 * progressPct * 10) / 10
+}
+
 export function fmtNum(n: number): string {
   if (n >= 1e6) return `${(n / 1e6).toFixed(2)}M`
   if (n >= 1e3) return `${(n / 1e3).toFixed(n >= 1e5 ? 0 : 1)}K`

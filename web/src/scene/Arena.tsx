@@ -5,12 +5,15 @@ import * as THREE from 'three'
 import { frameState } from '../replay/store'
 import { SkeletonModel, useRig } from './avatars'
 import { AssetBoundary, USE_KAYKIT } from './ErrorBoundary'
-import { KayKitDungeon } from './kaykit/Dungeon'
+import { CryptRun, KayKitDungeon } from './kaykit/Dungeon'
+import { usePlayback } from '../replay/store'
 import { brickTexture, flagstoneTexture, glow, runeCircleTexture, softCircleTexture, toon } from './materials'
 
 const R = 15
 
 export function Arena() {
+  const layout = usePlayback((p) => p.engine?.replay.arena)
+  const dungeonRun = !!layout?.rooms
   const floorMat = useMemo(() => new THREE.MeshToonMaterial({ map: flagstoneTexture(), color: '#b9b2d6' }), [])
   const wallMat = useMemo(() => new THREE.MeshToonMaterial({ map: brickTexture(), color: '#8a82b0', side: THREE.BackSide }), [])
   const stone = toon('#4a4566')
@@ -60,7 +63,8 @@ export function Arena() {
       {USE_KAYKIT ? (
         <AssetBoundary fallback={procedural}>
           <Suspense fallback={null}>
-            <KayKitDungeon doors={DOORS} />
+            <KayKitDungeon doors={DOORS} openings={dungeonRun ? [0] : []} />
+            {dungeonRun && <CryptRun rooms={layout!.rooms!} corridors={layout!.corridors!} />}
           </Suspense>
         </AssetBoundary>
       ) : procedural}

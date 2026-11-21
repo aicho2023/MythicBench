@@ -63,6 +63,51 @@ def _boss_section(knowledge: str) -> str:
   - Boss timers vary from fight to fight; the state shows when each is next due."""
 
 
+def _trash_line(aid: str, blind: bool) -> str:
+    a = C.ABILITIES[aid]
+    if blind:
+        return f"      - {a.name}: unknown, learn it."
+    bits = [f"cast {a.cast_ms / 1000:g}s", "interruptible" if a.interruptible else "not interruptible"]
+    if a.cooldown_ms:
+        bits.append(f"every ~{a.cooldown_ms / 1000:g}s")
+    if a.amount:
+        bits.append(f"{a.amount} damage")
+    return f"      - {a.name} ({aid}): {', '.join(bits)}. {a.description}"
+
+
+def _dungeon_section(knowledge: str) -> str:
+    """The run before the boss: map, packs, pulling, resting, the timer."""
+    blind = knowledge == "blind"
+    rooms = "\n".join(f"  - {r.name} ({r.id}): circle centred ({r.center[0]:g}, {r.center[1]:g}), radius {r.radius:g} m"
+                       for r in C.ROOMS)
+    cors = "; ".join(f"|x| <= {c.x_half:g} for z {c.z_min:g}..{c.z_max:g}" for c in C.CORRIDORS)
+    packs = []
+    for p in C.PACKS:
+        comp: dict[str, int] = {}
+        for cls, _ in p.members:
+            comp[cls] = comp.get(cls, 0) + 1
+        packs.append(f"  - {p.name} in the {C.ROOMS_BY_ID[p.room].name}: " +
+                     ", ".join(f"{n}x {C.TRASH[c].name}" for c, n in comp.items()))
+    kinds = []
+    for cls, d in C.TRASH.items():
+        line = f"  - {d.name} ({d.max_hp:,} HP): " + ("melee, chases its target" if d.swing_ms else "caster, stands and casts")
+        kinds.append(line + ("" if not d.spells else ":"))
+        kinds.extend(_trash_line(s, blind) for s in d.spells)
+    return f"""## The dungeon run
+This is a full Mythic+-style run, not just the boss: walk from the entrance, clear two packs of undead, then fight Mortisar. One timer covers the whole run: {C.DUNGEON_LIMIT_MS / 1000:g} s.
+Map (positions are (x, z); the entrance is at large z, Mortisar's room at the origin):
+{rooms}
+  - Corridors join them: {cors}. You can only walk inside rooms and corridors.
+Route, entrance to boss: {', '.join(f'({w[0]:g}, {w[1]:g})' for w in C.ROUTE)}.
+Packs:
+{chr(10).join(packs)}
+Enemies:
+{chr(10).join(kinds)}
+Pulling: a pack attacks when anyone comes within {C.AGGRO_RADIUS:g} m of any of its members, or hits one. Mortisar wakes when someone comes within {C.BOSS_ENGAGE_RADIUS:g} m of him; his abilities and timers only start then.
+Between pulls (no enemy fighting you): the party regenerates {int(C.OOC_REGEN_PCT_PER_S * 100)}% health per second, and after {C.REVIVE_AFTER_MS / 1000:g} s out of combat fallen allies get back up at {int(C.REVIVE_HP_PCT * 100)}% health. Each revive adds {C.DEATH_PENALTY_MS / 1000:g} s to the timer. Resting costs time; pulling hurt costs lives.
+Score for the run (0-100): if the party wipes, up to 70 for progress (each pack is worth 15%, Mortisar 70% by health removed); if Mortisar dies, 70 plus up to 30 for speed (the full 30 with a quarter of the timer left; revive penalties count)."""
+
+
 def notes_section(notes: str | None, pull: int | None) -> str:
     """Appended to the rules on later pulls when the agent keeps notes."""
     if not notes:
@@ -72,7 +117,7 @@ def notes_section(notes: str | None, pull: int | None) -> str:
 
 
 def system_prompt(knowledge: str = "full", notes: str | None = None, pull: int | None = None,
-                  level: int = C.SIGIL_LEVEL) -> str:
+                  level: int = C.SIGIL_LEVEL, mode: str = "boss") -> str:
     """The rules. ``knowledge="blind"`` hides everything about the boss.
 
     The "full" text with no notes is byte-identical to earlier harness
@@ -94,13 +139,20 @@ def system_prompt(knowledge: str = "full", notes: str | None = None, pull: int |
         intro = f"The fight has a {limit} s time limit."
     else:
         intro = f"The boss enrages at {limit}s and then kills everyone within seconds."
+    if mode == "dungeon":
+        score_text = "Scored over the whole dungeon run; see \"The dungeon run\" below."
+        intro += " (Mortisar's clock starts when he is pulled.)"
+    else:
+        score_text = (f"A wipe earns up to 70 points in proportion to the boss's health removed. A kill earns 70 plus "
+                      f"up to 30 for speed: the full 30 for killing with a quarter of the {limit} s timer (or more) left.")
+    next_move = (', or "next" walks to the next waypoint of the route toward the boss' if mode == "dungeon" else "")
     mult = C.level_multiplier(level)
     key = (f"This is a +{level} key: enemy health and damage are x{mult:.2f} compared with +{C.SIGIL_LEVEL}"
            + (" (the numbers below are for +12)." if knowledge == "full" else ".")) if level != C.SIGIL_LEVEL else ""
     return f"""You control a party of five adventurers fighting a dungeon boss in a turn-based simulation of a real-time fight. Your goal: kill the boss as fast as possible without dying. {intro}
 
 ## Score (0-100)
-A wipe earns up to 70 points in proportion to the boss's health removed. A kill earns 70 plus up to 30 for speed: the full 30 for killing with a quarter of the {limit} s timer (or more) left.{(" " + key) if key else ""}
+{score_text}{(" " + key) if key else ""}
 
 ## Arena
 Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) in metres. Mortisar stands still at ({C.BOSS_POS[0]:g}, {C.BOSS_POS[1]:g}) with a body radius of {b.radius:g} m. Characters move at 5 m/s. Moving cancels a cast in progress, and spells with a cast time cannot be started while moving. Melee range is {C.MELEE_RANGE:g} m from the target's edge. Global cooldown (GCD): {C.GCD_MS / 1000:g}s after most abilities.
@@ -109,10 +161,10 @@ Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) i
 {chr(10).join(party)}
 
 {_boss_section(knowledge)}
-
+{(chr(10) + _dungeon_section(knowledge) + chr(10)) if mode == "dungeon" else ""}
 ## How you play
 You are asked for orders every couple of seconds, and immediately when something important happens (a boss cast starts, pools appear, adds spawn, an ally gets low). The game is paused while you think. Each character keeps following its latest orders until you give it new ones:
-  - "move_to": [x, z] walks there once, or "safe" steps to the nearest spot clear of all pools, reachable without walking through another pool, from which the character's first priority target is still in range when possible (the scripted bots' movement logic). Omit or null to stay put. A move is carried out each time you send it.
+  - "move_to": [x, z] walks there once, or "safe" steps to the nearest spot clear of all pools, reachable without walking through another pool, from which the character's first priority target is still in range when possible (the scripted bots' movement logic){next_move}. Omit or null to stay put. A move is carried out each time you send it.
   - "priority": an ordered list of [ability_id, target_id]. Every tick, the character uses the FIRST entry that is ready (off cooldown, in range, GCD free, not casting or moving for cast-time spells). Off-GCD abilities in the list fire even during the GCD. Interrupts only fire while their target is casting something interruptible (reacting {reaction} s after the cast starts), so they can stay in the list; once one character interrupts, the others' interrupts see nothing to stop and stay ready. Put a reliable filler ability last so the character never idles.
   - "say": one short sentence explaining the decision (shown in the replay).
 Targets are unit ids from the state (e.g. "mortisar", "bonewalker_1", "lumi"). For self-buffs and party-wide abilities use the character's own id ("self" and "party" also work).
@@ -167,17 +219,37 @@ def render_state(obs: dict, gcd: dict[str, int], orders_age_s: float | None, kno
     Blind mode shows only what's on screen: no boss-ability timers."""
     blind = knowledge == "blind"
     limit = f"{C.BOSS.enrage_ms / 1000:g}s"
-    lines = [f"Time {obs['t'] / 1000:.1f}s ({'time limit' if blind else 'enrage at'} {limit})."]
+    dg = obs.get("dungeon")
+    if dg:
+        timer = (dg["elapsed_ms"] + dg["penalty_ms"]) / 1000
+        lines = [f"Run timer {timer:.1f}s of {dg['limit_ms'] / 1000:g}s"
+                 + (f" (includes {dg['penalty_ms'] / 1000:g}s of revive penalties)" if dg["penalty_ms"] else "")
+                 + (". IN COMBAT." if dg["in_combat"] else ". Out of combat (resting regenerates health).")]
+        for p in dg["packs"]:
+            lines.append(f"PACK {p['name']} ({p['room']}): {p['state'].upper()}"
+                         + (f", {len(p['alive'])} left" if p["state"] != "dead" else ""))
+        if not dg["boss_engaged"]:
+            lines.append("BOSS mortisar is asleep on his throne at (0.0, -2.0); he wakes when someone comes within "
+                         f"{C.BOSS_ENGAGE_RADIUS:g} m.")
+    else:
+        lines = [f"Time {obs['t'] / 1000:.1f}s ({'time limit' if blind else 'enrage at'} {limit})."]
     boss = next((e for e in obs["enemies"] if e["role"] == "boss"), None)
+    if boss and dg and not dg["boss_engaged"]:
+        boss = None  # described above as asleep
     if boss:
         lines.append(f"BOSS mortisar {boss['hp_pct']:.1f}% HP, attacking {boss['target']}"
                      f"{_cast(boss['casting'])}{_auras(boss['auras'])}.")
         if not blind:
             nxt = ", ".join(f"{k} in {v / 1000:.1f}s" for k, v in sorted(obs["boss_next_ms"].items(), key=lambda kv: kv[1]))
             lines.append(f"  Next boss abilities: {nxt}.")
-    adds = [e for e in obs["enemies"] if e["role"] == "add" and e["alive"]]
-    lines.append("ADDS: " + ("; ".join(f"{a['id']} {a['hp_pct']:.0f}% HP at {_p(a['pos'])} attacking {a['target']}"
-                                       for a in adds) if adds else "none") + ".")
+    adds = [e for e in obs["enemies"] if e["role"] == "add" and e["alive"] and e.get("engaged", True)]
+    lines.append(("ENEMIES FIGHTING YOU: " if dg else "ADDS: ")
+                 + ("; ".join(f"{a['id']} ({a['name']}) {a['hp_pct']:.0f}% HP at {_p(a['pos'])} attacking {a['target']}"
+                              f"{_cast(a['casting'])}" for a in adds) if adds else "none") + ".")
+    if dg:
+        idle = [e for e in obs["enemies"] if e["role"] == "add" and not e.get("engaged", True)]
+        if idle:
+            lines.append("NOT YET PULLED: " + "; ".join(f"{e['id']} ({e['name']}) at {_p(e['pos'])}" for e in idle) + ".")
     pools = [f"{g['id']} at {_p(g['pos'])} r={g['radius']:g} {'ARMED' if g['armed'] else 'arming'}"
              for g in obs["ground"]]
     lines.append("POOLS: " + ("; ".join(pools) if pools else "none") + ".")
@@ -248,8 +320,8 @@ def parse_reply(text: str, unit_ids: set[str], dead: set[str] = frozenset()) -> 
             mv = [mv["x"], mv["z"]]  # {"x": .., "z": ..} is unambiguous; accept it
         if isinstance(mv, list) and len(mv) == 1 and isinstance(mv[0], str):
             mv = mv[0]  # ["safe"] means "safe"
-        if isinstance(mv, str) and mv.strip().lower() == "safe":
-            o.move_to = "safe"
+        if isinstance(mv, str) and mv.strip().lower() in ("safe", "next"):
+            o.move_to = mv.strip().lower()
         elif mv is not None:
             if isinstance(mv, (list, tuple)) and len(mv) == 2 and all(isinstance(v, (int, float)) for v in mv):
                 o.move_to = (float(mv[0]), float(mv[1]))

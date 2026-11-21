@@ -1,35 +1,38 @@
 [
   {
-    "id": "expert-kill",
+    "id": "expert-clear",
     "policy": "expert",
     "seed": 42,
+    "mode": "dungeon",
     "label": "Expert bots",
-    "blurb": "Every kick lands, pools dodged, adds handled. Kills with time to spare.",
-    "file": "expert-kill.json",
+    "blurb": "Clean pulls, casters first, every kick lands. Clears the crypt with time to spare.",
+    "file": "expert-clear.json",
     "outcome": "victory",
-    "duration_s": 167.2,
-    "score": 87.1
+    "duration_s": 224.2,
+    "score": 90.4
   },
   {
-    "id": "competent-enrage",
+    "id": "competent-run",
     "policy": "competent",
     "seed": 42,
+    "mode": "dungeon",
     "label": "Competent bots",
-    "blurb": "Same fight, same seed. A few missed kicks and slow dodges cost just enough time to hit the enrage.",
-    "file": "competent-enrage.json",
+    "blurb": "Same run, same seed. A few missed kicks and slow dodges, and the clock gets tight.",
+    "file": "competent-run.json",
     "outcome": "wipe",
-    "duration_s": 199.0,
-    "score": 67.3
+    "duration_s": 260.0,
+    "score": 69.6
   },
   {
     "id": "sloppy-wipe",
     "policy": "sloppy",
     "seed": 42,
+    "mode": "dungeon",
     "label": "Sloppy bots",
-    "blurb": "Same fight, same seed. Missed kicks, slow feet, tunnel vision.",
+    "blurb": "Same run, same seed. Missed kicks, tunnel vision, standing in the bad.",
     "file": "sloppy-wipe.json",
     "outcome": "wipe",
-    "duration_s": 82.3,
-    "score": 26.8
+    "duration_s": 142.1,
+    "score": 39.0
   }
 ]

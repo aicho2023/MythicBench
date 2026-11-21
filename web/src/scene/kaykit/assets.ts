@@ -18,6 +18,7 @@ export const CHARACTER_URL: Record<string, string> = {
   Skeleton_Warrior: `${BASE}/skeletons/characters/gltf/Skeleton_Warrior.glb`,
   Skeleton_Minion: `${BASE}/skeletons/characters/gltf/Skeleton_Minion.glb`,
   Skeleton_Mage: `${BASE}/skeletons/characters/gltf/Skeleton_Mage.glb`,
+  Skeleton_Rogue: `${BASE}/skeletons/characters/gltf/Skeleton_Rogue.glb`,
 }
 
 // Only the Rig_Medium libraries we actually use (Rig_Large is for big monsters).
@@ -40,6 +41,7 @@ export const LOADOUT: Record<string, { right?: string; left?: string }> = {
   Skeleton_Warrior: { right: boneGear('Skeleton_Blade') },
   Skeleton_Minion: {},
   Skeleton_Mage: { right: boneGear('Skeleton_Staff') },
+  Skeleton_Rogue: { right: boneGear('Skeleton_Staff') },
 }
 
 /** Visual scale per unit kind so the boss towers over the party. */

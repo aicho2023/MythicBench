@@ -44,8 +44,16 @@ def test_notes_are_appended_only_when_present():
     assert with_notes.startswith(system_prompt("blind")) and "this is pull 3" in with_notes and "Kick the Requiem." in with_notes
 
 
+def _boss_replay(policy: str, seed: int = 42) -> dict:
+    from mythicsim.__main__ import simulate
+    from mythicsim.metrics import score
+    rep = simulate(policy, seed)
+    rep["meta"]["metrics"] = score(rep)
+    return rep
+
+
 def test_debrief_matches_the_metrics():
-    rep = json.loads((REPLAYS / "competent-enrage.json").read_text())
+    rep = _boss_replay("competent")
     d = debrief_data(rep)
     m = rep["meta"]["metrics"]
     assert d["outcome"] == m["outcome"] and d["boss_hp_pct_left"] == m["boss_hp_pct_remaining"]
@@ -58,7 +66,7 @@ def test_debrief_matches_the_metrics():
 
 
 def test_debrief_of_a_clean_kill():
-    rep = json.loads((REPLAYS / "expert-kill.json").read_text())
+    rep = _boss_replay("expert")
     text = debrief_text(rep)
     assert text.startswith("RESULT: Mortisar defeated") and "DEATHS: none." in text
 
@@ -153,3 +161,9 @@ def test_progression_items_publish_without_collisions(tmp_path):
     cat = json.loads((pub / "catalog.json").read_text())
     files = [i["file"] for i in cat["runs"][0]["items"]]
     assert len(set(files)) == 4 and all((pub / f).exists() for f in files)
+
+
+def test_debrief_covers_the_dungeon():
+    rep = json.loads((REPLAYS / "competent-run.json").read_text())
+    text = debrief_text(rep)
+    assert "DUNGEON:" in text and "Chapel pack" in text and "Grave Volley" in text

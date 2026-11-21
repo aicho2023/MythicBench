@@ -69,13 +69,15 @@ class Standing:
 class PartyBrain:
     def __init__(self, client: ChatClient, interval_ms: int = 2000, min_gap_ms: int = 500,
                  max_calls: int = 300, knowledge: str = "full", notes: str | None = None,
-                 pull: int | None = None, level: int = C.SIGIL_LEVEL):
+                 pull: int | None = None, level: int = C.SIGIL_LEVEL, mode: str = "boss"):
         self.client = client
         self.knowledge = knowledge
         self.interval_ms = interval_ms
         self.min_gap_ms = min_gap_ms
         self.max_calls = max_calls
-        self.system = system_prompt(knowledge, notes, pull, level)
+        self.system = system_prompt(knowledge, notes, pull, level, mode)
+        self.pack_states: dict[str, str] = {}
+        self.boss_awake = False
         self.orders: dict[str, Standing] = {}
         self.gcd: dict[str, int] = {}
         self.stats = BrainStats()
@@ -101,8 +103,16 @@ class PartyBrain:
         if new_pools:
             why.append(f"new pools: {', '.join(new_pools)}")
         new_adds = [e["id"] for e in obs["enemies"] if e["role"] == "add" and e["id"] not in self.seen_enemies]
-        if new_adds:
+        if new_adds and self.last_call_t is not None:
             why.append(f"adds appeared: {', '.join(new_adds)}")
+        dg = obs.get("dungeon")
+        if dg:
+            for p in dg["packs"]:
+                old = self.pack_states.get(p["id"], "idle")
+                if p["state"] != old:
+                    why.append(f"{p['name']} {'pulled' if p['state'] == 'engaged' else 'cleared'}")
+            if dg["boss_engaged"] and not self.boss_awake:
+                why.append("Mortisar woke up")
         for p in obs["party"]:
             if p["alive"] and any(g["armed"] and dist(p["pos"], g["pos"]) <= g["radius"] + POOL_HIT_PAD
                                   for g in obs["ground"]):
@@ -121,6 +131,10 @@ class PartyBrain:
         self.seen_ground |= {g["id"] for g in obs["ground"]}
         self.low = {p["id"] for p in obs["party"] if p["alive"] and p["hp_pct"] < LOW_HP_PCT}
         self.dead = {p["id"] for p in obs["party"] if not p["alive"]}
+        dg = obs.get("dungeon")
+        if dg:
+            self.pack_states = {p["id"]: p["state"] for p in dg["packs"]}
+            self.boss_awake = dg["boss_engaged"]
 
     def tick(self, obs: dict) -> None:
         """Called by the first living character each tick; decides whether to ask the model."""
@@ -146,6 +160,7 @@ class PartyBrain:
         for w in why:
             kind = ("boss_cast" if "started casting" in w else "pools" if w.startswith("new pools")
                     else "in_pool" if "standing in" in w
+                    else "pack" if w.endswith(("pulled", "cleared")) or "woke" in w
                     else "adds" if w.startswith("adds") else "death" if w.endswith("died")
                     else "low_hp" if "is low" in w else "start" if "starting" in w else "routine")
             self.stats.triggers[kind] = self.stats.triggers.get(kind, 0) + 1
@@ -229,7 +244,8 @@ class LLMPolicy:
         moving = me["moving"]
         if st.order.move_to and not st.move_done:
             st.move_done = True
-            dest = self.safe_destination(obs, st) if st.order.move_to == "safe" else st.order.move_to
+            dest = (self.safe_destination(obs, st) if st.order.move_to == "safe"
+                    else self.next_waypoint(obs) if st.order.move_to == "next" else st.order.move_to)
             # Ordering a character to the spot it already stands on is a no-op:
             # don't send it, so it doesn't show up as a "Move" decision.
             if dest is not None and dist(me["pos"], dest) > 0.3:
@@ -243,6 +259,14 @@ class LLMPolicy:
                 out.append(Action("cast", ab_id, tgt_id, reason=self.say(st)))
                 break
         return out
+
+    def next_waypoint(self, obs: dict):
+        """'next': the next route waypoint toward the boss (a walking shortcut, like 'safe')."""
+        dg = obs.get("dungeon")
+        if not dg:
+            return None
+        z = obs["self"]["pos"][1]
+        return next((tuple(w) for w in dg["route"] if w[1] < z - 0.8), tuple(dg["route"][-1]))
 
     def safe_destination(self, obs: dict, st: Standing):
         """Resolve "safe": the bots' dodge planner, keeping the first priority

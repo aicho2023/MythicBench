@@ -372,3 +372,125 @@ class ScriptedPolicy:
 def make_policies(profile: str, seed: int) -> dict[str, ScriptedPolicy]:
     skill = PROFILES[profile]
     return {m.id: ScriptedPolicy(m.id, skill, seed) for m in C.PARTY}
+
+
+# ---------------------------------------------------------------------------
+# Dungeon bots: the same Skill knobs, plus a route, pulls, and resting.
+# ---------------------------------------------------------------------------
+
+SPECIAL_TRASH = ("bone_chanter", "marrow_mender")  # kill these first
+REST_TO_PCT = 80.0
+# Formation offsets (x, metres behind the leader along the route).
+FORMATION = {"bramble": (0.0, 0.0), "grokka": (-1.2, 2.0), "nyx": (1.2, 2.0), "bao": (1.4, 6.0), "lumi": (-1.4, 6.5)}
+
+
+class DungeonPolicy(ScriptedPolicy):
+    """Walks the route, pulls one pack at a time, kills priority targets, rests.
+
+    Base-class logic (kicks, dodging, rotations) runs on a *filtered* view that
+    only contains enemies already in the fight, so the bots never react to a
+    pack in another room."""
+
+    def act(self, obs: dict) -> list[Action]:
+        d = obs["dungeon"]
+        self.dg = d
+        self.boss_phase = d["boss_engaged"]
+        view = dict(obs, enemies=[e for e in obs["enemies"] if e.get("engaged")])
+        self.trash_phase = not self.boss_phase and d["in_combat"]
+        return super().act(view)
+
+    # --- where to stand -----------------------------------------------------
+    def desired_spot(self, obs: dict) -> tuple:
+        if self.boss_phase:
+            return super().desired_spot(obs)
+        me = obs["self"]
+        if self.trash_phase:
+            tgt = self.pick_target(obs)
+            if tgt and self.cls in ("guardian", "berserker", "shadowblade"):
+                tp = tuple(tgt["pos"])
+                d = dist(me["pos"], tp)
+                if d > 2.2:
+                    f = (d - 1.6) / d
+                    return (me["pos"][0] + (tp[0] - me["pos"][0]) * f, me["pos"][1] + (tp[1] - me["pos"][1]) * f)
+                return tuple(me["pos"])
+            # ranged and healer: hang back behind the fight, toward the entrance
+            fighters = [tuple(e["pos"]) for e in obs["enemies"]] or [tuple(me["pos"])]
+            cz = sum(p[1] for p in fighters) / len(fighters)
+            return clamp_spot((FORMATION[self.uid][0], cz + 7.0))
+        return self.formation_spot(obs)
+
+    def formation_spot(self, obs: dict) -> tuple:
+        party = {p["id"]: p for p in obs["party"]}
+        leader = next((party[i] for i in ("bramble", "grokka", "nyx", "bao", "lumi") if party[i]["alive"]), None)
+        if self.uid == (leader or {}).get("id"):
+            return self.leader_spot(obs)
+        if not leader:
+            return tuple(obs["self"]["pos"])
+        ox, oz = FORMATION[self.uid]
+        lp = leader["pos"]
+        return clamp_spot((lp[0] + ox, lp[1] + oz))
+
+    def leader_spot(self, obs: dict) -> tuple:
+        me = obs["self"]
+        party = [p for p in obs["party"]]
+        resting = any(not p["alive"] for p in party) or \
+            min(p["hp_pct"] for p in party if p["alive"]) < REST_TO_PCT
+        if resting:
+            return tuple(me["pos"])
+        nxt = next((p for p in self.dg["packs"] if p["state"] == "idle"), None)
+        goal_z = C.ROOMS_BY_ID[nxt["room"]].center[1] if nxt else C.PARTY[0].home[1]
+        z = me["pos"][1]
+        for w in C.ROUTE:
+            if w[1] < z - 0.8:
+                return w if w[1] >= goal_z else (0.0, goal_z) if nxt else C.PARTY[0].home
+        return (0.0, goal_z) if nxt else C.PARTY[0].home
+
+    # --- what to hit ---------------------------------------------------------
+    def pick_target(self, obs: dict) -> dict | None:
+        if self.boss_phase:
+            return super().pick_target(obs)
+        enemies = [e for e in obs["enemies"] if e["alive"]]
+        if not enemies:
+            return None
+        me = obs["self"]
+        near = lambda e: (dist(me["pos"], e["pos"]), e["id"])  # noqa: E731
+        if self.uid == "bramble":
+            walkers = [e for e in enemies if e["class"] not in SPECIAL_TRASH]
+            return min(walkers or enemies, key=near)
+        special = [e for e in enemies if e["class"] in SPECIAL_TRASH]
+        if special and self.skill.swaps_to_adds:
+            return min(special, key=lambda e: (e["hp"], e["id"]))
+        return min(enemies, key=near)
+
+    def rotation_guardian(self, obs: dict, moving: bool):
+        if self.boss_phase:
+            return super().rotation_guardian(obs, moving)
+        me = obs["self"]
+        loose = [e for e in obs["enemies"] if e["role"] == "add" and e["class"] not in SPECIAL_TRASH
+                 and e["target"] != me["id"]]
+        if loose and self.ready(obs, "challenging_roar"):
+            first_seen = self.first_seen.setdefault(f"pull:{loose[0]['id']}", obs["t"])
+            if obs["t"] - first_seen >= self.skill.taunt_delay_ms // 3:
+                return Action("cast", "challenging_roar", loose[0]["id"], reason="Grabbing the pack.")
+        tgt = self.pick_target(obs)
+        if not tgt or not self.in_range(me, tgt, C.MELEE_RANGE):
+            return None
+        if self.ready(obs, "bulwark_slam"):
+            return Action("cast", "bulwark_slam", tgt["id"])
+        return Action("cast", "rampart_strike", tgt["id"])
+
+    def rotation_ranger(self, obs: dict, moving: bool):
+        if not self.boss_phase and self.ready(obs, "wild_roar"):
+            # Save the party-wide haste for the boss.
+            obs = dict(obs, self=dict(obs["self"], cooldowns=dict(obs["self"]["cooldowns"], wild_roar=1)))
+        return super().rotation_ranger(obs, moving)
+
+
+def clamp_spot(p: tuple) -> tuple:
+    from .dungeon import clamp_to_walkable
+    return clamp_to_walkable(p)
+
+
+def make_dungeon_policies(profile: str, seed: int) -> dict[str, DungeonPolicy]:
+    skill = PROFILES[profile]
+    return {m.id: DungeonPolicy(m.id, skill, seed) for m in C.PARTY}

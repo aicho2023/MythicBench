@@ -38,10 +38,12 @@ type Group = 'hero' | 'boss' | 'add'
 const IDLE: Record<string, string> = {
   guardian: 'Melee_Blocking', lightweaver: 'Idle_B', berserker: 'Melee_2H_Idle', shadowblade: 'Melee_Unarmed_Idle',
   ranger: 'Ranged_Bow_Idle', boss: 'Melee_2H_Idle', bonewalker: 'Skeletons_Idle',
+  bone_chanter: 'Skeletons_Idle', marrow_mender: 'Skeletons_Idle',
 }
 const WALK: Record<string, string> = {
   guardian: 'Running_A', lightweaver: 'Running_B', berserker: 'Running_A', shadowblade: 'Running_B',
   ranger: 'Running_HoldingBow', boss: 'Walking_A', bonewalker: 'Skeletons_Walking',
+  bone_chanter: 'Skeletons_Walking', marrow_mender: 'Skeletons_Walking',
 }
 /** One-shot gestures for instant abilities and attacks. */
 const ACTION: Record<string, string> = {
@@ -58,6 +60,7 @@ const ACTION: Record<string, string> = {
   hollow_strike: 'Melee_2H_Attack_Chop', soul_rend: 'Melee_2H_Attack_Slice', desecrate: 'Ranged_Magic_Shoot',
   raise_dead: 'Ranged_Magic_Summon', requiem_of_bones: 'Ranged_Magic_Summon',
   bone_claw: 'Melee_Unarmed_Attack_Punch_A',
+  grave_volley: 'Ranged_Magic_Summon', mend_bones: 'Ranged_Magic_Raise', bone_bolt: 'Ranged_Magic_Shoot',
 }
 /** What to show WHILE a cast bar is filling. */
 // Archery. Measured from the clips (bow axis in the archer's frame):
@@ -81,6 +84,9 @@ const CASTING: Record<string, { name: string; mode: 'loop' | 'progress'; from?: 
   requiem_of_bones: { name: 'Ranged_Magic_Spellcasting_Long', mode: 'loop' },
   soul_rend: { name: 'Ranged_Magic_Raise', mode: 'progress' },
   raise_dead: { name: 'Ranged_Magic_Spellcasting', mode: 'loop' },
+  grave_volley: { name: 'Ranged_Magic_Spellcasting_Long', mode: 'loop' },
+  mend_bones: { name: 'Ranged_Magic_Spellcasting', mode: 'loop' },
+  bone_bolt: { name: 'Ranged_Magic_Spellcasting', mode: 'loop' },
 }
 
 /** When the current action started (rounded: keys must not wobble with float error). */

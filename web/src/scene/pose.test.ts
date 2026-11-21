@@ -6,7 +6,7 @@ import { ReplayEngine } from '../replay/engine'
 import type { Replay } from '../replay/types'
 import { RELEASE_MS, poseOf, walkSegments } from './pose'
 
-const replay: Replay = JSON.parse(readFileSync(join(__dirname, '../../public/replays/expert-kill.json'), 'utf8'))
+const replay: Replay = JSON.parse(readFileSync(join(__dirname, '../../public/replays/expert-clear.json'), 'utf8'))
 const engine = new ReplayEngine(replay)
 const pose = (id: string, t: number) => poseOf(engine.stateAt(t).units[id], t, replay)
 
@@ -28,11 +28,21 @@ describe('pose', () => {
   })
 
   it('merges a chase of tiny hops into one walk', () => {
-    // Grokka chases the adds around 40-43 s in many ~140 ms hops
-    const segs = walkSegments(replay).get('grokka')!
-    const chase = segs.find((s) => s.t0 <= 41000 && s.t1 >= 42900)
-    expect(chase).toBeDefined()
-    for (const t of [40950, 41040, 41450, 42650]) expect(pose('grokka', t).mode).toBe('walk')
+    // Find a run of >= 3 back-to-back short hops by one unit (an add or melee chasing).
+    const byUnit = new Map<string, { t: number; dur: number }[]>()
+    for (const e of replay.events) if (e.type === 'move') (byUnit.get(e.unit) ?? byUnit.set(e.unit, []).get(e.unit)!).push({ t: e.t, dur: e.duration_ms })
+    let found: { unit: string; t0: number; t1: number } | null = null
+    for (const [unit, ms] of byUnit) {
+      for (let i = 0; i + 2 < ms.length && !found; i++) {
+        const [a, b, c] = [ms[i], ms[i + 1], ms[i + 2]]
+        const chained = b.t - (a.t + Math.min(a.dur, b.t - a.t)) <= 150 && c.t - (b.t + Math.min(b.dur, c.t - b.t)) <= 150
+        if (chained && b.t - a.t < 300 && c.t - b.t < 300 && c.t + c.dur - a.t >= 400) found = { unit, t0: a.t, t1: c.t }
+      }
+      if (found) break
+    }
+    expect(found).not.toBeNull()
+    const segs = walkSegments(replay).get(found!.unit)!
+    expect(segs.some((s) => s.t0 <= found!.t0 && s.t1 >= found!.t1)).toBe(true)
   })
 
   it('never walks on a lone shuffle', () => {

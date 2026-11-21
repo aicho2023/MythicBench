@@ -45,7 +45,11 @@ function ring(angle: number, r: number) {
   return { position: [Math.sin(angle) * r, 0, Math.cos(angle) * r] as [number, number, number], rotation: [0, angle + Math.PI, 0] as [number, number, number] }
 }
 
-export function KayKitDungeon({ doors }: { doors: [number, number][] }) {
+/** Is this angle (around the arena, 0 = +z) inside an opening (a corridor out of the room)? */
+const inOpening = (a: number, openings: number[], half = 0.38) =>
+  openings.some((o) => Math.abs(Math.atan2(Math.sin(a - o), Math.cos(a - o))) < half)
+
+export function KayKitDungeon({ doors, openings = [] }: { doors: [number, number][]; openings?: number[] }) {
   const P = usePieces()
 
   // Outer floor: 4x4 tiles filling the ring between the arena and the walls.
@@ -83,6 +87,7 @@ export function KayKitDungeon({ doors }: { doors: [number, number][] }) {
         <Clone key={`${x},${z}`} object={P.floor_tile_large} position={[x, -0.12, z]} receiveShadow />
       ))}
       {walls.map((a, k) => {
+        if (inOpening(a, openings)) return null
         const arched = k % 2 === 0
         return (
           <group key={k} {...ring(a, WALL_R)} scale={2}>
@@ -102,7 +107,7 @@ export function KayKitDungeon({ doors }: { doors: [number, number][] }) {
           </group>
         )
       })}
-      {pillars.map((a, k) => (
+      {pillars.map((a, k) => inOpening(a, openings, 0.2) ? null : (
         <group key={k} {...ring(a, R + 2.8)} scale={1.5}>
           <Clone object={P.pillar_decorated} />
         </group>
@@ -119,12 +124,98 @@ export function KayKitDungeon({ doors }: { doors: [number, number][] }) {
           </group>
         )
       })}
-      {clutter.map((c, k) => (
+      {clutter.filter((c) => !inOpening(c.a, openings)).map((c, k) => (
         <group key={k} position={[Math.sin(c.a) * c.r, 0, Math.cos(c.a) * c.r]} rotation={[0, c.a + Math.PI + c.turn, 0]} scale={c.s}>
           <Clone object={P[c.piece]} castShadow />
         </group>
       ))}
       <Sentinels />
+    </group>
+  )
+}
+
+type Room = { id: string; name: string; center: [number, number]; radius: number }
+type Corridor = { x_half: number; z_min: number; z_max: number }
+
+/**
+ * The rest of the crypt for dungeon runs: the rooms before the boss and the
+ * corridors between them, from the layout recorded in the replay. Same KayKit
+ * pieces as the throne room; every placement is fixed math.
+ */
+export function CryptRun({ rooms, corridors }: { rooms: Room[]; corridors: Corridor[] }) {
+  const P = usePieces()
+  const others = rooms.filter((r) => r.id !== 'boss')
+  const tiles = useMemo(() => {
+    const out = new Set<string>()
+    const walk = (x: number, z: number) => {
+      const inRoom = others.some((r) => Math.hypot(x - r.center[0], z - r.center[1]) < r.radius + 1.5)
+      const inCor = corridors.some((c) => Math.abs(x) < c.x_half + 2.5 && z > c.z_min - 2 && z < c.z_max + 2)
+      return inRoom || inCor
+    }
+    for (let x = -14; x <= 14; x += 4) for (let z = 16; z <= 92; z += 4) if (walk(x, z)) out.add(`${x},${z}`)
+    return [...out].map((k) => k.split(',').map(Number) as [number, number])
+  }, [others, corridors])
+  // Room walls: a ring of wall segments, skipping where a corridor enters. Walls
+  // are cut down (dollhouse style) so the fight stays visible from above.
+  const roomWalls = useMemo(() => others.flatMap((r) => {
+    const n = Math.max(10, Math.round((2 * Math.PI * (r.radius + 1.2)) / 3.6))
+    const out: { x: number; z: number; a: number; k: number }[] = []
+    for (let k = 0; k < n; k++) {
+      const a = (k / n) * Math.PI * 2
+      const x = r.center[0] + Math.sin(a) * (r.radius + 1.2)
+      const z = r.center[1] + Math.cos(a) * (r.radius + 1.2)
+      const open = corridors.some((c) => Math.abs(x) < c.x_half + 1.6 && z > c.z_min - 1.5 && z < c.z_max + 1.5)
+      if (!open) out.push({ x, z, a, k })
+    }
+    return out
+  }), [others, corridors])
+  const corridorWalls = useMemo(() => corridors.flatMap((c) => {
+    const out: { x: number; z: number; side: number }[] = []
+    for (let z = c.z_min + 2; z <= c.z_max - 1; z += 4) {
+      const inRoom = (x: number) => others.some((r) => Math.hypot(x - r.center[0], z - r.center[1]) < r.radius + 1.5)
+      for (const side of [-1, 1]) {
+        const x = side * (c.x_half + 0.9)
+        if (!inRoom(x) && Math.hypot(x, z) > 16.5) out.push({ x, z, side })
+      }
+    }
+    return out
+  }), [others, corridors])
+  return (
+    <group>
+      {tiles.map(([x, z]) => <Clone key={`${x},${z}`} object={P.floor_tile_large} position={[x, -0.12, z]} receiveShadow />)}
+      {roomWalls.map((w) => (
+        <group key={`${w.x.toFixed(1)},${w.z.toFixed(1)}`} position={[w.x, 0, w.z]} rotation={[0, w.a + Math.PI, 0]} scale={[0.95, 0.95, 1]}>
+          <Clone object={w.k % 3 === 0 ? P.wall_arched : P.wall} />
+          {w.k % 3 === 0 && (
+            <group position={[0, 1.5, 0.5]}>
+              <Clone object={P.torch_mounted} />
+              <mesh position={[0, 0.75, 0.32]} scale={0.9}>
+                <planeGeometry />
+                <meshBasicMaterial map={softCircleTexture()} color={[3, 1.6, 0.6]} transparent depthWrite={false} toneMapped={false} />
+              </mesh>
+              {w.k % 6 === 0 && <pointLight position={[0, 0.8, 0.6]} color="#ffae5c" intensity={5} distance={9} decay={1.6} />}
+            </group>
+          )}
+        </group>
+      ))}
+      {corridorWalls.map((w) => (
+        <group key={`${w.x},${w.z}`} position={[w.x, 0, w.z]} rotation={[0, w.side > 0 ? -Math.PI / 2 : Math.PI / 2, 0]} scale={[1, 0.55, 1]}>
+          <Clone object={P.wall} />
+        </group>
+      ))}
+      {others.map((r) => (
+        <group key={r.id}>
+          {[-1, 1].map((s) => (
+            <group key={s} position={[r.center[0] + s * (r.radius - 1.2), 0, r.center[1]]} scale={1.2}>
+              <Clone object={P.pillar_decorated} />
+            </group>
+          ))}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[r.center[0], 0.015, r.center[1]]}>
+            <ringGeometry args={[r.radius - 1.1, r.radius - 0.95, 64]} />
+            <meshBasicMaterial color={[0.6, 0.4, 1.6]} toneMapped={false} transparent opacity={0.35} />
+          </mesh>
+        </group>
+      ))}
     </group>
   )
 }

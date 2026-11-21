@@ -85,10 +85,10 @@ def debrief_data(replay: dict) -> dict:
                 interrupts_used[e["unit"]] += 1
         elif t == "aura_apply" and e["unit"] == boss["id"] and e["aura"] == "hollow_fury" and enraged_at is None:
             enraged_at = e["t"]
-    kicks_landed = defaultdict(int)
-    for c in casts:
-        if c["result"] == "interrupted" and c["by"]:
-            kicks_landed[c["by"]] += 1
+    kicks_landed = defaultdict(int)  # on any target (boss and dungeon trash)
+    for e in ev:
+        if e["type"] == "cast_interrupted" and e["reason"] == "interrupt" and e.get("by") in players:
+            kicks_landed[e["by"]] += 1
     return {
         "outcome": meta["outcome"], "duration_ms": meta["duration_ms"],
         "boss_hp_pct_left": round(100 * boss_hp / boss["max_hp"], 1),
@@ -154,7 +154,51 @@ def debrief_text(replay: dict) -> str:
                    f"alive {sum(alive_for) / len(alive_for):.0f} s on average; they dealt {dealt:,} damage, "
                    f"to {', '.join(targets) or 'nobody'}.")
 
+    if meta_mode(replay) == "dungeon":
+        out.append("\n" + dungeon_lines(replay))
+
     if d["pool_seconds"]:
         out.append("\nTIME STANDING IN DESECRATE POOLS: " + ", ".join(
             f"{who(p)} {s:g} s" for p, s in sorted(d["pool_seconds"].items(), key=lambda kv: -kv[1])) + ".")
+    return "\n".join(out)
+
+
+def meta_mode(replay: dict) -> str:
+    return replay["meta"].get("mode", "boss")
+
+
+def dungeon_lines(replay: dict) -> str:
+    """Trash pulls, clears, caster casts (and how many were stopped), revives."""
+    ev = replay["events"]
+    packs = {p["id"]: p for p in replay["arena"].get("packs", [])}
+    names = {u["id"]: u["name"] for u in replay["units"]}
+    trash = {u["id"] for u in replay["units"] if u.get("pack")}
+    out = ["DUNGEON:"]
+    pulls = {e["pack"]: e["t"] for e in ev if e["type"] == "pull"}
+    clears = {e["pack"]: e["t"] for e in ev if e["type"] == "pack_cleared"}
+    for pid, p in packs.items():
+        if pid not in pulls:
+            out.append(f"  {p['name']}: never pulled.")
+            continue
+        took = f"cleared at {_t(clears[pid])} ({(clears[pid] - pulls[pid]) / 1000:.0f} s)" if pid in clears else "not cleared"
+        out.append(f"  {p['name']}: pulled at {_t(pulls[pid])}, {took}.")
+    if "boss" in pulls:
+        out.append(f"  Mortisar pulled at {_t(pulls['boss'])}.")
+    casts: dict[str, list] = {}
+    open_c = {}
+    for e in ev:
+        if e["type"] == "cast_start" and e["unit"] in trash:
+            c = {"ability": e["ability"], "kicked": False, "interruptible": e["interruptible"]}
+            casts.setdefault(e["ability"], []).append(c)
+            open_c[e["unit"]] = c
+        elif e["type"] == "cast_interrupted" and e["unit"] in open_c and e["reason"] == "interrupt":
+            open_c.pop(e["unit"])["kicked"] = True
+    for a, cs in casts.items():
+        if not cs[0]["interruptible"]:
+            continue
+        out.append(f"  Trash cast {_name(replay, a)}: {len(cs)}x, interrupted {sum(c['kicked'] for c in cs)}.")
+    revs = [e for e in ev if e["type"] == "revive"]
+    if revs:
+        out.append(f"  Revives: {len(revs)} ({', '.join(names.get(e['unit'], e['unit']) for e in revs)}), "
+                   f"+{sum(e['penalty_ms'] for e in revs) / 1000:g} s on the timer.")
     return "\n".join(out)
