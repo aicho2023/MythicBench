@@ -110,6 +110,16 @@ def test_unusable_reply_keeps_previous_orders():
     assert any(e["t"] > 3000 for e in hews)  # still following the first orders
 
 
+def test_fatal_api_errors_stop_the_run():
+    class Broke:
+        spec = "fake:broke"
+        def complete(self, system, user):
+            raise ClientError("no credits", fatal=True)
+    pols, _ = make_llm_policies(Broke())
+    with pytest.raises(ClientError):
+        Encounter(1, pols, "x").run()
+
+
 def test_call_budget_is_enforced():
     pols, brain = make_llm_policies(MockClient(), interval_ms=100, min_gap_ms=0, max_calls=5)
     Encounter(2, pols, "x").run(max_ms=20_000)

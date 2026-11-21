@@ -28,6 +28,7 @@ class Reply:
     latency_s: float = 0.0
     cached: bool = False  # served from our replay cache (no API call)
     cache_read_tokens: int = 0  # input tokens the provider served from its prompt cache (cheaper)
+    truncated: bool = False  # the model hit the output-token limit before finishing
 
 
 class ChatClient(Protocol):
@@ -37,7 +38,12 @@ class ChatClient(Protocol):
 
 
 class ClientError(RuntimeError):
-    pass
+    """``fatal`` errors (bad key, no credits, bad request) stop the run: retrying
+    or playing on without orders would only waste time and money."""
+
+    def __init__(self, msg: str, fatal: bool = False):
+        super().__init__(msg)
+        self.fatal = fatal
 
 
 # ---------------------------------------------------------------------------
@@ -63,7 +69,7 @@ def _key(name: str) -> str:
     load_env()
     key = os.environ.get(name, "").strip()
     if not key:
-        raise ClientError(f"{name} is not set. Copy .env.example to .env and add your key.")
+        raise ClientError(f"{name} is not set. Copy .env.example to .env and add your key.", fatal=True)
     return key
 
 
@@ -82,12 +88,15 @@ def _post(url: str, headers: dict, body: dict, timeout: float = 120.0, retries: 
                 return json.loads(resp.read())
         except urllib.error.HTTPError as err:
             detail = err.read().decode(errors="replace")[:500]
-            # Rate limits and server hiccups are worth retrying; bad requests are not.
-            if err.code in (429, 500, 502, 503, 504, 529) and attempt < retries:
+            out_of_credit = "insufficient_quota" in detail or "credit" in detail.lower()
+            # Rate limits and server hiccups are worth retrying; billing, auth,
+            # and malformed requests are not.
+            if err.code in (429, 500, 502, 503, 504, 529) and not out_of_credit and attempt < retries:
                 time.sleep(delay)
                 delay *= 2
                 continue
-            raise ClientError(f"HTTP {err.code} from {url}: {detail}") from None
+            fatal = out_of_credit or err.code in (400, 401, 403, 404)
+            raise ClientError(f"HTTP {err.code} from {url}: {detail}", fatal=fatal) from None
         except (urllib.error.URLError, TimeoutError) as err:
             if attempt < retries:
                 time.sleep(delay)
@@ -100,7 +109,7 @@ def _post(url: str, headers: dict, body: dict, timeout: float = 120.0, retries: 
 @dataclass
 class AnthropicClient:
     model: str
-    max_tokens: int = 1500
+    max_tokens: int = 16000  # thinking shares this budget with the answer
     spec: str = ""
 
     def __post_init__(self) -> None:
@@ -118,13 +127,14 @@ class AnthropicClient:
         u = out.get("usage", {})
         read = u.get("cache_read_input_tokens", 0) or 0
         total_in = (u.get("input_tokens", 0) or 0) + (u.get("cache_creation_input_tokens", 0) or 0) + read
-        return Reply(text, total_in, u.get("output_tokens", 0), time.monotonic() - t0, cache_read_tokens=read)
+        return Reply(text, total_in, u.get("output_tokens", 0), time.monotonic() - t0, cache_read_tokens=read,
+                     truncated=out.get("stop_reason") == "max_tokens")
 
 
 @dataclass
 class OpenAIClient:
     model: str
-    max_tokens: int = 4000  # reasoning models spend part of this budget thinking
+    max_tokens: int = 16000  # reasoning models spend part of this budget thinking
     spec: str = ""
 
     def __post_init__(self) -> None:
@@ -140,10 +150,11 @@ class OpenAIClient:
                                   {"role": "user", "content": user}]})
         choices = out.get("choices") or [{}]
         text = (choices[0].get("message") or {}).get("content") or ""
+        truncated = choices[0].get("finish_reason") == "length"
         usage = out.get("usage", {})
         read = (usage.get("prompt_tokens_details") or {}).get("cached_tokens", 0) or 0
         return Reply(text, usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0),
-                     time.monotonic() - t0, cache_read_tokens=read)
+                     time.monotonic() - t0, cache_read_tokens=read, truncated=truncated)
 
 
 @dataclass
@@ -220,13 +231,13 @@ class CachedClient:
         if k in self._mem:
             r = self._mem[k]
             return Reply(r["text"], r["input_tokens"], r["output_tokens"], 0.0, cached=True,
-                         cache_read_tokens=r.get("cache_read_tokens", 0))
+                         cache_read_tokens=r.get("cache_read_tokens", 0), truncated=r.get("truncated", False))
         if self.offline:
             raise ClientError("cache miss in offline mode (prompt not in the recording)")
         reply = self.inner.complete(system, user)
         rec = {"key": k, "spec": self.spec, "text": reply.text,
                "input_tokens": reply.input_tokens, "output_tokens": reply.output_tokens,
-               "cache_read_tokens": reply.cache_read_tokens}
+               "cache_read_tokens": reply.cache_read_tokens, "truncated": reply.truncated}
         self._mem[k] = rec
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("a") as f:

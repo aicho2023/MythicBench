@@ -38,6 +38,7 @@ class BrainStats:
     latency_s: float = 0.0
     cached_calls: int = 0
     unusable_replies: int = 0  # not JSON / no orders: the party keeps its old orders
+    truncated_replies: int = 0  # cut off by the output-token limit
     invalid_entries: int = 0  # unknown abilities/targets etc. that we dropped
     api_errors: int = 0
     budget_exhausted: bool = False
@@ -146,6 +147,8 @@ class PartyBrain:
         try:
             reply = self.client.complete(self.system, user)
         except ClientError as err:
+            if err.fatal:
+                raise
             self.stats.api_errors += 1
             self.note(f"t={obs['t']}: {err}")
             return
@@ -154,6 +157,9 @@ class PartyBrain:
         self.stats.cache_read_tokens += reply.cache_read_tokens
         self.stats.latency_s += reply.latency_s
         self.stats.cached_calls += reply.cached
+        if reply.truncated:
+            self.stats.truncated_replies += 1
+            self.note(f"t={obs['t']}: reply cut off at the output-token limit")
         ids = {u["id"] for u in obs["party"] + obs["enemies"]}
         parsed = parse_reply(reply.text, ids)
         if not parsed.ok:
