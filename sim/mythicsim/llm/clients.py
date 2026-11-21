@@ -8,6 +8,7 @@ or ``openai:<model-name>``. API keys come from the environment or from a
 from __future__ import annotations
 
 import hashlib
+import http.client
 import json
 import os
 import time
@@ -77,7 +78,7 @@ def _key(name: str) -> str:
 # HTTP
 # ---------------------------------------------------------------------------
 
-def _post(url: str, headers: dict, body: dict, timeout: float = 120.0, retries: int = 4) -> dict:
+def _post(url: str, headers: dict, body: dict, timeout: float = 180.0, retries: int = 6) -> dict:
     data = json.dumps(body).encode()
     delay = 2.0
     for attempt in range(retries + 1):
@@ -97,7 +98,8 @@ def _post(url: str, headers: dict, body: dict, timeout: float = 120.0, retries: 
                 continue
             fatal = out_of_credit or err.code in (400, 401, 403, 404)
             raise ClientError(f"HTTP {err.code} from {url}: {detail}", fatal=fatal) from None
-        except (urllib.error.URLError, TimeoutError) as err:
+        except (urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError, OSError) as err:
+            # Dropped connections, resets, and timeouts: transient, so retry.
             if attempt < retries:
                 time.sleep(delay)
                 delay *= 2
