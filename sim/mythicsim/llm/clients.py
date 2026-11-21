@@ -11,6 +11,7 @@ import hashlib
 import http.client
 import json
 import os
+import re
 import threading
 import time
 import urllib.error
@@ -183,6 +184,10 @@ class MockClient:
         self.spec = f"mock:{self.model}"
 
     def complete(self, system: str, user: str) -> Reply:
+        if "over repeated attempts" in system:  # a progression reflection call
+            pull = re.search(r"DEBRIEF OF PULL (\d+)", user)
+            notes = f"Mock notes after pull {pull.group(1) if pull else '?'}: interrupt Requiem of Bones; step out of pools."
+            return Reply(json.dumps({"notes": notes}), len(system + user) // 4, 40, 0.0)
         orders = {
             "bramble": {"priority": [["rampart_bash", "mortisar"], ["bulwark_slam", "mortisar"],
                                      ["rampart_strike", "mortisar"]], "say": "Tanking and kicking."},

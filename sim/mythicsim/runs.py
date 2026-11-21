@@ -176,20 +176,23 @@ def publish(runs_dir: Path = RUNS_DIR, out_dir: Path = LOCAL_REPLAYS, only: list
             continue
         rid = m["run_id"]
         dest = out_dir / rid
-        if only is None or rid in only:
-            dest.mkdir(exist_ok=True)
-            for it in m["items"]:
-                src = runs_dir / rid / it["file"]
-                if src.exists():
-                    shutil.copyfile(src, dest / Path(it["file"]).name)
-        items = [{**it, "file": f"{rid}/{Path(it['file']).name}"} for it in m["items"]
-                 if (dest / Path(it["file"]).name).exists()]
+        for it in m["items"]:
+            src, dst = runs_dir / rid / it["file"], dest / it["file"]
+            # Copy when asked to, and always when missing (self-heals layout changes).
+            if src.exists() and (only is None or rid in only or not dst.exists()):
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(src, dst)
+        # Keep sub-folders (episodes/E/pull-K.json) so files never collide.
+        items = [{**it, "file": f"{rid}/{it['file']}"} for it in m["items"] if (dest / it["file"]).exists()]
         if not items:
             continue
         s = m.get("summary") or {}
         runs.append({k: m.get(k) for k in ("run_id", "name", "tags", "mode", "label", "provider", "model", "effort",
-                                           "created", "harness_version", "prompt_hash", "git_commit")}
-                    | {"summary": {k: s.get(k) for k in ("score_mean", "score_ci95", "win_rate", "reference_means")},
+                                           "created", "harness_version", "prompt_hash", "git_commit",
+                                           "knowledge", "memory", "max_pulls")}
+                    | {"summary": {k: s.get(k) for k in ("score_mean", "score_ci95", "win_rate", "reference_means",
+                                                          "kill_rate", "pulls_to_kill_mean", "pulls_to_kill_ci95",
+                                                          "learning_gain_mean", "learning_gain_ci95", "curve_mean")},
                        "items": items})
     catalog = {"current_harness_version": HARNESS_VERSION, "runs": runs}
     (out_dir / "catalog.json").write_text(json.dumps(catalog, indent=1))

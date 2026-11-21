@@ -69,13 +69,22 @@ def test_publish_builds_catalog_without_hiding_other_runs(tmp_path):
     pub = tmp_path / "pub"
     (pub).mkdir()
     (pub / "index.json").write_text("[]")  # the old flat list gets removed
-    assert R.publish(tmp_path, pub, only=[a.run_id]) == 1  # only a's replays copied so far
+    assert R.publish(tmp_path, pub, only=[a.run_id]) == 2  # b's missing files are restored too
     assert R.publish(tmp_path, pub, only=[b.run_id]) == 2  # a stays listed
     cat = json.loads((pub / "catalog.json").read_text())
     assert cat["current_harness_version"] and {r["run_id"] for r in cat["runs"]} == {a.run_id, b.run_id}
     item = cat["runs"][0]["items"][0]
     assert (pub / item["file"]).exists() and item["file"].startswith(cat["runs"][0]["run_id"] + "/")
     assert not (pub / "index.json").exists()
+
+
+def test_publish_restores_missing_files(tmp_path):
+    a = make_run(tmp_path)
+    pub = tmp_path / "pub"
+    R.publish(tmp_path, pub)
+    import shutil
+    shutil.rmtree(pub / a.run_id)  # e.g. an older layout, or a deleted folder
+    assert R.publish(tmp_path, pub, only=[]) == 1 and (pub / a.run_id / "seeds" / "seed-0.json").exists()
 
 
 def test_unfinished_runs_are_not_published(tmp_path):

@@ -160,6 +160,35 @@ Each run prints the model's score next to the expert, competent, and sloppy
 bots on the same seeds. It also prints calls, tokens, and dropped entries;
 add `--price-in/--price-out` (USD per 1M tokens) for a cost estimate.
 
+### Learning over pulls
+
+How many pulls does a model need to kill a boss it has never seen, and does
+it actually learn? In a **progression** run, the party starts **blind**:
+- It knows its own abilities but nothing about Mortisar (no tooltips, no
+  timers, no warning about the enrage).
+- After each wipe it gets a factual combat-log debrief: who died to what, what
+  hit hardest, every boss cast seen and whether it was interrupted, adds, and
+  time spent in pools.
+- It then rewrites its team NOTES (up to ~350 words), and the notes go into the
+  rules for the next pull.
+- Each pull uses a new seed, so it has to learn the mechanics, not memorize
+  timings.
+
+```bash
+python -m mythicsim progress --model anthropic:claude-haiku-5-5@none --episodes 0-4 --max-pulls 6 --workers 5
+python -m mythicsim progress --model anthropic:claude-haiku-5-5@none --episodes 0-4 --max-pulls 6 --memory off   # control
+```
+
+It reports kill rate, pulls-to-kill, learning gain, and the mean score at each
+pull, with 95% CIs.
+
+The `--memory off` control wipes the notes between pulls. If memory-on improves
+and memory-off doesn't, the improvement comes from learning, not luck.
+
+In the viewer, a progression run lists its episodes as strips of pulls. The
+**Learning** panel shows the score per pull, what the model knew going into
+the pull, and what it wrote afterwards, with new lessons highlighted.
+
 ### Organizing runs
 
 Every invocation is one **run** in its own folder, and nothing is ever

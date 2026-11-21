@@ -3,6 +3,7 @@ import { BossFrame } from './hud/BossFrame'
 import { AboutPanel, EndBanner, ReplayControls, TimelineLegend, TopBar } from './hud/Controls'
 import { DamageMeter, DecisionLog, RaidWarnings, Scorecard } from './hud/Panels'
 import { PartyFrames } from './hud/PartyFrames'
+import { LearningPanel } from './hud/LearningPanel'
 import { RunBrowser } from './hud/RunBrowser'
 import { WorldOverlay } from './hud/WorldOverlay'
 import { usePlayback } from './replay/store'
@@ -15,6 +16,8 @@ export default function App() {
   const [about, setAbout] = useState(false)
   const closeAbout = useCallback(() => setAbout(false), [])
   const [runs, setRuns] = useState(false)
+  const [meter, setMeter] = useState(false)
+  const learning = usePlayback((p) => !!p.engine?.replay.meta.progress)
   const closeRuns = useCallback(() => setRuns(false), [])
   useEffect(() => { loadIndex() }, [loadIndex])
 
@@ -31,7 +34,12 @@ export default function App() {
         <div className="absolute left-1/2 top-[178px] -translate-x-1/2"><div className="hud-s origin-top"><RaidWarnings /></div></div>
         <div className="hud-s absolute right-4 top-16 flex origin-top-right flex-col gap-2">
           <Scorecard />
-          <div className="pointer-events-auto"><DamageMeter /></div>
+          <div className="pointer-events-auto">
+            {learning && !meter ? <LearningPanel onShowMeter={() => setMeter(true)} /> : <DamageMeter />}
+            {learning && meter && (
+              <button onClick={() => setMeter(false)} className="mt-1 w-full text-right font-mono text-[10px] text-fg-faint hover:text-fg">show learning</button>
+            )}
+          </div>
         </div>
 
         <div className="hud-s pointer-events-auto absolute bottom-4 left-4 origin-bottom-left"><DecisionLog /></div>

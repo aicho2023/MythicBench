@@ -2,7 +2,7 @@ import { ChevronDown, ChevronRight, Search, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { fmtTime } from '../content/display'
 import { runItemId, usePlayback } from '../replay/store'
-import type { CatalogRun } from '../replay/types'
+import type { CatalogItem, CatalogRun } from '../replay/types'
 
 type Sort = 'newest' | 'best' | 'model'
 
@@ -31,7 +31,7 @@ export function RunBrowser({ onClose }: { onClose: () => void }) {
   const [effort, setEffort] = useState<(typeof EFFORTS)[number]>('any')
   const [showLegacy, setShowLegacy] = useState(true)
   const [sort, setSort] = useState<Sort>('newest')
-  const currentRun = current?.split('/seed-')[0]
+  const currentRun = current?.split('/')[0] // item ids are <run_id>/<seed-N or eE-pP>
   const [open, setOpen] = useState<Set<string>>(() => new Set(currentRun ? [currentRun] : []))
 
   useEffect(() => {
@@ -107,7 +107,10 @@ export function RunBrowser({ onClose }: { onClose: () => void }) {
           {shown.map((r) => {
             const t = title(r)
             const isOpen = open.has(r.run_id)
-            const wins = r.items.filter((i) => i.outcome === 'victory').length
+            const prog = r.mode === 'progression'
+            const episodes = prog ? [...new Set(r.items.map((i) => i.episode ?? 0))] : []
+            const wins = prog ? episodes.filter((e) => r.items.some((i) => i.episode === e && i.outcome === 'victory')).length
+              : r.items.filter((i) => i.outcome === 'victory').length
             const stale = r.harness_version !== catalog?.current_harness_version
             return (
               <div key={r.run_id} className={`mb-1.5 rounded-lg border ${currentRun === r.run_id ? 'border-white/20 bg-white/[0.05]' : 'border-transparent hover:bg-white/[0.03]'}`}>
@@ -123,32 +126,37 @@ export function RunBrowser({ onClose }: { onClose: () => void }) {
                         title={stale ? `Played on harness ${r.harness_version}; current is ${catalog?.current_harness_version}. Not directly comparable.` : 'Current harness'}>
                         harness {r.harness_version ?? '?'}
                       </span>
+                      {prog && <span className="rounded border border-accent/40 px-1 text-accent">learning · {r.knowledge ?? 'blind'} · memory {r.memory === false ? 'off' : 'on'}</span>}
                       {r.tags.map((tag) => <span key={tag} className="text-accent">#{tag}</span>)}
                     </span>
                   </span>
                   <span className="text-right">
                     <span className="num block font-mono text-[15px] text-fg">{r.summary.score_mean?.toFixed(1) ?? '–'}</span>
-                    <span className={`num block font-mono text-[10.5px] ${wins ? 'text-good' : 'text-fg-faint'}`}>{wins}/{r.items.length} kills</span>
+                    <span className={`num block font-mono text-[10.5px] ${wins ? 'text-good' : 'text-fg-faint'}`}>
+                      {prog ? `${wins}/${episodes.length} killed · ${r.summary.pulls_to_kill_mean ?? '–'} pulls` : `${wins}/${r.items.length} kills`}
+                    </span>
                   </span>
                 </button>
                 {isOpen && (
                   <div className="px-2.5 pb-2.5 pl-8">
-                    <div className="flex flex-wrap gap-1.5">
-                      {r.items.map((it) => {
-                        const id = runItemId(r.run_id, it.seed)
-                        const win = it.outcome === 'victory'
-                        return (
-                          <button key={id} onClick={() => load(id)}
-                            title={`seed ${it.seed}: ${win ? 'kill' : 'wipe'} at ${fmtTime(it.duration_s * 1000)}, score ${it.score}`}
-                            className={`rounded-md border px-2 py-1 text-left transition-colors ${current === id ? 'border-fg/60 bg-white/[0.1]' : 'border-white/10 hover:bg-white/[0.06]'}`}>
-                            <span className="block font-mono text-[10px] text-fg-faint">seed {it.seed}</span>
-                            <span className={`num block font-mono text-[12px] ${win ? 'text-good' : 'text-bad'}`}>{it.score.toFixed(1)}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
+                    {prog ? episodes.map((e) => {
+                      const pulls = r.items.filter((i) => i.episode === e).sort((a, b) => (a.pull ?? 0) - (b.pull ?? 0))
+                      return (
+                        <div key={e} className="mb-1.5 flex items-center gap-1.5">
+                          <span className="w-10 shrink-0 font-mono text-[10px] text-fg-faint">ep {e}</span>
+                          <div className="flex flex-wrap gap-1">
+                            {pulls.map((it) => <ItemChip key={it.pull} run={r} it={it} current={current} load={load} />)}
+                          </div>
+                        </div>
+                      )
+                    }) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {r.items.map((it) => <ItemChip key={it.seed} run={r} it={it} current={current} load={load} />)}
+                      </div>
+                    )}
                     <div className="mt-2 font-mono text-[10px] text-fg-faint">
                       {r.run_id}
+                      {prog && r.summary.curve_mean && <span className="ml-2">· mean score by pull: {r.summary.curve_mean.join(' → ')}</span>}
                       {r.summary.reference_means && (
                         <span className="ml-2">· bots on these seeds: expert {r.summary.reference_means.expert}, competent {r.summary.reference_means.competent}</span>
                       )}
@@ -161,5 +169,19 @@ export function RunBrowser({ onClose }: { onClose: () => void }) {
         </div>
       </aside>
     </div>
+  )
+}
+
+function ItemChip({ run, it, current, load }: { run: CatalogRun; it: CatalogItem; current: string | null; load: (id: string) => void }) {
+  const id = runItemId(run.run_id, it)
+  const win = it.outcome === 'victory'
+  const head = it.pull !== undefined ? `pull ${it.pull}` : `seed ${it.seed}`
+  return (
+    <button onClick={() => load(id)}
+      title={`${head} (seed ${it.seed}): ${win ? 'kill' : 'wipe'} at ${fmtTime(it.duration_s * 1000)}, score ${it.score}`}
+      className={`rounded-md border px-2 py-1 text-left transition-colors ${current === id ? 'border-fg/60 bg-white/[0.1]' : 'border-white/10 hover:bg-white/[0.06]'}`}>
+      <span className="block font-mono text-[10px] text-fg-faint">{head}{win && it.pull !== undefined ? ' ✓' : ''}</span>
+      <span className={`num block font-mono text-[12px] ${win ? 'text-good' : 'text-bad'}`}>{it.score.toFixed(1)}</span>
+    </button>
   )
 }

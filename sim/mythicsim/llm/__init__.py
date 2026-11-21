@@ -20,8 +20,8 @@ Pieces:
 HARNESS_VERSION = "0.3.0"
 
 
-def prompt_hash() -> str:
-    """Short fingerprint of the exact rules text the model receives."""
+def prompt_hash(knowledge: str = "full") -> str:
+    """Short fingerprint of the exact rules text the model receives (before any notes)."""
     import hashlib
     from .prompt import system_prompt
-    return hashlib.sha256(system_prompt().encode()).hexdigest()[:10]
+    return hashlib.sha256(system_prompt(knowledge).encode()).hexdigest()[:10]
