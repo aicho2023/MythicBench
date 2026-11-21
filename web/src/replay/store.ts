@@ -40,6 +40,14 @@ export const usePlayback = create<Playback>((set, get) => ({
     try {
       const res = await fetch(`${base}replays/index.json`)
       const index: ReplayIndexEntry[] = await res.json()
+      // Model runs made on this machine (`python -m mythicsim llm ...`), if any.
+      try {
+        const local = await fetch(`${base}replays/local/index.json`)
+        if (local.ok) {
+          const runs: ReplayIndexEntry[] = await local.json()
+          index.push(...runs.map((r) => ({ ...r, file: `local/${r.file}`, local: true })))
+        }
+      } catch { /* no local runs */ }
       set({ index })
       const fromUrl = new URLSearchParams(location.search).get('replay')
       await get().load(index.find((r) => r.id === fromUrl)?.id ?? index[0].id)

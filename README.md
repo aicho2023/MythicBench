@@ -116,6 +116,39 @@ python -m mythicsim generate --out ../web/public/replays  # rebuild viewer repla
 python -m pytest
 ```
 
+## Let a model play
+
+One language model controls the whole party. It reads the same observation the
+bots get, rendered as text, plus the rules (every ability's tooltip, the arena,
+the reply format, and no strategy). It answers with standing orders per
+character: an optional move, and a priority list of `[ability, target]`.
+
+- **When it's asked:** every 2 s of game time, and immediately when something
+  important happens: a boss cast starts, pools appear, adds spawn, or an ally
+  gets low or dies.
+- **No time pressure:** the game pauses while the model thinks, so slow models
+  aren't penalised.
+- **Bad replies:** invalid entries are dropped and counted, never guessed.
+- **Replayable:** every reply is recorded, so a run can be replayed exactly
+  without calling the model again.
+
+```bash
+cp .env.example .env            # then paste your ANTHROPIC_API_KEY / OPENAI_API_KEY
+cd sim
+python -m mythicsim llm --model mock:basic --seeds 0-2             # free smoke test, no API
+python -m mythicsim llm --model anthropic:claude-haiku-5-5 --seeds 0-4
+python -m mythicsim llm --model openai:<model-name> --seeds 0-4
+python -m mythicsim llm --model anthropic:claude-haiku-5-5 --seeds 0-4 --offline   # replay from recording
+```
+
+Each run prints the model's score next to the expert, competent, and sloppy
+bots on the same seeds. It also prints calls, tokens, and dropped entries;
+add `--price-in/--price-out` (USD per 1M tokens) for a cost estimate.
+
+- Replays, stats, and recordings go to `runs/` (git-ignored).
+- Each replay also appears in the viewer under **Model runs** (start it with
+  `cd web && npm run dev`).
+
 ## Why you can trust the numbers
 
 1. **Deterministic.** Same seed + same policy ⇒ byte-identical replay, on any
@@ -136,7 +169,7 @@ More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 - **Phase 1 — Visual prototype** ✅ simulator, replays, 3D viewer
 - **Phase 1.5** — KayKit models and dungeon ✅ ([docs/ASSETS.md](docs/ASSETS.md)); panda ranger customization next
-- **Phase 2 — LLM agents & evals** — plug models into `Policy`, multi-seed evaluation, confidence intervals
+- **Phase 2 — LLM agents & evals** — harness ✅ (`mythicsim llm`); next: first real model runs, then multi-seed leaderboard
 - **Phase 3 — Training** — generate expert trajectories, SFT a small open model, then preference optimization / RL
 - **Phase 4 — Public benchmark** — leaderboard, side-by-side failure replays
 

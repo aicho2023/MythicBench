@@ -103,4 +103,5 @@ export interface ReplayIndexEntry {
   outcome: string
   duration_s: number
   score?: number
+  local?: boolean // a model run saved on this machine (replays/local/), not a committed showcase
 }
