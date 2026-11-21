@@ -13,6 +13,7 @@ export function Effects() {
       <GroundPools />
       <Projectiles />
       <Bursts />
+      <HealBeams />
     </>
   )
 }
@@ -276,6 +277,133 @@ function Bursts() {
       ))}
       {mats.wisp.map((m, i) => (
         <mesh key={`w${i}`} ref={(r) => { refs.current.wisp[i] = r }} material={m} visible={false}>
+          <planeGeometry />
+        </mesh>
+      ))}
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Heal beams: a green-gold ribbon of light from the healer to whoever she
+// heals, plus small rising motes on heal-over-time ticks. Driven by
+// cast_success (direct heals, HoT/shield applications) and heal events
+// (raid heals hit everyone, so each target gets its own beam).
+// ---------------------------------------------------------------------------
+
+const BEAM_MS = 600
+const MOTE_MS = 800
+const MAX_BEAMS = 8
+const MAX_MOTES = 12
+const HEAL_KINDS = new Set(['heal', 'hot', 'absorb'])
+const UP = new THREE.Vector3(0, 1, 0)
+
+interface Beam { from: string; to: string; k: number; color: string }
+
+function HealBeams() {
+  const beams = useRef<(THREE.Group | null)[]>([])
+  const motes = useRef<(THREE.Mesh | null)[]>([])
+  const mats = useMemo(() => ({
+    core: Array.from({ length: MAX_BEAMS }, () => new THREE.MeshBasicMaterial({ toneMapped: false, transparent: true, depthWrite: false })),
+    haze: Array.from({ length: MAX_BEAMS }, () => new THREE.MeshBasicMaterial({ toneMapped: false, transparent: true, depthWrite: false, side: THREE.DoubleSide })),
+    mote: Array.from({ length: MAX_MOTES }, () => new THREE.MeshBasicMaterial({ map: softCircleTexture(), toneMapped: false, transparent: true, depthWrite: false })),
+  }), [])
+  const a = useMemo(() => new THREE.Vector3(), [])
+  const b = useMemo(() => new THREE.Vector3(), [])
+  const dir = useMemo(() => new THREE.Vector3(), [])
+
+  useFrame(({ camera }) => {
+    const f = frameState()
+    let nb = 0
+    let nm = 0
+    if (f) {
+      const list: Beam[] = []
+      const tick: { to: string; k: number; seed: number }[] = []
+      for (const { e, i } of f.engine.eventsBetween(f.t - Math.max(BEAM_MS, MOTE_MS), f.t)) {
+        const age = f.t - e.t
+        if (e.type === 'cast_success' && e.target && age < BEAM_MS) {
+          const kind = f.engine.replay.abilities[e.ability]?.kind
+          if (HEAL_KINDS.has(kind ?? '') && f.s.units[e.target]?.info.kind === 'player') {
+            list.push({ from: e.unit, to: e.target, k: age / BEAM_MS, color: kind === 'hot' ? '#9dff8a' : '#ffe58a' })
+          }
+        } else if (e.type === 'heal' && e.amount > 0) {
+          const kind = f.engine.replay.abilities[e.ability]?.kind
+          if (kind === 'raid_heal' && age < BEAM_MS) list.push({ from: e.source, to: e.target, k: age / BEAM_MS, color: '#fff2a0' })
+          else if (kind !== 'heal' && age < MOTE_MS) tick.push({ to: e.target, k: age / MOTE_MS, seed: i })
+        }
+      }
+      for (const bm of list) {
+        if (nb >= MAX_BEAMS) break
+        const src = f.s.units[bm.from]
+        const tgt = f.s.units[bm.to]
+        const g = beams.current[nb]
+        if (!src || !tgt || !g || src === tgt) continue
+        const p = posAt(src, f.t)
+        const q = posAt(tgt, f.t)
+        a.set(p[0], 1.15, p[1])
+        b.set(q[0], 0.95, q[1])
+        dir.subVectors(b, a)
+        const len = dir.length()
+        if (len < 0.05) continue
+        nb++
+        g.visible = true
+        g.position.copy(a).add(b).multiplyScalar(0.5)
+        g.quaternion.setFromUnitVectors(UP, dir.multiplyScalar(1 / len))
+        // grow out from the healer, then fade
+        const grow = Math.min(1, bm.k / 0.25)
+        const fade = Math.max(0, 1 - bm.k)
+        g.scale.set(1, len, 1)
+        const core = g.children[0] as THREE.Mesh
+        const haze = g.children[1] as THREE.Mesh
+        core.scale.set(1, grow, 1)
+        haze.scale.set(1 + bm.k * 0.6, grow, 1 + bm.k * 0.6)
+        core.position.y = haze.position.y = (grow - 1) / 2
+        mats.core[nb - 1].color.set(bm.color).multiplyScalar(2.4)
+        mats.core[nb - 1].opacity = fade
+        mats.haze[nb - 1].color.set(bm.color).multiplyScalar(1.4)
+        mats.haze[nb - 1].opacity = 0.22 * fade
+        // a few motes ride the beam toward the target
+        for (let j = 0; j < 3; j++) {
+          const m = g.children[2 + j] as THREE.Mesh
+          const kk = (bm.k * 1.6 + j / 3) % 1
+          m.position.set(0, (kk - 0.5) * grow, 0)
+          m.scale.set(1, 1 / len, 1) // undo the group's length stretch (len >= 0.05)
+          m.visible = kk < grow
+        }
+      }
+      for (const tk of tick) {
+        if (nm >= MAX_MOTES) break
+        const tgt = f.s.units[tk.to]
+        const m = motes.current[nm]
+        if (!tgt || !m) continue
+        nm++
+        const q = posAt(tgt, f.t)
+        const ang = ((tk.seed * 2654435761) >>> 0) % 628 / 100
+        m.visible = true
+        m.position.set(q[0] + Math.cos(ang) * 0.45, 0.4 + tk.k * 1.6, q[1] + Math.sin(ang) * 0.45)
+        m.quaternion.copy(camera.quaternion)
+        m.scale.setScalar(0.35 * (1 - tk.k * 0.5))
+        mats.mote[nm - 1].color.set('#b8ff8a').multiplyScalar(2.2)
+        mats.mote[nm - 1].opacity = Math.max(0, 1 - tk.k)
+      }
+    }
+    for (let i = nb; i < MAX_BEAMS; i++) if (beams.current[i]) beams.current[i]!.visible = false
+    for (let i = nm; i < MAX_MOTES; i++) if (motes.current[i]) motes.current[i]!.visible = false
+  })
+
+  return (
+    <>
+      {mats.core.map((m, i) => (
+        <group key={`b${i}`} ref={(g) => { beams.current[i] = g }} visible={false}>
+          <mesh material={m}><cylinderGeometry args={[0.045, 0.045, 1, 8, 1, true]} /></mesh>
+          <mesh material={mats.haze[i]}><cylinderGeometry args={[0.11, 0.11, 1, 12, 1, true]} /></mesh>
+          {[0, 1, 2].map((j) => (
+            <mesh key={j} material={m}><sphereGeometry args={[0.07, 8, 6]} /></mesh>
+          ))}
+        </group>
+      ))}
+      {mats.mote.map((m, i) => (
+        <mesh key={`m${i}`} ref={(r) => { motes.current[i] = r }} material={m} visible={false}>
           <planeGeometry />
         </mesh>
       ))}

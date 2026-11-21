@@ -31,7 +31,8 @@ export const dungeon = (n: string) => `${BASE}/dungeon/Assets/gltf/${n}.gltf`
 /** What each model holds. Weapons attach to the rig's `handslot` bones. */
 export const LOADOUT: Record<string, { right?: string; left?: string }> = {
   Knight: { right: gear('sword_1handed'), left: gear('shield_badge_color') },
-  Mage: { right: gear('staff') },
+  // Lumi the healer: staff plus an open prayer book (KayKit has no cleric model).
+  Mage: { right: gear('staff'), left: gear('spellbook_open') },
   Barbarian: { right: gear('axe_2handed') },
   Rogue_Hooded: { right: gear('dagger'), left: gear('dagger') },
   Rogue: { right: gear('dagger'), left: gear('dagger') },

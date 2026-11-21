@@ -11,6 +11,7 @@ import { CLASS_COLORS, fmtNum } from '../content/display'
 import { posAt } from '../replay/engine'
 import { frameState } from '../replay/store'
 import { sceneBridge } from '../scene/Scene'
+import { ROLE_ICON, ROLE_TINT } from './bits'
 
 const MAX_TEXT = 44
 const MAX_PLATES = 16
@@ -54,10 +55,17 @@ export function WorldOverlay() {
         p++
         el.style.display = 'block'
         el.style.transform = `translate(${sp[0]}px, ${sp[1]}px) translate(-50%, -100%)`
-        const name = el.firstElementChild as HTMLElement
+        const row = el.firstElementChild as HTMLElement
+        const icons = row.firstElementChild as HTMLElement
+        const name = row.lastElementChild as HTMLElement
         const bar = el.lastElementChild as HTMLElement
         const label = u.info.kind === 'player' ? u.info.name : ''
         if (name.textContent !== label) name.textContent = label
+        const role = u.info.kind === 'player' ? u.info.role : ''
+        if (icons.dataset.role !== role) {
+          icons.dataset.role = role
+          for (const c of Array.from(icons.children) as HTMLElement[]) c.style.display = c.dataset.role === role ? 'inline-flex' : 'none'
+        }
         name.style.color = u.info.kind === 'player' ? CLASS_COLORS[u.info.class] : '#ffb3b3'
         const showBar = u.info.kind !== 'player'
         bar.style.display = showBar ? 'block' : 'none'
@@ -124,7 +132,16 @@ export function WorldOverlay() {
     <div ref={root} className="pointer-events-none absolute inset-0 overflow-hidden">
       {Array.from({ length: MAX_PLATES }, (_, i) => (
         <div key={`p${i}`} ref={(el) => { if (el) plates.current[i] = el }} className="absolute left-0 top-0 hidden text-center">
-          <div className="whitespace-nowrap font-sans text-[11px] font-semibold [text-shadow:0_1px_2px_#000,0_0_3px_#000]" />
+          <div className="flex items-center justify-center gap-1 whitespace-nowrap font-sans text-[11px] font-semibold [text-shadow:0_1px_2px_#000,0_0_3px_#000]">
+            <span className="inline-flex [filter:drop-shadow(0_1px_1px_#000)]">
+              {Object.entries(ROLE_ICON).map(([role, Icon]) => (
+                <span key={role} data-role={role} style={{ display: 'none' }}>
+                  <Icon size={11} strokeWidth={2.5} style={{ color: ROLE_TINT[role] }} fill={role === 'healer' ? ROLE_TINT[role] : 'none'} />
+                </span>
+              ))}
+            </span>
+            <span />
+          </div>
           <div className="mx-auto mt-0.5 h-[6px] overflow-hidden rounded-sm bg-black/80 ring-1 ring-black">
             <div className="h-full bg-[#e5484d]" />
           </div>

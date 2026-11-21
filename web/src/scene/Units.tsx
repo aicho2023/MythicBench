@@ -2,7 +2,7 @@ import { useFrame } from '@react-three/fiber'
 import { Suspense, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { CLASS_COLORS, SCHOOL_COLORS } from '../content/display'
-import { isMoving, posAt } from '../replay/engine'
+import { posAt } from '../replay/engine'
 import { frameState, usePlayback } from '../replay/store'
 import {
   BossModel, Bubble, CLASS_STYLE, ChibiModel, SkeletonModel, animateBoss, animateHumanoid,
@@ -11,7 +11,7 @@ import {
 import { runeCircleTexture, softCircleTexture } from './materials'
 import { AssetBoundary, USE_KAYKIT } from './ErrorBoundary'
 import { KayKitAvatar } from './kaykit/KayKitAvatar'
-import { poseOf } from './pose'
+import { poseOf, walkAt } from './pose'
 
 /** Mount one actor per unit that exists at the current time. */
 export function Units() {
@@ -73,11 +73,14 @@ function UnitActor({ id }: { id: string }) {
     const p = posAt(u, t)
     root.current.position.set(p[0], 0, p[1])
 
-    // Facing: walk direction, else current target.
+    // Facing: walk direction, else current target. Shuffles (tiny repositioning
+    // moves) slide the unit without turning it away from its target.
     let desired = yaw.current
-    if (isMoving(u, t) && u.move) {
-      desired = Math.atan2(u.move.to[0] - u.move.from[0], u.move.to[1] - u.move.from[1])
-    } else if (u.alive) {
+    const m = u.move
+    const walking = !!m && !!walkAt(u, t, engine.replay)
+    if (walking && m && Math.hypot(m.to[0] - m.from[0], m.to[1] - m.from[1]) > 1e-3) {
+      desired = Math.atan2(m.to[0] - m.from[0], m.to[1] - m.from[1])
+    } else if (u.alive && !walking) {
       const tid = u.cast?.target ?? u.target
       const tgt = tid ? s.units[tid] : undefined
       const enemyFacing = info.kind === 'player' && (!tgt || tgt.info.kind === 'player') && s.units.mortisar

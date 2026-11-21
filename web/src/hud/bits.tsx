@@ -1,4 +1,4 @@
-import { Sword } from 'lucide-react'
+import { Cross, Shield, Sword } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { ICONS, SCHOOL_COLORS } from '../content/display'
 import type { AbilityInfo } from '../replay/types'
@@ -82,4 +82,18 @@ export function Bar({
 export function secs(ms: number): string {
   if (ms >= 60000) return `${Math.ceil(ms / 60000)}m`
   return ms >= 3000 ? `${Math.ceil(ms / 1000)}` : (ms / 1000).toFixed(1)
+}
+
+/** Role glyphs: shield = tank, cross = healer, sword = damage. */
+export const ROLE_ICON = { tank: Shield, healer: Cross, dps: Sword } as const
+export const ROLE_TINT: Record<string, string> = { tank: '#8fb8ff', healer: '#7dff9a', dps: '#ff8f7a' }
+
+export function RoleIcon({ role, size = 12 }: { role: string; size?: number }) {
+  const Icon = ROLE_ICON[role as keyof typeof ROLE_ICON]
+  if (!Icon) return null
+  return (
+    <span title={role === 'dps' ? 'Damage' : role[0].toUpperCase() + role.slice(1)} className="inline-flex shrink-0">
+      <Icon size={size} strokeWidth={2.25} style={{ color: ROLE_TINT[role] }} fill={role === 'healer' ? ROLE_TINT[role] : 'none'} />
+    </span>
+  )
 }

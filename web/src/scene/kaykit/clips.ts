@@ -3,26 +3,40 @@
  * playhead should be. The playhead is computed from replay time (pose.since),
  * never from wall-clock time — so pause/scrub stay perfectly deterministic.
  */
-import { ACTION_MS, type Pose } from '../pose'
+import type { Pose } from '../pose'
 
 export interface ClipChoice {
   name: string
   /** playhead in seconds, given the clip's duration */
   time: (dur: number) => number
+  /**
+   * Identity of this playthrough. A new key with the same clip name means the
+   * clip restarts (the next sword swing) and should cross-fade into itself.
+   */
+  key: string
 }
 
 const loop = (p: Pose, rate = 1) => (d: number) => ((p.since / 1000) * rate) % d
-/** squeeze the whole clip into `windowMs` (snappy one-shot gestures) */
-const squeeze = (p: Pose, windowMs: number) => (d: number) => Math.min(d - 1e-3, (p.since / windowMs) * d)
 /** play at natural speed and hold the last frame */
 const hold = (p: Pose) => (d: number) => Math.min(d - 1e-3, p.since / 1000)
+/** one-shot at `rate`× speed, holding the last frame */
+const oneShot = (p: Pose, rate: number) => (d: number) => Math.min(d - 1e-3, (p.since / 1000) * rate)
+/**
+ * Gestures play close to natural speed: a long clip may be sped up a little
+ * (so a swing lands before the next one) but never past MAX_RATE, which is
+ * where KayKit's swings start to look twitchy.
+ */
+const TARGET_S = 1.0
+const MAX_RATE = 1.3
+export const gestureRate = (dur: number) => Math.min(MAX_RATE, Math.max(1, dur / TARGET_S))
 /** follow cast progress 0..1 */
 const progress = (p: Pose) => (d: number) => Math.min(d - 1e-3, p.k * d)
 
 type Group = 'hero' | 'boss' | 'add'
 
+/** Combat-ready stances: what a unit settles into between swings. */
 const IDLE: Record<string, string> = {
-  guardian: 'Melee_Blocking', lightweaver: 'Idle_B', berserker: 'Melee_2H_Idle', shadowblade: 'Idle_A',
+  guardian: 'Melee_Blocking', lightweaver: 'Idle_B', berserker: 'Melee_2H_Idle', shadowblade: 'Melee_Unarmed_Idle',
   ranger: 'Ranged_Bow_Idle', boss: 'Melee_2H_Idle', bonewalker: 'Skeletons_Idle',
 }
 const WALK: Record<string, string> = {
@@ -57,24 +71,41 @@ const CASTING: Record<string, { name: string; mode: 'loop' | 'progress' }> = {
   raise_dead: { name: 'Ranged_Magic_Spellcasting', mode: 'loop' },
 }
 
-export function chooseClip(cls: string, group: Group, p: Pose): ClipChoice {
+/** When the current action started (rounded: keys must not wobble with float error). */
+const startOf = (p: Pose) => Math.round(p.t - p.since)
+
+const idle = (cls: string, p: Pose): ClipChoice => ({ name: IDLE[cls] ?? 'Idle_A', time: loop(p), key: 'idle' })
+
+/**
+ * @param durOf seconds in a named clip (undefined if the clip isn't loaded):
+ *   a finished gesture hands back to the idle stance instead of freezing.
+ */
+export function chooseClip(cls: string, group: Group, p: Pose, durOf: (name: string) => number | undefined): ClipChoice {
+  const gesture = (name: string): ClipChoice => {
+    const dur = durOf(name)
+    if (dur === undefined) return { name, time: hold(p), key: `${name}@${startOf(p)}` }
+    const rate = gestureRate(dur)
+    if ((p.since / 1000) * rate >= dur) return idle(cls, p)
+    return { name, time: oneShot(p, rate), key: `${name}@${startOf(p)}` }
+  }
   switch (p.mode) {
     case 'dead':
-      return { name: group === 'hero' ? 'Death_A' : 'Skeletons_Death', time: hold(p) }
+      return { name: group === 'hero' ? 'Death_A' : 'Skeletons_Death', time: hold(p), key: 'dead' }
     case 'walk':
-      return { name: WALK[cls] ?? 'Running_A', time: loop(p, group === 'add' ? 1 : 1.1) }
+      return { name: WALK[cls] ?? 'Running_A', time: loop(p, group === 'add' ? 1 : 1.1), key: `walk@${startOf(p)}` }
     case 'cast': {
       if (!p.instant && p.ability && CASTING[p.ability]) {
         const c = CASTING[p.ability]
-        return { name: c.name, time: c.mode === 'loop' ? loop(p) : progress(p) }
+        return { name: c.name, time: c.mode === 'loop' ? loop(p) : progress(p), key: `${c.name}@${startOf(p)}` }
       }
-      if (p.ability && ACTION[p.ability]) return { name: ACTION[p.ability], time: squeeze(p, ACTION_MS) }
-      return { name: 'Ranged_Magic_Spellcasting', time: loop(p) }
+      if (p.ability && ACTION[p.ability]) return gesture(ACTION[p.ability])
+      if (p.instant) return gesture('Ranged_Magic_Shoot')
+      return { name: 'Ranged_Magic_Spellcasting', time: loop(p), key: 'casting' }
     }
     case 'attack':
     case 'shoot':
-      return { name: (p.ability && ACTION[p.ability]) || 'Melee_1H_Attack_Chop', time: squeeze(p, ACTION_MS) }
+      return gesture((p.ability && ACTION[p.ability]) || 'Melee_1H_Attack_Chop')
     default:
-      return { name: IDLE[cls] ?? 'Idle_A', time: loop(p) }
+      return idle(cls, p)
   }
 }

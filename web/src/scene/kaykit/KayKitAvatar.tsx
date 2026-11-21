@@ -78,6 +78,58 @@ function makeCrown(): THREE.Group {
   return g
 }
 
+/** Soft golden halo for the healer (same idea as the boss crown, gentler). */
+function makeHalo(): THREE.Group {
+  const g = new THREE.Group()
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.035, 8, 40), glow('#ffd76a', 2.2))
+  ring.rotation.x = Math.PI / 2
+  const haze = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.11, 8, 40), glow('#ffe9a8', 1.2, 0.18))
+  haze.rotation.x = Math.PI / 2
+  g.add(ring, haze)
+  return g
+}
+
+/**
+ * KayKit characters share one palette-atlas texture per model. To turn the
+ * Mage into a priestess we repaint that atlas: the violet/indigo robe swatches
+ * become ivory, the magenta trims become gold. Everything else (skin, hair,
+ * leather) is untouched, so the model keeps its detail.
+ */
+const priestCache = new WeakMap<THREE.Texture, THREE.Texture>()
+function priestTexture(src: THREE.Texture): THREE.Texture {
+  const hit = priestCache.get(src)
+  if (hit) return hit
+  const img = src.image as CanvasImageSource & { width: number; height: number }
+  const canvas = document.createElement('canvas')
+  canvas.width = img.width
+  canvas.height = img.height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return src
+  ctx.drawImage(img, 0, 0)
+  const data = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  const px = data.data
+  const c = new THREE.Color()
+  const hsl = { h: 0, s: 0, l: 0 }
+  for (let i = 0; i < px.length; i += 4) {
+    c.setRGB(px[i] / 255, px[i + 1] / 255, px[i + 2] / 255)
+    c.getHSL(hsl)
+    const deg = hsl.h * 360
+    if (hsl.s < 0.15) continue
+    if (deg >= 215 && deg < 300) c.setHSL(45 / 360, 0.35, 0.72 + hsl.l * 0.28) // robe -> ivory
+    else if (deg >= 300 || deg < 5) c.setHSL(42 / 360, 0.85, 0.42 + hsl.l * 0.3) // trim -> gold
+    else continue
+    px[i] = c.r * 255
+    px[i + 1] = c.g * 255
+    px[i + 2] = c.b * 255
+  }
+  ctx.putImageData(data, 0, 0)
+  const out = src.clone()
+  out.image = canvas
+  out.needsUpdate = true
+  priestCache.set(src, out)
+  return out
+}
+
 const BOSS_CAST_COLORS: Record<string, string> = {
   requiem_of_bones: '#c77dff', soul_rend: '#ff4d6d', raise_dead: '#9dff6b',
 }
@@ -86,7 +138,7 @@ const BOSS_CAST_COLORS: Record<string, string> = {
 // the avatar
 // ---------------------------------------------------------------------------
 
-const FADE_MS = 120
+const FADE_MS = 150
 
 export function KayKitAvatar({ id, info }: { id: string; info: UnitInfo }) {
   const gltf = useGLTF(CHARACTER_URL[info.model] ?? CHARACTER_URL.Knight) as unknown as GLTF
@@ -106,9 +158,30 @@ export function KayKitAvatar({ id, info }: { id: string; info: UnitInfo }) {
       const w = gearByUrl[url].scene.clone(true)
       toonify(w)
       findBone(root, bone)?.add(w)
+      return w
     }
     attach(load.right, 'handslot.r')
-    attach(load.left, 'handslot.l')
+    const offHand = attach(load.left, 'handslot.l')
+
+    if (info.role === 'healer') {
+      root.traverse((o) => {
+        const m = o as THREE.Mesh
+        if (!m.isMesh) return
+        const src = (Array.isArray(m.material) ? m.material[0] : m.material) as THREE.MeshToonMaterial
+        if (!src.map) return
+        m.material = new THREE.MeshToonMaterial({ map: priestTexture(src.map), gradientMap: toonGradient() })
+      })
+      // The pointed wizard hat is what makes the Mage read as a mage.
+      root.traverse((o) => { if (/Hat/i.test(o.name)) o.visible = false })
+      // A prayer book held open in the palm (the raw asset is shield-sized).
+      if (offHand) {
+        offHand.scale.setScalar(0.55)
+        offHand.rotation.set(-Math.PI / 2, 0, 0)
+      }
+      const halo = makeHalo()
+      halo.position.set(0, 1.0, 0)
+      findBone(root, 'head')?.add(halo)
+    }
 
     let orb: THREE.Group | null = null
     if (isBoss || isAdd) {
@@ -134,19 +207,23 @@ export function KayKitAvatar({ id, info }: { id: string; info: UnitInfo }) {
       findBone(root, 'handslot.l')?.add(orb)
     }
     return { root, mixer: new THREE.AnimationMixer(root), orb }
-  }, [gltf, gearList, info.model, isBoss, isAdd])
+  }, [gltf, gearList, info.model, info.role, isBoss, isAdd])
 
   const actions = useRef(new Map<string, THREE.AnimationAction>())
-  const blend = useRef({ cur: '', prev: '', curTime: 0, prevTime: 0, fadeStart: 0 })
+  // cur/prev are action slots: "<clip>#0" or "<clip>#1". Two slots per clip
+  // let a swing cross-fade into the next swing of the same clip.
+  const blend = useRef({ cur: '', curKey: '', prev: '', curTime: 0, prevTime: 0, fadeStart: 0, fadeT: 0 })
   const flinch = useRef<THREE.Group>(null)
 
-  const action = (name: string) => {
-    let a = actions.current.get(name)
+  const action = (slot: string) => {
+    let a = actions.current.get(slot)
     if (!a) {
+      const [name, n] = slot.split('#')
       const clip = clips.get(name)
       if (!clip) return undefined
-      a = rig.mixer.clipAction(clip)
-      actions.current.set(name, a)
+      // The mixer caches one action per clip object, so slot 1 needs its own copy.
+      a = rig.mixer.clipAction(n === '1' ? clip.clone() : clip)
+      actions.current.set(slot, a)
     }
     return a
   }
@@ -156,21 +233,25 @@ export function KayKitAvatar({ id, info }: { id: string; info: UnitInfo }) {
     const u = f?.s.units[id]
     if (!f || !u) return
     const pose = poseOf(u, f.t, f.engine.replay)
-    let choice = chooseClip(info.class, group, pose)
-    if (!clips.has(choice.name)) choice = { name: 'Idle_A', time: (d) => (f.t / 1000) % d }
-    const cur = action(choice.name)
-    if (!cur) return
+    let choice = chooseClip(info.class, group, pose, (n) => clips.get(n)?.duration)
+    if (!clips.has(choice.name)) choice = { name: 'Idle_A', time: (d) => (f.t / 1000) % d, key: 'fallback' }
 
     // Cross-fade between clips (cosmetic smoothing, like the facing damping).
     const b = blend.current
     const now = performance.now()
-    if (b.cur !== choice.name) {
-      if (b.prev && b.prev !== choice.name) action(b.prev)?.stop()
-      b.prev = b.cur
+    if (b.curKey !== choice.key) {
+      const sameClip = b.cur.startsWith(`${choice.name}#`)
+      const next = `${choice.name}#${sameClip && b.cur.endsWith('#0') ? 1 : 0}`
+      if (b.prev && b.prev !== b.cur) action(b.prev)?.stop()
+      b.prev = b.cur === next ? '' : b.cur
       b.prevTime = b.curTime
-      b.cur = choice.name
+      b.cur = next
+      b.curKey = choice.key
       b.fadeStart = now
+      b.fadeT = f.t
     }
+    const cur = action(b.cur)
+    if (!cur) return
     const w = Math.min(1, (now - b.fadeStart) / FADE_MS)
     b.curTime = choice.time(cur.getClip().duration)
     cur.play()
@@ -182,8 +263,11 @@ export function KayKitAvatar({ id, info }: { id: string; info: UnitInfo }) {
         prev.stop()
         b.prev = ''
       } else {
+        // The outgoing clip keeps moving (with replay time) while it fades,
+        // instead of freezing mid-pose.
+        const d = prev.getClip().duration
         prev.play()
-        prev.time = b.prevTime
+        prev.time = Math.min(d - 1e-3, b.prevTime + Math.max(0, f.t - b.fadeT) / 1000)
         prev.setEffectiveWeight(1 - w)
       }
     }
