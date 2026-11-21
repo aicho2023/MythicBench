@@ -39,6 +39,8 @@ export interface UnitState {
   /** ability id -> time it becomes ready again */
   readyAt: Record<string, number>
   target: string | null
+  /** dungeon: false for trash (and the boss) until pulled */
+  engaged: boolean
 }
 
 export interface GroundState { id: string; kind: string; pos: Vec2; radius: number; t0: number; armMs: number; durMs: number }
@@ -55,23 +57,30 @@ export interface ReplayState {
   kicks: { casts: number; interrupted: number }
   deaths: number
   ended: { outcome: string; t: number } | null
+  /** dungeon runs: when each pack (and "boss") was pulled / cleared, and revive penalties */
+  pulled: Record<string, number>
+  cleared: Record<string, number>
+  penaltyMs: number
 }
 
-function makeUnit(info: UnitInfo): UnitState {
+function makeUnit(info: UnitInfo, dungeon = false): UnitState {
   return {
     info, hp: info.max_hp, absorb: 0, alive: true, deathT: null, basePos: info.pos,
     move: null, cast: null, lastAction: null, lastCastEnd: null, lastHitT: -1e9,
     auras: {}, readyAt: {}, target: null,
+    engaged: !(dungeon && (!!info.pack || info.kind === 'boss')),
   }
 }
 
 export function initialState(replay: Replay): ReplayState {
   const units: Record<string, UnitState> = {}
-  for (const u of replay.units) units[u.id] = makeUnit(u)
+  const dungeon = replay.meta.mode === 'dungeon'
+  for (const u of replay.units) units[u.id] = makeUnit(u, dungeon)
   return {
     t: 0, units, order: replay.units.map((u) => u.id), ground: {},
     damageDone: {}, healingDone: {}, avoidableTaken: {},
     kicks: { casts: 0, interrupted: 0 }, deaths: 0, ended: null,
+    pulled: {}, cleared: {}, penaltyMs: 0,
   }
 }
 
@@ -167,6 +176,23 @@ export function applyEvent(s: ReplayState, e: ReplayEvent, replay: Replay): void
       if (u.info.kind === 'player') s.deaths++
       break
     }
+    case 'pull':
+      s.pulled[e.pack] = e.t
+      for (const u of Object.values(s.units)) {
+        if (u.info.pack === e.pack || (e.pack === 'boss' && u.info.kind === 'boss')) u.engaged = true
+      }
+      break
+    case 'pack_cleared':
+      s.cleared[e.pack] = e.t
+      break
+    case 'revive': {
+      const u = s.units[e.unit]
+      u.alive = true
+      u.hp = e.hp
+      u.deathT = null
+      s.penaltyMs += e.penalty_ms
+      break
+    }
     case 'encounter_end':
       s.ended = { outcome: e.outcome, t: e.t }
       break
@@ -188,6 +214,7 @@ function cloneState(s: ReplayState): ReplayState {
     ...s, units, order: [...s.order], ground: { ...s.ground },
     damageDone: { ...s.damageDone }, healingDone: { ...s.healingDone },
     avoidableTaken: { ...s.avoidableTaken }, kicks: { ...s.kicks },
+    pulled: { ...s.pulled }, cleared: { ...s.cleared },
   }
 }
 
@@ -247,7 +274,7 @@ export class ReplayEngine {
   }
 
   /** Interesting moments for the timeline (deaths, raises, big misses). */
-  markers(): { t: number; kind: 'death' | 'raise' | 'missed' | 'kick' | 'end'; label: string }[] {
+  markers(): { t: number; kind: 'death' | 'raise' | 'missed' | 'kick' | 'end' | 'pull'; label: string }[] {
     const out: ReturnType<ReplayEngine['markers']> = []
     const names: Record<string, string> = Object.fromEntries(this.replay.units.map((u) => [u.id, u.name]))
     for (const e of this.replay.events) {
@@ -255,6 +282,10 @@ export class ReplayEngine {
       else if (e.type === 'cast_start' && e.ability === 'raise_dead') out.push({ t: e.t, kind: 'raise', label: 'Summon the Restless' })
       else if (e.type === 'cast_success' && e.ability === 'requiem_of_bones') out.push({ t: e.t, kind: 'missed', label: 'Requiem not interrupted!' })
       else if (e.type === 'encounter_end') out.push({ t: e.t, kind: 'end', label: e.outcome === 'victory' ? 'Victory' : 'Wipe' })
+      else if (e.type === 'pull') {
+        const pack = this.replay.arena.packs?.find((p) => p.id === e.pack)
+        out.push({ t: e.t, kind: 'pull', label: e.pack === 'boss' ? 'Mortisar pulled' : `${pack?.name ?? e.pack} pulled` })
+      }
     }
     return out
   }

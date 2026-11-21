@@ -4,11 +4,11 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { ReplayEngine, applyEvent, initialState } from './engine'
-import { runScore } from '../content/display'
+import { dungeonProgress, dungeonScore, runScore } from '../content/display'
 import type { Replay } from './types'
 
 const dir = join(__dirname, '../../public/replays')
-const files = ['expert-kill.json', 'competent-enrage.json', 'sloppy-wipe.json']
+const files = ['expert-clear.json', 'competent-run.json', 'sloppy-wipe.json']
 
 describe.each(files)('%s', (file) => {
   const replay: Replay = JSON.parse(readFileSync(join(dir, file), 'utf8'))
@@ -27,7 +27,10 @@ describe.each(files)('%s', (file) => {
     const s = engine.stateAt(engine.duration)
     const boss = s.units.mortisar
     const left = Math.round((1000 * boss.hp) / boss.info.max_hp) / 10
-    expect(runScore(s.ended!.outcome, s.ended!.t, left, replay.meta.time_limit_ms)).toBe(replay.meta.metrics!.score)
+    const got = replay.meta.mode === 'dungeon'
+      ? dungeonScore(s.ended!.outcome, s.ended!.t + s.penaltyMs, dungeonProgress(s.units), replay.meta.time_limit_ms)
+      : runScore(s.ended!.outcome, s.ended!.t, left, replay.meta.time_limit_ms)
+    expect(got).toBeCloseTo(replay.meta.metrics!.score, 1)
   })
 
   it('damage meter matches the Python metrics', () => {

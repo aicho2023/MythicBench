@@ -6,7 +6,7 @@ import { usePlayback, useHud } from '../replay/store'
 const SPEEDS = [0.5, 1, 2, 4]
 
 const MARKER_COLOR: Record<string, string> = {
-  death: '#f87171', missed: '#fbbf24', raise: '#a1a1aa', kick: '#7dd3fc', end: '#ededef',
+  death: '#f87171', missed: '#fbbf24', raise: '#a1a1aa', kick: '#7dd3fc', end: '#ededef', pull: '#a78bfa',
 }
 
 // ---------------------------------------------------------------------------
@@ -131,7 +131,8 @@ export function ReplayControls() {
 }
 
 export function TimelineLegend() {
-  const items = [['death', 'Death'], ['missed', 'Missed interrupt'], ['raise', 'Adds spawn'], ['end', 'End']] as const
+  const dungeon = usePlayback((p) => p.engine?.replay.meta.mode === 'dungeon')
+  const items = [['death', 'Death'], ['missed', 'Missed interrupt'], ['raise', 'Adds spawn'], ...(dungeon ? [['pull', 'Pull'] as const] : []), ['end', 'End']] as const
   return (
     <div className="mx-auto flex w-fit gap-3.5 rounded-full bg-black/55 px-3 py-1 font-mono text-[10px] text-fg-muted backdrop-blur">
       {items.map(([k, label]) => (
@@ -154,6 +155,7 @@ export function EndBanner() {
   if (!h || !h.s.ended || h.t < h.s.ended.t + 1500) return null
   const m = h.engine.replay.meta.metrics
   const win = h.s.ended.outcome === 'victory'
+  const dungeonRun = h.engine.replay.meta.mode === 'dungeon'
   const i = index.findIndex((r) => r.id === current)
   const other = index.length > 1 ? index[(i + 1) % index.length] : undefined
   const players = h.engine.replay.units.filter((u) => u.kind === 'player')
@@ -163,10 +165,13 @@ export function EndBanner() {
     <div className="card pointer-events-auto w-[480px] animate-[fadein_0.4s_ease-out] p-5">
       <div className="label">Result</div>
       <div className="mt-1 flex items-baseline gap-3">
-        <span className={`text-[28px] font-semibold tracking-[-0.02em] ${win ? 'text-good' : 'text-bad'}`}>{win ? 'Boss defeated' : 'Party wiped'}</span>
+        <span className={`text-[28px] font-semibold tracking-[-0.02em] ${win ? 'text-good' : 'text-bad'}`}>{win ? (dungeonRun ? 'Crypt cleared' : 'Boss defeated') : 'Party wiped'}</span>
       </div>
       <div className="mt-1 text-[13px] text-fg-muted">
-        {win ? `Mortisar fell in ${fmtTime((m?.duration_s ?? 0) * 1000)}.` : `Mortisar survived with ${m?.boss_hp_pct_remaining}% health.`}
+        {dungeonRun
+          ? win ? `Mortisar fell at ${fmtTime((m?.duration_s ?? 0) * 1000)}${m?.penalty_s ? ` (+${m.penalty_s}s revive penalties)` : ''}.`
+            : `The party got ${m?.progress_pct ?? 0}% of the way through the crypt.`
+          : win ? `Mortisar fell in ${fmtTime((m?.duration_s ?? 0) * 1000)}.` : `Mortisar survived with ${m?.boss_hp_pct_remaining}% health.`}
       </div>
       {m && (
         <div className="mt-4 grid grid-cols-5 gap-px overflow-hidden rounded-lg border border-line bg-line">
@@ -229,7 +234,8 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
         </p>
 
         <Section n="1" title="The task">
-          Beat Mortisar before the 3:15 enrage. Each boss ability tests one skill: an <b>interruptible cast</b> (react in time),
+          Clear the crypt like a Mythic+ key: two trash packs (a caster to <b>kick</b>, a healer to <b>kill first</b>), then
+          Mortisar, on one 4:30 timer; resting and reviving between pulls costs time. Each boss ability tests one skill: an <b>interruptible cast</b> (react in time),
           a <b>tank buster</b> (use defensives), <b>pools on the ground</b> (move out), and <b>adds</b> (switch targets).
         </Section>
         <Section n="2" title="The agent under test">
@@ -255,8 +261,8 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
           <div className="label !text-warn">Status: Phase 1</div>
           <p className="mt-1.5 text-[12.5px] leading-[19px] text-fg-muted">
             Only hand-written baseline bots exist so far. Over 200 seeds they score{' '}
-            <span className="text-fg">expert 87.5</span>, <span className="text-fg">competent 72.3</span>, and{' '}
-            <span className="text-fg">sloppy 14.9</span>, with non-overlapping 95% intervals. Ranking three known skill
+            <span className="text-fg">expert 89.0</span>, <span className="text-fg">competent 74.6</span>, and{' '}
+            <span className="text-fg">sloppy 30.8</span>, with non-overlapping 95% intervals. Ranking three known skill
             levels correctly is the check that the benchmark can tell good play from bad. Language-model runs (including
             learning over repeated pulls) are under Model runs; a public leaderboard comes next.
           </p>

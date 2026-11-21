@@ -275,6 +275,25 @@ Grokka → Nyx → Bao → Bramble. Full WoW-analogy table in `README.md`.
   tokens per call, ~8 s per call, ~19 min per fight). gpt-5.4-mini makes
   ~100–130 calls per fight at ~2.7k input / ~0.3k output tokens each.
 
+## 9d. Dungeon run (PR D)
+
+- `--mode dungeon` (the default) on run, bench, llm, and progress. Content
+  0.3.0, harness 0.5.0.
+- Layout: entrance (0, 84) → Bone Chapel (0, 54, Chapel pack: 4 Bonewalkers +
+  Bone Chanter) → Ossuary (0, 30, Ossuary pack: 3 Bonewalkers + Marrow Mender)
+  → throne room. 4:30 timer.
+- 200 seeds: expert 89.0, competent 74.6, sloppy 30.8 (clear rates 97% / 62% /
+  0%).
+- The LLM rules gain a dungeon section (map, packs, trash tooltips, which blind
+  mode hides, pulling, resting, scoring). The state shows pack status and
+  enemies not yet pulled. New triggers: pack pulled, pack cleared, Mortisar
+  woke. `move_to: "next"` walks the route.
+- Debrief: pull and clear times, trash casts interrupted, revives.
+- Viewer: `CryptRun` builds the rooms and corridors from `replay.arena`.
+  `FollowParty` keeps the camera (and the sun) on the party. `PackFrame` shows
+  before the boss. The scorecard shows progress, pack status, and revive
+  penalties.
+
 ## 9c. Learning over pulls (PR C)
 
 - `sim/mythicsim/llm/progress.py`: `run_episode` plays a pull, then `debrief.py`

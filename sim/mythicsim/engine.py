@@ -106,6 +106,8 @@ class Unit:
     absorb: int = 0
     cooldowns: dict[str, int] = field(default_factory=dict)
     auras: dict[str, Aura] = field(default_factory=dict)
+    pack: str | None = None  # dungeon trash: which pack this enemy belongs to
+    engaged: bool = True  # dungeon trash/boss: has it been pulled yet?
 
     def __post_init__(self) -> None:
         if self.hp == 0:
@@ -178,6 +180,7 @@ class Encounter:
         self.units[b.id] = Unit(b.id, b.name, "boss", "boss", "boss", self.scaled_hp(b.max_hp), b.radius, 0.0,
                                 b.model, C.BOSS_POS, target=C.PARTY[0].id)
         self.boss = self.units[b.id]
+        self.boss_engaged_t = 0  # when Mortisar was pulled (the dungeon run pulls him later)
 
     def jitter(self, key: str, base: float, spread: float) -> int:
         """``base`` +/- ``spread`` ms from this ability's stream, snapped to a tick."""
@@ -196,9 +199,12 @@ class Encounter:
         self.pending.append((self.t + delay_ms, self._seq, fn))
 
     def unit_json(self, u: Unit) -> dict:
-        return {"id": u.id, "name": u.name, "kind": u.kind, "class": u.cls, "role": u.role,
-                "max_hp": u.max_hp, "radius": u.radius, "model": u.model,
-                "pos": [r2(u.pos[0]), r2(u.pos[1])]}
+        out = {"id": u.id, "name": u.name, "kind": u.kind, "class": u.cls, "role": u.role,
+               "max_hp": u.max_hp, "radius": u.radius, "model": u.model,
+               "pos": [r2(u.pos[0]), r2(u.pos[1])]}
+        if u.pack:
+            out["pack"] = u.pack
+        return out
 
     # ----- queries ---------------------------------------------------------
     def players(self, alive_only: bool = True) -> list[Unit]:
@@ -212,11 +218,7 @@ class Encounter:
 
     # ----- movement --------------------------------------------------------
     def start_move(self, u: Unit, to: Vec) -> None:
-        # Clamp inside the arena
-        d = dist(to, (0.0, 0.0))
-        lim = C.ARENA_RADIUS - 1.0
-        if d > lim:
-            to = (to[0] * lim / d, to[1] * lim / d)
+        to = self.clamp(to)
         to = (r2(to[0]), r2(to[1]))
         if u.move and dist(u.move.to, to) < 0.05:
             return
@@ -231,6 +233,14 @@ class Encounter:
                       by_ability=None, reason="moved")
             u.cast = None
         self.emit("move", unit=u.id, **{"from": list(frm)}, to=list(to), duration_ms=dur)
+
+    def clamp(self, to: Vec) -> Vec:
+        """Keep a destination inside the playable area (here: the arena circle)."""
+        d = dist(to, (0.0, 0.0))
+        lim = C.ARENA_RADIUS - 1.0
+        if d > lim:
+            to = (to[0] * lim / d, to[1] * lim / d)
+        return to
 
     def stop_move(self, u: Unit) -> None:
         if u.move:
@@ -387,6 +397,11 @@ class Encounter:
                         self.apply_aura(e, "taunted", u)
         elif k == "boss":
             self.resolve_boss(u, ab, tgt)
+        elif k == "trash":
+            self.resolve_trash(u, ab, tgt)
+
+    def resolve_trash(self, u: Unit, ab: C.Ability, tgt: Unit | None) -> None:
+        """Dungeon trash abilities (see dungeon.py)."""
 
     # ----- boss behaviour --------------------------------------------------
     def resolve_boss(self, b: Unit, ab: C.Ability, tgt: Unit | None) -> None:
@@ -414,9 +429,9 @@ class Encounter:
 
     def boss_tick(self) -> None:
         b = self.boss
-        if not b.alive:
+        if not b.alive or not b.engaged:
             return
-        if not self.enraged and self.t >= C.BOSS.enrage_ms:
+        if not self.enraged and self.t - self.boss_engaged_t >= C.BOSS.enrage_ms:
             self.enraged = True
             self.emit("emote", unit=b.id, style="yell", text="Enough! The Hollow Crown consumes all!")
             self.apply_aura(b, "hollow_fury", b)
@@ -494,8 +509,12 @@ class Encounter:
                         self.damage(self.boss, p, "desecrate", C.ABILITIES["desecrate"].amount,
                                     crit_ok=False)
 
+    def melee_adds(self) -> list[Unit]:
+        """Enemies that chase their target and claw it (the dungeon filters these)."""
+        return [u for u in self.units.values() if u.kind == "add" and u.alive]
+
     def add_tick(self) -> None:
-        for a in [u for u in self.units.values() if u.kind == "add" and u.alive]:
+        for a in self.melee_adds():
             tgt = self.units.get(a.target)
             if not tgt or not tgt.alive:
                 alive = self.players()
@@ -641,9 +660,7 @@ class Encounter:
 
     def run(self, max_ms: int = 330_000) -> dict:
         self.roster = [self.unit_json(u) for u in self.units.values()]
-        self.emit("encounter_start", encounter="gravecrown_crypt", boss=self.boss.id)
-        self.emit("emote", unit=self.boss.id, style="yell",
-                  text="You trespass in the Hollow King's tomb. Your bones will serve me!")
+        self.intro()
         while self.outcome is None:
             self.step()
             if not self.boss.alive:
@@ -663,6 +680,11 @@ class Encounter:
         self.emit("encounter_end", outcome=self.outcome,
                   final_hp={u.id: u.hp for u in self.units.values()})
         return self.to_replay()
+
+    def intro(self) -> None:
+        self.emit("encounter_start", encounter="gravecrown_crypt", boss=self.boss.id)
+        self.emit("emote", unit=self.boss.id, style="yell",
+                  text="You trespass in the Hollow King's tomb. Your bones will serve me!")
 
     def to_replay(self) -> dict:
         abilities = {k: a.to_json() for k, a in C.ABILITIES.items()}

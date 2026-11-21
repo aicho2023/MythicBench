@@ -121,6 +121,18 @@ future comparison should have.
   ladder, where win rate falls off a cliff. Old runs are converted with
   `mythicsim runs rescore`, which is exact because scores are a pure function
   of the event log.
+- **Dungeon run** (`dungeon.py`, content 0.3.0): `DungeonRun(Encounter)`.
+  - Rooms are circles and corridors rectangles (`content.ROOMS/CORRIDORS`, `walkable`).
+  - Packs sleep until a player is within `AGGRO_RADIUS` or hits one; Mortisar
+    sleeps until `BOSS_ENGAGE_RADIUS`, and his timers and enrage shift to the pull.
+  - Out of combat: regen, and revives after 3 s, each +10 s on the timer.
+  - Trash ids are pack-prefixed (`pack1_bonewalker_1`) so they never collide
+    with the boss's summoned `bonewalker_N`.
+  - Policies get `obs["dungeon"]` (timer, packs, route) and an `engaged` flag
+    on enemies. Bots: `policies.DungeonPolicy` (route, formation, casters
+    first, rest to 80%, Wild Roar saved for the boss).
+  - Score: `metrics.dungeon_score` (progress weights 15/15/70).
+  - Boss-only fights are byte-identical except for the ability table.
 - **Key levels** (`content.level_multiplier`): +2…+30. Enemy health and damage
   are ×1.08 per level from +12, built by repeated multiplication (no `pow()`)
   for cross-platform determinism. +12 is byte-identical to the tuned fight.

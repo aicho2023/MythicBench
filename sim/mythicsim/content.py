@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-CONTENT_VERSION = "0.2.0"
+CONTENT_VERSION = "0.3.0"
 
 GCD_MS = 1000
 MELEE_RANGE = 3.0
@@ -315,3 +315,116 @@ def level_multiplier(level: int) -> float:
         m = m * LEVEL_STEP if level > SIGIL_LEVEL else m / LEVEL_STEP
     return m
 TIME_LIMIT_MS = BOSS.enrage_ms
+
+
+# ---------------------------------------------------------------------------
+# The dungeon run: entrance -> Pack 1 -> corridor -> Pack 2 -> Mortisar
+# ---------------------------------------------------------------------------
+# The boss room is the original arena (centre (0, 0), radius ARENA_RADIUS). The
+# party starts at the far end of the crypt (large +z) and walks toward it.
+# Walkable space is a union of circles (rooms) and corridors (axis-aligned
+# rectangles along z), so it's easy to describe to a model and to clamp to.
+
+@dataclass(frozen=True)
+class Room:
+    id: str
+    name: str
+    center: tuple[float, float]
+    radius: float
+
+
+@dataclass(frozen=True)
+class Corridor:
+    x_half: float  # half-width
+    z_min: float
+    z_max: float
+
+
+@dataclass(frozen=True)
+class TrashDef:
+    cls: str
+    name: str
+    max_hp: int
+    radius: float
+    speed: float
+    model: str
+    swing_ms: int = 0  # 0 = no melee (a caster)
+    spells: tuple[str, ...] = ()  # cast in priority order when off cooldown
+
+
+@dataclass(frozen=True)
+class PackDef:
+    id: str
+    name: str
+    room: str
+    members: tuple[tuple[str, tuple[float, float]], ...]  # (trash class, position)
+
+
+ROOMS: tuple[Room, ...] = (
+    Room("boss", "Throne of the Hollow King", (0.0, 0.0), ARENA_RADIUS),
+    Room("ossuary", "Ossuary", (0.0, 30.0), 9.0),
+    Room("chapel", "Bone Chapel", (0.0, 54.0), 9.0),
+    Room("entrance", "Crypt Entrance", (0.0, 84.0), 5.0),
+)
+CORRIDORS: tuple[Corridor, ...] = (
+    Corridor(2.6, 13.0, 23.0),   # boss room <-> ossuary
+    Corridor(2.6, 37.0, 47.0),   # ossuary <-> chapel
+    Corridor(2.6, 61.0, 80.0),   # chapel <-> entrance
+)
+ROOMS_BY_ID = {r.id: r for r in ROOMS}
+DUNGEON_START = (0.0, 84.0)
+# Waypoints from the entrance to the boss room, for the "next" move and the bots.
+ROUTE: tuple[tuple[float, float], ...] = (
+    (0.0, 84.0), (0.0, 77.0), (0.0, 70.0), (0.0, 63.0), (0.0, 54.0), (0.0, 45.0), (0.0, 39.0), (0.0, 30.0),
+    (0.0, 21.0), (0.0, 14.0), (0.0, 6.0),
+)
+
+ABILITIES.update({a.id: a for a in (
+    Ability("grave_volley", "Grave Volley", "trash", "requiem", school="shadow", cast_ms=2000,
+            cooldown_ms=5000, range=40.0, amount=13000, interruptible=True,
+            description="A volley of bone shards hits the whole party. Interrupt it."),
+    Ability("mend_bones", "Mend Bones", "trash", "raise", school="nature", cast_ms=2000,
+            cooldown_ms=5000, range=30.0, interruptible=True,
+            description="Restores 30% health to the most injured undead ally. Interrupt it, or kill the Mender first."),
+    Ability("bone_bolt", "Bone Bolt", "trash", "claw", school="shadow", cast_ms=1500,
+            range=30.0, amount=5000, description="A ranged bolt at the caster's target."),
+)})
+
+TRASH: dict[str, TrashDef] = {
+    "bonewalker": TrashDef("bonewalker", "Risen Bonewalker", 42000, ADD.radius, ADD.speed,
+                           ADD.model, swing_ms=ADD.swing_ms),
+    "bone_chanter": TrashDef("bone_chanter", "Bone Chanter", 90000, 0.55, 3.0, "Skeleton_Mage",
+                             spells=("grave_volley", "bone_bolt")),
+    "marrow_mender": TrashDef("marrow_mender", "Marrow Mender", 80000, 0.55, 3.0, "Skeleton_Rogue",
+                              spells=("mend_bones", "bone_bolt")),
+}
+MEND_PCT = 0.30
+
+PACKS: tuple[PackDef, ...] = (
+    PackDef("pack1", "Chapel pack", "chapel", (
+        ("bonewalker", (-2.5, 52.5)), ("bonewalker", (2.5, 52.5)),
+        ("bonewalker", (-1.5, 50.0)), ("bonewalker", (1.5, 50.0)),
+        ("bone_chanter", (0.0, 48.0)),
+    )),
+    PackDef("pack2", "Ossuary pack", "ossuary", (
+        ("bonewalker", (-2.5, 28.5)), ("bonewalker", (2.5, 28.5)), ("bonewalker", (0.0, 27.0)),
+        ("marrow_mender", (0.0, 24.5)),
+    )),
+)
+AGGRO_RADIUS = 9.0  # a pack attacks when any player comes this close to any member
+BOSS_ENGAGE_RADIUS = 13.0  # Mortisar wakes when a player is this close to him
+DUNGEON_LIMIT_MS = 270_000  # the run's timer (4:30); expert bots clear in ~3:43
+DEATH_PENALTY_MS = 10_000  # each revive costs this much on the timer (like an M+ death)
+REVIVE_AFTER_MS = 3_000  # out of combat this long, fallen allies get back up
+REVIVE_HP_PCT = 0.5
+OOC_REGEN_PCT_PER_S = 0.04  # out-of-combat health regeneration
+# Score weights for a run that doesn't finish: each pack, then the boss.
+PROGRESS_WEIGHTS = {"pack1": 0.15, "pack2": 0.15, "boss": 0.70}
+
+
+def walkable(p: tuple[float, float], margin: float = 0.0) -> bool:
+    for r in ROOMS:
+        dx, dz = p[0] - r.center[0], p[1] - r.center[1]
+        if dx * dx + dz * dz <= (r.radius - 1.0 - margin) ** 2:
+            return True
+    return any(abs(p[0]) <= c.x_half - margin and c.z_min <= p[1] <= c.z_max for c in CORRIDORS)

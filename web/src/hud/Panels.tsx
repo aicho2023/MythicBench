@@ -1,6 +1,6 @@
 import { AlertTriangle, Megaphone } from 'lucide-react'
 import { useState } from 'react'
-import { CLASS_COLORS, WARN_CASTS, fmtNum, fmtTime, runScore } from '../content/display'
+import { CLASS_COLORS, WARN_CASTS, dungeonProgress, dungeonScore, fmtNum, fmtTime, runScore } from '../content/display'
 import { usePlayback, useHud } from '../replay/store'
 
 // ---------------------------------------------------------------------------
@@ -16,7 +16,13 @@ export function Scorecard() {
   const boss = s.units.mortisar
   const bossPct = boss ? (100 * boss.hp) / boss.info.max_hp : 0
   const avoidable = Object.values(s.avoidableTaken).reduce((a, b) => a + b, 0)
-  const score = runScore(s.ended?.outcome ?? null, s.ended?.t ?? 0, bossPct, limit)
+  const dungeon = m.mode === 'dungeon'
+  const timer = t + (dungeon ? s.penaltyMs : 0) // revive penalties count against the run timer
+  const progress = dungeon ? dungeonProgress(s.units) : 0
+  const score = dungeon
+    ? dungeonScore(s.ended?.outcome ?? null, (s.ended?.t ?? t) + s.penaltyMs, progress, limit)
+    : runScore(s.ended?.outcome ?? null, s.ended?.t ?? 0, bossPct, limit)
+  const packs = engine.replay.arena.packs ?? []
   const outcome = !s.ended ? { text: 'In progress', cls: 'text-fg-muted' }
     : s.ended.outcome === 'victory' ? { text: 'Kill', cls: 'text-good' } : { text: 'Wipe', cls: 'text-bad' }
   return (
@@ -27,23 +33,38 @@ export function Scorecard() {
       </div>
       <div className="px-3.5">
         <div className="flex items-baseline justify-between">
-          <span className={`num font-mono text-[22px] font-medium ${t > limit ? 'text-bad' : 'text-fg'}`}>{fmtTime(t)}</span>
-          <span className="num font-mono text-[11px] text-fg-faint">limit {fmtTime(limit)}</span>
+          <span className={`num font-mono text-[22px] font-medium ${timer > limit ? 'text-bad' : 'text-fg'}`}>{fmtTime(timer)}</span>
+          <span className="num font-mono text-[11px] text-fg-faint">
+            {dungeon && s.penaltyMs > 0 && <span className="text-bad">+{s.penaltyMs / 1000}s · </span>}
+            limit {fmtTime(limit)}
+          </span>
         </div>
         <div className="mt-1.5 h-[3px] overflow-hidden rounded-full bg-white/[0.07]">
-          <div className="h-full bg-fg/70" style={{ width: `${Math.min(100, (t / limit) * 100)}%` }} />
+          <div className="h-full bg-fg/70" style={{ width: `${Math.min(100, (timer / limit) * 100)}%` }} />
         </div>
       </div>
       <div className="mt-2.5 flex items-baseline justify-between border-t border-line px-3.5 pb-1 pt-2"
-        title="Score 0-100. A wipe earns up to 70 for boss health removed; a kill earns 70 plus up to 30 for speed (full 30 with a quarter of the timer left).">
+        title={dungeon
+          ? 'Score 0-100. A wipe earns up to 70 for progress (each pack 15%, Mortisar 70%); a clear earns 70 plus up to 30 for speed (full 30 with a quarter of the timer left; revive penalties count).'
+          : 'Score 0-100. A wipe earns up to 70 for boss health removed; a kill earns 70 plus up to 30 for speed (full 30 with a quarter of the timer left).'}>
         <span className="text-[12px] text-fg-muted">Score{!s.ended && <span className="text-fg-faint"> · so far</span>}</span>
         <span className="num font-mono text-[18px] font-medium text-fg">{score.toFixed(1)}</span>
       </div>
       <dl className="px-3.5 pb-1.5">
-        <Metric label="Boss health left" value={`${bossPct.toFixed(1)}%`} tone={bossPct === 0 ? 'good' : 'plain'} />
+        {dungeon && <>
+          <Metric label="Run progress" value={`${progress.toFixed(1)}%`} tone={progress >= 100 ? 'good' : 'plain'} />
+          {packs.map((p) => (
+            <Metric key={p.id} label={p.name}
+              value={s.cleared[p.id] !== undefined ? 'cleared' : s.pulled[p.id] !== undefined ? 'fighting' : 'not pulled'}
+              tone={s.cleared[p.id] !== undefined ? 'good' : 'plain'} />
+          ))}
+        </>}
+        <Metric label={dungeon ? 'Mortisar' : 'Boss health left'}
+          value={dungeon && !boss?.engaged ? 'asleep' : `${bossPct.toFixed(1)}% left`.replace(dungeon ? '' : ' left', '')}
+          tone={bossPct === 0 ? 'good' : 'plain'} />
         <Metric label="Interrupts" value={`${s.kicks.interrupted} / ${s.kicks.casts}`}
           tone={s.kicks.casts === 0 ? 'plain' : s.kicks.interrupted === s.kicks.casts ? 'good' : 'bad'} />
-        <Metric label="Party deaths" value={`${s.deaths}`} tone={s.deaths === 0 ? 'good' : 'bad'} />
+        <Metric label={dungeon ? 'Party deaths (revives)' : 'Party deaths'} value={`${s.deaths}`} tone={s.deaths === 0 ? 'good' : 'bad'} />
         <Metric label="Avoidable damage" value={fmtNum(avoidable)} tone={avoidable === 0 ? 'good' : 'bad'} />
       </dl>
       <div className="border-t border-line px-3.5 py-2 font-mono text-[10.5px] leading-[15px] text-fg-faint">

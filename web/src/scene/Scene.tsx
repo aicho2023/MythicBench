@@ -1,9 +1,10 @@
 import { OrbitControls } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
-import { usePlayback } from '../replay/store'
+import { posAt } from '../replay/engine'
+import { frameState, usePlayback } from '../replay/store'
 import { Arena } from './Arena'
 import { Effects } from './Effects'
 import { Units } from './Units'
@@ -41,6 +42,41 @@ const vec = (k: string, d: [number, number, number]) => {
 const CAM_POS = vec('cam', [15, 18, 23])
 const CAM_LOOK = vec('look', [0, 0.5, 1.2])
 
+/**
+ * Dungeon runs: keep the camera on the party as it walks the crypt. The orbit
+ * angle and zoom stay the user's; only the point being looked at glides to the
+ * party's centre (cosmetic smoothing, like facing damping). The sun follows so
+ * shadows keep working away from the throne room.
+ */
+function FollowParty() {
+  const controls = useThree((s) => s.controls) as unknown as { target: THREE.Vector3; update: () => void } | null
+  const { camera, scene } = useThree()
+  const snapped = useRef<string | null>(null)
+  useFrame((_, dt) => {
+    const f = frameState()
+    if (!f || !controls || !f.engine.replay.arena.rooms) return
+    const alive = f.s.order.map((id) => f.s.units[id]).filter((u) => u.info.kind === 'player' && u.alive)
+    const pts = (alive.length ? alive : f.s.order.map((id) => f.s.units[id]).filter((u) => u.info.kind === 'player'))
+      .map((u) => posAt(u, f.t))
+    if (!pts.length) return
+    const want = new THREE.Vector3(pts.reduce((a, p) => a + p[0], 0) / pts.length, 0.6, pts.reduce((a, p) => a + p[1], 0) / pts.length)
+    const key = f.engine.replay.meta.seed + f.engine.replay.meta.policy
+    const k = snapped.current === key ? 1 - Math.exp(-Math.min(dt, 0.1) * 3) : 1 // snap on a new replay
+    snapped.current = key
+    const delta = want.sub(controls.target).multiplyScalar(k)
+    controls.target.add(delta)
+    camera.position.add(delta)
+    controls.update()
+    const sun = scene.getObjectByName('sun') as THREE.DirectionalLight | undefined
+    if (sun) {
+      sun.position.set(controls.target.x + 8, 22, controls.target.z + 10)
+      sun.target.position.copy(controls.target)
+      sun.target.updateMatrixWorld()
+    }
+  })
+  return null
+}
+
 export function Scene() {
   return (
     <Canvas
@@ -57,6 +93,7 @@ export function Scene() {
       <hemisphereLight args={['#9d8cff', '#2a1838', 0.9]} />
       <ambientLight intensity={0.25} />
       <directionalLight
+        name="sun"
         castShadow
         position={[8, 22, 10]}
         intensity={1.6}
@@ -72,7 +109,9 @@ export function Scene() {
       <Arena />
       <Units />
       <Effects />
+      <FollowParty />
       <OrbitControls
+        makeDefault
         target={CAM_LOOK}
         enablePan={false}
         enableDamping

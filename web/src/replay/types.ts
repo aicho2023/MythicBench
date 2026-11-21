@@ -14,6 +14,7 @@ export interface UnitInfo {
   radius: number
   model: string
   pos: Vec2
+  pack?: string // dungeon trash: which pack it belongs to
 }
 
 export interface AbilityInfo {
@@ -36,6 +37,8 @@ export interface AuraInfo {
 
 export interface Metrics {
   score: number
+  progress_pct?: number // dungeon runs
+  penalty_s?: number
   outcome: string
   duration_s: number
   in_time: boolean
@@ -60,6 +63,11 @@ export interface ReplayMeta {
   sigil_level: number
   time_limit_ms: number
   metrics?: Metrics
+  /** Dungeon runs: "dungeon"; boss-only fights omit it. */
+  mode?: string
+  penalty_ms?: number
+  revives?: number
+  boss_engaged_ms?: number | null
   /** Model runs: which run produced this replay. */
   run?: { run_id: string; name: string | null; label: string; model: string; effort: string | null; harness_version: string; prompt_hash: string }
   /** Progression runs: this pull's place in its episode and what the model knew. */
@@ -83,13 +91,24 @@ export type ReplayEvent =
   | (Base & { type: 'ground_expire'; id: string })
   | (Base & { type: 'projectile'; source: string; target: string; ability: string; travel_ms: number })
   | (Base & { type: 'death'; unit: string; killer: string; ability: string })
+  | (Base & { type: 'pull'; pack: string; by: string | null })
+  | (Base & { type: 'pack_cleared'; pack: string })
+  | (Base & { type: 'revive'; unit: string; hp: number; penalty_ms: number })
   | (Base & { type: 'emote'; unit: string; style: 'yell' | 'warning'; text: string })
   | (Base & { type: 'decision'; unit: string; action: string; reason: string })
 
 export interface Replay {
   schema_version: string
   meta: ReplayMeta
-  arena: { radius: number; doors: Vec2[] }
+  arena: {
+    radius: number
+    doors: Vec2[]
+    // dungeon runs only
+    rooms?: { id: string; name: string; center: Vec2; radius: number }[]
+    corridors?: { x_half: number; z_min: number; z_max: number }[]
+    route?: Vec2[]
+    packs?: { id: string; name: string; room: string; members: string[] }[]
+  }
   classes: Record<string, { name: string; role: string; interrupt: string | null; abilities: string[] }>
   abilities: Record<string, AbilityInfo>
   auras: Record<string, AuraInfo>
