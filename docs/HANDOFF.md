@@ -215,9 +215,22 @@ Grokka → Nyx → Bao → Bramble. Full WoW-analogy table in `README.md`.
   recording an error), `prompt.py` (rules → system prompt, obs → state text,
   strict reply parsing), `policy.py` (`PartyBrain`: one model drives all five
   characters through standing orders).
-- **Call cadence:** every 2 s of game time plus triggers (boss cast start, new
-  pools, adds, ally < 40%, death), 0.5 s minimum gap except for boss casts,
-  capped at 300 calls per fight. The game is paused while the model thinks.
+- **Call cadence:**
+  - every 4 s of game time (`ROUTINE_MS`), plus triggers: a cast start, new
+    pools, adds, a pack pulled or cleared, an ally under 40%, a death;
+  - a 0.5 s minimum gap, except for casts;
+  - capped at 300 calls per fight.
+  The game is paused while the model thinks.
+- **Equal settings:**
+  - an 8,000-token output cap per call (`MAX_OUTPUT_TOKENS`);
+  - one effort for every model (`protocol/v1.json`);
+  - Anthropic uses adaptive thinking with summaries, which are stored in the
+    recordings;
+  - refusals are counted, and there is no model fallback.
+- **Official protocol:** `protocol/v1.json`. `campaign` plays it and can be
+  resumed; each episode is marked finished by `episodes/E/episode.json`.
+  `results` writes `results/v1/leaderboard.json` and the gzipped replays
+  (`sim/mythicsim/campaign.py`).
 - **Interrupts in a priority list** only fire on an interruptible cast, so
   standing orders don't waste them.
 - **CLI:** `python -m mythicsim llm --model provider:model --seeds 0-4 [--name] [--tag]`.

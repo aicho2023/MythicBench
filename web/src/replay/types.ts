@@ -165,6 +165,8 @@ export interface CatalogRun {
   memory?: boolean | null
   level?: number | null
   tier?: string | null
+  /** "dungeon" for the full run; missing on runs made before the dungeon existed (boss fight only) */
+  dungeon_mode?: string | null
   max_pulls?: number | null
   /** "stopped": the run hit its spend budget part-way */
   status?: string | null

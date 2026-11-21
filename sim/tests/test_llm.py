@@ -200,3 +200,37 @@ def test_call_budget_is_enforced():
     pols, brain = make_llm_policies(MockClient(), interval_ms=100, min_gap_ms=0, max_calls=5)
     Encounter(2, pols, "x").run(max_ms=20_000)
     assert brain.stats.calls == 5 and brain.stats.budget_exhausted
+
+
+def test_refusal_keeps_previous_orders_and_is_counted():
+    good = json.dumps({"orders": {"grokka": {"priority": [["savage_hew", "mortisar"]]}}})
+
+    class Refuses(Scripted):
+        def complete(self, system, user):
+            r = super().complete(system, user)
+            return r if len(self.prompts) == 1 else Reply("", 100, 0, refused=True)
+
+    brain = PartyBrain(Refuses([good]), interval_ms=1000)
+    pols = {m.id: LLMPolicy(m.id, brain) for m in C.PARTY}
+    rep = Encounter(4, pols, "x").run(max_ms=6000)
+    assert brain.stats.refusals >= 1 and brain.stats.unusable_replies == 0
+    hews = [e for e in rep["events"] if e["type"] == "cast_success" and e["ability"] == "savage_hew"]
+    assert any(e["t"] > 3000 for e in hews)
+
+
+def test_frontier_model_settings():
+    from mythicsim.llm.clients import MAX_OUTPUT_TOKENS, make_client
+    with pytest.raises(ClientError, match="cannot turn thinking off"):
+        make_client("anthropic:claude-opus-5-5@none")
+    opus = make_client("anthropic:claude-opus-5-5@xhigh")
+    assert opus.effort_params() == {"thinking": {"type": "adaptive", "display": "summarized"},
+                                    "output_config": {"effort": "xhigh"}}
+    assert make_client("anthropic:claude-haiku-5-5@none").effort_params() == {"thinking": {"type": "disabled"}}
+    assert opus.max_tokens == MAX_OUTPUT_TOKENS == 8000
+    assert make_client("openai:gpt-6.2-astra@max").spec == "openai:gpt-6.2-astra@max"
+
+
+def test_prompt_cache_key_follows_the_rules_text():
+    from mythicsim.llm.clients import _cache_key
+    a, b = system_prompt("blind"), system_prompt("blind", notes="kick the requiem", pull=2)
+    assert _cache_key(a) == _cache_key(a) != _cache_key(b)

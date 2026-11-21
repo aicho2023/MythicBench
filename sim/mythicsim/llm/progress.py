@@ -101,7 +101,7 @@ class EpisodeResult:
 
 
 def run_episode(client: ChatClient, episode: int, *, max_pulls: int = 8, memory: bool = True,
-                knowledge: str = "blind", interval_ms: int = 2000, max_calls: int = 300,
+                knowledge: str = "blind", interval_ms: int = 4000, max_calls: int = 300,
                 tier: str = C.DEFAULT_TIER, mode: str = "boss", on_pull=None) -> EpisodeResult:
     result = EpisodeResult(episode)
     notes = ""

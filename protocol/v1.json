@@ -1,0 +1,26 @@
+{
+  "name": "v1",
+  "description": "MythicBench v1: lead a 5-person party through the Gravecrown Crypt, blind, learning over up to 5 pulls, on Normal and +10.",
+  "mode": "dungeon",
+  "knowledge": "blind",
+  "tiers": ["normal", "plus10"],
+  "episodes": 3,
+  "max_pulls": 5,
+  "effort": "medium",
+  "interval_ms": 4000,
+  "max_calls": 300,
+  "run_budget_usd": 150,
+  "models": [
+    {"provider": "anthropic", "id": "claude-haiku-5-5", "name": "Claude Haiku 5.5"},
+    {"provider": "anthropic", "id": "claude-sonnet-5-5", "name": "Claude Sonnet 5.5"},
+    {"provider": "anthropic", "id": "claude-opus-5-5", "name": "Claude Opus 5.5"},
+    {"provider": "anthropic", "id": "claude-fable-5-2", "name": "Claude Fable 5.2"},
+    {"provider": "openai", "id": "gpt-6-luna", "name": "GPT-6 Luna"},
+    {"provider": "openai", "id": "gpt-6.2-sol", "name": "GPT-6.2 Sol"},
+    {"provider": "openai", "id": "gpt-6.2-astra", "name": "GPT-6.2 Astra"}
+  ],
+  "controls": [
+    {"model": "claude-haiku-5-5", "memory": false, "tiers": ["plus10"]},
+    {"model": "gpt-6-luna", "memory": false, "tiers": ["plus10"]}
+  ]
+}

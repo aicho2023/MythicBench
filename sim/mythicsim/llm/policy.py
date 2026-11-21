@@ -33,6 +33,8 @@ LOW_HP_PCT = 40.0
 # first tick (0 ms), faster than any player or bot, and the interrupt
 # mechanic would stop measuring anything.
 REACTION_MS = 350
+# Routine check-in interval (game time). Important events ask sooner.
+ROUTINE_MS = 4000
 
 
 @dataclass
@@ -48,6 +50,7 @@ class BrainStats:
     truncated_replies: int = 0  # cut off by the output-token limit
     invalid_entries: int = 0  # unknown abilities/targets etc. that we dropped
     api_errors: int = 0
+    refusals: int = 0  # the provider declined to answer (keeps old orders)
     budget_exhausted: bool = False
     triggers: dict[str, int] = field(default_factory=dict)
     problems: list[str] = field(default_factory=list)  # first few, for debugging
@@ -68,7 +71,7 @@ class Standing:
 
 
 class PartyBrain:
-    def __init__(self, client: ChatClient, interval_ms: int = 2000, min_gap_ms: int = 500,
+    def __init__(self, client: ChatClient, interval_ms: int = ROUTINE_MS, min_gap_ms: int = 500,
                  max_calls: int = 300, knowledge: str = "full", notes: str | None = None,
                  pull: int | None = None, tier: str = C.DEFAULT_TIER, mode: str = "boss"):
         self.client = client
@@ -186,6 +189,10 @@ class PartyBrain:
         self.stats.cache_write_tokens += reply.cache_write_tokens
         self.stats.latency_s += reply.latency_s
         self.stats.cached_calls += reply.cached
+        if reply.refused:
+            self.stats.refusals += 1
+            self.note(f"t={obs['t']}: the provider refused to answer")
+            return
         if reply.truncated:
             self.stats.truncated_replies += 1
             self.note(f"t={obs['t']}: reply cut off at the output-token limit")

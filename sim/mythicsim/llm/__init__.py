@@ -21,7 +21,9 @@ Pieces:
 #   0.5.0  dungeon run (map, packs, pulling, resting, "next" move)
 #   0.6.0  difficulty tiers (Normal / +10) and affixes in the rules; pool kinds
 #          and aura stacks in the state; "safe" works in every room
-HARNESS_VERSION = "0.6.0"
+#   0.7.0  4 s routine check-ins; "include only changed orders"; 8,000-token
+#          output cap; adaptive thinking with summaries; refusals recorded
+HARNESS_VERSION = "0.7.0"
 
 
 def prompt_hash(knowledge: str = "full", tier: str = "plus10", mode: str = "boss") -> str:

@@ -18,7 +18,7 @@ from . import runs as runs_mod
 from . import spend
 from .engine import SIM_VERSION, Encounter
 from .llm import HARNESS_VERSION, prompt_hash
-from .llm.clients import CachedClient, ClientError, make_client
+from .llm.clients import EFFORTS, CachedClient, ClientError, make_client
 from .llm.policy import make_llm_policies
 from .metrics import score
 from .policies import PROFILES, make_policies
@@ -253,8 +253,9 @@ def run_llm(args) -> None:
     print("watch it: cd web && npm run dev, then open Runs in the top bar")
 
 
-def run_progress(args) -> None:
-    """Learning over pulls: episodes of repeated attempts with notes between pulls."""
+def run_progress(args) -> dict:
+    """Learning over pulls: episodes of repeated attempts with notes between pulls.
+    Returns the run's manifest."""
     from concurrent.futures import ThreadPoolExecutor, as_completed
     from .llm.progress import run_episode, summarize
     episodes = parse_seeds(args.episodes)
@@ -267,6 +268,7 @@ def run_progress(args) -> None:
         "sim_version": SIM_VERSION, "content_version": C.CONTENT_VERSION,
         "offline": args.offline, "cache": not args.no_cache,
         "budget_usd": meter.limit_usd if meter else None,
+        **(getattr(args, "extra", None) or {}),
     })
     if meter:
         meter.run_id = run.run_id
@@ -297,7 +299,12 @@ def run_progress(args) -> None:
                                on_pull=on_pull): e for e in episodes}
         for fut in as_completed(futures):
             try:
-                results.append(fut.result())
+                ep = fut.result()
+                results.append(ep)
+                # Marks the episode complete (the campaign resumes from these).
+                (run.dir / "episodes" / str(ep.episode) / "episode.json").write_text(json.dumps({
+                    "episode": ep.episode, "pulls": len(ep.pulls), "complete": True,
+                    "cleared_on": next((p.pull for p in ep.pulls if p.metrics["outcome"] == "victory"), None)}))
             except spend.BudgetExceeded as err:
                 # The interrupted episode's finished pulls are on disk but not
                 # counted: a cut-short episode would bias pulls-to-kill.
@@ -326,6 +333,7 @@ def run_progress(args) -> None:
     print(f"run {run.run_id}: {run.dir}")
     if stopped:
         print(f"STOPPED EARLY: {stopped}. Kept {len(results)} of {len(episodes)} complete episodes.")
+    return run.manifest
 
 
 def run_runs(args) -> None:
@@ -411,7 +419,7 @@ def main() -> None:
     m.add_argument("--model", required=True,
                    help="provider:model, e.g. anthropic:claude-haiku-5-5, openai:<model>, or mock:basic")
     m.add_argument("--seeds", default="0-4", help="e.g. 0-4 or 3,7,11 (default 0-4)")
-    m.add_argument("--interval-ms", type=int, default=2000, help="routine decision interval in game time")
+    m.add_argument("--interval-ms", type=int, default=4000, help="routine decision interval in game time")
     m.add_argument("--max-calls", type=int, default=300, help="safety cap on model calls per fight")
     m.add_argument("--mode", choices=MODES, default="dungeon",
                      help="dungeon (default): trash packs then the boss; boss: the boss fight alone")
@@ -419,7 +427,7 @@ def main() -> None:
                      help="difficulty: normal, or +10 (default; harder mechanics via affixes)")
     m.add_argument("--offline", action="store_true", help="only use recorded replies (no API calls)")
     m.add_argument("--no-cache", action="store_true", help="don't record or reuse replies")
-    m.add_argument("--effort", choices=("none", "low", "medium", "high"),
+    m.add_argument("--effort", choices=EFFORTS,
                    help="thinking/reasoning effort (default: the provider's own default). "
                         "Also accepted as provider:model@effort. Each effort is a separate configuration")
     m.add_argument("--workers", type=int, default=1, help="seeds to play in parallel (default 1)")
@@ -428,7 +436,7 @@ def main() -> None:
     add_money_args(m)
     pg = sub.add_parser("progress", help="learning over pulls: repeated attempts with notes between pulls")
     pg.add_argument("--model", required=True, help="provider:model[@effort], or mock:basic")
-    pg.add_argument("--effort", choices=("none", "low", "medium", "high"))
+    pg.add_argument("--effort", choices=EFFORTS)
     pg.add_argument("--episodes", default="0", help="episode numbers, e.g. 0-4 (each is an independent attempt series)")
     pg.add_argument("--max-pulls", type=int, default=8)
     pg.add_argument("--mode", choices=MODES, default="dungeon",
@@ -439,7 +447,7 @@ def main() -> None:
                     help="off = control condition: notes are wiped between pulls")
     pg.add_argument("--knowledge", choices=("blind", "full"), default="blind",
                     help="blind (default): nothing about the boss is given up front")
-    pg.add_argument("--interval-ms", type=int, default=2000)
+    pg.add_argument("--interval-ms", type=int, default=4000)
     pg.add_argument("--max-calls", type=int, default=300)
     pg.add_argument("--workers", type=int, default=1, help="episodes to play in parallel")
     pg.add_argument("--offline", action="store_true")
@@ -464,6 +472,17 @@ def main() -> None:
                      help="first add estimated spend for runs made before the spend log existed")
     rsub.add_parser("import-legacy", help="convert old runs/<model>/ folders into run folders")
     rsub.add_parser("rescore", help="recompute every saved run's scores with the current scoring")
+    cp = sub.add_parser("campaign", help="play the official protocol: every model on every tier (resumable)")
+    cp.add_argument("protocol", type=Path, help="e.g. ../protocol/v1.json")
+    cp.add_argument("--only", help="only models whose spec contains this text")
+    cp.add_argument("--dry-run", action="store_true", help="list what's left to play and a worst-case cost")
+    cp.add_argument("--workers", type=int, default=3, help="episodes to play in parallel per model and tier")
+    cp.add_argument("--budget-usd", type=float, help="stop the campaign after spending this much this time")
+    cp.add_argument("--offline", action="store_true", help="only use recorded replies (rebuild from recordings)")
+    rr = sub.add_parser("results", help="collect the protocol's finished episodes into a results dataset")
+    rr.add_argument("protocol", type=Path)
+    rr.add_argument("--out", type=Path, required=True, help="e.g. ../results/v1")
+    rr.add_argument("--no-bots", action="store_true", help="skip the scripted-bot reference scores")
     g = sub.add_parser("generate", help="write the showcase replays for the viewer")
     g.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
@@ -482,6 +501,18 @@ def main() -> None:
         run_progress(args)
     elif args.cmd == "runs":
         run_runs(args)
+    elif args.cmd == "campaign":
+        from .campaign import load_protocol, run_campaign
+        run_campaign(load_protocol(args.protocol), only=args.only, dry_run=args.dry_run, workers=args.workers,
+                     budget_usd=args.budget_usd, offline=args.offline)
+    elif args.cmd == "results":
+        from .campaign import build_results, load_protocol
+        res = build_results(load_protocol(args.protocol), args.out, with_bots=not args.no_bots)
+        for row in res["leaderboard"]:
+            tiers = "  ".join(f"{t} {c['progression_score']:5.1f} (clear {c['clear_rate']:.0%})"
+                              for t, c in row["tiers"].items())
+            print(f"{row['name']:<28} score {row['mythicbench_score'] if row['mythicbench_score'] is not None else '-':>5}  {tiers}")
+        print(f"wrote {args.out}/leaderboard.json")
     elif args.cmd == "generate":
         args.out.mkdir(parents=True, exist_ok=True)
         index = []
