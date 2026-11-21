@@ -1,9 +1,11 @@
 import { Outlines } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { useMemo, useRef } from 'react'
+import { Suspense, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { frameState } from '../replay/store'
 import { SkeletonModel, useRig } from './avatars'
+import { AssetBoundary, USE_KAYKIT } from './ErrorBoundary'
+import { KayKitDungeon } from './kaykit/Dungeon'
 import { brickTexture, flagstoneTexture, glow, runeCircleTexture, softCircleTexture, toon } from './materials'
 
 const R = 15
@@ -13,6 +15,27 @@ export function Arena() {
   const wallMat = useMemo(() => new THREE.MeshToonMaterial({ map: brickTexture(), color: '#8a82b0', side: THREE.BackSide }), [])
   const stone = toon('#4a4566')
   const pillars = useMemo(() => Array.from({ length: 12 }, (_, k) => (k / 12) * Math.PI * 2 + Math.PI / 12), [])
+  const procedural = (
+    <>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.6, 0]}>
+        <ringGeometry args={[R + 1.2, 34, 72]} />
+        <meshToonMaterial color="#0c0a14" />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
+        <ringGeometry args={[R + 1.3, R + 4, 72]} />
+        <meshBasicMaterial color={[0.25, 0.5, 0.7]} transparent opacity={0.35} toneMapped={false} />
+      </mesh>
+      <mesh position={[0, 4, 0]} material={wallMat}>
+        <cylinderGeometry args={[23, 23, 10, 64, 1, true]} />
+      </mesh>
+      {pillars.map((a, k) => <Pillar key={k} angle={a} />)}
+      {pillars.filter((_, k) => k % 2 === 0).map((a, k) => (
+        <Banner key={k} angle={a + Math.PI / 12} />
+      ))}
+      <CryptDoors />
+      <Sentinels />
+    </>
+  )
   return (
     <group>
       {/* floor */}
@@ -21,15 +44,6 @@ export function Arena() {
       </mesh>
       <mesh position={[0, -0.26, 0]} material={stone}>
         <cylinderGeometry args={[R + 0.9, R + 1.4, 0.5, 72]} />
-      </mesh>
-      {/* outer pit beyond the platform */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.6, 0]}>
-        <ringGeometry args={[R + 1.2, 34, 72]} />
-        <meshToonMaterial color="#0c0a14" />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
-        <ringGeometry args={[R + 1.3, R + 4, 72]} />
-        <meshBasicMaterial color={[0.25, 0.5, 0.7]} transparent opacity={0.35} toneMapped={false} />
       </mesh>
       {/* glowing rune rings in the floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]}>
@@ -42,17 +56,15 @@ export function Arena() {
       </mesh>
       <BossDais />
       <Throne />
-      {/* walls */}
-      <mesh position={[0, 4, 0]} material={wallMat}>
-        <cylinderGeometry args={[23, 23, 10, 64, 1, true]} />
-      </mesh>
-      {pillars.map((a, k) => <Pillar key={k} angle={a} />)}
-      {pillars.filter((_, k) => k % 2 === 0).map((a, k) => (
-        <Banner key={k} angle={a + Math.PI / 12} />
-      ))}
+      {/* Walls, pillars, gates, statues: KayKit pieces if present, else procedural. */}
+      {USE_KAYKIT ? (
+        <AssetBoundary fallback={procedural}>
+          <Suspense fallback={null}>
+            <KayKitDungeon doors={DOORS} />
+          </Suspense>
+        </AssetBoundary>
+      ) : procedural}
       <Braziers />
-      <CryptDoors />
-      <Sentinels />
       <LostSouls />
       <Candles />
       <Motes count={90} spread={[30, 7, 30]} center={[0, 3.5, 0]} color="#b18cff" size={0.22} seed={1} />

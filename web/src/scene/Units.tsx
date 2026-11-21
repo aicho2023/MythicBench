@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber'
-import { useMemo, useRef } from 'react'
+import { Suspense, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { CLASS_COLORS, SCHOOL_COLORS } from '../content/display'
 import { isMoving, posAt } from '../replay/engine'
@@ -9,6 +9,8 @@ import {
   animateSkeleton, useRig,
 } from './avatars'
 import { runeCircleTexture, softCircleTexture } from './materials'
+import { AssetBoundary, USE_KAYKIT } from './ErrorBoundary'
+import { KayKitAvatar } from './kaykit/KayKitAvatar'
 import { poseOf } from './pose'
 
 /** Mount one actor per unit that exists at the current time. */
@@ -128,6 +130,14 @@ function UnitActor({ id }: { id: string }) {
     }
   })
 
+  const procedural = (
+    <group scale={scale}>
+      {isBoss ? <BossModel rig={rig} castColor="#c77dff" />
+        : isAdd ? <SkeletonModel rig={rig} />
+          : <ChibiModel cls={info.class} rig={rig} school="holy" />}
+    </group>
+  )
+
   return (
     <group ref={root}>
       {/* soft blob shadow + class ring for readability */}
@@ -145,11 +155,14 @@ function UnitActor({ id }: { id: string }) {
         <planeGeometry />
       </mesh>
       <group ref={turn}>
-        <group scale={scale}>
-          {isBoss ? <BossModel rig={rig} castColor="#c77dff" />
-            : isAdd ? <SkeletonModel rig={rig} />
-              : <ChibiModel cls={info.class} rig={rig} school="holy" />}
-        </group>
+        {USE_KAYKIT ? (
+          // Real KayKit models; procedural art shows while loading or if assets are missing.
+          <AssetBoundary fallback={procedural}>
+            <Suspense fallback={procedural}>
+              <KayKitAvatar id={id} info={info} />
+            </Suspense>
+          </AssetBoundary>
+        ) : procedural}
       </group>
       {/* aura effects (don't rotate with the body) */}
       <group ref={auraRefs.ironhide} visible={false} position={[0, 0.8, 0]}>

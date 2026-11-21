@@ -210,11 +210,11 @@ CLASSES: dict[str, ClassDef] = {
         ("ravage", "savage_hew", "cleaving_storm", "throat_punch"),
         interrupt="throat_punch", auto_attack=(1000, 2000)),
     "shadowblade": ClassDef(
-        "shadowblade", "Shadowblade", "dps", 40000, "Rogue",
+        "shadowblade", "Shadowblade", "dps", 40000, "Rogue_Hooded",
         ("twin_fang", "venom_burst", "fan_of_blades", "quick_jab"),
         interrupt="quick_jab", auto_attack=(800, 1300)),
     "ranger": ClassDef(
-        "ranger", "Ranger", "dps", 40000, "Rogue_Hooded",
+        "ranger", "Ranger", "dps", 40000, "Ranger",
         ("steady_arrow", "piercing_shot", "silencing_arrow", "wild_roar"),
         interrupt="silencing_arrow"),
 }
@@ -250,7 +250,7 @@ class BossDef:
     name: str = "Mortisar, the Hollow King"
     max_hp: int = 1_500_000
     radius: float = 1.6
-    model: str = "Skeleton_Mage"
+    model: str = "Skeleton_Warrior"
     melee: tuple[int, int] = (2600, 2000)
     # first cast time and repeat interval, in ms
     timers: dict = field(default_factory=lambda: {
