@@ -1,0 +1,33 @@
+{
+ "name": "sample",
+ "description": "A free sample of the v1 protocol for building the site: the mock model (no API, no cost) through the Gravecrown Crypt, blind, up to 3 pulls, on Normal and +10.",
+ "mode": "dungeon",
+ "knowledge": "blind",
+ "tiers": [
+  "normal",
+  "plus10"
+ ],
+ "episodes": 2,
+ "max_pulls": 3,
+ "effort": "medium",
+ "interval_ms": 4000,
+ "max_calls": 300,
+ "run_budget_usd": 1,
+ "models": [
+  {
+   "provider": "mock",
+   "id": "basic",
+   "name": "Mock model",
+   "effort": "medium"
+  }
+ ],
+ "controls": [
+  {
+   "model": "basic",
+   "memory": false,
+   "tiers": [
+    "plus10"
+   ]
+  }
+ ]
+}

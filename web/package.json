@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "replays": "cd ../sim && python3 -m mythicsim generate --out ../web/public/replays",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "sample": "cd ../sim && python3 -m mythicsim campaign ../protocol/sample.json --workers 2 && python3 -m mythicsim results ../protocol/sample.json --out ../web/public/results/sample"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",
@@ -25,6 +26,8 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@mdx-js/rollup": "^3.1.1",
+    "@types/mdx": "^2.0.14",
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
