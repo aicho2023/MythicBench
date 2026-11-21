@@ -9,7 +9,7 @@ export function BossFrame() {
   const boss = s.units.mortisar
   if (!boss) return null
   const pct = (100 * boss.hp) / boss.info.max_hp
-  const cast = boss.cast
+  const cast = s.ended ? null : boss.cast // nothing is "being cast" once the fight is over
   const castInfo = cast ? engine.replay.abilities[cast.ability] : null
   const end = boss.lastCastEnd
   const flash = !cast && end && t - end.t < 900 ? end : null

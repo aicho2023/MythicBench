@@ -1,6 +1,6 @@
 import { AlertTriangle, Megaphone } from 'lucide-react'
 import { useState } from 'react'
-import { CLASS_COLORS, WARN_CASTS, fmtNum, fmtTime } from '../content/display'
+import { CLASS_COLORS, WARN_CASTS, fmtNum, fmtTime, runScore } from '../content/display'
 import { usePlayback, useHud } from '../replay/store'
 
 // ---------------------------------------------------------------------------
@@ -16,6 +16,7 @@ export function Scorecard() {
   const boss = s.units.mortisar
   const bossPct = boss ? (100 * boss.hp) / boss.info.max_hp : 0
   const avoidable = Object.values(s.avoidableTaken).reduce((a, b) => a + b, 0)
+  const score = runScore(s.ended?.outcome ?? null, s.ended?.t ?? 0, bossPct, limit)
   const outcome = !s.ended ? { text: 'In progress', cls: 'text-fg-muted' }
     : s.ended.outcome === 'victory' ? { text: 'Kill', cls: 'text-good' } : { text: 'Wipe', cls: 'text-bad' }
   return (
@@ -33,7 +34,12 @@ export function Scorecard() {
           <div className="h-full bg-fg/70" style={{ width: `${Math.min(100, (t / limit) * 100)}%` }} />
         </div>
       </div>
-      <dl className="mt-2.5 border-t border-line px-3.5 py-1.5">
+      <div className="mt-2.5 flex items-baseline justify-between border-t border-line px-3.5 pb-1 pt-2"
+        title="Score = % of boss health removed. A kill scores 100 plus one point per second left on the timer.">
+        <span className="text-[12px] text-fg-muted">Score{!s.ended && <span className="text-fg-faint"> · so far</span>}</span>
+        <span className="num font-mono text-[18px] font-medium text-fg">{score.toFixed(1)}</span>
+      </div>
+      <dl className="px-3.5 pb-1.5">
         <Metric label="Boss health left" value={`${bossPct.toFixed(1)}%`} tone={bossPct === 0 ? 'good' : 'plain'} />
         <Metric label="Interrupts" value={`${s.kicks.interrupted} / ${s.kicks.casts}`}
           tone={s.kicks.casts === 0 ? 'plain' : s.kicks.interrupted === s.kicks.casts ? 'good' : 'bad'} />
@@ -109,12 +115,13 @@ export function RaidWarnings() {
   if (!h) return null
   const { t, engine, s } = h
   const items: { key: number; text: string; style: 'warning' | 'yell'; age: number; dur: number }[] = []
+  const over = s.ended ? s.ended.t : Infinity // only the final yell after a kill/wipe
   for (const { e, i } of engine.eventsBetween(t - 6000, t)) {
     const age = t - e.t
     if (e.type === 'emote') {
       const dur = e.style === 'yell' ? 5000 : 2500
       if (age < dur) items.push({ key: i, text: e.style === 'yell' ? e.text : e.text, style: e.style, age, dur })
-    } else if (e.type === 'cast_start' && WARN_CASTS[e.ability] && s.units[e.unit]?.cast?.t0 === e.t) {
+    } else if (e.type === 'cast_start' && t < over && WARN_CASTS[e.ability] && s.units[e.unit]?.cast?.t0 === e.t) {
       const tgt = e.target ? s.units[e.target]?.info.name ?? '' : ''
       items.push({ key: i, text: WARN_CASTS[e.ability].replace('{target}', tgt), style: 'warning', age, dur: e.cast_ms + 10000 })
     } else if (e.type === 'cast_success' && e.ability === 'desecrate' && age < 2000) {

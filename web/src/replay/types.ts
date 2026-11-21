@@ -35,6 +35,7 @@ export interface AuraInfo {
 }
 
 export interface Metrics {
+  score: number
   outcome: string
   duration_s: number
   in_time: boolean
@@ -101,4 +102,5 @@ export interface ReplayIndexEntry {
   file: string
   outcome: string
   duration_s: number
+  score?: number
 }

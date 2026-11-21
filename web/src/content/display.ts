@@ -48,6 +48,15 @@ export const WARN_CASTS: Record<string, string> = {
   soul_rend: 'Soul Rend on {target} — Defensives!',
 }
 
+/**
+ * The run score (mirror of sim/mythicsim/metrics.py run_score):
+ * kill = 100 + seconds left on the timer; wipe = % of boss health removed.
+ */
+export function runScore(outcome: string | null, endMs: number, bossHpPctLeft: number, limitMs: number): number {
+  if (outcome === 'victory') return Math.round((100 + Math.max(0, (limitMs - endMs) / 1000)) * 10) / 10
+  return Math.round((100 - bossHpPctLeft) * 10) / 10
+}
+
 export function fmtNum(n: number): string {
   if (n >= 1e6) return `${(n / 1e6).toFixed(2)}M`
   if (n >= 1e3) return `${(n / 1e3).toFixed(n >= 1e5 ? 0 : 1)}K`

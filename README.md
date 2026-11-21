@@ -25,20 +25,43 @@ npm run dev
 Open http://localhost:5173. Space = play/pause, ←/→ = ±5 s, 1–4 = speed.
 Click any line in **Agent decisions** to rewind to that moment.
 
-Link straight to a moment: `http://localhost:5173/?replay=sloppy-wipe&t=123&paused=1`
+Link straight to a moment: `http://localhost:5173/?replay=sloppy-wipe&t=95&paused=1`
 
-## Same fight, two teams
+## How a run is scored
 
-Both replays use **seed 2**: identical boss timers, identical random rolls. Only
-the decision-maker differs.
+Each run gets one number:
 
-| Run | Outcome | Interrupts | Deaths |
+- **Wipe:** the % of the boss's health the party removed (0–100).
+- **Kill:** 100, plus one point per second left on the 3:15 timer.
+
+Win/loss alone would tie every team that wins, and every team that wipes. The
+score keeps separating them: faster kills at the top, deeper progress at the
+bottom. Interrupts, deaths, and avoidable damage explain where points went.
+
+## Same fight, three teams
+
+The viewer ships three replays on **seed 42**. Each seed shuffles the boss's
+timers, but every policy on a seed faces the identical boss script, so only the
+decision-maker differs.
+
+| Run | Outcome | Score | Interrupts | Deaths |
+| --- | --- | --- | --- | --- |
+| Expert bots | **Kill** in 2:47 | 127.8 | 11 / 11 | 0 |
+| Competent bots | **Wipe** to the enrage at 3:19, boss at 3.8% | 96.2 | 10 / 13 | 5 |
+| Sloppy bots | **Wipe** at 1:22 (boss at 62%) | 38.3 | 3 / 5 | 5 |
+
+Across 200 seeds (`python -m mythicsim bench --policy expert,competent,sloppy --runs 200`):
+
+| Bot | Score (95% CI) | Win rate (95% CI) | Interrupt rate |
 | --- | --- | --- | --- |
-| Expert bots | **Kill** in 2:56 | 11 / 11 | 0 |
-| Sloppy bots | **Wipe** at 2:13 (boss at 23%) | 3 / 8 | 5 |
+| Expert | **128.4** (127.3–129.5) | 99.5% (97–100%) | 99.7% |
+| Competent | **104.8** (101.6–108.0) | 68.5% (62–75%) | 85.9% |
+| Sloppy | **21.3** (20.5–22.1) | 0% (0–2%) | 47.8% |
 
-Across 100 seeds each (`python -m mythicsim bench`), expert bots win **100%** and
-sloppy bots win **10%**. That gap is the kind of signal the benchmark measures.
+Three known skill levels, ranked in the right order with no overlap. That's the
+check that the benchmark can tell good play from bad before any model plays it.
+Expert bots almost always win, so at the top the score separates agents by kill
+time (an expert kill leaves ~29 s on the clock).
 
 ![The sloppy party's wipe](docs/media/wipe.jpg)
 
@@ -54,8 +77,8 @@ deliberately familiar:
 | *Soul Rend* (tank buster) | press your big defensive |
 | *Desecrate* (swirls under 3 players) | don't stand in the bad |
 | *Summon the Restless* at 70% / 35% | adds — swap and kill them |
-| *Hollow Fury* at 4:00 | the hard enrage |
-| Sigil +12, 4:00 timer | the keystone and its timer |
+| *Hollow Fury* at 3:15 | the hard enrage (ramping party damage) |
+| Sigil +12, 3:15 timer | the keystone and its timer |
 
 | Class (role) | Abilities | Basically… |
 | --- | --- | --- |
@@ -88,14 +111,15 @@ docs/                       Architecture notes, asset guide
 cd sim
 pip install -e ".[dev]"                    # only needed for tests
 python -m mythicsim run --policy expert --seed 7          # one fight, print score
-python -m mythicsim bench --policy sloppy --runs 200      # many fights, no graphics
+python -m mythicsim bench --policy expert,competent,sloppy --runs 200  # many fights, 95% CIs
 python -m mythicsim generate --out ../web/public/replays  # rebuild viewer replays
 python -m pytest
 ```
 
 ## Why you can trust the numbers
 
-1. **Deterministic.** Same seed + same policy ⇒ byte-identical replay (tested).
+1. **Deterministic.** Same seed + same policy ⇒ byte-identical replay, on any
+   machine: the sim avoids math functions whose last bit varies by CPU (tested).
 2. **The log is the truth.** The viewer and every metric derive from the replay
    file alone; health in every event is cross-checked against a running total.
 3. **The viewer is verified.** Viewer tests confirm it reconstructs the

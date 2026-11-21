@@ -10,15 +10,15 @@ from pathlib import Path
 import jsonschema
 import pytest
 
-from mythicsim.__main__ import simulate
-from mythicsim.metrics import score
+from mythicsim.__main__ import SHOWCASE_SEED, bench, simulate
+from mythicsim.metrics import run_score, score
 
 SCHEMA = json.loads((Path(__file__).parents[2] / "schema" / "replay.schema.json").read_text())
 
 
-@pytest.fixture(scope="module", params=["expert", "sloppy"])
+@pytest.fixture(scope="module", params=["expert", "competent", "sloppy"])
 def replay(request):
-    return simulate(request.param, 2)
+    return simulate(request.param, SHOWCASE_SEED)
 
 
 def digest(rep: dict) -> str:
@@ -75,5 +75,52 @@ def test_no_actions_after_death(replay):
 
 
 def test_showcase_outcomes():
-    assert score(simulate("expert", 2))["outcome"] == "victory"
-    assert score(simulate("sloppy", 2))["outcome"] == "wipe"
+    scores = {p: score(simulate(p, SHOWCASE_SEED)) for p in ("expert", "competent", "sloppy")}
+    assert scores["expert"]["outcome"] == "victory"
+    assert scores["sloppy"]["outcome"] == "wipe"
+    assert scores["expert"]["score"] > scores["competent"]["score"] > scores["sloppy"]["score"]
+
+
+def test_boss_script_is_the_same_for_every_policy():
+    """A seed fixes the boss's timers: the first cast of each timed ability
+    lands at the same moment whoever is playing (policies can't shift it)."""
+    def first_casts(policy):
+        seen = {}
+        for e in simulate(policy, 21)["events"]:
+            if e["type"] in ("cast_start", "cast_success") and e["unit"] == "mortisar" \
+                    and e["ability"] in ("requiem_of_bones", "soul_rend", "desecrate"):
+                seen.setdefault(e["ability"], e["t"])
+        return seen
+    assert first_casts("expert") == first_casts("sloppy")
+
+
+def test_seeds_vary_the_boss_script():
+    def first_requiem(seed):
+        return next(e["t"] for e in simulate("expert", seed)["events"]
+                    if e["type"] == "cast_start" and e["ability"] == "requiem_of_bones")
+    assert len({first_requiem(s) for s in range(8)}) > 1
+
+
+def test_no_platform_dependent_math():
+    """Replays must be identical on every machine (CI regenerates them on Linux).
+    libm functions like hypot/cos/sin can differ in the last bit between CPU
+    platforms, and one flipped comparison changes the whole fight."""
+    import re
+    src = Path(__file__).parents[1] / "mythicsim"
+    banned = re.compile(r"math\.(hypot|cos|sin|tan|atan2?|exp|log|pow)\b|\*\* *0?\.5")
+    for f in ("engine.py", "policies.py", "content.py"):
+        hits = banned.findall((src / f).read_text())
+        assert not hits, f"{f} uses platform-dependent math: {hits}"
+
+
+def test_run_score():
+    assert run_score("victory", 170.0, 0.0, 195.0) == 125.0
+    assert run_score("wipe", 120.0, 38.0, 195.0) == 62.0
+
+
+def test_reference_bots_rank_in_order():
+    """The benchmark's own sanity check: three known skill levels must come out
+    in the right order, with non-overlapping 95% confidence intervals."""
+    e, c, s = (bench(p, 40) for p in ("expert", "competent", "sloppy"))
+    assert e["score_ci95"][0] > c["score_ci95"][1]
+    assert c["score_ci95"][0] > s["score_ci95"][1]

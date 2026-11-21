@@ -46,13 +46,17 @@ The owner's three goals for the project:
   [PR #2](https://github.com/aicho2023/MythicBench/pull/2) plus the
   integration, so merging #3 lands both.
 
-### Results (seed 2, the showcase replays)
-| Run | Outcome | Interrupts | Deaths |
-|---|---|---|---|
-| Expert bots | Kill in 2:56 | 11/11 | 0 |
-| Sloppy bots | Wipe at 2:13 (boss at 23%) | 3/8 | 5 |
+### Results (content 0.2.0, showcase seed 42)
+| Run | Outcome | Score | Interrupts | Deaths |
+|---|---|---|---|---|
+| Expert bots | Kill in 2:47 | 127.8 | 11/11 | 0 |
+| Competent bots | Wipe to enrage at 3:19 (boss 3.8%) | 96.2 | 10/13 | 5 |
+| Sloppy bots | Wipe at 1:22 (boss 62%) | 38.3 | 3/5 | 5 |
 
-Over 100 seeds: expert wins 100%, sloppy wins 10%. ~0.25 s per headless fight.
+Over 200 seeds (score, 95% CI): expert 128.4 (127.3–129.5), competent 104.8
+(101.6–108.0), sloppy 21.3 (20.5–22.1). Win rates 99.5% / 68.5% / 0%.
+~0.45 s per headless fight. Score = % boss HP removed, or 100 + seconds left on
+a kill (see `metrics.run_score`).
 
 ### Pending from the owner
 - They said they **have questions before continuing** — ask for them first.
@@ -76,7 +80,7 @@ Requirements: Node 18+, Python 3.10+ (sim is pure standard library;
 ### Useful URL parameters (viewer)
 | Param | Effect |
 |---|---|
-| `?replay=sloppy-wipe` | pick a replay (`expert-kill` / `sloppy-wipe`) |
+| `?replay=sloppy-wipe` | pick a replay (`expert-kill` / `competent-enrage` / `sloppy-wipe`) |
 | `&t=123&paused=1` | jump to second 123, paused (shareable moments) |
 | `&speed=2` | playback speed |
 | `&cam=7,5,8&look=0,2.5,-1` | camera position / target (close-ups) |
@@ -94,7 +98,7 @@ sim/mythicsim/
   engine.py                   Deterministic 100 ms tick loop -> event log; observe()/Action
   policies.py                 ScriptedPolicy + Skill profiles (EXPERT, SLOPPY)
   metrics.py                  Scores computed ONLY from the event log
-  __main__.py                 CLI: run / bench / generate (SHOWCASE uses seed 2)
+  __main__.py                 CLI: run / bench (95% CIs) / generate (SHOWCASE_SEED = 42)
 sim/tests/test_replays.py     Determinism, schema, hp consistency, no-acting-dead
 web/src/
   replay/types.ts             TS mirror of the schema (keep in sync by hand)
@@ -142,6 +146,14 @@ These are what make the benchmark trustworthy. Tests enforce most of them.
 
 ## 7. Gotchas already discovered (save yourself the debugging)
 
+- **Replays must match across machines.** CI regenerates them on Linux. Never
+  use `math.hypot/cos/sin/...` in the sim (last-bit differences between CPUs
+  flip decisions); a test enforces this. Policies must break ties deliberately:
+  float-noise tie-breaks in the dodge planner once swung the expert win rate
+  between ~2% and ~100%.
+- **Python 3.10+ for the sim.** The owner's system `python3` is 3.8; use the
+  `mythicbench` conda env.
+
 - **Black screen with bloom:** drei `<Sparkles>` divides by distance-to-centre
   in its shader → Infinity → bloom spreads NaN over the whole frame. Removed;
   use the custom `Motes` in `Arena.tsx`. Also never let opacity go negative
@@ -168,7 +180,7 @@ Boss **Mortisar, the Hollow King** (1.5M HP, on a dais at `(0,-2)`):
 - *Soul Rend* — 2 s tank buster + DoT, every 24 s → **defensive / shield**
 - *Desecrate* — pools under 3 non-tanks, 1.5 s arm, persist 40 s → **move**
 - *Summon the Restless* at 70%/35% — 3 Bonewalkers target the healer → **taunt & swap**
-- *Hollow Fury* enrage at 4:00
+- *Hollow Fury* hard enrage at 3:15: ramping party-wide damage every second
 
 Party: Bramble (Guardian/tank), Lumi (Lightweaver/healer), Grokka
 (Berserker), Nyx (Shadowblade), Bao (Ranger — future panda). Kick order:
@@ -176,8 +188,10 @@ Grokka → Nyx → Bao → Bramble. Full WoW-analogy table in `README.md`.
 
 ## 9. Known limitations / tech debt
 
-- Expert bots win 100% — **the encounter is too easy to separate strong
-  models**. Needs harder content/variance before Phase 2 results mean much.
+- Expert bots win 99.5%. That's fine because the score keeps rewarding
+  faster kills, but stronger-than-expert play shows up as kill time, not win rate.
+- The scripted bots' "inattentive" dodge still notices pools in time with a
+  fast reaction, so dodge attention barely affects the expert; reaction speed does.
 - No mana, threat tables, line of sight, or boss movement.
 - `types.ts` is hand-mirrored from the JSON Schema (could be generated).
 - JS bundle ~1.1 MB; runtime asset download ~9 MB; ~8 MB of unused KayKit files
@@ -195,7 +209,6 @@ Grokka → Nyx → Bao → Bramble. Full WoW-analogy table in `README.md`.
      tool/JSON action schema, stated reason → `decision` event).
    - Decision cadence (e.g. per GCD) and a latency/"thinking budget" model.
    - Multi-seed evaluation with confidence intervals; held-out seeds.
-   - Make the encounter harder / add variance so it discriminates.
    - Track illegal/invalid actions as a metric.
 4. **Phase 3:** expert trajectory generation → SFT a small open model (HF
    Transformers + TRL) → preference optimization / RL.

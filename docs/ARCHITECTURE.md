@@ -93,7 +93,7 @@ their stated rationale — great for studying *why* models fail.
 
 ## Decision 7: a controlled experiment, even for the demo
 
-The expert and sloppy bots are the same code with different `Skill` knobs
+The expert, competent, and sloppy bots are the same code with different `Skill` knobs
 (reaction time, chance to notice a cast, whether they swap to adds…). Same
 seed, same encounter, only decision quality varies. That's the shape every
 future comparison should have.
@@ -103,8 +103,31 @@ future comparison should have.
 - No mana/resources, threat tables, or line-of-sight.
 - The boss doesn't move; the arena has no obstacles.
 - One encounter, one content version.
-- Expert bots win 100% — the benchmark needs harder content before it can
-  separate strong models. That's a Phase 2 task.
+- No healer mana, so damage that doesn't kill is free. Pools and missed kicks are
+  tuned to hit hard enough to kill instead.
+
+## Difficulty and scoring (content 0.2.0)
+
+- **Per-seed boss script.** Each timed boss ability draws its timings from its
+  own `random.Random(f"{seed}:timer:{ability}")` stream (first cast ±3 s,
+  repeats ±25% of the interval). Players can't shift these draws, so every
+  policy on a seed faces the same script. Mechanics overlap on some seeds.
+- **Hard enrage at 3:15.** Hollow Fury pulses ramping damage on the whole party
+  every second, so the timer is a real deadline. Expert bots kill with ~29 s
+  to spare; a few mistakes cost the kill.
+- **Run score** (`metrics.run_score`): % boss health removed on a wipe; 100 +
+  seconds left on a kill. It separates every rung of a skill ladder from expert
+  to sloppy, where win rate falls off a cliff in the middle.
+- **Cross-platform determinism.** CI regenerates replays on Linux and diffs
+  them against ones made on a Mac. libm results (`hypot`, `cos`, `sin`…) can
+  differ in the last bit between CPUs, so the sim uses only `+ - * /` and
+  `sqrt` (exactly rounded by IEEE 754) and hard-coded direction constants;
+  `test_no_platform_dependent_math` enforces it. Bots must also break ties on
+  purpose: the dodge planner prefers spots nearer the arena centre. Before
+  that rule, ties fell to float noise, and that noise alone swung the expert
+  bot's win rate between ~2% and ~100%.
+- **Validation.** `test_reference_bots_rank_in_order` requires the expert,
+  competent, and sloppy bots to rank in order with non-overlapping 95% CIs.
 
 ## Known follow-ups
 

@@ -30,13 +30,29 @@ class Skill:
     taunt_delay_ms: int  # how long the tank takes to grab adds
     uses_defensives: bool
     apm: float  # chance of pressing a button on any free GCD (1.0 = never idle)
+    lust_on_pull: bool  # use Wild Roar at the start (best) or hold it until the boss is low
 
 
+# Three reference skill levels. A benchmark that can't rank these three in the
+# right order, with clear gaps, can't be trusted to rank models either.
 EXPERT = Skill("expert", reaction_ms=350, interrupt_attention=1.0, dodge_attention=1.0,
-               swaps_to_adds=True, taunt_delay_ms=500, uses_defensives=True, apm=1.0)
+               swaps_to_adds=True, taunt_delay_ms=3000, uses_defensives=True, apm=1.0,
+               lust_on_pull=True)
+COMPETENT = Skill("competent", reaction_ms=800, interrupt_attention=0.85, dodge_attention=0.85,
+                  swaps_to_adds=True, taunt_delay_ms=3000, uses_defensives=True, apm=0.95,
+                  lust_on_pull=True)
 SLOPPY = Skill("sloppy", reaction_ms=1700, interrupt_attention=0.55, dodge_attention=0.6,
-               swaps_to_adds=False, taunt_delay_ms=9000, uses_defensives=False, apm=0.85)
-PROFILES = {"expert": EXPERT, "sloppy": SLOPPY}
+               swaps_to_adds=False, taunt_delay_ms=9000, uses_defensives=False, apm=0.85,
+               lust_on_pull=False)
+PROFILES = {"expert": EXPERT, "competent": COMPETENT, "sloppy": SLOPPY}
+
+
+# 16 compass directions as exact constants (cos and sin of k * 22.5 degrees).
+# Hard-coded rather than computed at runtime: libm trig results can differ in
+# the last bit between CPU platforms, which would make replays machine-dependent.
+_C1, _C2, _C3 = 0.9238795325112867, 0.7071067811865476, 0.3826834323650898
+_DIRS = ((1.0, 0.0), (_C1, _C3), (_C2, _C2), (_C3, _C1), (0.0, 1.0), (-_C3, _C1), (-_C2, _C2), (-_C1, _C3),
+         (-1.0, 0.0), (-_C1, -_C3), (-_C2, -_C2), (-_C3, -_C1), (0.0, -1.0), (_C3, -_C1), (_C2, -_C2), (_C1, -_C3))
 
 
 def _by_id(obs: dict) -> dict:
@@ -143,12 +159,15 @@ class ScriptedPolicy:
         best, best_score = None, math.inf
         lim = obs["arena_radius"] - 1.5
         for ring in (1.5, 2.5, 3.5, 4.5, 6.0, 8.0):
-            for k in range(16):
-                ang = 2 * math.pi * k / 16
-                cand = (near[0] + ring * math.cos(ang), near[1] + ring * math.sin(ang))
-                if math.hypot(*cand) > lim or self.unsafe(cand, obs, 0.9):
+            for cx, cz in _DIRS:
+                cand = (near[0] + ring * cx, near[1] + ring * cz)
+                if dist(cand, (0.0, 0.0)) > lim or self.unsafe(cand, obs, 0.9):
                     continue
-                score = dist(cand, near) + 0.5 * dist(cand, anchor)
+                # Shortest escape, near where we want to be; among equally good
+                # spots, prefer the middle of the room (stay with the group,
+                # never get pinned against the wall). Without this tie-break the
+                # choice between equal spots fell to floating-point noise.
+                score = dist(cand, near) + 0.5 * dist(cand, anchor) + 0.05 * dist(cand, (0.0, 0.0))
                 if score < best_score:
                     best, best_score = cand, score
         return best
@@ -305,7 +324,7 @@ class ScriptedPolicy:
             return None
         boss = next((e for e in obs["enemies"] if e["role"] == "boss"), None)
         if self.ready(obs, "wild_roar"):
-            want = obs["t"] > 1500 if self.skill.name == "expert" else \
+            want = obs["t"] > 1500 if self.skill.lust_on_pull else \
                 (boss is not None and boss["hp_pct"] < 50)
             if want:
                 return Action("cast", "wild_roar", me["id"],

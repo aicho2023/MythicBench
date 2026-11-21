@@ -2,21 +2,34 @@
   {
     "id": "expert-kill",
     "policy": "expert",
-    "seed": 2,
+    "seed": 42,
     "label": "Expert bots",
-    "blurb": "Disciplined kick rotation, clean dodges, swaps to adds.",
+    "blurb": "Every kick lands, pools dodged, adds handled. Kills with time to spare.",
     "file": "expert-kill.json",
     "outcome": "victory",
-    "duration_s": 176.5
+    "duration_s": 167.2,
+    "score": 127.8
+  },
+  {
+    "id": "competent-enrage",
+    "policy": "competent",
+    "seed": 42,
+    "label": "Competent bots",
+    "blurb": "Same fight, same seed. A few missed kicks and slow dodges cost just enough time to hit the enrage.",
+    "file": "competent-enrage.json",
+    "outcome": "wipe",
+    "duration_s": 199.0,
+    "score": 96.2
   },
   {
     "id": "sloppy-wipe",
     "policy": "sloppy",
-    "seed": 2,
+    "seed": 42,
     "label": "Sloppy bots",
     "blurb": "Same fight, same seed. Missed kicks, slow feet, tunnel vision.",
     "file": "sloppy-wipe.json",
     "outcome": "wipe",
-    "duration_s": 133.2
+    "duration_s": 82.3,
+    "score": 38.3
   }
 ]
