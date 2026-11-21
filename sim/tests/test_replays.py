@@ -10,6 +10,8 @@ from pathlib import Path
 import jsonschema
 import pytest
 
+from mythicsim import content as C
+
 from mythicsim.__main__ import SHOWCASE_SEED, bench, simulate
 from mythicsim.metrics import run_score, score
 
@@ -200,7 +202,7 @@ def test_dungeon_is_deterministic_and_pulls_in_order():
     assert digest(a) == digest(b)
     pulls = [e["pack"] for e in a["events"] if e["type"] == "pull"]
     assert pulls == ["pack1", "pack2", "boss"]
-    assert a["meta"]["mode"] == "dungeon" and a["meta"]["time_limit_ms"] == 270_000
+    assert a["meta"]["mode"] == "dungeon" and a["meta"]["time_limit_ms"] == C.TIERS["plus10"].limit_ms
 
 
 def test_dungeon_bosses_sleep_until_pulled():
@@ -227,3 +229,30 @@ def test_dungeon_reference_bots_rank_in_order():
     e, c, s = (bench(p, 24, "plus10", "dungeon") for p in ("expert", "competent", "sloppy"))
     assert e["score_mean"] > c["score_mean"] > s["score_mean"]
     assert c["score_ci95"][0] > s["score_ci95"][1]
+
+
+def test_grave_mark_detonates_on_nearby_allies():
+    """+10's Hollow Tyrant brands a player; when it expires, allies within 6 m take the splash."""
+    from mythicsim import content as C
+    found = False
+    for seed in range(6):
+        ev = simulate("expert", seed, "plus10", "boss")["events"]
+        marks = [e for e in ev if e["type"] == "aura_apply" and e["aura"] == "grave_mark"]
+        assert marks, "the boss should brand someone during the fight"
+        for m in marks:
+            boom = [e for e in ev if e["type"] == "damage" and e["ability"] == "grave_mark"
+                    and e["t"] == m["t"] + C.AURAS["grave_mark"].duration_ms]
+            if boom:
+                found = True
+                assert boom[0]["target"] == m["unit"]  # the marked player is hit first
+                assert all(e["source"] == "mortisar" for e in boom)
+    assert found
+    assert not any(e["aura"] == "grave_mark" for e in simulate("expert", 3, "normal", "boss")["events"]
+                   if e["type"] == "aura_apply")
+
+
+def test_tiers_have_their_own_timers():
+    from mythicsim import content as C
+    for t in ("normal", "plus10"):
+        rep = simulate("expert", 2, t, "dungeon")
+        assert rep["meta"]["time_limit_ms"] == C.TIERS[t].limit_ms

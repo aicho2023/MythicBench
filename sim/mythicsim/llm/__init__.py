@@ -23,7 +23,8 @@ Pieces:
 #          and aura stacks in the state; "safe" works in every room
 #   0.7.0  4 s routine check-ins; "include only changed orders"; 8,000-token
 #          output cap; adaptive thinking with summaries; refusals recorded
-HARNESS_VERSION = "0.7.0"
+#   0.8.0  harder tiers with per-tier timers; Grave Mark (+10) and its trigger
+HARNESS_VERSION = "0.8.0"
 
 
 def prompt_hash(knowledge: str = "full", tier: str = "plus10", mode: str = "boss") -> str:

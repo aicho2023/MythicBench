@@ -75,7 +75,7 @@ def _trash_line(aid: str, blind: bool) -> str:
     return f"      - {a.name} ({aid}): {', '.join(bits)}. {a.description}"
 
 
-def _dungeon_section(knowledge: str) -> str:
+def _dungeon_section(knowledge: str, tier: str = C.DEFAULT_TIER) -> str:
     """The run before the boss: map, packs, pulling, resting, the timer."""
     blind = knowledge == "blind"
     rooms = "\n".join(f"  - {r.name} ({r.id}): circle centred ({r.center[0]:g}, {r.center[1]:g}), radius {r.radius:g} m"
@@ -94,7 +94,7 @@ def _dungeon_section(knowledge: str) -> str:
         kinds.append(line + ("" if not d.spells else ":"))
         kinds.extend(_trash_line(s, blind) for s in d.spells)
     return f"""## The dungeon run
-This is a full Mythic+-style run, not just the boss: walk from the entrance, clear two packs of undead, then fight Mortisar. One timer covers the whole run: {C.DUNGEON_LIMIT_MS / 1000:g} s.
+This is a full Mythic+-style run, not just the boss: walk from the entrance, clear two packs of undead, then fight Mortisar. One timer covers the whole run: {C.tier(tier).limit_ms / 1000:g} s.
 Map (positions are (x, z); the entrance is at large z, Mortisar's room at the origin):
 {rooms}
   - Corridors join them: {cors}. You can only walk inside rooms and corridors.
@@ -172,7 +172,7 @@ Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) i
 {chr(10).join(party)}
 
 {_boss_section(knowledge)}
-{(chr(10) + _dungeon_section(knowledge) + chr(10)) if mode == "dungeon" else ""}
+{(chr(10) + _dungeon_section(knowledge, tier) + chr(10)) if mode == "dungeon" else ""}
 ## How you play
 You are asked for orders every 4 seconds of game time, and immediately when something important happens (a boss cast starts, pools appear, adds spawn, an ally gets low). The game is paused while you think. Each character keeps following its latest orders until you give it new ones:
   - "move_to": [x, z] walks there once, or "safe" steps to the nearest spot clear of all pools, reachable without walking through another pool, from which the character's first priority target is still in range when possible (the scripted bots' movement logic){next_move}. Omit or null to stay put. A move is carried out each time you send it.

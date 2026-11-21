@@ -192,7 +192,7 @@ class ScriptedPolicy:
             if not self.roll(f"kick:{cast_key}", self.skill.interrupt_attention):
                 continue  # distracted: nobody else covers, because it was "my turn"
             return Action("cast", kick_id, enemy["id"],
-                          reason=f"Interrupting {cast['name']} — my turn in the kick rotation.")
+                          reason=f"Interrupting {cast['name']}: my turn in the kick rotation.")
         return None
 
     # ------------------------------------------------------------------
@@ -214,9 +214,45 @@ class ScriptedPolicy:
     def safe_spot(self, obs: dict, near: tuple, anchor: tuple) -> tuple | None:
         return find_safe_spot(obs["ground"], obs["arena_radius"], near, anchor, inside=walk_check(obs))
 
+    def spread_spot(self, obs: dict) -> tuple | None:
+        """Nearest spot at least Grave Mark's radius (plus margin) from every ally."""
+        me = obs["self"]
+        pos = tuple(me["pos"])
+        others = [tuple(p["pos"]) for p in obs["party"] if p["alive"] and p["id"] != me["id"]]
+        inside = walk_check(obs) or (lambda c: dist(c, (0.0, 0.0)) <= obs["arena_radius"] - 1.5)
+        need = C.GRAVE_MARK_RADIUS + 1.0
+        best, best_key = None, None
+        for ring in (2.0, 4.0, 6.0, 8.0, 10.0):
+            for cx, cz in _DIRS:
+                cand = (pos[0] + ring * cx, pos[1] + ring * cz)
+                if not inside(cand) or unsafe(cand, obs["ground"], 0.9):
+                    continue
+                gap = min((dist(cand, o) for o in others), default=99.0)
+                # Clear of everyone if possible, then the shortest walk; otherwise the widest gap.
+                key = (0, ring, -gap) if gap >= need else (1, -gap, ring)
+                if best_key is None or key < best_key:
+                    best, best_key = cand, key
+        return best
+
     def movement(self, obs: dict) -> Action | None:
         me = obs["self"]
         pos = tuple(me["pos"])
+        mark = me["auras"].get("grave_mark")
+        in_pool_now = unsafe(pos, self.noticed_pools(obs), 0.3)
+        if mark is not None and not in_pool_now:
+            elapsed = C.AURAS["grave_mark"].duration_ms - mark
+            if elapsed >= self.skill.reaction_ms and \
+                    self.roll(f"mark:{obs['t'] - elapsed}", self.skill.dodge_attention):
+                if self.dodge_to is not None and me["moving"]:
+                    return None
+                others = [tuple(p["pos"]) for p in obs["party"] if p["alive"] and p["id"] != me["id"]]
+                if min((dist(pos, o) for o in others), default=99.0) > C.GRAVE_MARK_RADIUS + 0.5:
+                    return None  # already clear: wait it out
+                spot = self.spread_spot(obs)
+                if spot:
+                    self.dodge_to = spot
+                    return Action("move", to=spot, reason="Grave Mark on me, getting away from the group.")
+                return None
         seen = {"ground": self.noticed_pools(obs), "arena_radius": obs["arena_radius"], "dungeon": obs.get("dungeon")}
         standing_in = self.unsafe(pos, seen, 0.3)
         anchor = self.desired_spot(obs)
@@ -231,7 +267,7 @@ class ScriptedPolicy:
                 self.dodge_to = spot
                 under = next((g for g in seen["ground"] if dist(pos, g["pos"]) <= g["radius"] + 0.3), None)
                 what = "A Restless Grave" if under and under["kind"] == "grave" else "Desecrate"
-                return Action("move", to=spot, reason=f"{what} under me — moving out!")
+                return Action("move", to=spot, reason=f"{what} under me, moving out.")
             return None
         if me["moving"]:
             return None
@@ -286,13 +322,13 @@ class ScriptedPolicy:
                 boss["casting"]["ability"] == "soul_rend" and self.ready(obs, "ironhide") and \
                 "ironhide" not in me["auras"]:
             return Action("cast", "ironhide", me["id"],
-                          reason="Soul Rend incoming — popping Ironhide.")
+                          reason="Soul Rend incoming, popping Ironhide.")
         loose = [e for e in obs["enemies"] if e["role"] == "add" and e["target"] != me["id"]]
         if loose and self.ready(obs, "challenging_roar"):
             first_seen = self.first_seen.setdefault(f"adds:{loose[0]['id']}", obs["t"])
             if obs["t"] - first_seen >= self.skill.taunt_delay_ms:
                 return Action("cast", "challenging_roar", loose[0]["id"],
-                              reason="Bonewalkers are loose — grabbing them with Challenging Roar.")
+                              reason="Bonewalkers are loose, grabbing them with Challenging Roar.")
         if not boss or not self.in_range(me, boss, C.MELEE_RANGE):
             return None
         if self.ready(obs, "bulwark_slam"):
@@ -310,14 +346,14 @@ class ScriptedPolicy:
         lowest = min(party, key=lambda p: (p["hp_pct"], p["id"]))
         if not moving and avg < 62 and self.ready(obs, "radiant_hymn"):
             return Action("cast", "radiant_hymn", me["id"],
-                          reason=f"Party averaging {avg:.0f}% health — channeling Radiant Hymn.")
+                          reason=f"Party averaging {avg:.0f}% health, channeling Radiant Hymn.")
         if tank and boss and boss["casting"] and boss["casting"]["ability"] == "soul_rend" and \
                 self.ready(obs, "lumen_ward") and tank["absorb"] == 0:
             return Action("cast", "lumen_ward", tank["id"],
                           reason="Pre-shielding the tank before Soul Rend.")
         if lowest["hp_pct"] < 55 and self.ready(obs, "lumen_ward") and lowest["absorb"] == 0:
             return Action("cast", "lumen_ward", lowest["id"],
-                          reason=f"{lowest['name']} is at {lowest['hp_pct']:.0f}% — emergency shield.")
+                          reason=f"{lowest['name']} is at {lowest['hp_pct']:.0f}%, emergency shield.")
         if lowest["hp_pct"] < 70 and not moving:
             return Action("cast", "mending_light", lowest["id"])
         if tank and "bloomward" not in tank["auras"]:

@@ -53,6 +53,7 @@ function UnitActor({ id }: { id: string }) {
     rent_soul: useRef<THREE.Group>(null),
     haunted: useRef<THREE.Group>(null),
     hollow_fury: useRef<THREE.Group>(null),
+    grave_mark: useRef<THREE.Group>(null),
   }
   const rig = useRig()
   const yaw = useRef(info.kind === 'player' ? Math.PI : 0)
@@ -125,7 +126,16 @@ function UnitActor({ id }: { id: string }) {
       if (!g) continue
       const on = u.alive && (aid === 'lumen_ward' ? u.absorb > 0 : !!u.auras[aid])
       g.visible = on
-      if (on) {
+      if (on && aid === 'grave_mark') {
+        // The blast radius, tightening as the detonation nears.
+        const a = u.auras.grave_mark
+        const left = Math.max(0, a.t0 + a.dur - t) / a.dur
+        g.scale.setScalar(1)
+        g.children.forEach((c, i) => {
+          const m = (c as THREE.Mesh).material as THREE.MeshBasicMaterial
+          m.opacity = i === 0 ? 0.12 + 0.18 * (1 - left) : 0.55 + 0.4 * Math.abs(Math.sin(t / (120 + 280 * left)))
+        })
+      } else if (on) {
         g.rotation.y = t / 1000 * 1.2
         const pulse = 1 + Math.sin(t / 160) * 0.03
         g.scale.setScalar(pulse)
@@ -197,6 +207,11 @@ function UnitActor({ id }: { id: string }) {
             <sphereGeometry args={[0.07, 8, 6]} /><meshBasicMaterial color={[1.8, 0.9, 3]} toneMapped={false} />
           </mesh>
         ))}
+      </group>
+      <group ref={auraRefs.grave_mark} visible={false} position={[0, 0.07, 0]}>
+        {/* Grave Mark: everyone inside this 6 m circle is hit when it detonates. */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[6, 64]} /><meshBasicMaterial color="#ff2850" transparent opacity={0.15} depthWrite={false} toneMapped={false} /></mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[5.8, 6, 64]} /><meshBasicMaterial color={[3.2, 0.4, 0.6]} transparent opacity={0.8} depthWrite={false} toneMapped={false} /></mesh>
       </group>
       <group ref={auraRefs.hollow_fury} visible={false} position={[0, 0.1, 0]}>
         <mesh rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[2.2, 2.6, 48]} /><meshBasicMaterial color={[3.5, 0.5, 0.6]} toneMapped={false} transparent opacity={0.8} /></mesh>

@@ -2,40 +2,40 @@
   {
     "id": "expert-clear",
     "policy": "expert",
-    "seed": 5,
+    "seed": 10,
     "mode": "dungeon",
     "tier": "plus10",
     "label": "Expert bots",
     "blurb": "Clean pulls, casters first, every kick lands. Clears the +10 in time.",
     "file": "expert-clear.json",
     "outcome": "victory",
-    "duration_s": 249.1,
-    "score": 79.3
+    "duration_s": 230.0,
+    "score": 81.8
   },
   {
     "id": "competent-run",
     "policy": "competent",
-    "seed": 5,
+    "seed": 10,
     "mode": "dungeon",
     "tier": "plus10",
     "label": "Competent bots",
-    "blurb": "Same run, same seed. A few missed kicks and slow dodges, and Mortisar wins.",
+    "blurb": "Same run, same seed. A few missed kicks and slow dodges, and the party wipes.",
     "file": "competent-run.json",
     "outcome": "wipe",
-    "duration_s": 266.2,
-    "score": 69.7
+    "duration_s": 274.3,
+    "score": 36.3
   },
   {
     "id": "sloppy-wipe",
     "policy": "sloppy",
-    "seed": 5,
+    "seed": 10,
     "mode": "dungeon",
     "tier": "plus10",
     "label": "Sloppy bots",
     "blurb": "Same run, same seed. Missed kicks, tunnel vision, standing in the bad.",
     "file": "sloppy-wipe.json",
-    "outcome": "wipe",
-    "duration_s": 40.3,
-    "score": 6.9
+    "outcome": "timeout",
+    "duration_s": 315.0,
+    "score": 6.2
   }
 ]

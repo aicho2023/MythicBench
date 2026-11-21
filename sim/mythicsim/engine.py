@@ -165,6 +165,9 @@ class Encounter:
         self.timer_rng = {k: random.Random(f"{seed}:timer:{k}") for k in C.BOSS.timers}
         self.boss_next = {k: self.jitter(k, v[0], C.BOSS.first_jitter_ms)
                           for k, v in C.BOSS.timers.items()}
+        if "hollow_tyrant" in self.tier.affixes:
+            self.timer_rng["grave_mark"] = random.Random(f"{seed}:timer:grave_mark")
+            self.boss_next["grave_mark"] = self.jitter("grave_mark", C.GRAVE_MARK_FIRST_MS, C.BOSS.first_jitter_ms)
         self.tyrant = "hollow_tyrant" in self.affixes
         self.raise_dead_left = list(C.TYRANT_RAISE_AT if self.tyrant else C.BOSS.raise_dead_at)
         self.raise_queued = False
@@ -497,11 +500,16 @@ class Encounter:
             self.emit("emote", unit=b.id, style="warning", text="Mortisar begins to Summon the Restless!")
             self.begin_cast(b, "raise_dead", None)
             return
-        for key in ("soul_rend", "requiem_of_bones", "desecrate"):
+        for key in ("soul_rend", "requiem_of_bones", "grave_mark", "desecrate"):
+            if key not in self.boss_next or self.t < self.boss_next[key]:
+                continue
             if self.t >= self.boss_next[key]:
-                every = C.BOSS.timers[key][1]
+                every = C.GRAVE_MARK_EVERY_MS if key == "grave_mark" else C.BOSS.timers[key][1]
                 self.boss_next[key] = self.t + self.jitter(key, every, every * C.BOSS.timer_jitter)
-                if key == "soul_rend":
+                if key == "grave_mark":
+                    if not self.cast_grave_mark(b):
+                        continue
+                elif key == "soul_rend":
                     self.begin_cast(b, key, tank.id)
                 elif key == "requiem_of_bones":
                     self.begin_cast(b, key, None)
@@ -512,6 +520,23 @@ class Encounter:
             b.swing_at = self.t + C.BOSS.melee[1]
             self.emit("cast_success", unit=b.id, ability="hollow_strike", target=tank.id)
             self.damage(b, tank, "hollow_strike", C.BOSS.melee[0])
+
+    def cast_grave_mark(self, b: Unit) -> bool:
+        """Hollow Tyrant: brand a random non-tank player; it detonates in 6 s."""
+        candidates = [p for p in self.players() if p.role != "tank" and "grave_mark" not in p.auras]
+        if not candidates:
+            return False
+        p = self.rng.choice(candidates)
+        self.emit("cast_success", unit=b.id, ability="grave_mark", target=p.id)
+        self.emit("emote", unit=b.id, style="warning", text=f"Mortisar brands {p.name} with a Grave Mark!")
+        self.apply_aura(p, "grave_mark", b)
+        return True
+
+    def detonate_grave_mark(self, p: Unit, src: Unit) -> None:
+        others = [o for o in self.players() if o is not p and dist(o.pos, p.pos) <= C.GRAVE_MARK_RADIUS]
+        self.damage(src, p, "grave_mark", C.GRAVE_MARK_SELF, crit_ok=False)
+        for o in others:
+            self.damage(src, o, "grave_mark", C.GRAVE_MARK_SPLASH, crit_ok=False)
 
     def cast_desecrate(self, b: Unit) -> None:
         self.emit("cast_success", unit=b.id, ability="desecrate", target=None)
@@ -601,6 +626,10 @@ class Encounter:
                         break
                 if self.t >= au.t0 + au.dur:
                     self.remove_aura(u, aid)
+                    if aid == "grave_mark":
+                        self.detonate_grave_mark(u, self.units[au.source])
+                        if not u.alive:
+                            break
 
     def auto_attacks(self) -> None:
         for p in self.players():
@@ -744,7 +773,7 @@ class Encounter:
             "schema_version": "0.1.0",
             "meta": {
                 "encounter": "gravecrown_crypt",
-                "title": "Gravecrown Crypt — Mortisar, the Hollow King",
+                "title": "Gravecrown Crypt: Mortisar, the Hollow King",
                 "seed": self.seed,
                 "policy": self.policy_label,
                 "sim_version": SIM_VERSION,

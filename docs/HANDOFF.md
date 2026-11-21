@@ -60,10 +60,23 @@ competent 72.3 (70.2–74.5), sloppy 14.9 (14.3–15.4). Win rates 99.5% / 68.5%
 Score (`metrics.run_score`, v2): wipe = 70 × share of boss removed; kill = 70 +
 30 × speed (full speed with ≥25% of the timer left).
 
-**Difficulty is two tiers (content 1.0.0):** Normal (enemies at 0.6×, no
-affixes) and +10 (0.85× health, 1.0× damage, plus Restless Graves, Marrowburst
-and Hollow Tyrant). On dungeon runs over 200 seeds, +10 clear rates are expert
-60%, competent 13%, sloppy 0%; on Normal they are 100%, 99.5% and 19%. The
+**Difficulty is two tiers (content 1.1.0):**
+- Normal: 1.0× enemy health, 0.9× damage, no affixes.
+- +10: 0.85× health, 1.15× damage, plus three affixes:
+  - Restless Graves;
+  - Marrowburst;
+  - Hollow Tyrant, which includes Grave Mark (a spread mark that detonates on
+    allies within 6 m).
+- Both tiers run on a 4:15 timer (`Tier.limit_ms`).
+
+The first cheap models cleared the earlier, softer +10 on their first blind
+pull, which left no room to measure learning, so both tiers were made harder.
+Over 200 seeds:
+
+| Tier | Expert | Competent | Sloppy |
+| --- | --- | --- | --- |
+| +10 | 31% | 1% | 0% |
+| Normal | 99% | 80% | 0% | The
 old `--level` key levels are gone; runs made with them show as "+N (old)".
 
 ### Pending from the owner

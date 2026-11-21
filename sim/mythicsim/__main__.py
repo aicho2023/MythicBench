@@ -25,12 +25,12 @@ from .policies import PROFILES, make_policies
 
 # The showcase replays shipped with the viewer: three reference skill levels on
 # one seed, so the only difference between them is decision quality.
-SHOWCASE_SEED = 5
+SHOWCASE_SEED = 10
 SHOWCASE = [
     {"id": "expert-clear", "policy": "expert", "seed": SHOWCASE_SEED, "mode": "dungeon", "tier": "plus10",
      "label": "Expert bots", "blurb": "Clean pulls, casters first, every kick lands. Clears the +10 in time."},
     {"id": "competent-run", "policy": "competent", "seed": SHOWCASE_SEED, "mode": "dungeon", "tier": "plus10",
-     "label": "Competent bots", "blurb": "Same run, same seed. A few missed kicks and slow dodges, and Mortisar wins."},
+     "label": "Competent bots", "blurb": "Same run, same seed. A few missed kicks and slow dodges, and the party wipes."},
     {"id": "sloppy-wipe", "policy": "sloppy", "seed": SHOWCASE_SEED, "mode": "dungeon", "tier": "plus10",
      "label": "Sloppy bots", "blurb": "Same run, same seed. Missed kicks, tunnel vision, standing in the bad."},
 ]
