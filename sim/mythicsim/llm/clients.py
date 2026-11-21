@@ -33,6 +33,8 @@ class Reply:
     cache_read_tokens: int = 0  # input tokens the provider served from its prompt cache (cheaper)
     truncated: bool = False  # the model hit the output-token limit before finishing
     cache_write_tokens: int = 0  # input tokens written to the provider's prompt cache (Anthropic bills these higher)
+    refused: bool = False  # the provider's safety system declined to answer (no orders this call)
+    thinking: str = ""  # the provider's summary of the model's reasoning, when it gives one
 
 
 class ChatClient(Protocol):
@@ -111,18 +113,38 @@ def _post(url: str, headers: dict, body: dict, timeout: float = 180.0, retries: 
     raise ClientError("unreachable")
 
 
+# Per-call output cap (thinking + answer), the same for every model.
+MAX_OUTPUT_TOKENS = 8000
+
+# Anthropic models that cannot turn thinking off (a request with thinking
+# disabled is rejected); "@none" is refused for them up front.
+_ALWAYS_THINK = ("claude-opus-5-5", "claude-sonnet-5-5", "claude-fable", "claude-mythos")
+
+
+def _cache_key(system: str) -> str:
+    """One prompt-cache routing key per distinct rules text (a pull's rules
+    differ once notes are added). One key shared by every request overflows
+    OpenAI's per-key routing and most requests then miss the cache."""
+    return "mb-" + hashlib.sha256(system.encode()).hexdigest()[:16]
+
+
 @dataclass
 class AnthropicClient:
     model: str
-    effort: str | None = None  # None = API default; "none" = thinking off; low/medium/high
-    max_tokens: int = 16000  # thinking shares this budget with the answer
+    effort: str | None = None  # None = API default; "none" = thinking off; low/medium/high/xhigh/max
+    max_tokens: int = MAX_OUTPUT_TOKENS  # thinking shares this budget with the answer
     spec: str = ""
 
     def __post_init__(self) -> None:
         self.spec = f"anthropic:{self.model}" + (f"@{self.effort}" if self.effort else "")
+        if self.effort == "none" and self.model.startswith(_ALWAYS_THINK):
+            raise ClientError(f"{self.model} cannot turn thinking off; use @low or higher", fatal=True)
 
     def complete(self, system: str, user: str) -> Reply:
         t0 = time.monotonic()
+        # No server-side model fallback on refusals: an answer from a different
+        # model would silently contaminate this model's results. A refusal is
+        # recorded instead, and the party keeps its previous orders.
         out = _post("https://api.anthropic.com/v1/messages",
                     {"x-api-key": _key("ANTHROPIC_API_KEY"), "anthropic-version": "2023-06-01"},
                     {"model": self.model, "max_tokens": self.max_tokens,
@@ -130,26 +152,31 @@ class AnthropicClient:
                      "system": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
                      "messages": [{"role": "user", "content": user}], **self.effort_params()})
         text = "".join(b.get("text", "") for b in out.get("content", []) if b.get("type") == "text")
+        thinking = "".join(b.get("thinking", "") for b in out.get("content", []) if b.get("type") == "thinking")
         u = out.get("usage", {})
         read = u.get("cache_read_input_tokens", 0) or 0
         write = u.get("cache_creation_input_tokens", 0) or 0
         total_in = (u.get("input_tokens", 0) or 0) + write + read
         return Reply(text, total_in, u.get("output_tokens", 0), time.monotonic() - t0, cache_read_tokens=read,
-                     truncated=out.get("stop_reason") == "max_tokens", cache_write_tokens=write)
+                     truncated=out.get("stop_reason") == "max_tokens", cache_write_tokens=write,
+                     refused=out.get("stop_reason") == "refusal", thinking=thinking[:4000])
 
     def effort_params(self) -> dict:
-        if not self.effort:
-            return {}
         if self.effort == "none":
             return {"thinking": {"type": "disabled"}}
-        return {"output_config": {"effort": self.effort}}
+        # Adaptive thinking with a readable summary (billed the same as hidden
+        # thinking); the summary is kept with the recording for analysis.
+        params: dict = {"thinking": {"type": "adaptive", "display": "summarized"}}
+        if self.effort:
+            params["output_config"] = {"effort": self.effort}
+        return params
 
 
 @dataclass
 class OpenAIClient:
     model: str
-    effort: str | None = None  # None = API default; else reasoning_effort (none/low/medium/high)
-    max_tokens: int = 16000  # reasoning models spend part of this budget thinking
+    effort: str | None = None  # None = API default; else reasoning_effort (none/low/medium/high/xhigh)
+    max_tokens: int = MAX_OUTPUT_TOKENS  # reasoning models spend part of this budget thinking
     spec: str = ""
 
     def __post_init__(self) -> None:
@@ -163,17 +190,19 @@ class OpenAIClient:
                      "response_format": {"type": "json_object"},
                      # Route requests that share the rules prefix together so
                      # OpenAI's (best-effort) prompt cache actually hits.
-                     "prompt_cache_key": "mythicbench-rules",
+                     "prompt_cache_key": _cache_key(system),
                      **({"reasoning_effort": self.effort} if self.effort else {}),
                      "messages": [{"role": "system", "content": system},
                                   {"role": "user", "content": user}]})
         choices = out.get("choices") or [{}]
-        text = (choices[0].get("message") or {}).get("content") or ""
+        msg = choices[0].get("message") or {}
+        text = msg.get("content") or ""
         truncated = choices[0].get("finish_reason") == "length"
+        refused = bool(msg.get("refusal")) or choices[0].get("finish_reason") == "content_filter"
         usage = out.get("usage", {})
         read = (usage.get("prompt_tokens_details") or {}).get("cached_tokens", 0) or 0
         return Reply(text, usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0),
-                     time.monotonic() - t0, cache_read_tokens=read, truncated=truncated)
+                     time.monotonic() - t0, cache_read_tokens=read, truncated=truncated, refused=refused)
 
 
 @dataclass
@@ -206,11 +235,11 @@ class MockClient:
         return Reply(json.dumps({"orders": orders}), len(system + user) // 4, 200, 0.0)
 
 
-EFFORTS = ("none", "low", "medium", "high")
+EFFORTS = ("none", "low", "medium", "high", "xhigh", "max")
 
 
 def make_client(spec: str, effort: str | None = None) -> ChatClient:
-    """``provider:model`` or ``provider:model@effort`` (effort: none/low/medium/high).
+    """``provider:model`` or ``provider:model@effort`` (effort: none/low/medium/high/xhigh/max).
 
     Each effort setting is a separate configuration: its own label, replay
     recording, and results folder, so runs at different efforts never mix."""
@@ -267,14 +296,15 @@ class CachedClient:
             r = self._mem[k]
             return Reply(r["text"], r["input_tokens"], r["output_tokens"], 0.0, cached=True,
                          cache_read_tokens=r.get("cache_read_tokens", 0), truncated=r.get("truncated", False),
-                         cache_write_tokens=r.get("cache_write_tokens", 0))
+                         cache_write_tokens=r.get("cache_write_tokens", 0), refused=r.get("refused", False),
+                         thinking=r.get("thinking", ""))
         if self.offline:
             raise ClientError("cache miss in offline mode (prompt not in the recording)")
         reply = self.inner.complete(system, user)
         rec = {"key": k, "spec": self.spec, "text": reply.text,
                "input_tokens": reply.input_tokens, "output_tokens": reply.output_tokens,
                "cache_read_tokens": reply.cache_read_tokens, "cache_write_tokens": reply.cache_write_tokens,
-               "truncated": reply.truncated}
+               "truncated": reply.truncated, "refused": reply.refused, "thinking": reply.thinking}
         with self._lock:
             self._mem[k] = rec
             self.path.parent.mkdir(parents=True, exist_ok=True)
