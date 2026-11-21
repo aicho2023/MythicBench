@@ -30,7 +30,9 @@
         "tick_ms",
         "duration_ms",
         "outcome",
-        "time_limit_ms"
+        "time_limit_ms",
+        "tier",
+        "affixes"
       ],
       "properties": {
         "seed": {
@@ -59,6 +61,24 @@
             "dungeon"
           ],
           "description": "present for dungeon runs (trash then boss); boss-only fights omit it"
+        },
+        "tier": {
+          "enum": [
+            "normal",
+            "plus10"
+          ],
+          "description": "difficulty tier"
+        },
+        "tier_name": {
+          "type": "string",
+          "description": "display name, e.g. \"+10\""
+        },
+        "affixes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "active affix ids (empty on Normal)"
         }
       }
     },
@@ -160,6 +180,25 @@
       "type": "array",
       "items": {
         "$ref": "#/$defs/event"
+      }
+    },
+    "affixes": {
+      "type": "object",
+      "description": "name and description of each active affix",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "name",
+          "description"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
       }
     }
   },
@@ -413,6 +452,11 @@
             },
             "duration_ms": {
               "type": "integer"
+            },
+            "stacks": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "for stacking auras: the stack count after this application"
             }
           },
           "required": [
@@ -441,6 +485,12 @@
             },
             "pos": {
               "$ref": "#/$defs/vec2"
+            },
+            "kind": {
+              "enum": [
+                "desecrate",
+                "grave"
+              ]
             }
           },
           "required": [

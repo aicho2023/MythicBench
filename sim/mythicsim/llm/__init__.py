@@ -19,11 +19,13 @@ Pieces:
 #   0.3.0  safe moves, pool perception, 350 ms kick reaction, effort settings
 #   0.4.0  0-100 score described in the rules; key levels; blind knowledge
 #   0.5.0  dungeon run (map, packs, pulling, resting, "next" move)
-HARNESS_VERSION = "0.5.0"
+#   0.6.0  difficulty tiers (Normal / +10) and affixes in the rules; pool kinds
+#          and aura stacks in the state; "safe" works in every room
+HARNESS_VERSION = "0.6.0"
 
 
-def prompt_hash(knowledge: str = "full", level: int = 12, mode: str = "boss") -> str:
+def prompt_hash(knowledge: str = "full", tier: str = "plus10", mode: str = "boss") -> str:
     """Short fingerprint of the exact rules text the model receives (before any notes)."""
     import hashlib
     from .prompt import system_prompt
-    return hashlib.sha256(system_prompt(knowledge, level=level, mode=mode).encode()).hexdigest()[:10]
+    return hashlib.sha256(system_prompt(knowledge, tier=tier, mode=mode).encode()).hexdigest()[:10]

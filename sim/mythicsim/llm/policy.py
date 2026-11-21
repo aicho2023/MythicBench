@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 
 from .. import content as C
 from ..engine import Action, dist
-from ..policies import find_safe_spot, unsafe
+from ..policies import find_safe_spot, unsafe, walk_check
 from .clients import ChatClient, ClientError
 from .prompt import POOL_HIT_PAD, Order, parse_reply, render_state, system_prompt
 
@@ -70,13 +70,13 @@ class Standing:
 class PartyBrain:
     def __init__(self, client: ChatClient, interval_ms: int = 2000, min_gap_ms: int = 500,
                  max_calls: int = 300, knowledge: str = "full", notes: str | None = None,
-                 pull: int | None = None, level: int = C.SIGIL_LEVEL, mode: str = "boss"):
+                 pull: int | None = None, tier: str = C.DEFAULT_TIER, mode: str = "boss"):
         self.client = client
         self.knowledge = knowledge
         self.interval_ms = interval_ms
         self.min_gap_ms = min_gap_ms
         self.max_calls = max_calls
-        self.system = system_prompt(knowledge, notes, pull, level, mode)
+        self.system = system_prompt(knowledge, notes, pull, tier, mode)
         self.pack_states: dict[str, str] = {}
         self.boss_awake = False
         self.orders: dict[str, Standing] = {}
@@ -287,11 +287,11 @@ class LLMPolicy:
         in_reach = reach is None or dist(pos, reach[0]) - PLAYER_RADIUS - reach[1] <= reach[2]
         if not unsafe(pos, obs["ground"], 0.3) and in_reach:
             return None
-        g, r = obs["ground"], obs["arena_radius"]
+        g, r, inside = obs["ground"], obs["arena_radius"], walk_check(obs)
         # Prefer: in range and a clean path; then a clean path; then just clear of pools.
-        return (find_safe_spot(g, r, pos, pos, reach, avoid_paths=True)
-                or find_safe_spot(g, r, pos, pos, avoid_paths=True)
-                or find_safe_spot(g, r, pos, pos))
+        return (find_safe_spot(g, r, pos, pos, reach, avoid_paths=True, inside=inside)
+                or find_safe_spot(g, r, pos, pos, avoid_paths=True, inside=inside)
+                or find_safe_spot(g, r, pos, pos, inside=inside))
 
     def say(self, st: Standing) -> str | None:
         if st.said or not st.order.say:

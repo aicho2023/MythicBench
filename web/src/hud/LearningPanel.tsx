@@ -32,7 +32,7 @@ export function LearningPanel({ onShowMeter }: { onShowMeter: () => void }) {
         <button onClick={onShowMeter} className="text-meta text-fg-faint transition-colors hover:text-fg">Show meter</button>
       </div>
       <div className="num mt-1 px-3 font-mono text-meta text-fg-faint">
-        Episode {prog.episode} · pull {prog.pull}{run?.max_pulls ? ` of ${run.max_pulls}` : ''} · +{engine?.replay.meta.sigil_level}
+        Episode {prog.episode} · pull {prog.pull}{run?.max_pulls ? ` of ${run.max_pulls}` : ''} · {engine?.replay.meta.tier_name ?? `+${engine?.replay.meta.sigil_level}`}
         <br />
         {prog.knowledge} knowledge · memory {prog.memory ? 'on' : 'off'}
       </div>

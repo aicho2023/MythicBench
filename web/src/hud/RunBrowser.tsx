@@ -124,7 +124,7 @@ export function RunBrowser({ onClose }: { onClose: () => void }) {
                     <span className="mt-1 flex flex-wrap items-center gap-x-2 font-mono text-meta text-fg-faint">
                       {t.sub && <span className="text-fg-muted">{t.sub}</span>}
                       <span>{r.provider}</span>
-                      <span>+{r.level ?? 12}</span>
+                      <span>{r.tier ? (r.tier === 'plus10' ? '+10' : 'Normal') : `+${r.level ?? 12}`}</span>
                       <span>{when(r.created)}</span>
                     </span>
                     <span className="flex flex-wrap items-center gap-x-2 font-mono text-meta text-fg-faint">

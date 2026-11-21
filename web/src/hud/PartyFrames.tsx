@@ -56,7 +56,8 @@ export function PartyFrames() {
                   const rem = a.t0 + a.dur - t
                   return (
                     <AbilityIcon key={aid} ability={aid} info={{ ...info, school: info.harmful ? 'shadow' : 'holy' }} harmful={info.harmful} size={18}
-                      label={rem < 60000 ? secs(rem) : undefined} title={`${info.name}: ${info.description ?? ''}`} />
+                      label={a.stacks && a.stacks > 1 ? `x${a.stacks}` : rem < 60000 ? secs(rem) : undefined}
+                      title={`${info.name}${a.stacks && a.stacks > 1 ? ` (${a.stacks} stacks)` : ''}: ${info.description ?? ''}`} />
                   )
                 })}
               </div>

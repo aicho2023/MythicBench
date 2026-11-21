@@ -70,14 +70,23 @@ def crosses_pool(a: tuple, b: tuple, ground: list[dict], margin: float = 0.3) ->
     return False
 
 
+def walk_check(obs: dict):
+    """Where a dodge may end: inside the dungeon's rooms and corridors on a
+    dungeon run, else inside the boss arena (None = the arena default)."""
+    if obs.get("dungeon"):
+        return lambda p: C.walkable(p, 0.5)
+    return None
+
+
 def find_safe_spot(ground: list[dict], arena_radius: float, near: tuple, anchor: tuple,
-                   reach=None, avoid_paths: bool = False) -> tuple | None:
+                   reach=None, avoid_paths: bool = False, inside=None) -> tuple | None:
     """Nearest spot clear of pools (the dodge planner shared by bots and LLM agents).
 
     ``reach`` = (target_pos, target_radius, range): only consider spots from
     which that target is still in range (e.g. a melee character stays in melee).
     ``avoid_paths``: also reject spots whose straight path from ``near`` crosses
     another armed pool (the pool being escaped from is ignored).
+    ``inside``: where a spot may be (default: within the boss arena).
     """
     escaping = [g for g in ground if dist(near, g["pos"]) <= g["radius"] + 0.6]
     others = [g for g in ground if g not in escaping]
@@ -86,7 +95,7 @@ def find_safe_spot(ground: list[dict], arena_radius: float, near: tuple, anchor:
     for ring in (1.5, 2.5, 3.5, 4.5, 6.0, 8.0):
         for cx, cz in _DIRS:
             cand = (near[0] + ring * cx, near[1] + ring * cz)
-            if dist(cand, (0.0, 0.0)) > lim or unsafe(cand, ground, 0.9):
+            if not (inside(cand) if inside else dist(cand, (0.0, 0.0)) <= lim) or unsafe(cand, ground, 0.9):
                 continue
             if reach and dist(cand, reach[0]) - 0.45 - reach[1] > reach[2]:
                 continue
@@ -203,12 +212,12 @@ class ScriptedPolicy:
         return out
 
     def safe_spot(self, obs: dict, near: tuple, anchor: tuple) -> tuple | None:
-        return find_safe_spot(obs["ground"], obs["arena_radius"], near, anchor)
+        return find_safe_spot(obs["ground"], obs["arena_radius"], near, anchor, inside=walk_check(obs))
 
     def movement(self, obs: dict) -> Action | None:
         me = obs["self"]
         pos = tuple(me["pos"])
-        seen = {"ground": self.noticed_pools(obs), "arena_radius": obs["arena_radius"]}
+        seen = {"ground": self.noticed_pools(obs), "arena_radius": obs["arena_radius"], "dungeon": obs.get("dungeon")}
         standing_in = self.unsafe(pos, seen, 0.3)
         anchor = self.desired_spot(obs)
         # Commit to an escape route once chosen (re-planning every tick = jitter).
@@ -220,7 +229,9 @@ class ScriptedPolicy:
             spot = self.safe_spot(seen, pos, anchor)
             if spot:
                 self.dodge_to = spot
-                return Action("move", to=spot, reason="Desecrate under me — moving out!")
+                under = next((g for g in seen["ground"] if dist(pos, g["pos"]) <= g["radius"] + 0.3), None)
+                what = "A Restless Grave" if under and under["kind"] == "grave" else "Desecrate"
+                return Action("move", to=spot, reason=f"{what} under me — moving out!")
             return None
         if me["moving"]:
             return None
