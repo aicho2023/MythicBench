@@ -30,13 +30,21 @@ class Skill:
     taunt_delay_ms: int  # how long the tank takes to grab adds
     uses_defensives: bool
     apm: float  # chance of pressing a button on any free GCD (1.0 = never idle)
+    lust_on_pull: bool  # use Wild Roar at the start (best) or hold it until the boss is low
 
 
+# Three reference skill levels. A benchmark that can't rank these three in the
+# right order, with clear gaps, can't be trusted to rank models either.
 EXPERT = Skill("expert", reaction_ms=350, interrupt_attention=1.0, dodge_attention=1.0,
-               swaps_to_adds=True, taunt_delay_ms=500, uses_defensives=True, apm=1.0)
+               swaps_to_adds=True, taunt_delay_ms=3000, uses_defensives=True, apm=1.0,
+               lust_on_pull=True)
+COMPETENT = Skill("competent", reaction_ms=800, interrupt_attention=0.85, dodge_attention=0.85,
+                  swaps_to_adds=True, taunt_delay_ms=3000, uses_defensives=True, apm=0.95,
+                  lust_on_pull=True)
 SLOPPY = Skill("sloppy", reaction_ms=1700, interrupt_attention=0.55, dodge_attention=0.6,
-               swaps_to_adds=False, taunt_delay_ms=9000, uses_defensives=False, apm=0.85)
-PROFILES = {"expert": EXPERT, "sloppy": SLOPPY}
+               swaps_to_adds=False, taunt_delay_ms=9000, uses_defensives=False, apm=0.85,
+               lust_on_pull=False)
+PROFILES = {"expert": EXPERT, "competent": COMPETENT, "sloppy": SLOPPY}
 
 
 def _by_id(obs: dict) -> dict:
@@ -305,7 +313,7 @@ class ScriptedPolicy:
             return None
         boss = next((e for e in obs["enemies"] if e["role"] == "boss"), None)
         if self.ready(obs, "wild_roar"):
-            want = obs["t"] > 1500 if self.skill.name == "expert" else \
+            want = obs["t"] > 1500 if self.skill.lust_on_pull else \
                 (boss is not None and boss["hp_pct"] < 50)
             if want:
                 return Action("cast", "wild_roar", me["id"],

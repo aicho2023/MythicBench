@@ -22,7 +22,7 @@ from typing import Callable, Protocol
 from . import content as C
 
 TICK_MS = 100
-SIM_VERSION = "0.1.0"
+SIM_VERSION = "0.2.0"
 
 
 # ---------------------------------------------------------------------------
@@ -148,12 +148,19 @@ class Encounter:
         self.pending: list[tuple[int, int, Callable[[], None]]] = []
         self._seq = 0
         self.outcome: str | None = None
-        self.boss_next = {k: v[0] for k, v in C.BOSS.timers.items()}
+        # The boss's script for this seed. Each timed ability draws its timings
+        # from its own seeded stream, so every policy that plays this seed faces
+        # the same sequence of timers, whatever the party does.
+        self.timer_rng = {k: random.Random(f"{seed}:timer:{k}") for k in C.BOSS.timers}
+        self.boss_next = {k: self.jitter(k, v[0], C.BOSS.first_jitter_ms)
+                          for k, v in C.BOSS.timers.items()}
         self.raise_dead_left = list(C.BOSS.raise_dead_at)
         self.raise_queued = False
         self.add_count = 0
         self.ground_count = 0
         self.enraged = False
+        self.fury_pulses = 0
+        self.next_fury_pulse = 0
 
         for m in C.PARTY:
             cd = C.CLASSES[m.cls]
@@ -163,6 +170,11 @@ class Encounter:
         self.units[b.id] = Unit(b.id, b.name, "boss", "boss", "boss", b.max_hp, b.radius, 0.0,
                                 b.model, C.BOSS_POS, target=C.PARTY[0].id)
         self.boss = self.units[b.id]
+
+    def jitter(self, key: str, base: float, spread: float) -> int:
+        """``base`` +/- ``spread`` ms from this ability's stream, snapped to a tick."""
+        ms = base + self.timer_rng[key].uniform(-spread, spread)
+        return max(TICK_MS, int(round(ms / TICK_MS)) * TICK_MS)
 
     # ----- event helpers ---------------------------------------------------
     def emit(self, type_: str, **data) -> None:
@@ -395,6 +407,16 @@ class Encounter:
             self.enraged = True
             self.emit("emote", unit=b.id, style="yell", text="Enough! The Hollow Crown consumes all!")
             self.apply_aura(b, "hollow_fury", b)
+            self.fury_pulses = 0
+            self.next_fury_pulse = self.t
+        if self.enraged and self.t >= self.next_fury_pulse:
+            # Hard enrage: ramping party-wide damage makes the timer a real deadline.
+            self.next_fury_pulse = self.t + C.BOSS.fury_pulse_ms
+            amount = C.BOSS.fury_pulse_base + C.BOSS.fury_pulse_ramp * self.fury_pulses
+            self.fury_pulses += 1
+            self.emit("cast_success", unit=b.id, ability="hollow_fury", target=None)
+            for p in self.players():
+                self.damage(b, p, "hollow_fury", amount, crit_ok=False)
         if self.raise_dead_left and b.hp / b.max_hp <= self.raise_dead_left[0]:
             self.raise_dead_left.pop(0)
             self.raise_queued = True
@@ -415,7 +437,8 @@ class Encounter:
             return
         for key in ("soul_rend", "requiem_of_bones", "desecrate"):
             if self.t >= self.boss_next[key]:
-                self.boss_next[key] = self.t + C.BOSS.timers[key][1]
+                every = C.BOSS.timers[key][1]
+                self.boss_next[key] = self.t + self.jitter(key, every, every * C.BOSS.timer_jitter)
                 if key == "soul_rend":
                     self.begin_cast(b, key, tank.id)
                 elif key == "requiem_of_bones":

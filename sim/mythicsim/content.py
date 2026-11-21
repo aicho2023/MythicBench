@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-CONTENT_VERSION = "0.1.0"
+CONTENT_VERSION = "0.2.0"
 
 GCD_MS = 1000
 MELEE_RANGE = 3.0
@@ -152,16 +152,18 @@ _ABILITIES = [
     Ability("wild_roar", "Wild Roar", "buff", "wild", cooldown_ms=300000, range=40.0,
             aura="wild_roar", description="Increase the party's haste by 30% for 30 sec."),
     # --- Mortisar, the Hollow King (boss) ---------------------------------
-    Ability("hollow_strike", "Hollow Strike", "boss", "sword", school="frost", amount=2600,
+    Ability("hollow_strike", "Hollow Strike", "boss", "sword", school="frost", amount=3200,
             description="Mortisar strikes his current target."),
     Ability("soul_rend", "Soul Rend", "boss", "rend", school="shadow", cast_ms=2000,
-            amount=24000, aura="rent_soul",
+            amount=30000, aura="rent_soul",
             description="Tank buster. Massive damage plus a lingering wound. Use a defensive!"),
     Ability("requiem_of_bones", "Requiem of Bones", "boss", "requiem", school="shadow",
-            cast_ms=3000, amount=15000, interruptible=True, aura="haunted",
+            cast_ms=3000, amount=22000, interruptible=True, aura="haunted",
             description="Damages the whole party. INTERRUPT IT."),
-    Ability("desecrate", "Desecrate", "boss", "desecrate", school="shadow", amount=3500,
+    Ability("desecrate", "Desecrate", "boss", "desecrate", school="shadow", amount=9000,
             description="Corrupts the ground beneath three players. Move out!"),
+    Ability("hollow_fury", "Hollow Fury", "boss", "fury", school="shadow",
+            description="Enraged: shadow damage to the whole party every second, growing each time."),
     Ability("raise_dead", "Summon the Restless", "boss", "raise", school="shadow", cast_ms=2500,
             description="Summons Bonewalkers from the crypt doors. Kill them!"),
     # --- Bonewalker (add) -------------------------------------------------
@@ -185,7 +187,7 @@ _AURAS = [
             tick_amount=1000, description="Healing every second."),
     AuraDef("rent_soul", "Rent Soul", "rend", True, 8000, tick_ms=1000, tick_amount=1000,
             description="Taking shadow damage every second."),
-    AuraDef("haunted", "Haunted", "requiem", True, 6000, tick_ms=1000, tick_amount=800,
+    AuraDef("haunted", "Haunted", "requiem", True, 6000, tick_ms=1000, tick_amount=1500,
             description="Taking shadow damage every second."),
     AuraDef("hollow_fury", "Hollow Fury", "fury", False, 600000,
             description="Enraged. Damage dealt increased by 300%."),
@@ -251,7 +253,7 @@ class BossDef:
     max_hp: int = 1_500_000
     radius: float = 1.6
     model: str = "Skeleton_Warrior"
-    melee: tuple[int, int] = (2600, 2000)
+    melee: tuple[int, int] = (3200, 2000)
     # first cast time and repeat interval, in ms
     timers: dict = field(default_factory=lambda: {
         "requiem_of_bones": (7000, 16000),
@@ -259,10 +261,22 @@ class BossDef:
         "desecrate": (15000, 20000),
     })
     raise_dead_at: tuple[float, ...] = (0.70, 0.35)
-    enrage_ms: int = 240_000
+    # Per-seed variation: each repeat lands within +/- this fraction of its
+    # interval, and each first cast within +/- first_jitter_ms. Overlapping
+    # mechanics on some seeds are what make the fight hard to play perfectly.
+    timer_jitter: float = 0.25
+    first_jitter_ms: int = 3000
+    # Hard enrage. Tuned so expert bots kill with ~20 s to spare and a few
+    # mistakes (missed kicks, idle time, standing in pools) cost the kill.
+    enrage_ms: int = 195_000
+    # After the enrage, Hollow Fury hits the whole party every second for
+    # base + ramp * n (before the enrage's x4 damage bonus).
+    fury_pulse_ms: int = 1000
+    fury_pulse_base: int = 1500
+    fury_pulse_ramp: int = 750
     desecrate_targets: int = 3
     desecrate_radius: float = 2.2
-    desecrate_arm_ms: int = 1500
+    desecrate_arm_ms: int = 1000  # a 0.8 s reaction is too slow to dodge cleanly
     desecrate_duration_ms: int = 40000
     desecrate_tick_ms: int = 500
 
@@ -284,4 +298,4 @@ ADD = AddDef()
 CRYPT_DOORS: tuple[tuple[float, float], ...] = ((-12.5, -4.0), (12.5, -4.0), (-9.0, 10.0))
 
 SIGIL_LEVEL = 12
-TIME_LIMIT_MS = 240_000
+TIME_LIMIT_MS = BOSS.enrage_ms

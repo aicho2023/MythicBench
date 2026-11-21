@@ -41,11 +41,13 @@ def score(replay: dict) -> dict:
             interrupted += 1
 
     secs = max(1, meta["duration_ms"]) / 1000
+    boss_left = round(100 * boss_hp / boss["max_hp"], 1)
     return {
+        "score": run_score(meta["outcome"], secs, boss_left, meta["time_limit_ms"] / 1000),
         "outcome": meta["outcome"],
         "duration_s": round(secs, 1),
         "in_time": meta["outcome"] == "victory" and meta["duration_ms"] <= meta["time_limit_ms"],
-        "boss_hp_pct_remaining": round(100 * boss_hp / boss["max_hp"], 1),
+        "boss_hp_pct_remaining": boss_left,
         "deaths": deaths,
         "interrupts": {"interruptible_casts": kick_casts, "interrupted": interrupted},
         "avoidable_damage_taken": dict(avoidable),
@@ -53,3 +55,18 @@ def score(replay: dict) -> dict:
         "dps": {k: round(v / secs) for k, v in dmg.items()},
         "healing_done": dict(heal),
     }
+
+
+def run_score(outcome: str, duration_s: float, boss_hp_pct_left: float, time_limit_s: float) -> float:
+    """The headline number for one run.
+
+    * Wipe: the % of the boss's health the party removed (0-100).
+    * Kill: 100 plus one point per second left on the timer.
+
+    Win/loss alone is too blunt to rank agents: two teams that both win (or
+    both wipe) would tie. This score keeps rewarding faster kills at the top
+    and deeper progress at the bottom, so it separates every skill level.
+    """
+    if outcome == "victory":
+        return round(100 + max(0.0, time_limit_s - duration_s), 1)
+    return round(100 - boss_hp_pct_left, 1)

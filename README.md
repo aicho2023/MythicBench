@@ -25,20 +25,41 @@ npm run dev
 Open http://localhost:5173. Space = play/pause, ←/→ = ±5 s, 1–4 = speed.
 Click any line in **Agent decisions** to rewind to that moment.
 
-Link straight to a moment: `http://localhost:5173/?replay=sloppy-wipe&t=123&paused=1`
+Link straight to a moment: `http://localhost:5173/?replay=sloppy-wipe&t=95&paused=1`
 
-## Same fight, two teams
+## How a run is scored
 
-Both replays use **seed 2**: identical boss timers, identical random rolls. Only
-the decision-maker differs.
+Each run gets one number:
 
-| Run | Outcome | Interrupts | Deaths |
+- **Wipe:** the % of the boss's health the party removed (0–100).
+- **Kill:** 100, plus one point per second left on the 3:15 timer.
+
+Win/loss alone would tie every team that wins, and every team that wipes. The
+score keeps separating them: faster kills at the top, deeper progress at the
+bottom. Interrupts, deaths, and avoidable damage explain where points went.
+
+## Same fight, three teams
+
+The viewer ships three replays on **seed 13**. Each seed shuffles the boss's
+timers, but every policy on a seed faces the identical boss script, so only the
+decision-maker differs.
+
+| Run | Outcome | Score | Interrupts | Deaths |
+| --- | --- | --- | --- | --- |
+| Expert bots | **Kill** in 2:50 | 124.8 | 11 / 11 | 0 |
+| Competent bots | **Wipe** to the enrage at 3:19 (boss at 15%) | 84.6 | 11 / 13 | 5 |
+| Sloppy bots | **Wipe** at 1:41 (boss at 68%) | 31.7 | 4 / 7 | 5 |
+
+Across 200 seeds (`python -m mythicsim bench --policy expert,competent,sloppy --runs 200`):
+
+| Bot | Score (95% CI) | Win rate (95% CI) | Interrupt rate |
 | --- | --- | --- | --- |
-| Expert bots | **Kill** in 2:56 | 11 / 11 | 0 |
-| Sloppy bots | **Wipe** at 2:13 (boss at 23%) | 3 / 8 | 5 |
+| Expert | **121.3** (119.9–122.7) | 97.5% (94–99%) | 99.9% |
+| Competent | **101.7** (98.7–104.8) | 65% (58–71%) | 85.8% |
+| Sloppy | **21.5** (20.7–22.3) | 0% (0–2%) | 47.9% |
 
-Across 100 seeds each (`python -m mythicsim bench`), expert bots win **100%** and
-sloppy bots win **10%**. That gap is the kind of signal the benchmark measures.
+Three known skill levels, ranked in the right order with no overlap. That's the
+check that the benchmark can tell good play from bad before any model plays it.
 
 ![The sloppy party's wipe](docs/media/wipe.jpg)
 
@@ -54,8 +75,8 @@ deliberately familiar:
 | *Soul Rend* (tank buster) | press your big defensive |
 | *Desecrate* (swirls under 3 players) | don't stand in the bad |
 | *Summon the Restless* at 70% / 35% | adds — swap and kill them |
-| *Hollow Fury* at 4:00 | the hard enrage |
-| Sigil +12, 4:00 timer | the keystone and its timer |
+| *Hollow Fury* at 3:15 | the hard enrage (ramping party damage) |
+| Sigil +12, 3:15 timer | the keystone and its timer |
 
 | Class (role) | Abilities | Basically… |
 | --- | --- | --- |
@@ -88,7 +109,7 @@ docs/                       Architecture notes, asset guide
 cd sim
 pip install -e ".[dev]"                    # only needed for tests
 python -m mythicsim run --policy expert --seed 7          # one fight, print score
-python -m mythicsim bench --policy sloppy --runs 200      # many fights, no graphics
+python -m mythicsim bench --policy expert,competent,sloppy --runs 200  # many fights, 95% CIs
 python -m mythicsim generate --out ../web/public/replays  # rebuild viewer replays
 python -m pytest
 ```

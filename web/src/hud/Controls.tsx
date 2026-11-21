@@ -146,12 +146,13 @@ export function EndBanner() {
   if (!h || !h.s.ended || h.t < h.s.ended.t + 1500) return null
   const m = h.engine.replay.meta.metrics
   const win = h.s.ended.outcome === 'victory'
-  const other = index.find((r) => r.id !== current)
+  const i = index.findIndex((r) => r.id === current)
+  const other = index.length > 1 ? index[(i + 1) % index.length] : undefined
   const players = h.engine.replay.units.filter((u) => u.kind === 'player')
   const top = players.map((u) => ({ u, v: h.s.damageDone[u.id] ?? 0 })).sort((a, b) => b.v - a.v)[0]
   const avoidable = m ? Object.values(m.avoidable_damage_taken).reduce((a, b) => a + b, 0) : 0
   return (
-    <div className="card pointer-events-auto w-[440px] animate-[fadein_0.4s_ease-out] p-5">
+    <div className="card pointer-events-auto w-[480px] animate-[fadein_0.4s_ease-out] p-5">
       <div className="label">Result</div>
       <div className="mt-1 flex items-baseline gap-3">
         <span className={`text-[28px] font-semibold tracking-[-0.02em] ${win ? 'text-good' : 'text-bad'}`}>{win ? 'Boss defeated' : 'Party wiped'}</span>
@@ -160,7 +161,8 @@ export function EndBanner() {
         {win ? `Mortisar fell in ${fmtTime((m?.duration_s ?? 0) * 1000)}.` : `Mortisar survived with ${m?.boss_hp_pct_remaining}% health.`}
       </div>
       {m && (
-        <div className="mt-4 grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-line bg-line">
+        <div className="mt-4 grid grid-cols-5 gap-px overflow-hidden rounded-lg border border-line bg-line">
+          <Stat label="Score" value={m.score.toFixed(1)} />
           <Stat label="Time" value={fmtTime(m.duration_s * 1000)} />
           <Stat label="Deaths" value={`${m.deaths.length}`} bad={m.deaths.length > 0} />
           <Stat label="Kicks" value={`${m.interrupts.interrupted}/${m.interrupts.interruptible_casts}`} bad={m.interrupts.interrupted < m.interrupts.interruptible_casts} />
@@ -219,7 +221,7 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
         </p>
 
         <Section n="1" title="The task">
-          Beat Mortisar within 4:00. Each boss ability tests one skill: an <b>interruptible cast</b> (react in time),
+          Beat Mortisar before the 3:15 enrage. Each boss ability tests one skill: an <b>interruptible cast</b> (react in time),
           a <b>tank buster</b> (use defensives), <b>pools on the ground</b> (move out), and <b>adds</b> (switch targets).
         </Section>
         <Section n="2" title="The agent under test">
@@ -228,21 +230,25 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
           internals, so a scripted bot and a language model compete on equal terms.
         </Section>
         <Section n="3" title="The score">
-          Win or wipe, kill time, interrupts landed, deaths, and avoidable damage. All of it is computed from the
+          One number per run: the <b>% of the boss's health removed</b>, or for a kill, <b>100 plus one point per
+          second left</b> on the timer. Win/loss alone would tie every team that wins, so the score keeps separating
+          them. Interrupts, deaths, and avoidable damage explain where points went. Everything is computed from the
           replay's event log alone, so anyone can recompute it from the published file.
         </Section>
         <Section n="4" title="Controlled comparison">
-          A seed fixes every boss timer and random roll. Two policies on the same seed face the identical fight, so
-          any difference in the result comes from their decisions.
+          Each seed shuffles the boss's timers, so mechanics sometimes overlap. The timers come from their own seeded
+          stream, so every policy on a seed faces the same boss script, and a difference in the result comes from
+          decisions. Results are averaged over hundreds of seeds and reported with 95% confidence intervals.
         </Section>
 
         <div className="mt-6 rounded-lg border border-warn/25 bg-warn/[0.06] p-3.5">
           <div className="label !text-warn">Status: Phase 1</div>
           <p className="mt-1.5 text-[12.5px] leading-[19px] text-fg-muted">
-            Only two hand-written baselines exist so far: <span className="text-fg">expert</span> and{' '}
-            <span className="text-fg">sloppy</span> bots. Over 100 seeds the expert bots win 100% and the sloppy bots
-            win 10%. That gap shows the scoring can separate good play from bad. Language-model policies, multi-seed
-            results with confidence intervals, and a leaderboard come in Phase 2.
+            Only hand-written baseline bots exist so far. Over 200 seeds they score{' '}
+            <span className="text-fg">expert 121</span>, <span className="text-fg">competent 102</span>, and{' '}
+            <span className="text-fg">sloppy 22</span>, with non-overlapping 95% intervals. Ranking three known skill
+            levels correctly is the check that the benchmark can tell good play from bad. Language-model policies
+            and a leaderboard come in Phase 2.
           </p>
         </div>
 
