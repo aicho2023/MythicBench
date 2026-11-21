@@ -1,0 +1,658 @@
+"""Deterministic, tick-based combat simulator.
+
+Design rules (these are what make the benchmark trustworthy):
+
+1. **Determinism.** All randomness flows from one seeded ``random.Random``.
+   Same seed + same policies => byte-identical event log. Tests enforce this.
+2. **The event log is the only output.** Everything a viewer shows and every
+   metric we score is derived from the log. Nothing hidden.
+3. **Policies only see observations.** A policy (scripted bot today, LLM
+   tomorrow) receives a plain JSON-able dict and returns plain actions. It
+   cannot reach into engine internals, so bots and LLMs are judged by the
+   same rules.
+"""
+
+from __future__ import annotations
+
+import math
+import random
+from dataclasses import dataclass, field
+from typing import Callable, Protocol
+
+from . import content as C
+
+TICK_MS = 100
+SIM_VERSION = "0.1.0"
+
+
+# ---------------------------------------------------------------------------
+# Small geometry helpers
+# ---------------------------------------------------------------------------
+
+Vec = tuple[float, float]
+
+
+def r2(v: float) -> float:
+    return round(v, 2)
+
+
+def dist(a: Vec, b: Vec) -> float:
+    return math.hypot(a[0] - b[0], a[1] - b[1])
+
+
+def lerp(a: Vec, b: Vec, f: float) -> Vec:
+    return (a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f)
+
+
+# ---------------------------------------------------------------------------
+# Runtime state
+# ---------------------------------------------------------------------------
+
+@dataclass
+class Move:
+    frm: Vec
+    to: Vec
+    t0: int
+    dur: int
+
+    def pos_at(self, t: int) -> Vec:
+        # The viewer uses this exact formula, so positions match perfectly.
+        if self.dur <= 0:
+            return self.to
+        f = min(1.0, max(0.0, (t - self.t0) / self.dur))
+        return lerp(self.frm, self.to, f)
+
+
+@dataclass
+class Cast:
+    ability: str
+    target: str | None
+    t0: int
+    cast_ms: int
+
+
+@dataclass
+class Aura:
+    id: str
+    source: str
+    t0: int
+    dur: int
+    next_tick: int = 0
+
+
+@dataclass
+class Unit:
+    id: str
+    name: str
+    kind: str  # player | boss | add
+    cls: str
+    role: str
+    max_hp: int
+    radius: float
+    speed: float
+    model: str
+    pos: Vec
+    hp: int = 0
+    alive: bool = True
+    move: Move | None = None
+    cast: Cast | None = None
+    gcd_until: int = 0
+    swing_at: int = 0
+    target: str | None = None
+    absorb: int = 0
+    cooldowns: dict[str, int] = field(default_factory=dict)
+    auras: dict[str, Aura] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.hp == 0:
+            self.hp = self.max_hp
+
+    @property
+    def haste(self) -> float:
+        return 1.3 if "wild_roar" in self.auras else 1.0
+
+
+# ---------------------------------------------------------------------------
+# Actions a policy may return
+# ---------------------------------------------------------------------------
+
+@dataclass
+class Action:
+    type: str  # "cast" | "move"
+    ability: str | None = None
+    target: str | None = None
+    to: Vec | None = None
+    reason: str | None = None  # optional; logged as a ``decision`` event
+
+
+class Policy(Protocol):
+    name: str
+
+    def act(self, obs: dict) -> list[Action]: ...
+
+
+# ---------------------------------------------------------------------------
+# The encounter
+# ---------------------------------------------------------------------------
+
+class Encounter:
+    def __init__(self, seed: int, policies: dict[str, Policy], policy_label: str):
+        self.seed = seed
+        self.rng = random.Random(seed)
+        self.policies = policies
+        self.policy_label = policy_label
+        self.t = 0
+        self.events: list[dict] = []
+        self.units: dict[str, Unit] = {}
+        self.ground: dict[str, dict] = {}
+        self.pending: list[tuple[int, int, Callable[[], None]]] = []
+        self._seq = 0
+        self.outcome: str | None = None
+        self.boss_next = {k: v[0] for k, v in C.BOSS.timers.items()}
+        self.raise_dead_left = list(C.BOSS.raise_dead_at)
+        self.raise_queued = False
+        self.add_count = 0
+        self.ground_count = 0
+        self.enraged = False
+
+        for m in C.PARTY:
+            cd = C.CLASSES[m.cls]
+            self.units[m.id] = Unit(m.id, m.name, "player", cd.id, cd.role, cd.max_hp,
+                                    cd.radius, cd.speed, cd.model, m.home, target=C.BOSS.id)
+        b = C.BOSS
+        self.units[b.id] = Unit(b.id, b.name, "boss", "boss", "boss", b.max_hp, b.radius, 0.0,
+                                b.model, C.BOSS_POS, target=C.PARTY[0].id)
+        self.boss = self.units[b.id]
+
+    # ----- event helpers ---------------------------------------------------
+    def emit(self, type_: str, **data) -> None:
+        self.events.append({"t": self.t, "type": type_, **data})
+
+    def schedule(self, delay_ms: int, fn: Callable[[], None]) -> None:
+        self._seq += 1
+        self.pending.append((self.t + delay_ms, self._seq, fn))
+
+    def unit_json(self, u: Unit) -> dict:
+        return {"id": u.id, "name": u.name, "kind": u.kind, "class": u.cls, "role": u.role,
+                "max_hp": u.max_hp, "radius": u.radius, "model": u.model,
+                "pos": [r2(u.pos[0]), r2(u.pos[1])]}
+
+    # ----- queries ---------------------------------------------------------
+    def players(self, alive_only: bool = True) -> list[Unit]:
+        return [u for u in self.units.values() if u.kind == "player" and (u.alive or not alive_only)]
+
+    def enemies(self) -> list[Unit]:
+        return [u for u in self.units.values() if u.kind != "player" and u.alive]
+
+    def edge_dist(self, a: Unit, b: Unit) -> float:
+        return dist(a.pos, b.pos) - a.radius - b.radius
+
+    # ----- movement --------------------------------------------------------
+    def start_move(self, u: Unit, to: Vec) -> None:
+        # Clamp inside the arena
+        d = math.hypot(*to)
+        lim = C.ARENA_RADIUS - 1.0
+        if d > lim:
+            to = (to[0] * lim / d, to[1] * lim / d)
+        to = (r2(to[0]), r2(to[1]))
+        if u.move and dist(u.move.to, to) < 0.05:
+            return
+        if not u.move and dist(u.pos, to) < 0.05:
+            return
+        frm = (r2(u.pos[0]), r2(u.pos[1]))
+        dur = int(round(dist(frm, to) / u.speed * 1000))
+        u.pos = frm
+        u.move = Move(frm, to, self.t, dur)
+        if u.cast and C.ABILITIES[u.cast.ability].cast_ms > 0:
+            self.emit("cast_interrupted", unit=u.id, ability=u.cast.ability, by=None,
+                      by_ability=None, reason="moved")
+            u.cast = None
+        self.emit("move", unit=u.id, **{"from": list(frm)}, to=list(to), duration_ms=dur)
+
+    def stop_move(self, u: Unit) -> None:
+        if u.move:
+            self.start_move(u, u.pos)
+            u.move = None
+
+    # ----- combat math -----------------------------------------------------
+    def damage(self, src: Unit, tgt: Unit, ability: str, base: float, *, crit_ok: bool = True) -> None:
+        if not tgt.alive:
+            return
+        amt = base * self.rng.uniform(0.92, 1.08)
+        crit = crit_ok and src.kind == "player" and self.rng.random() < 0.15
+        if crit:
+            amt *= 2
+        if "hollow_fury" in src.auras:
+            amt *= 4
+        if "ironhide" in tgt.auras:
+            amt *= 0.4
+        amt = int(round(amt))
+        absorbed = min(tgt.absorb, amt)
+        tgt.absorb -= absorbed
+        dealt = amt - absorbed
+        overkill = max(0, dealt - tgt.hp)
+        tgt.hp = max(0, tgt.hp - dealt)
+        self.emit("damage", source=src.id, target=tgt.id, ability=ability, amount=dealt - overkill,
+                  absorbed=absorbed, overkill=overkill, crit=crit, hp=tgt.hp, absorb=tgt.absorb)
+        if absorbed and tgt.absorb == 0 and "lumen_ward" in tgt.auras:
+            self.remove_aura(tgt, "lumen_ward", "consumed")
+        if tgt.hp == 0:
+            self.kill(tgt, src, ability)
+
+    def heal(self, src: Unit, tgt: Unit, ability: str, base: float, *, crit_ok: bool = True) -> None:
+        if not tgt.alive:
+            return
+        amt = base * self.rng.uniform(0.95, 1.05)
+        crit = crit_ok and self.rng.random() < 0.15
+        if crit:
+            amt *= 1.8
+        amt = int(round(amt))
+        eff = min(amt, tgt.max_hp - tgt.hp)
+        tgt.hp += eff
+        self.emit("heal", source=src.id, target=tgt.id, ability=ability, amount=eff,
+                  overheal=amt - eff, crit=crit, hp=tgt.hp)
+
+    def apply_aura(self, tgt: Unit, aura_id: str, src: Unit, *, absorb: int = 0) -> None:
+        a = C.AURAS[aura_id]
+        tgt.auras[aura_id] = Aura(aura_id, src.id, self.t, a.duration_ms,
+                                  next_tick=self.t + a.tick_ms if a.tick_ms else 0)
+        data = {"unit": tgt.id, "aura": aura_id, "source": src.id, "duration_ms": a.duration_ms}
+        if absorb:
+            tgt.absorb = absorb
+            data["absorb"] = absorb
+        self.emit("aura_apply", **data)
+
+    def remove_aura(self, tgt: Unit, aura_id: str, reason: str = "expired") -> None:
+        if aura_id in tgt.auras:
+            del tgt.auras[aura_id]
+            if aura_id == "lumen_ward":
+                tgt.absorb = 0
+            self.emit("aura_remove", unit=tgt.id, aura=aura_id, reason=reason)
+
+    def kill(self, u: Unit, killer: Unit, ability: str) -> None:
+        u.alive = False
+        u.cast = None
+        if u.move:
+            u.pos = u.move.pos_at(self.t)
+            u.move = None
+        self.emit("death", unit=u.id, killer=killer.id, ability=ability)
+        for aid in list(u.auras):
+            del u.auras[aid]
+        u.absorb = 0
+
+    # ----- casting ---------------------------------------------------------
+    def can_cast(self, u: Unit, ab: C.Ability, tgt: Unit | None) -> bool:
+        if not u.alive or u.cast:
+            return False
+        if ab.on_gcd and self.t < u.gcd_until:
+            return False
+        if u.cooldowns.get(ab.id, 0) > self.t:
+            return False
+        if ab.cast_ms and u.move:
+            return False
+        if tgt is not None:
+            if not tgt.alive:
+                return False
+            if ab.kind not in ("taunt", "buff") and tgt is not u and self.edge_dist(u, tgt) > ab.range:
+                return False
+        return True
+
+    def begin_cast(self, u: Unit, ability_id: str, target_id: str | None) -> bool:
+        ab = C.ABILITIES[ability_id]
+        tgt = self.units.get(target_id) if target_id else None
+        if not self.can_cast(u, ab, tgt):
+            return False
+        if ab.on_gcd:
+            u.gcd_until = self.t + int(C.GCD_MS / u.haste)
+        if ab.kind in ("damage", "aoe_damage") and tgt and tgt.kind != "player":
+            u.target = tgt.id
+        if ab.cast_ms:
+            cast_ms = int(ab.cast_ms / u.haste)
+            u.cast = Cast(ab.id, target_id, self.t, cast_ms)
+            self.emit("cast_start", unit=u.id, ability=ab.id, target=target_id, cast_ms=cast_ms,
+                      interruptible=ab.interruptible)
+        else:
+            self.resolve(u, ab, target_id)
+        return True
+
+    def resolve(self, u: Unit, ab: C.Ability, target_id: str | None) -> None:
+        tgt = self.units.get(target_id) if target_id else None
+        if ab.cooldown_ms:
+            u.cooldowns[ab.id] = self.t + ab.cooldown_ms
+        self.emit("cast_success", unit=u.id, ability=ab.id, target=target_id)
+        k = ab.kind
+        if ab.projectile_ms and tgt:
+            self.emit("projectile", source=u.id, target=tgt.id, ability=ab.id,
+                      travel_ms=ab.projectile_ms)
+            self.schedule(ab.projectile_ms, lambda: self.damage(u, tgt, ab.id, ab.amount))
+        elif k == "damage" and tgt:
+            self.damage(u, tgt, ab.id, ab.amount)
+        elif k == "aoe_damage":
+            for e in self.enemies():
+                if dist(u.pos, e.pos) - e.radius <= ab.radius:
+                    self.damage(u, e, ab.id, ab.amount)
+        elif k == "heal" and tgt:
+            self.heal(u, tgt, ab.id, ab.amount)
+        elif k == "hot" and tgt:
+            self.apply_aura(tgt, ab.aura, u)
+        elif k == "absorb" and tgt:
+            self.apply_aura(tgt, ab.aura, u, absorb=ab.amount)
+        elif k == "raid_heal":
+            for p in self.players():
+                self.heal(u, p, ab.id, ab.amount)
+                self.apply_aura(p, "radiant_afterglow", u)
+        elif k == "buff":
+            if ab.id == "wild_roar":
+                for p in self.players():
+                    self.apply_aura(p, "wild_roar", u)
+            else:
+                self.apply_aura(u, ab.aura, u)
+        elif k == "interrupt" and tgt:
+            if ab.projectile_ms == 0 and u.cls == "ranger":
+                self.emit("projectile", source=u.id, target=tgt.id, ability=ab.id, travel_ms=250)
+            if tgt.cast and C.ABILITIES[tgt.cast.ability].interruptible:
+                self.emit("cast_interrupted", unit=tgt.id, ability=tgt.cast.ability, by=u.id,
+                          by_ability=ab.id, reason="interrupt")
+                tgt.cast = None
+        elif k == "taunt":
+            for e in self.enemies():
+                if e.kind == "add" and dist(u.pos, e.pos) <= ab.radius:
+                    e.target = u.id
+                    if "taunted" not in e.auras:
+                        self.apply_aura(e, "taunted", u)
+        elif k == "boss":
+            self.resolve_boss(u, ab, tgt)
+
+    # ----- boss behaviour --------------------------------------------------
+    def resolve_boss(self, b: Unit, ab: C.Ability, tgt: Unit | None) -> None:
+        if ab.id == "soul_rend" and tgt and tgt.alive:
+            self.damage(b, tgt, ab.id, ab.amount)
+            if tgt.alive:
+                self.apply_aura(tgt, "rent_soul", b)
+        elif ab.id == "requiem_of_bones":
+            for p in self.players():
+                self.damage(b, p, ab.id, ab.amount)
+                if p.alive:
+                    self.apply_aura(p, "haunted", b)
+        elif ab.id == "raise_dead":
+            self.emit("emote", unit=b.id, style="yell", text="Rise, my faithful. Feast upon the living!")
+            for door in C.CRYPT_DOORS:
+                self.add_count += 1
+                aid = f"bonewalker_{self.add_count}"
+                a = C.ADD
+                healer = next((p for p in self.players() if p.role == "healer"), None)
+                add = Unit(aid, a.name, "add", "bonewalker", "add", a.max_hp, a.radius, a.speed,
+                           a.model, door, target=(healer or self.players()[0]).id)
+                add.swing_at = self.t + 1500
+                self.units[aid] = add
+                self.emit("spawn", unit=self.unit_json(add))
+
+    def boss_tick(self) -> None:
+        b = self.boss
+        if not b.alive:
+            return
+        if not self.enraged and self.t >= C.BOSS.enrage_ms:
+            self.enraged = True
+            self.emit("emote", unit=b.id, style="yell", text="Enough! The Hollow Crown consumes all!")
+            self.apply_aura(b, "hollow_fury", b)
+        if self.raise_dead_left and b.hp / b.max_hp <= self.raise_dead_left[0]:
+            self.raise_dead_left.pop(0)
+            self.raise_queued = True
+        tank = self.units.get(b.target)
+        if not tank or not tank.alive:
+            alive = self.players()
+            if not alive:
+                return
+            tank = min(alive, key=lambda p: dist(p.pos, b.pos))
+            b.target = tank.id
+        if b.cast:
+            return
+        # Priority: Summon the Restless > Soul Rend > Requiem > Desecrate
+        if self.raise_queued:
+            self.raise_queued = False
+            self.emit("emote", unit=b.id, style="warning", text="Mortisar begins to Summon the Restless!")
+            self.begin_cast(b, "raise_dead", None)
+            return
+        for key in ("soul_rend", "requiem_of_bones", "desecrate"):
+            if self.t >= self.boss_next[key]:
+                self.boss_next[key] = self.t + C.BOSS.timers[key][1]
+                if key == "soul_rend":
+                    self.begin_cast(b, key, tank.id)
+                elif key == "requiem_of_bones":
+                    self.begin_cast(b, key, None)
+                else:
+                    self.cast_desecrate(b)
+                return
+        if self.t >= b.swing_at and self.edge_dist(b, tank) <= C.MELEE_RANGE + 1:
+            b.swing_at = self.t + C.BOSS.melee[1]
+            self.emit("cast_success", unit=b.id, ability="hollow_strike", target=tank.id)
+            self.damage(b, tank, "hollow_strike", C.BOSS.melee[0])
+
+    def cast_desecrate(self, b: Unit) -> None:
+        self.emit("cast_success", unit=b.id, ability="desecrate", target=None)
+        candidates = [p for p in self.players() if p.role != "tank"]
+        k = min(C.BOSS.desecrate_targets, len(candidates))
+        for p in self.rng.sample(candidates, k):
+            self.ground_count += 1
+            gid = f"desecrate_{self.ground_count}"
+            pos = (r2(p.pos[0]), r2(p.pos[1]))
+            g = {"id": gid, "kind": "desecrate", "source": b.id, "pos": pos,
+                 "radius": C.BOSS.desecrate_radius, "armed_at": self.t + C.BOSS.desecrate_arm_ms,
+                 "expires_at": self.t + C.BOSS.desecrate_duration_ms,
+                 "next_tick": self.t + C.BOSS.desecrate_arm_ms}
+            self.ground[gid] = g
+            self.emit("ground_spawn", id=gid, kind="desecrate", source=b.id, pos=list(pos),
+                      radius=g["radius"], arm_ms=C.BOSS.desecrate_arm_ms,
+                      duration_ms=C.BOSS.desecrate_duration_ms, target=p.id)
+
+    def ground_tick(self) -> None:
+        for gid, g in list(self.ground.items()):
+            if self.t >= g["expires_at"]:
+                del self.ground[gid]
+                self.emit("ground_expire", id=gid)
+                continue
+            if self.t >= g["next_tick"]:
+                g["next_tick"] = self.t + C.BOSS.desecrate_tick_ms
+                for p in self.players():
+                    if dist(p.pos, g["pos"]) <= g["radius"] + p.radius * 0.5:
+                        self.damage(self.boss, p, "desecrate", C.ABILITIES["desecrate"].amount,
+                                    crit_ok=False)
+
+    def add_tick(self) -> None:
+        for a in [u for u in self.units.values() if u.kind == "add" and u.alive]:
+            tgt = self.units.get(a.target)
+            if not tgt or not tgt.alive:
+                alive = self.players()
+                if not alive:
+                    return
+                tgt = min(alive, key=lambda p: dist(p.pos, a.pos))
+                a.target = tgt.id
+            gap = self.edge_dist(a, tgt)
+            if gap > 0.9:
+                # Chase: aim for a point just short of the target
+                d = dist(a.pos, tgt.pos)
+                stop = a.radius + tgt.radius + 0.5
+                f = max(0.0, (d - stop) / d) if d else 0
+                dest = lerp(a.pos, tgt.pos, f)
+                if not a.move or dist(a.move.to, dest) > 1.0:
+                    self.start_move(a, dest)
+            else:
+                if a.move:
+                    self.stop_move(a)
+                if self.t >= a.swing_at:
+                    a.swing_at = self.t + C.ADD.swing_ms
+                    self.emit("cast_success", unit=a.id, ability="bone_claw", target=tgt.id)
+                    self.damage(a, tgt, "bone_claw", C.ABILITIES["bone_claw"].amount)
+
+    # ----- periodic effects ------------------------------------------------
+    def aura_tick(self) -> None:
+        for u in list(self.units.values()):
+            if not u.alive:
+                continue
+            for aid, au in list(u.auras.items()):
+                d = C.AURAS[aid]
+                if d.tick_ms and self.t >= au.next_tick and self.t <= au.t0 + au.dur:
+                    au.next_tick += d.tick_ms
+                    src = self.units[au.source]
+                    if d.harmful:
+                        self.damage(src, u, aid, d.tick_amount, crit_ok=False)
+                    else:
+                        self.heal(src, u, aid, d.tick_amount, crit_ok=False)
+                    if not u.alive:
+                        break
+                if self.t >= au.t0 + au.dur:
+                    self.remove_aura(u, aid)
+
+    def auto_attacks(self) -> None:
+        for p in self.players():
+            cd = C.CLASSES[p.cls]
+            if not cd.auto_attack or p.cast:
+                continue
+            tgt = self.units.get(p.target)
+            if not tgt or not tgt.alive or self.edge_dist(p, tgt) > C.MELEE_RANGE:
+                continue
+            if self.t >= p.swing_at:
+                p.swing_at = self.t + int(cd.auto_attack[1] / p.haste)
+                self.damage(p, tgt, "auto_attack", cd.auto_attack[0])
+
+    # ----- observations for policies --------------------------------------
+    def view(self, u: Unit, full: bool) -> dict:
+        v = {
+            "id": u.id, "name": u.name, "role": u.role, "class": u.cls, "alive": u.alive,
+            "hp": u.hp, "max_hp": u.max_hp, "hp_pct": round(100 * u.hp / u.max_hp, 1),
+            "absorb": u.absorb, "pos": [r2(u.pos[0]), r2(u.pos[1])], "moving": u.move is not None,
+            "target": u.target,
+            "auras": {aid: au.t0 + au.dur - self.t for aid, au in u.auras.items()},
+            "casting": None,
+        }
+        if u.cast:
+            ab = C.ABILITIES[u.cast.ability]
+            v["casting"] = {"ability": ab.id, "name": ab.name, "target": u.cast.target,
+                            "elapsed_ms": self.t - u.cast.t0,
+                            "remaining_ms": u.cast.t0 + u.cast.cast_ms - self.t,
+                            "interruptible": ab.interruptible}
+        if u.kind == "player":
+            cd = C.CLASSES[u.cls]
+            v["cooldowns"] = {a: max(0, u.cooldowns.get(a, 0) - self.t) for a in cd.abilities}
+            if full:
+                v["gcd_ms"] = max(0, u.gcd_until - self.t)
+                v["abilities"] = list(cd.abilities)
+        return v
+
+    def observe(self, u: Unit) -> dict:
+        return {
+            "t": self.t,
+            "self": self.view(u, True),
+            "party": [self.view(p, False) for p in self.players(alive_only=False)],
+            "enemies": [self.view(e, False) for e in self.enemies()],
+            "ground": [{"id": g["id"], "kind": g["kind"], "pos": list(g["pos"]),
+                        "radius": g["radius"], "age_ms": self.t - (g["armed_at"] - C.BOSS.desecrate_arm_ms),
+                        "armed": self.t >= g["armed_at"]} for g in self.ground.values()],
+            "arena_radius": C.ARENA_RADIUS,
+            "boss_next_ms": {k: max(0, v - self.t) for k, v in self.boss_next.items()},
+        }
+
+    def run_policies(self) -> None:
+        for p in self.players():
+            pol = self.policies.get(p.id)
+            if not pol:
+                continue
+            for act in pol.act(self.observe(p)):
+                ok = False
+                if act.type == "move" and act.to is not None:
+                    self.start_move(p, act.to)
+                    ok = True
+                elif act.type == "cast" and act.ability:
+                    if act.ability not in C.CLASSES[p.cls].abilities:
+                        continue  # illegal action: silently ignored (and countable later)
+                    ok = self.begin_cast(p, act.ability, act.target)
+                if ok and act.reason:
+                    label = act.ability and C.ABILITIES[act.ability].name or "Move"
+                    tname = self.units[act.target].name if act.target in self.units else None
+                    self.emit("decision", unit=p.id,
+                              action=f"{label} → {tname}" if tname else label, reason=act.reason)
+
+    # ----- main loop -------------------------------------------------------
+    def step(self) -> None:
+        # 1. movement
+        for u in self.units.values():
+            if u.move and u.alive:
+                u.pos = u.move.pos_at(self.t)
+                if self.t >= u.move.t0 + u.move.dur:
+                    u.pos = u.move.to
+                    u.move = None
+        # 2. delayed effects (projectiles landing)
+        due = sorted([p for p in self.pending if p[0] <= self.t], key=lambda p: (p[0], p[1]))
+        self.pending = [p for p in self.pending if p[0] > self.t]
+        for _, _, fn in due:
+            fn()
+        # 3. casts finishing
+        for u in list(self.units.values()):
+            if u.alive and u.cast and self.t >= u.cast.t0 + u.cast.cast_ms:
+                c = u.cast
+                u.cast = None
+                tgt = self.units.get(c.target) if c.target else None
+                if tgt is not None and not tgt.alive and u.kind == "player":
+                    continue
+                self.resolve(u, C.ABILITIES[c.ability], c.target)
+        # 4. periodic stuff, enemies, then players
+        self.aura_tick()
+        self.ground_tick()
+        self.boss_tick()
+        self.add_tick()
+        self.auto_attacks()
+        self.run_policies()
+
+    def run(self, max_ms: int = 330_000) -> dict:
+        self.roster = [self.unit_json(u) for u in self.units.values()]
+        self.emit("encounter_start", encounter="gravecrown_crypt", boss=self.boss.id)
+        self.emit("emote", unit=self.boss.id, style="yell",
+                  text="You trespass in the Hollow King's tomb. Your bones will serve me!")
+        while self.outcome is None:
+            self.step()
+            if not self.boss.alive:
+                self.outcome = "victory"
+            elif not self.players():
+                self.outcome = "wipe"
+            elif self.t >= max_ms:
+                self.outcome = "timeout"
+            else:
+                self.t += TICK_MS
+        if self.outcome == "victory":
+            self.emit("emote", unit=self.boss.id, style="yell",
+                      text="The crown... was never... mine...")
+        else:
+            self.emit("emote", unit=self.boss.id, style="yell",
+                      text="Another party for my eternal court.")
+        self.emit("encounter_end", outcome=self.outcome,
+                  final_hp={u.id: u.hp for u in self.units.values()})
+        return self.to_replay()
+
+    def to_replay(self) -> dict:
+        abilities = {k: a.to_json() for k, a in C.ABILITIES.items()}
+        abilities["auto_attack"] = {"name": "Auto Attack", "kind": "damage", "icon": "sword",
+                                    "school": "physical", "cast_ms": 0, "cooldown_ms": 0,
+                                    "interruptible": False, "description": "Melee swing."}
+        return {
+            "schema_version": "0.1.0",
+            "meta": {
+                "encounter": "gravecrown_crypt",
+                "title": "Gravecrown Crypt — Mortisar, the Hollow King",
+                "seed": self.seed,
+                "policy": self.policy_label,
+                "sim_version": SIM_VERSION,
+                "content_version": C.CONTENT_VERSION,
+                "tick_ms": TICK_MS,
+                "duration_ms": self.t,
+                "outcome": self.outcome,
+                "sigil_level": C.SIGIL_LEVEL,
+                "time_limit_ms": C.TIME_LIMIT_MS,
+            },
+            "arena": {"radius": C.ARENA_RADIUS, "doors": [list(d) for d in C.CRYPT_DOORS]},
+            "classes": {k: {"name": c.name, "role": c.role, "interrupt": c.interrupt,
+                            "abilities": list(c.abilities)} for k, c in C.CLASSES.items()},
+            "abilities": abilities,
+            "auras": {k: a.to_json() for k, a in C.AURAS.items()},
+            "units": self.roster,
+            "events": self.events,
+        }
