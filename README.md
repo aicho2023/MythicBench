@@ -42,25 +42,34 @@ avoidable damage explain where points went. A learning episode's
 **progression score** (also 0–100) is its average pull score, with a kill
 carrying forward, so learning faster scores higher.
 
-### Difficulty: key levels
+### Difficulty: Normal and +10
 
-Like Mythic+, the fight comes in key levels from **+2 to +30**:
+The dungeon comes in two tiers, set with `--tier normal|+10` (default +10):
 
-- +12 is the tuned default.
-- Each level up or down multiplies enemy health and damage by 1.08.
-- Set it with `--level` on `run`, `bench`, `llm`, and `progress`, as a number
-  or as `normal` / `heroic` / `mythic` (= +4 / +8 / +12).
+- **Normal:** enemies have 60% of their listed health and damage, and there
+  are no affixes. A competent group should clear it.
+- **+10:** full damage, 85% health, and three affixes that change how the
+  dungeon has to be played:
+  - **Restless Graves:** a dead undead (not Mortisar) leaves a grave for 12 s
+    that heals undead standing in it and hurts players standing in it. Fight
+    enemies away from graves.
+  - **Marrowburst:** every undead death puts a stack of Marrow Shards on the
+    whole party (damage each second for 4 s, per stack). Many kills at once
+    stack it high.
+  - **Hollow Tyrant:** Mortisar summons adds three times (at 80%, 50% and 25%)
+    and Desecrates four players instead of three.
 
-Each bot has a natural ceiling, like a player's highest timed key (100 seeds
-each):
+Affixes are always shown to the party, as in the game, even when the boss
+itself is unknown.
 
-| Level | Expert wins | Competent wins | Sloppy wins |
+Scripted bots on each tier (200 seeds, `bench --tier ...`):
+
+| Tier | Expert | Competent | Sloppy |
 | --- | --- | --- | --- |
-| +4 | 100% | 100% | 56% |
-| +8 | 100% | 99% | 1% |
-| +12 | 100% | 65% | 0% |
-| +14 | 47% | 1% | 0% |
-| +16 | 0% (81% of the boss down) | 0% | 0% |
+| Normal: clear rate | 100% | 99.5% | 19% |
+| Normal: score | 100.0 | 99.8 | 57.5 |
+| +10: clear rate | **60%** (53–67%) | **13%** (9–18%) | 0% |
+| +10: score | **73.5** (72.4–74.7) | **59.6** (58.1–61.2) | 16.3 (14.7–17.9) |
 
 ## The dungeon run
 
@@ -84,28 +93,19 @@ entrance, clear two trash packs, then kill Mortisar, all on one **4:30 timer**.
 `--mode dungeon` is the default for `run`, `bench`, `llm`, and `progress`.
 `--mode boss` plays the boss fight alone.
 
-The viewer ships three runs on **seed 42**. Each seed shuffles the boss's
+The viewer ships three +10 runs on **seed 5**. Each seed shuffles the boss's
 timers, but every policy on a seed faces the identical script, so only the
 decision-maker differs.
 
-| Run | Outcome | Score | Progress | Interrupts | Deaths |
-| --- | --- | --- | --- | --- | --- |
-| Expert bots | **Clear** in 3:44 | 90.4 | 100% | 17 / 21 | 0 |
-| Competent bots | **Wipe** to the enrage, boss at 0.9% | 69.6 | 99.4% | 16 / 22 | 5 |
-| Sloppy bots | **Wipe** at 2:22, boss at 63% | 39.0 | 55.7% | 4 / 13 | 5 |
+| Run | Outcome | Score | Interrupts | Deaths |
+| --- | --- | --- | --- | --- |
+| Expert bots | **Clear** in 4:09 | 79.3 | 18 / 22 | 0 |
+| Competent bots | **Wipe** at 4:26, Mortisar nearly dead | 69.7 | 17 / 20 | 5 |
+| Sloppy bots | **Wipe** at 0:40 on the first pack | 6.9 | 4 / 8 | 5 |
 
-Across 200 seeds (`python -m mythicsim bench --policy expert,competent,sloppy --runs 200`):
-
-| Bot | Score (95% CI) | Clear rate (95% CI) | Interrupt rate |
-| --- | --- | --- | --- |
-| Expert | **89.0** (88.3–89.7) | 97% (94–99%) | 81% |
-| Competent | **74.6** (72.8–76.4) | 62% (55–68%) | 74% |
-| Sloppy | **30.8** (30.4–31.3) | 0% (0–2%) | 33% |
-
-Three known skill levels, ranked in the right order with no overlap. That's the
-check that the benchmark can tell good play from bad before any model plays it.
-Boss-only fights (`--mode boss`) score expert 87.5, competent 72.3, and sloppy
-14.9.
+The three bots rank in the right order with no overlap on +10 (table above).
+That's the check that the benchmark can tell good play from bad before any
+model plays it.
 
 ![The sloppy party's wipe](docs/media/wipe.jpg)
 

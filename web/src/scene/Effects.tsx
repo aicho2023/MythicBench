@@ -28,17 +28,27 @@ function GroundPools() {
   return <>{ids.split(',').map((id) => <Pool key={id} id={id} />)}</>
 }
 
+const POOL_COLORS: Record<string, { fill: string; swirl: string; edge: string }> = {
+  desecrate: { fill: '#3fbf6a', swirl: '#5fd08a', edge: '#a8f0a0' },
+  grave: { fill: '#8f7ad6', swirl: '#b7a6f0', edge: '#e6dcff' },
+}
+
 function Pool({ id }: { id: string }) {
   const group = useRef<THREE.Group>(null)
   const fill = useRef<THREE.Mesh>(null)
   const swirl = useRef<THREE.Mesh>(null)
   const edge = useRef<THREE.Mesh>(null)
-  const mats = useMemo(() => ({
-    fill: new THREE.MeshBasicMaterial({ color: new THREE.Color('#3fbf6a').multiplyScalar(0.6), transparent: true, opacity: 0.25, depthWrite: false, toneMapped: false }),
-    swirl: new THREE.MeshBasicMaterial({ map: swirlTexture(), color: new THREE.Color('#5fd08a').multiplyScalar(0.6), transparent: true, depthWrite: false, toneMapped: false, opacity: 0.9 }),
-    edge: new THREE.MeshBasicMaterial({ color: new THREE.Color('#a8f0a0').multiplyScalar(1.15), transparent: true, depthWrite: false, toneMapped: false }),
-    void: new THREE.MeshBasicMaterial({ color: '#12081f', transparent: true, opacity: 0.85, depthWrite: false }),
-  }), [])
+  const kind = usePlayback((p) => p.engine?.stateAt(p.t).ground[id]?.kind)
+  const mats = useMemo(() => {
+    // Desecrate: sickly green. Restless Grave (+10 affix): pale bone-violet.
+    const c = POOL_COLORS[kind ?? 'desecrate'] ?? POOL_COLORS.desecrate
+    return {
+      fill: new THREE.MeshBasicMaterial({ color: new THREE.Color(c.fill).multiplyScalar(0.6), transparent: true, opacity: 0.25, depthWrite: false, toneMapped: false }),
+      swirl: new THREE.MeshBasicMaterial({ map: swirlTexture(), color: new THREE.Color(c.swirl).multiplyScalar(0.6), transparent: true, depthWrite: false, toneMapped: false, opacity: 0.9 }),
+      edge: new THREE.MeshBasicMaterial({ color: new THREE.Color(c.edge).multiplyScalar(1.15), transparent: true, depthWrite: false, toneMapped: false }),
+      void: new THREE.MeshBasicMaterial({ color: '#12081f', transparent: true, opacity: 0.85, depthWrite: false }),
+    }
+  }, [kind])
   useFrame(() => {
     const f = frameState()
     const g = f?.s.ground[id]

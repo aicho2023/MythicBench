@@ -121,7 +121,7 @@ export function RunBrowser({ onClose }: { onClose: () => void }) {
                     <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[10.5px] text-fg-faint">
                       {t.sub && <span className="text-fg-muted">{t.sub}</span>}
                       <span>{r.provider}</span>
-                      <span className="text-fg-muted">+{r.level ?? 12}</span>
+                      <span className="text-fg-muted">{r.tier ? (r.tier === 'plus10' ? '+10' : 'Normal') : `+${r.level ?? 12}`}</span>
                       <span>{when(r.created)}</span>
                       <span className={stale ? 'rounded border border-warn/40 px-1 text-warn' : ''}
                         title={stale ? `Played on harness ${r.harness_version}; current is ${catalog?.current_harness_version}. Not directly comparable.` : 'Current harness'}>

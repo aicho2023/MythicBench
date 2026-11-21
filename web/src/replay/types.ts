@@ -60,7 +60,11 @@ export interface ReplayMeta {
   tick_ms: number
   duration_ms: number
   outcome: 'victory' | 'wipe' | 'timeout'
-  sigil_level: number
+  /** Difficulty: "normal" or "plus10" (older replays have sigil_level instead). */
+  tier?: string
+  tier_name?: string
+  affixes?: string[]
+  sigil_level?: number
   time_limit_ms: number
   metrics?: Metrics
   /** Dungeon runs: "dungeon"; boss-only fights omit it. */
@@ -71,7 +75,7 @@ export interface ReplayMeta {
   /** Model runs: which run produced this replay. */
   run?: { run_id: string; name: string | null; label: string; model: string; effort: string | null; harness_version: string; prompt_hash: string }
   /** Progression runs: this pull's place in its episode and what the model knew. */
-  progress?: { episode: number; pull: number; memory: boolean; knowledge: string; level?: number; notes_before: string; notes_after: string; debrief: string }
+  progress?: { episode: number; pull: number; memory: boolean; knowledge: string; level?: number; tier?: string; notes_before: string; notes_after: string; debrief: string }
 }
 
 interface Base { t: number }
@@ -85,7 +89,7 @@ export type ReplayEvent =
   | (Base & { type: 'cast_interrupted'; unit: string; ability: string; by: string | null; by_ability: string | null; reason: 'interrupt' | 'moved' })
   | (Base & { type: 'damage'; source: string; target: string; ability: string; amount: number; absorbed: number; overkill: number; crit: boolean; hp: number; absorb: number })
   | (Base & { type: 'heal'; source: string; target: string; ability: string; amount: number; overheal: number; crit: boolean; hp: number })
-  | (Base & { type: 'aura_apply'; unit: string; aura: string; source: string; duration_ms: number; absorb?: number })
+  | (Base & { type: 'aura_apply'; unit: string; aura: string; source: string; duration_ms: number; absorb?: number; stacks?: number })
   | (Base & { type: 'aura_remove'; unit: string; aura: string; reason: string })
   | (Base & { type: 'ground_spawn'; id: string; kind: string; source: string; pos: Vec2; radius: number; arm_ms: number; duration_ms: number; target?: string })
   | (Base & { type: 'ground_expire'; id: string })
@@ -112,6 +116,8 @@ export interface Replay {
   classes: Record<string, { name: string; role: string; interrupt: string | null; abilities: string[] }>
   abilities: Record<string, AbilityInfo>
   auras: Record<string, AuraInfo>
+  /** Active affixes (+10): name and tooltip. */
+  affixes?: Record<string, { name: string; description: string }>
   units: UnitInfo[]
   events: ReplayEvent[]
 }
@@ -158,6 +164,7 @@ export interface CatalogRun {
   knowledge?: string | null
   memory?: boolean | null
   level?: number | null
+  tier?: string | null
   max_pulls?: number | null
   /** "stopped": the run hit its spend budget part-way */
   status?: string | null

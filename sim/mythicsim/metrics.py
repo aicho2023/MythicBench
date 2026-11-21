@@ -29,7 +29,7 @@ def score(replay: dict) -> dict:
                 dmg[e["source"]] += e["amount"]
             if e["target"] == boss["id"]:
                 boss_hp = e["hp"]
-            if e["ability"] == "desecrate" and e["target"] in players:
+            if e["ability"] in ("desecrate", "restless_grave") and e["target"] in players:
                 avoidable[e["target"]] += e["amount"] + e["absorbed"]
         elif t == "heal" and e["source"] in players:
             heal[e["source"]] += e["amount"]
@@ -44,7 +44,7 @@ def score(replay: dict) -> dict:
     boss_left = round(100 * boss_hp / boss["max_hp"], 1)
     extra = {}
     if meta.get("mode") == "dungeon":
-        extra = dungeon_progress(replay, boss_left)
+        extra = dungeon_progress(replay, 100 * boss_hp / boss["max_hp"])  # unrounded, like the viewer
         sc = dungeon_score(meta["outcome"], secs + meta.get("penalty_ms", 0) / 1000,
                            extra["progress_pct"], meta["time_limit_ms"] / 1000)
     else:

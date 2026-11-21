@@ -28,7 +28,7 @@ export function LearningPanel({ onShowMeter }: { onShowMeter: () => void }) {
   return (
     <div className="card w-[272px] pb-2.5">
       <div className="flex items-center justify-between px-3.5 pb-1 pt-2">
-        <span className="label">Learning · ep {prog.episode} · pull {prog.pull}{run?.max_pulls ? ` / ${run.max_pulls}` : ''} · +{engine?.replay.meta.sigil_level}</span>
+        <span className="label">Learning · ep {prog.episode} · pull {prog.pull}{run?.max_pulls ? ` / ${run.max_pulls}` : ''} · {engine?.replay.meta.tier_name ?? `+${engine?.replay.meta.sigil_level}`}</span>
         <button onClick={onShowMeter} className="font-mono text-[10px] text-fg-faint hover:text-fg">meter</button>
       </div>
       <div className="px-3.5 font-mono text-[10px] text-fg-faint">

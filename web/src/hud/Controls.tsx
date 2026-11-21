@@ -17,7 +17,9 @@ export function TopBar({ onAbout, onRuns }: { onAbout: () => void; onRuns: () =>
   const current = usePlayback((p) => p.currentId)
   const load = usePlayback((p) => p.load)
   const engine = usePlayback((p) => p.engine)
-  const sigil = engine?.replay.meta.sigil_level
+  const meta = engine?.replay.meta
+  const tierName = meta?.tier_name ?? (meta?.sigil_level !== undefined ? `+${meta.sigil_level}` : undefined)
+  const affixes = Object.values(engine?.replay.affixes ?? {})
   const catalogSize = usePlayback((p) => p.catalog?.runs.length ?? 0)
   const currentLocal = index.find((r) => r.id === current && r.local)
   return (
@@ -29,7 +31,12 @@ export function TopBar({ onAbout, onRuns }: { onAbout: () => void; onRuns: () =>
       <div className="h-4 w-px bg-white/10" />
       <div className="hidden items-baseline gap-2 text-[12.5px] text-fg-muted md:flex">
         <span>Gravecrown Crypt</span>
-        {sigil !== undefined && <span className="font-mono text-[11px] text-fg-faint">sigil +{sigil}</span>}
+        {tierName && <span className="font-mono text-[11px] text-fg-faint">{tierName}</span>}
+        {affixes.length > 0 && (
+          <span className="text-[11px] text-fg-faint" title={affixes.map((a) => `${a.name}: ${a.description}`).join('\n\n')}>
+            {affixes.map((a) => a.name).join(' · ')}
+          </span>
+        )}
       </div>
 
       <div className="mx-auto flex items-center gap-2">

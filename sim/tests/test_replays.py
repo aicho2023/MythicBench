@@ -130,37 +130,54 @@ def test_reference_bots_rank_in_order():
     assert c["score_ci95"][0] > s["score_ci95"][1]
 
 
-def test_key_levels_scale_enemies_and_keep_plus_12_unchanged():
+def test_tiers_scale_enemies_and_add_affixes():
     from mythicsim import content as C
-    base = simulate("expert", 7)
-    assert digest(simulate("expert", 7, 12)) == digest(base)
-    hard = simulate("expert", 7, 16)
+    normal, plus10 = simulate("expert", 7, "normal"), simulate("expert", 7, "+10")
     boss = lambda rep: next(u for u in rep["units"] if u["kind"] == "boss")  # noqa: E731
-    assert boss(hard)["max_hp"] == round(boss(base)["max_hp"] * C.level_multiplier(16))
-    assert hard["meta"]["sigil_level"] == 16
-    assert C.level_multiplier(13) == 1.08 and C.level_multiplier(11) == 1 / 1.08
+    assert boss(normal)["max_hp"] == round(C.BOSS.max_hp * C.TIERS["normal"].enemy_hp)
+    assert boss(plus10)["max_hp"] == round(round(C.BOSS.max_hp * C.TIERS["plus10"].enemy_hp) * C.TYRANT_HP)
+    assert normal["meta"]["tier"] == "normal" and normal["meta"]["affixes"] == [] and normal["affixes"] == {}
+    assert plus10["meta"]["tier_name"] == "+10" and set(plus10["affixes"]) == set(C.TIERS["plus10"].affixes)
     with pytest.raises(ValueError):
-        C.level_multiplier(99)
+        C.tier("+30")
 
 
-def test_harder_keys_are_harder():
-    """Over a few seeds, the expert bot scores lower as the key level rises."""
+def test_plus10_affixes_fire_on_undead_deaths():
+    """Every undead death (not Mortisar) leaves a grave and stacks Marrow Shards."""
+    rep = simulate("expert", 3, "plus10", "dungeon")
+    ev = rep["events"]
+    undead_deaths = [e for e in ev if e["type"] == "death" and e["unit"] not in
+                     {u["id"] for u in rep["units"] if u["kind"] in ("player", "boss")}]
+    graves = [e for e in ev if e["type"] == "ground_spawn" and e["kind"] == "grave"]
+    assert undead_deaths and len(graves) == len(undead_deaths)
+    stacks = [e["stacks"] for e in ev if e["type"] == "aura_apply" and e["aura"] == "marrow_shards"]
+    assert max(stacks) >= 2  # a pack dying close together stacks it
+    assert any(e["type"] == "heal" and e["ability"] == "restless_grave" for e in ev) or \
+        any(e["type"] == "damage" and e["ability"] == "restless_grave" for e in ev)
+    raises = [e for e in ev if e["type"] == "cast_start" and e["ability"] == "raise_dead"]
+    assert len(raises) <= 3
+    normal = simulate("expert", 3, "normal", "dungeon")["events"]
+    assert not any(e["type"] == "ground_spawn" and e["kind"] == "grave" for e in normal)
+
+
+def test_harder_tier_is_harder():
+    """Over a few seeds, the expert bot scores lower on +10 than on Normal."""
     from mythicsim.metrics import score as sc
-    mean = lambda lvl: sum(sc(simulate("expert", s, lvl))["score"] for s in range(6)) / 6  # noqa: E731
-    assert mean(8) >= mean(14) > mean(18)
+    mean = lambda t: sum(sc(simulate("expert", s, t, "dungeon"))["score"] for s in range(6)) / 6  # noqa: E731
+    assert mean("normal") > mean("plus10")
 
 
 def test_dungeon_unit_ids_are_unique_across_the_run():
     """Trash and the boss's summoned adds must never share an id (a reused id
     would overwrite a dead trash unit and corrupt progress)."""
-    rep = simulate("sloppy", 42, 12, "dungeon")
+    rep = simulate("sloppy", 42, "plus10", "dungeon")
     ids = [u["id"] for u in rep["units"]] + [e["unit"]["id"] for e in rep["events"] if e["type"] == "spawn"]
     assert len(ids) == len(set(ids))
 
 
 @pytest.fixture(scope="module", params=["expert", "competent", "sloppy"])
 def dungeon_replay(request):
-    return simulate(request.param, SHOWCASE_SEED, 12, "dungeon")
+    return simulate(request.param, SHOWCASE_SEED, "plus10", "dungeon")
 
 
 def test_dungeon_matches_schema_and_is_consistent(dungeon_replay):
@@ -179,7 +196,7 @@ def test_dungeon_matches_schema_and_is_consistent(dungeon_replay):
 
 
 def test_dungeon_is_deterministic_and_pulls_in_order():
-    a, b = simulate("expert", 9, 12, "dungeon"), simulate("expert", 9, 12, "dungeon")
+    a, b = simulate("expert", 9, "plus10", "dungeon"), simulate("expert", 9, "plus10", "dungeon")
     assert digest(a) == digest(b)
     pulls = [e["pack"] for e in a["events"] if e["type"] == "pull"]
     assert pulls == ["pack1", "pack2", "boss"]
@@ -187,7 +204,7 @@ def test_dungeon_is_deterministic_and_pulls_in_order():
 
 
 def test_dungeon_bosses_sleep_until_pulled():
-    rep = simulate("expert", 9, 12, "dungeon")
+    rep = simulate("expert", 9, "plus10", "dungeon")
     pull = next(e["t"] for e in rep["events"] if e["type"] == "pull" and e["pack"] == "boss")
     first = next(e["t"] for e in rep["events"] if e.get("unit") == "mortisar" and e["type"] in ("cast_start", "cast_success"))
     assert first >= pull
@@ -207,6 +224,6 @@ def test_dungeon_revives_cost_time():
 
 
 def test_dungeon_reference_bots_rank_in_order():
-    e, c, s = (bench(p, 24, 12, "dungeon") for p in ("expert", "competent", "sloppy"))
+    e, c, s = (bench(p, 24, "plus10", "dungeon") for p in ("expert", "competent", "sloppy"))
     assert e["score_mean"] > c["score_mean"] > s["score_mean"]
     assert c["score_ci95"][0] > s["score_ci95"][1]

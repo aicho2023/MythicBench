@@ -196,7 +196,7 @@ def publish(runs_dir: Path = RUNS_DIR, out_dir: Path = LOCAL_REPLAYS, only: list
             s.update(estimate_cost(m, runs_dir / rid))
         runs.append({k: m.get(k) for k in ("run_id", "name", "tags", "mode", "label", "provider", "model", "effort",
                                            "created", "harness_version", "prompt_hash", "git_commit",
-                                           "knowledge", "memory", "max_pulls", "level", "status", "note")}
+                                           "knowledge", "memory", "max_pulls", "level", "tier", "status", "note")}
                     | {"summary": {k: s.get(k) for k in ("score_mean", "score_ci95", "win_rate", "reference_means",
                                                           "kill_rate", "pulls_to_kill_mean", "pulls_to_kill_ci95",
                                                           "learning_gain_mean", "learning_gain_ci95", "curve_mean",
@@ -232,6 +232,7 @@ def rescore(runs_dir: Path = RUNS_DIR) -> int:
     each run's items and summary. Returns the number of replays rescored."""
     import math
     import statistics as st
+    from . import content as C
     from .__main__ import simulate
     from .llm.progress import summarize_items
     from .metrics import score as score_fn
@@ -257,8 +258,10 @@ def rescore(runs_dir: Path = RUNS_DIR) -> int:
         elif items:
             vals = [i["score"] for i in items]
             h = 1.96 * st.stdev(vals) / math.sqrt(len(vals)) if len(vals) > 1 else None
-            level = m.get("level") or 12
-            refs = {p: [score_fn(simulate(p, i["seed"], level))["score"] for i in items] for p in ("expert", "competent", "sloppy")}
+            tier = m.get("tier") or C.DEFAULT_TIER
+            mode = m.get("dungeon_mode") or "boss"
+            refs = {p: [score_fn(simulate(p, i["seed"], tier, mode))["score"] for i in items]
+                    for p in ("expert", "competent", "sloppy")}
             summ.update(score_mean=round(st.mean(vals), 1),
                         score_ci95=[round(st.mean(vals) - h, 1), round(st.mean(vals) + h, 1)] if h is not None else None,
                         win_rate=round(sum(i["outcome"] == "victory" for i in items) / len(items), 3),

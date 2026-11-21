@@ -133,9 +133,14 @@ future comparison should have.
     first, rest to 80%, Wild Roar saved for the boss).
   - Score: `metrics.dungeon_score` (progress weights 15/15/70).
   - Boss-only fights are byte-identical except for the ability table.
-- **Key levels** (`content.level_multiplier`): +2…+30. Enemy health and damage
-  are ×1.08 per level from +12, built by repeated multiplication (no `pow()`)
-  for cross-platform determinism. +12 is byte-identical to the tuned fight.
+- **Tiers** (`content.TIERS`, `--tier normal|+10`). A tier sets enemy
+  health/damage multipliers and a list of affixes (`content.AFFIXES`):
+  - `Encounter.on_undead_death` drives Restless Graves (a `grave` ground
+    effect that heals undead and hurts players) and Marrowburst (a stacking
+    `marrow_shards` aura; `AuraDef.stacks`, `aura_apply.stacks`);
+  - `self.tyrant` drives Hollow Tyrant (a third add wave, four Desecrates).
+  - Replay meta carries `tier`, `tier_name` and `affixes`, and the top level
+    carries the affix tooltips.
 - **Cross-platform determinism.** CI regenerates replays on Linux and diffs
   them against ones made on a Mac. libm results (`hypot`, `cos`, `sin`…) can
   differ in the last bit between CPUs, so the sim uses only `+ - * /` and

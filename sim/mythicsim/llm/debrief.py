@@ -12,6 +12,9 @@ from __future__ import annotations
 from collections import defaultdict
 
 
+# Seconds of standing in a pool that each damage tick represents.
+POOL_TICK_S = {"desecrate": 0.5, "restless_grave": 1.0}
+
 def _name(replay: dict, ability: str) -> str:
     a = replay["abilities"].get(ability) or replay["auras"].get(ability)
     return a["name"] if a else ability.replace("_", " ")
@@ -33,7 +36,7 @@ def debrief_data(replay: dict) -> dict:
     deaths, casts, adds = [], [], {}
     interrupts_used = defaultdict(int)
     open_casts: dict[str, dict] = {}
-    pool_ticks = defaultdict(int)
+    pool_secs = defaultdict(float)
     enraged_at = None
     for e in ev:
         t = e["type"]
@@ -48,8 +51,8 @@ def debrief_data(replay: dict) -> dict:
                 amt = e["amount"] + e.get("absorbed", 0)
                 taken[e["target"]][e["ability"]] += amt
                 recent[e["target"]].append((e["t"], e["ability"], amt))
-                if e["ability"] == "desecrate":
-                    pool_ticks[e["target"]] += 1
+                if e["ability"] in POOL_TICK_S:
+                    pool_secs[e["target"]] += POOL_TICK_S[e["ability"]]
                 if e["source"] in adds:
                     adds[e["source"]]["dealt"] += amt
                     adds[e["source"]]["targets"].add(e["target"])
@@ -93,7 +96,7 @@ def debrief_data(replay: dict) -> dict:
         "outcome": meta["outcome"], "duration_ms": meta["duration_ms"],
         "boss_hp_pct_left": round(100 * boss_hp / boss["max_hp"], 1),
         "deaths": deaths, "taken": {p: dict(v) for p, v in taken.items()}, "casts": casts,
-        "adds": adds, "pool_seconds": {p: n * 0.5 for p, n in pool_ticks.items()},
+        "adds": adds, "pool_seconds": dict(pool_secs),
         "interrupts_used": dict(interrupts_used), "interrupts_landed": dict(kicks_landed),
         "enraged_at": enraged_at, "names": {k: u["name"] for k, u in units.items()},
     }
