@@ -49,14 +49,18 @@ The owner's three goals for the project:
 ### Results (content 0.2.0, showcase seed 42)
 | Run | Outcome | Score | Interrupts | Deaths |
 |---|---|---|---|---|
-| Expert bots | Kill in 2:47 | 127.8 | 11/11 | 0 |
-| Competent bots | Wipe to enrage at 3:19 (boss 3.8%) | 96.2 | 10/13 | 5 |
-| Sloppy bots | Wipe at 1:22 (boss 62%) | 38.3 | 3/5 | 5 |
+| Expert bots | Kill in 2:47 | 87.1 | 11/11 | 0 |
+| Competent bots | Wipe to enrage at 3:19 (boss 3.8%) | 67.3 | 10/13 | 5 |
+| Sloppy bots | Wipe at 1:22 (boss 62%) | 26.8 | 3/5 | 5 |
 
-Over 200 seeds (score, 95% CI): expert 128.4 (127.3–129.5), competent 104.8
-(101.6–108.0), sloppy 21.3 (20.5–22.1). Win rates 99.5% / 68.5% / 0%.
-~0.45 s per headless fight. Score = % boss HP removed, or 100 + seconds left on
-a kill (see `metrics.run_score`).
+Over 200 seeds at +12 (score 0–100, 95% CI): expert 87.5 (86.8–88.2),
+competent 72.3 (70.2–74.5), sloppy 14.9 (14.3–15.4). Win rates 99.5% / 68.5% /
+0%. ~0.45 s per headless fight.
+
+Score (`metrics.run_score`, v2): wipe = 70 × share of boss removed; kill = 70 +
+30 × speed (full speed with ≥25% of the timer left). Key levels `--level`
++2…+30 scale enemy health and damage ×1.08 per level from +12. Expert bots
+start losing around +14; sloppy bots around +4.
 
 ### Pending from the owner
 - They said they **have questions before continuing** — ask for them first.

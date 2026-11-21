@@ -71,7 +71,8 @@ def notes_section(notes: str | None, pull: int | None) -> str:
             f"You wrote these after earlier attempts at this boss. Use them.\n{notes.strip()}")
 
 
-def system_prompt(knowledge: str = "full", notes: str | None = None, pull: int | None = None) -> str:
+def system_prompt(knowledge: str = "full", notes: str | None = None, pull: int | None = None,
+                  level: int = C.SIGIL_LEVEL) -> str:
     """The rules. ``knowledge="blind"`` hides everything about the boss.
 
     The "full" text with no notes is byte-identical to earlier harness
@@ -91,14 +92,15 @@ def system_prompt(knowledge: str = "full", notes: str | None = None, pull: int |
     limit = f"{b.enrage_ms / 1000:g}"
     if knowledge == "blind":
         intro = f"The fight has a {limit} s time limit."
-        scoring = f"Kill: 100 + seconds left on the {limit} s timer."
     else:
         intro = f"The boss enrages at {limit}s and then kills everyone within seconds."
-        scoring = "Kill: 100 + seconds left before the enrage."
+    mult = C.level_multiplier(level)
+    key = (f"This is a +{level} key: enemy health and damage are x{mult:.2f} compared with +{C.SIGIL_LEVEL}"
+           + (" (the numbers below are for +12)." if knowledge == "full" else ".")) if level != C.SIGIL_LEVEL else ""
     return f"""You control a party of five adventurers fighting a dungeon boss in a turn-based simulation of a real-time fight. Your goal: kill the boss as fast as possible without dying. {intro}
 
-## Score
-Wipe: % of boss health removed. {scoring} Faster kills score higher.
+## Score (0-100)
+A wipe earns up to 70 points in proportion to the boss's health removed. A kill earns 70 plus up to 30 for speed: the full 30 for killing with a quarter of the {limit} s timer (or more) left.{(" " + key) if key else ""}
 
 ## Arena
 Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) in metres. Mortisar stands still at ({C.BOSS_POS[0]:g}, {C.BOSS_POS[1]:g}) with a body radius of {b.radius:g} m. Characters move at 5 m/s. Moving cancels a cast in progress, and spells with a cast time cannot be started while moving. Melee range is {C.MELEE_RANGE:g} m from the target's edge. Global cooldown (GCD): {C.GCD_MS / 1000:g}s after most abilities.
@@ -159,7 +161,7 @@ def _auras(a: dict) -> str:
     return (", auras: " + ", ".join(f"{k} {v / 1000:.0f}s" for k, v in a.items())) if a else ""
 
 
-def render_state(obs: dict, gcd: dict[str, int], orders_age_s: float | None, knowledge: str = "full") -> str:
+def render_state(obs: dict, gcd: dict[str, int], orders_age_s: float | None, knowledge: str = "full") -> str:  # noqa: E501
     """Compact text snapshot of the fight, from one observation.
 
     Blind mode shows only what's on screen: no boss-ability timers."""

@@ -140,8 +140,12 @@ class Policy(Protocol):
 # ---------------------------------------------------------------------------
 
 class Encounter:
-    def __init__(self, seed: int, policies: dict[str, Policy], policy_label: str):
+    def __init__(self, seed: int, policies: dict[str, Policy], policy_label: str,
+                 level: int = C.SIGIL_LEVEL):
         self.seed = seed
+        self.level = level
+        # Enemy health and damage scale with the key level (1.0 at the tuned +12).
+        self.level_mult = C.level_multiplier(level)
         self.rng = random.Random(seed)
         self.policies = policies
         self.policy_label = policy_label
@@ -171,7 +175,7 @@ class Encounter:
             self.units[m.id] = Unit(m.id, m.name, "player", cd.id, cd.role, cd.max_hp,
                                     cd.radius, cd.speed, cd.model, m.home, target=C.BOSS.id)
         b = C.BOSS
-        self.units[b.id] = Unit(b.id, b.name, "boss", "boss", "boss", b.max_hp, b.radius, 0.0,
+        self.units[b.id] = Unit(b.id, b.name, "boss", "boss", "boss", self.scaled_hp(b.max_hp), b.radius, 0.0,
                                 b.model, C.BOSS_POS, target=C.PARTY[0].id)
         self.boss = self.units[b.id]
 
@@ -179,6 +183,9 @@ class Encounter:
         """``base`` +/- ``spread`` ms from this ability's stream, snapped to a tick."""
         ms = base + self.timer_rng[key].uniform(-spread, spread)
         return max(TICK_MS, int(round(ms / TICK_MS)) * TICK_MS)
+
+    def scaled_hp(self, base: int) -> int:
+        return base if self.level == C.SIGIL_LEVEL else int(round(base * self.level_mult))
 
     # ----- event helpers ---------------------------------------------------
     def emit(self, type_: str, **data) -> None:
@@ -238,6 +245,8 @@ class Encounter:
         crit = crit_ok and src.kind == "player" and self.rng.random() < 0.15
         if crit:
             amt *= 2
+        if src.kind != "player" and self.level != C.SIGIL_LEVEL:
+            amt *= self.level_mult
         if "hollow_fury" in src.auras:
             amt *= 4
         if "ironhide" in tgt.auras:
@@ -397,7 +406,7 @@ class Encounter:
                 aid = f"bonewalker_{self.add_count}"
                 a = C.ADD
                 healer = next((p for p in self.players() if p.role == "healer"), None)
-                add = Unit(aid, a.name, "add", "bonewalker", "add", a.max_hp, a.radius, a.speed,
+                add = Unit(aid, a.name, "add", "bonewalker", "add", self.scaled_hp(a.max_hp), a.radius, a.speed,
                            a.model, door, target=(healer or self.players()[0]).id)
                 add.swing_at = self.t + 1500
                 self.units[aid] = add
@@ -672,7 +681,7 @@ class Encounter:
                 "tick_ms": TICK_MS,
                 "duration_ms": self.t,
                 "outcome": self.outcome,
-                "sigil_level": C.SIGIL_LEVEL,
+                "sigil_level": self.level,
                 "time_limit_ms": C.TIME_LIMIT_MS,
             },
             "arena": {"radius": C.ARENA_RADIUS, "doors": [list(d) for d in C.CRYPT_DOORS]},

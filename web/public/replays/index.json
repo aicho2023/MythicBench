@@ -8,7 +8,7 @@
     "file": "expert-kill.json",
     "outcome": "victory",
     "duration_s": 167.2,
-    "score": 127.8
+    "score": 87.1
   },
   {
     "id": "competent-enrage",
@@ -19,7 +19,7 @@
     "file": "competent-enrage.json",
     "outcome": "wipe",
     "duration_s": 199.0,
-    "score": 96.2
+    "score": 67.3
   },
   {
     "id": "sloppy-wipe",
@@ -30,6 +30,6 @@
     "file": "sloppy-wipe.json",
     "outcome": "wipe",
     "duration_s": 82.3,
-    "score": 38.3
+    "score": 26.8
   }
 ]

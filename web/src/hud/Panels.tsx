@@ -35,7 +35,7 @@ export function Scorecard() {
         </div>
       </div>
       <div className="mt-2.5 flex items-baseline justify-between border-t border-line px-3.5 pb-1 pt-2"
-        title="Score = % of boss health removed. A kill scores 100 plus one point per second left on the timer.">
+        title="Score 0-100. A wipe earns up to 70 for boss health removed; a kill earns 70 plus up to 30 for speed (full 30 with a quarter of the timer left).">
         <span className="text-[12px] text-fg-muted">Score{!s.ended && <span className="text-fg-faint"> · so far</span>}</span>
         <span className="num font-mono text-[18px] font-medium text-fg">{score.toFixed(1)}</span>
       </div>

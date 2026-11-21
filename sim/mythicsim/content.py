@@ -297,5 +297,21 @@ class AddDef:
 ADD = AddDef()
 CRYPT_DOORS: tuple[tuple[float, float], ...] = ((-12.5, -4.0), (12.5, -4.0), (-9.0, 10.0))
 
+# Key levels (Mythic+ style). +12 is the level the fight is tuned at; each level
+# up or down multiplies enemy health and enemy damage by LEVEL_STEP.
 SIGIL_LEVEL = 12
+LEVEL_STEP = 1.08
+MIN_LEVEL, MAX_LEVEL = 2, 30
+
+
+def level_multiplier(level: int) -> float:
+    """LEVEL_STEP ** (level - 12), built from plain multiplication/division
+    (exactly rounded everywhere) rather than pow(), whose last bit can differ
+    between CPU platforms."""
+    if not MIN_LEVEL <= level <= MAX_LEVEL:
+        raise ValueError(f"sigil level must be between {MIN_LEVEL} and {MAX_LEVEL}")
+    m = 1.0
+    for _ in range(abs(level - SIGIL_LEVEL)):
+        m = m * LEVEL_STEP if level > SIGIL_LEVEL else m / LEVEL_STEP
+    return m
 TIME_LIMIT_MS = BOSS.enrage_ms

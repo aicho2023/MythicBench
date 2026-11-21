@@ -20,7 +20,7 @@ export function LearningPanel({ onShowMeter }: { onShowMeter: () => void }) {
 
   const before = new Set(prog.notes_before.split('\n').map((l) => l.trim()).filter(Boolean))
   const after = prog.notes_after.split('\n').filter((l) => l.trim())
-  const maxScore = Math.max(130, ...pulls.map((p) => p.score))
+  const maxScore = 100
   const W = 240, H = 56, pad = 6
   const x = (k: number) => pad + (pulls.length <= 1 ? 0 : (k / (pulls.length - 1)) * (W - 2 * pad))
   const y = (s: number) => H - pad - (s / maxScore) * (H - 2 * pad)
@@ -28,7 +28,7 @@ export function LearningPanel({ onShowMeter }: { onShowMeter: () => void }) {
   return (
     <div className="card w-[272px] pb-2.5">
       <div className="flex items-center justify-between px-3.5 pb-1 pt-2">
-        <span className="label">Learning · ep {prog.episode} · pull {prog.pull}{run?.max_pulls ? ` / ${run.max_pulls}` : ''}</span>
+        <span className="label">Learning · ep {prog.episode} · pull {prog.pull}{run?.max_pulls ? ` / ${run.max_pulls}` : ''} · +{engine?.replay.meta.sigil_level}</span>
         <button onClick={onShowMeter} className="font-mono text-[10px] text-fg-faint hover:text-fg">meter</button>
       </div>
       <div className="px-3.5 font-mono text-[10px] text-fg-faint">
@@ -37,7 +37,8 @@ export function LearningPanel({ onShowMeter }: { onShowMeter: () => void }) {
 
       {pulls.length > 0 && (
         <svg width={W} height={H} className="mx-3.5 mt-1.5 block" role="img" aria-label="Score per pull">
-          <line x1={pad} x2={W - pad} y1={y(100)} y2={y(100)} stroke="rgba(74,222,128,0.25)" strokeDasharray="3 3" />
+          {/* 70 = the line between a wipe and a kill */}
+          <line x1={pad} x2={W - pad} y1={y(70)} y2={y(70)} stroke="rgba(74,222,128,0.25)" strokeDasharray="3 3" />
           <polyline fill="none" stroke="rgba(237,237,239,0.5)" strokeWidth={1.5}
             points={pulls.map((p, k) => `${x(k)},${y(p.score)}`).join(' ')} />
           {pulls.map((p, k) => {

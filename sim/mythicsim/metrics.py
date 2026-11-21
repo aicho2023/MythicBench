@@ -44,6 +44,7 @@ def score(replay: dict) -> dict:
     boss_left = round(100 * boss_hp / boss["max_hp"], 1)
     return {
         "score": run_score(meta["outcome"], secs, boss_left, meta["time_limit_ms"] / 1000),
+        "score_version": SCORE_VERSION,
         "outcome": meta["outcome"],
         "duration_s": round(secs, 1),
         "in_time": meta["outcome"] == "victory" and meta["duration_ms"] <= meta["time_limit_ms"],
@@ -57,16 +58,24 @@ def score(replay: dict) -> dict:
     }
 
 
+SCORE_VERSION = 2
+WIPE_MAX = 70.0  # a wipe earns up to this for boss health removed
+KILL_BASE = 70.0  # every kill starts here, so any kill beats any wipe
+PAR_TIME_LEFT = 0.25  # full speed points for killing with this share of the timer left
+
+
 def run_score(outcome: str, duration_s: float, boss_hp_pct_left: float, time_limit_s: float) -> float:
-    """The headline number for one run.
+    """The headline number for one pull, on a 0-100 scale.
 
-    * Wipe: the % of the boss's health the party removed (0-100).
-    * Kill: 100 plus one point per second left on the timer.
+    * Wipe: up to 70, in proportion to the boss's health removed.
+    * Kill: 70, plus up to 30 for speed: the full 30 for killing with a quarter
+      (or more) of the timer left, scaled down linearly to 0 at the buzzer.
 
-    Win/loss alone is too blunt to rank agents: two teams that both win (or
-    both wipe) would tie. This score keeps rewarding faster kills at the top
-    and deeper progress at the bottom, so it separates every skill level.
+    70 is the line between a wipe and a kill. Win/loss alone would tie every
+    team that wins (or wipes); this keeps separating them at both ends.
     """
     if outcome == "victory":
-        return round(100 + max(0.0, time_limit_s - duration_s), 1)
-    return round(100 - boss_hp_pct_left, 1)
+        left = max(0.0, time_limit_s - duration_s)
+        speed = min(1.0, left / (PAR_TIME_LEFT * time_limit_s))
+        return round(KILL_BASE + (100.0 - KILL_BASE) * speed, 1)
+    return round(WIPE_MAX * (100.0 - boss_hp_pct_left) / 100.0, 1)

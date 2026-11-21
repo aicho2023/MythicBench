@@ -29,14 +29,38 @@ Link straight to a moment: `http://localhost:5173/?replay=sloppy-wipe&t=95&pause
 
 ## How a run is scored
 
-Each run gets one number:
+Each pull gets one number from **0 to 100**:
 
-- **Wipe:** the % of the boss's health the party removed (0–100).
-- **Kill:** 100, plus one point per second left on the 3:15 timer.
+- **Wipe:** up to **70**, in proportion to the boss health removed.
+- **Kill:** **70 plus up to 30 for speed.** The full 30 goes to a kill with a
+  quarter of the 3:15 timer (or more) left.
 
-Win/loss alone would tie every team that wins, and every team that wipes. The
-score keeps separating them: faster kills at the top, deeper progress at the
-bottom. Interrupts, deaths, and avoidable damage explain where points went.
+70 is the line between a wipe and a kill. Win/loss alone would tie every team
+that wins, and every team that wipes. The score keeps separating them: faster
+kills at the top, deeper progress at the bottom. Interrupts, deaths, and
+avoidable damage explain where points went. A learning episode's
+**progression score** (also 0–100) is its average pull score, with a kill
+carrying forward, so learning faster scores higher.
+
+### Difficulty: key levels
+
+Like Mythic+, the fight comes in key levels from **+2 to +30**:
+
+- +12 is the tuned default.
+- Each level up or down multiplies enemy health and damage by 1.08.
+- Set it with `--level` on `run`, `bench`, `llm`, and `progress`, as a number
+  or as `normal` / `heroic` / `mythic` (= +4 / +8 / +12).
+
+Each bot has a natural ceiling, like a player's highest timed key (100 seeds
+each):
+
+| Level | Expert wins | Competent wins | Sloppy wins |
+| --- | --- | --- | --- |
+| +4 | 100% | 100% | 56% |
+| +8 | 100% | 99% | 1% |
+| +12 | 100% | 65% | 0% |
+| +14 | 47% | 1% | 0% |
+| +16 | 0% (81% of the boss down) | 0% | 0% |
 
 ## Same fight, three teams
 
@@ -46,22 +70,22 @@ decision-maker differs.
 
 | Run | Outcome | Score | Interrupts | Deaths |
 | --- | --- | --- | --- | --- |
-| Expert bots | **Kill** in 2:47 | 127.8 | 11 / 11 | 0 |
-| Competent bots | **Wipe** to the enrage at 3:19, boss at 3.8% | 96.2 | 10 / 13 | 5 |
-| Sloppy bots | **Wipe** at 1:22 (boss at 62%) | 38.3 | 3 / 5 | 5 |
+| Expert bots | **Kill** in 2:47 | 87.1 | 11 / 11 | 0 |
+| Competent bots | **Wipe** to the enrage at 3:19, boss at 3.8% | 67.3 | 10 / 13 | 5 |
+| Sloppy bots | **Wipe** at 1:22 (boss at 62%) | 26.8 | 3 / 5 | 5 |
 
 Across 200 seeds (`python -m mythicsim bench --policy expert,competent,sloppy --runs 200`):
 
 | Bot | Score (95% CI) | Win rate (95% CI) | Interrupt rate |
 | --- | --- | --- | --- |
-| Expert | **128.4** (127.3–129.5) | 99.5% (97–100%) | 99.7% |
-| Competent | **104.8** (101.6–108.0) | 68.5% (62–75%) | 85.9% |
-| Sloppy | **21.3** (20.5–22.1) | 0% (0–2%) | 47.8% |
+| Expert | **87.5** (86.8–88.2) | 99.5% (97–100%) | 99.7% |
+| Competent | **72.3** (70.2–74.5) | 68.5% (62–75%) | 85.9% |
+| Sloppy | **14.9** (14.3–15.4) | 0% (0–2%) | 47.8% |
 
 Three known skill levels, ranked in the right order with no overlap. That's the
 check that the benchmark can tell good play from bad before any model plays it.
-Expert bots almost always win, so at the top the score separates agents by kill
-time (an expert kill leaves ~29 s on the clock).
+At +12 the expert bots almost always win, so the score separates agents at the
+top by kill time. Higher key levels make the top end harder.
 
 ![The sloppy party's wipe](docs/media/wipe.jpg)
 
