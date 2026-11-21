@@ -2,10 +2,13 @@
 // subscribe to just the slice they need, so the HUD doesn't re-render the 3D scene).
 import { create } from 'zustand'
 import { ReplayEngine } from './engine'
-import type { Catalog, CatalogRun, Replay, ReplayIndexEntry } from './types'
+import type { Catalog, CatalogItem, CatalogRun, Replay, ReplayIndexEntry } from './types'
 
 /** Index id for one seed of a model run. */
-export const runItemId = (runId: string, seed: number) => `${runId}/seed-${seed}`
+
+/** Index id for one item (seed, or episode+pull) of a model run. */
+export const runItemId = (runId: string, it: Pick<CatalogItem, 'seed' | 'episode' | 'pull'>) =>
+  it.pull !== undefined ? `${runId}/e${it.episode}-p${it.pull}` : `${runId}/seed-${it.seed}`
 
 interface Playback {
   index: ReplayIndexEntry[]
@@ -30,8 +33,9 @@ const base = import.meta.env.BASE_URL
 function runEntries(run: CatalogRun): ReplayIndexEntry[] {
   const who = run.name || run.label.split(':').slice(1).join(':')
   return run.items.map((it) => ({
-    id: runItemId(run.run_id, it.seed), policy: `llm:${run.label}`, seed: it.seed,
-    label: `${who} · seed ${it.seed}`, blurb: `${run.label} · run ${run.run_id}`,
+    id: runItemId(run.run_id, it), policy: `llm:${run.label}`, seed: it.seed,
+    label: it.pull !== undefined ? `${who} · ep ${it.episode} pull ${it.pull}` : `${who} · seed ${it.seed}`,
+    blurb: `${run.label} · run ${run.run_id}`,
     file: `local/${it.file}`, outcome: it.outcome, duration_s: it.duration_s, score: it.score,
     local: true, runId: run.run_id,
   }))
@@ -70,8 +74,11 @@ export const usePlayback = create<Playback>((set, get) => ({
       const runQ = q.get('run')
       if (runQ && catalog) {
         const run = catalog.runs.find((r) => r.run_id === runQ) ?? catalog.runs.find((r) => r.run_id.includes(runQ))
-        const seed = q.get('seed') !== null ? Number(q.get('seed')) : run?.items[0]?.seed
-        if (run && seed !== undefined) want = runItemId(run.run_id, seed)
+        const num = (k: string) => (q.get(k) !== null ? Number(q.get(k)) : undefined)
+        const item = run?.items.find((it) => it.pull !== undefined
+          ? (num('episode') ?? it.episode) === it.episode && (num('pull') ?? it.pull) === it.pull
+          : (num('seed') ?? it.seed) === it.seed)
+        if (run && item) want = runItemId(run.run_id, item)
       }
       await get().load(index.find((r) => r.id === want)?.id ?? index[0].id)
     } catch (err) {
@@ -95,11 +102,13 @@ export const usePlayback = create<Playback>((set, get) => ({
     if (!first) {
       // Keep the address bar shareable: it always names the replay on screen.
       const url = new URL(location.href)
-      for (const k of ['t', 'paused', 'run', 'seed']) url.searchParams.delete(k)
+      for (const k of ['t', 'paused', 'run', 'seed', 'episode', 'pull']) url.searchParams.delete(k)
       if (entry.runId) {
         url.searchParams.delete('replay')
         url.searchParams.set('run', entry.runId)
-        url.searchParams.set('seed', String(entry.seed))
+        const m = /\/e(\d+)-p(\d+)$/.exec(id)
+        if (m) { url.searchParams.set('episode', m[1]); url.searchParams.set('pull', m[2]) }
+        else url.searchParams.set('seed', String(entry.seed))
       } else url.searchParams.set('replay', id)
       history.replaceState(null, '', url)
     }

@@ -271,6 +271,32 @@ Grokka → Nyx → Bao → Bramble. Full WoW-analogy table in `README.md`.
   tokens per call, ~8 s per call, ~19 min per fight). gpt-5.4-mini makes
   ~100–130 calls per fight at ~2.7k input / ~0.3k output tokens each.
 
+## 9c. Learning over pulls (PR C)
+
+- `sim/mythicsim/llm/progress.py`: `run_episode` plays a pull, then `debrief.py`
+  (a factual report built only from the event log), then a reflection call
+  (`REFLECT_SYSTEM`, which returns `{"notes": …}`, capped at ~350 words).
+  The notes go into the next pull's system prompt (`prompt.notes_section`).
+  Pull seeds come from `pull_seed(episode, pull)` = 10000 + 100·episode + pull.
+  An episode stops at the first kill.
+- `knowledge="blind"` (`prompt._boss_section`, `render_state`) drops all boss
+  tooltips, pool details, add thresholds, the enrage warning, and the
+  next-ability timers. The "full" text is byte-identical to before, so its
+  prompt hash is unchanged.
+- `--memory off` is the control (no notes and no reflection calls; every pull
+  sees the pull-1 rules).
+- Metrics (`summarize`):
+  - kill rate and pulls-to-kill (max+1 if never killed);
+  - learning gain = mean of the last 2 pulls minus mean of the first 2;
+  - AUC = mean score across pulls;
+  - curve_mean per pull.
+  - After a kill, the kill score carries forward.
+- Replays carry `meta.progress`: notes_before, notes_after, and the debrief.
+  Files go to `runs/<id>/episodes/E/pull-K.json`.
+- Viewer: `web/src/hud/LearningPanel.tsx` (shown in place of the meter for
+  progression replays) and episode strips in `RunBrowser.tsx`. Deep link:
+  `?run=<id>&episode=E&pull=K`.
+
 ## 10. Suggested next steps
 
 1. Get the owner's questions answered; merge PR #3 if approved.

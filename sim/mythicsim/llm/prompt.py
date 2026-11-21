@@ -42,8 +42,43 @@ def _ability_line(aid: str) -> str:
     return f"    - {aid} ({a.name}): {', '.join(bits)}. {a.description}"
 
 
-def system_prompt() -> str:
+KNOWLEDGE = ("full", "blind")
+
+
+def _boss_section(knowledge: str) -> str:
+    b = C.BOSS
+    if knowledge == "blind":
+        # A first-time raider: no guide, no boss tooltips, no timers. Everything
+        # about the boss has to be learned from what happens on screen.
+        return f"""## Mortisar, the Hollow King ({b.max_hp:,} HP)
+  - You have never fought him. His abilities, their timing, and what they do are unknown: learn them from what you see (his casts by name with a cast bar, the damage your party takes, anything that appears on the ground, any new enemies).
+  - Mortisar attacks whoever he is targeting (normally the tank)."""
+    boss = [_ability_line(a).replace("    - ", "  - ") for a in
+            ("hollow_strike", "soul_rend", "requiem_of_bones", "desecrate", "raise_dead", "hollow_fury")]
+    return f"""## Mortisar, the Hollow King ({b.max_hp:,} HP)
+{chr(10).join(boss)}
+  - Desecrate pools have radius {b.desecrate_radius:g} m, become dangerous {b.desecrate_arm_ms / 1000:g}s after appearing, hit for {C.ABILITIES['desecrate'].amount} every {b.desecrate_tick_ms / 1000:g}s while you stand in them, and last {b.desecrate_duration_ms / 1000:g}s.
+  - Summon the Restless is cast at {', '.join(f'{int(x * 100)}%' for x in b.raise_dead_at)} boss health. Risen Bonewalkers ({C.ADD.max_hp} HP) run at the healer.
+  - Mortisar attacks whoever he is targeting (normally the tank).
+  - Boss timers vary from fight to fight; the state shows when each is next due."""
+
+
+def notes_section(notes: str | None, pull: int | None) -> str:
+    """Appended to the rules on later pulls when the agent keeps notes."""
+    if not notes:
+        return ""
+    return (f"\n\n## Your notes from previous pulls (this is pull {pull})\n"
+            f"You wrote these after earlier attempts at this boss. Use them.\n{notes.strip()}")
+
+
+def system_prompt(knowledge: str = "full", notes: str | None = None, pull: int | None = None) -> str:
+    """The rules. ``knowledge="blind"`` hides everything about the boss.
+
+    The "full" text with no notes is byte-identical to earlier harness
+    versions, so its prompt hash and recorded replies stay valid."""
     from .policy import REACTION_MS  # local import: policy imports this module
+    if knowledge not in KNOWLEDGE:
+        raise ValueError(f"knowledge must be one of {KNOWLEDGE}")
     party = []
     for m in C.PARTY:
         cd = C.CLASSES[m.cls]
@@ -51,14 +86,19 @@ def system_prompt() -> str:
                      f"usual spot ({m.home[0]:g}, {m.home[1]:g})"
                      + (f", melee auto-attacks" if cd.auto_attack else "") + ":")
         party.extend(_ability_line(a) for a in cd.abilities)
-    boss = [_ability_line(a).replace("    - ", "  - ") for a in
-            ("hollow_strike", "soul_rend", "requiem_of_bones", "desecrate", "raise_dead", "hollow_fury")]
     b = C.BOSS
     reaction = f"{REACTION_MS / 1000:g}"
-    return f"""You control a party of five adventurers fighting a dungeon boss in a turn-based simulation of a real-time fight. Your goal: kill the boss as fast as possible without dying. The boss enrages at {b.enrage_ms / 1000:g}s and then kills everyone within seconds.
+    limit = f"{b.enrage_ms / 1000:g}"
+    if knowledge == "blind":
+        intro = f"The fight has a {limit} s time limit."
+        scoring = f"Kill: 100 + seconds left on the {limit} s timer."
+    else:
+        intro = f"The boss enrages at {limit}s and then kills everyone within seconds."
+        scoring = "Kill: 100 + seconds left before the enrage."
+    return f"""You control a party of five adventurers fighting a dungeon boss in a turn-based simulation of a real-time fight. Your goal: kill the boss as fast as possible without dying. {intro}
 
 ## Score
-Wipe: % of boss health removed. Kill: 100 + seconds left before the enrage. Faster kills score higher.
+Wipe: % of boss health removed. {scoring} Faster kills score higher.
 
 ## Arena
 Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) in metres. Mortisar stands still at ({C.BOSS_POS[0]:g}, {C.BOSS_POS[1]:g}) with a body radius of {b.radius:g} m. Characters move at 5 m/s. Moving cancels a cast in progress, and spells with a cast time cannot be started while moving. Melee range is {C.MELEE_RANGE:g} m from the target's edge. Global cooldown (GCD): {C.GCD_MS / 1000:g}s after most abilities.
@@ -66,12 +106,7 @@ Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) i
 ## Your party
 {chr(10).join(party)}
 
-## Mortisar, the Hollow King ({b.max_hp:,} HP)
-{chr(10).join(boss)}
-  - Desecrate pools have radius {b.desecrate_radius:g} m, become dangerous {b.desecrate_arm_ms / 1000:g}s after appearing, hit for {C.ABILITIES['desecrate'].amount} every {b.desecrate_tick_ms / 1000:g}s while you stand in them, and last {b.desecrate_duration_ms / 1000:g}s.
-  - Summon the Restless is cast at {', '.join(f'{int(x * 100)}%' for x in b.raise_dead_at)} boss health. Risen Bonewalkers ({C.ADD.max_hp} HP) run at the healer.
-  - Mortisar attacks whoever he is targeting (normally the tank).
-  - Boss timers vary from fight to fight; the state shows when each is next due.
+{_boss_section(knowledge)}
 
 ## How you play
 You are asked for orders every couple of seconds, and immediately when something important happens (a boss cast starts, pools appear, adds spawn, an ally gets low). The game is paused while you think. Each character keeps following its latest orders until you give it new ones:
@@ -82,7 +117,7 @@ Targets are unit ids from the state (e.g. "mortisar", "bonewalker_1", "lumi"). F
 Characters you leave out keep their previous orders.
 
 Reply with ONLY a JSON object, no prose:
-{{"orders": {{"bramble": {{"move_to": null, "priority": [["bulwark_slam", "mortisar"], ["rampart_strike", "mortisar"]], "say": "Tanking the boss."}}, "...": {{}}}}}}"""
+{{"orders": {{"bramble": {{"move_to": null, "priority": [["bulwark_slam", "mortisar"], ["rampart_strike", "mortisar"]], "say": "Tanking the boss."}}, "...": {{}}}}}}""" + notes_section(notes, pull)
 
 
 # ---------------------------------------------------------------------------
@@ -124,15 +159,20 @@ def _auras(a: dict) -> str:
     return (", auras: " + ", ".join(f"{k} {v / 1000:.0f}s" for k, v in a.items())) if a else ""
 
 
-def render_state(obs: dict, gcd: dict[str, int], orders_age_s: float | None) -> str:
-    """Compact text snapshot of the fight, from one observation."""
-    lines = [f"Time {obs['t'] / 1000:.1f}s (enrage at {C.BOSS.enrage_ms / 1000:g}s)."]
+def render_state(obs: dict, gcd: dict[str, int], orders_age_s: float | None, knowledge: str = "full") -> str:
+    """Compact text snapshot of the fight, from one observation.
+
+    Blind mode shows only what's on screen: no boss-ability timers."""
+    blind = knowledge == "blind"
+    limit = f"{C.BOSS.enrage_ms / 1000:g}s"
+    lines = [f"Time {obs['t'] / 1000:.1f}s ({'time limit' if blind else 'enrage at'} {limit})."]
     boss = next((e for e in obs["enemies"] if e["role"] == "boss"), None)
     if boss:
         lines.append(f"BOSS mortisar {boss['hp_pct']:.1f}% HP, attacking {boss['target']}"
                      f"{_cast(boss['casting'])}{_auras(boss['auras'])}.")
-        nxt = ", ".join(f"{k} in {v / 1000:.1f}s" for k, v in sorted(obs["boss_next_ms"].items(), key=lambda kv: kv[1]))
-        lines.append(f"  Next boss abilities: {nxt}.")
+        if not blind:
+            nxt = ", ".join(f"{k} in {v / 1000:.1f}s" for k, v in sorted(obs["boss_next_ms"].items(), key=lambda kv: kv[1]))
+            lines.append(f"  Next boss abilities: {nxt}.")
     adds = [e for e in obs["enemies"] if e["role"] == "add" and e["alive"]]
     lines.append("ADDS: " + ("; ".join(f"{a['id']} {a['hp_pct']:.0f}% HP at {_p(a['pos'])} attacking {a['target']}"
                                        for a in adds) if adds else "none") + ".")

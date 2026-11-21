@@ -163,6 +163,65 @@ def run_llm(args) -> None:
     print("watch it: cd web && npm run dev, then open Runs in the top bar")
 
 
+def run_progress(args) -> None:
+    """Learning over pulls: episodes of repeated attempts with notes between pulls."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from .llm.progress import run_episode, summarize
+    episodes = parse_seeds(args.episodes)
+    memory = args.memory == "on"
+    client = make_client(args.model, args.effort)
+    label = client.spec
+    safe = label.replace(":", "_").replace("/", "_").replace("@", "_")
+    if not args.no_cache:
+        client = CachedClient(client, runs_mod.RUNS_DIR / "cache" / f"{safe}.jsonl", offline=args.offline)
+    run = runs_mod.new_run(label, mode="progression", name=args.name, tags=args.tag, config={
+        "episodes": episodes, "max_pulls": args.max_pulls, "memory": memory, "knowledge": args.knowledge,
+        "interval_ms": args.interval_ms, "max_calls": args.max_calls,
+        "harness_version": HARNESS_VERSION, "prompt_hash": prompt_hash(args.knowledge),
+        "sim_version": SIM_VERSION, "content_version": C.CONTENT_VERSION,
+        "offline": args.offline, "cache": not args.no_cache,
+    })
+    print(f"run {run.run_id}  ({args.knowledge} knowledge, memory {args.memory}, up to {args.max_pulls} pulls)", flush=True)
+
+    def on_pull(ep, pr):
+        d = run.dir / "episodes" / str(ep.episode)
+        d.mkdir(parents=True, exist_ok=True)
+        pr.replay["meta"]["run"] = {k: run.manifest.get(k) for k in
+                                    ("run_id", "name", "label", "model", "effort", "harness_version", "prompt_hash")}
+        (d / f"pull-{pr.pull}.json").write_text(json.dumps(pr.replay, separators=(",", ":")))
+        (d / f"pull-{pr.pull}.stats.json").write_text(json.dumps(pr.stats, indent=2))
+        (d / f"notes-after-{pr.pull}.md").write_text(pr.notes_after)
+        m = pr.metrics
+        print(f"episode {ep.episode:>2} pull {pr.pull}: {m['outcome']:7s} score {m['score']:6.1f}  "
+              f"deaths {len(m['deaths'])}  calls {pr.stats['calls']}  "
+              f"tokens {pr.stats['input_tokens']}+{pr.stats['output_tokens']}"
+              + (f"  [{pr.problem}]" if pr.problem else ""), flush=True)
+
+    results = []
+    with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
+        futures = {pool.submit(run_episode, client, e, max_pulls=args.max_pulls, memory=memory,
+                               knowledge=args.knowledge, interval_ms=args.interval_ms,
+                               max_calls=args.max_calls, on_pull=on_pull): e for e in episodes}
+        for fut in as_completed(futures):
+            try:
+                results.append(fut.result())
+            except ClientError as err:
+                for f in futures:
+                    f.cancel()
+                run.manifest.update(status="failed", error=str(err)[:500])
+                run.save_manifest()
+                raise SystemExit(f"episode {futures[fut]}: {err}")
+    results.sort(key=lambda e: e.episode)
+    summary = summarize(results, args.max_pulls)
+    items = [{"episode": e.episode, "pull": p.pull, "seed": p.seed, "file": f"episodes/{e.episode}/pull-{p.pull}.json",
+              "outcome": p.metrics["outcome"], "score": p.metrics["score"], "duration_s": p.metrics["duration_s"]}
+             for e in results for p in e.pulls]
+    runs_mod.finish_run(run, summary, items)
+    runs_mod.publish(only=[run.run_id])
+    print(json.dumps({k: v for k, v in summary.items() if k not in ("score_mean", "win_rate")}, indent=2))
+    print(f"run {run.run_id}: {run.dir}")
+
+
 def run_runs(args) -> None:
     """Manage saved model runs."""
     if args.runs_cmd == "list":
@@ -220,6 +279,22 @@ def main() -> None:
     m.add_argument("--tag", action="append", default=[], help="label for filtering (repeatable)")
     m.add_argument("--price-in", type=float, help="USD per 1M input tokens (to estimate cost)")
     m.add_argument("--price-out", type=float, help="USD per 1M output tokens")
+    pg = sub.add_parser("progress", help="learning over pulls: repeated attempts with notes between pulls")
+    pg.add_argument("--model", required=True, help="provider:model[@effort], or mock:basic")
+    pg.add_argument("--effort", choices=("none", "low", "medium", "high"))
+    pg.add_argument("--episodes", default="0", help="episode numbers, e.g. 0-4 (each is an independent attempt series)")
+    pg.add_argument("--max-pulls", type=int, default=8)
+    pg.add_argument("--memory", choices=("on", "off"), default="on",
+                    help="off = control condition: notes are wiped between pulls")
+    pg.add_argument("--knowledge", choices=("blind", "full"), default="blind",
+                    help="blind (default): nothing about the boss is given up front")
+    pg.add_argument("--interval-ms", type=int, default=2000)
+    pg.add_argument("--max-calls", type=int, default=300)
+    pg.add_argument("--workers", type=int, default=1, help="episodes to play in parallel")
+    pg.add_argument("--offline", action="store_true")
+    pg.add_argument("--no-cache", action="store_true")
+    pg.add_argument("--name")
+    pg.add_argument("--tag", action="append", default=[])
     rs = sub.add_parser("runs", help="list, inspect, remove, and publish saved model runs")
     rsub = rs.add_subparsers(dest="runs_cmd", required=True)
     rl = rsub.add_parser("list", help="newest first")
@@ -247,6 +322,8 @@ def main() -> None:
         print(json.dumps(results[0] if len(results) == 1 else results, indent=2))
     elif args.cmd == "llm":
         run_llm(args)
+    elif args.cmd == "progress":
+        run_progress(args)
     elif args.cmd == "runs":
         run_runs(args)
     elif args.cmd == "generate":

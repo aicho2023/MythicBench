@@ -68,12 +68,14 @@ class Standing:
 
 class PartyBrain:
     def __init__(self, client: ChatClient, interval_ms: int = 2000, min_gap_ms: int = 500,
-                 max_calls: int = 300):
+                 max_calls: int = 300, knowledge: str = "full", notes: str | None = None,
+                 pull: int | None = None):
         self.client = client
+        self.knowledge = knowledge
         self.interval_ms = interval_ms
         self.min_gap_ms = min_gap_ms
         self.max_calls = max_calls
-        self.system = system_prompt()
+        self.system = system_prompt(knowledge, notes, pull)
         self.orders: dict[str, Standing] = {}
         self.gcd: dict[str, int] = {}
         self.stats = BrainStats()
@@ -148,7 +150,7 @@ class PartyBrain:
                     else "low_hp" if "is low" in w else "start" if "starting" in w else "routine")
             self.stats.triggers[kind] = self.stats.triggers.get(kind, 0) + 1
         age = None if self.last_call_t is None else (obs["t"] - self.last_call_t) / 1000
-        user = (render_state(obs, self.gcd, age)
+        user = (render_state(obs, self.gcd, age, self.knowledge)
                 + "\nCURRENT ORDERS:\n" + self.describe_orders()
                 + f"\nWHY YOU ARE BEING ASKED NOW: {'; '.join(why)}.\nReply with the JSON orders.")
         self.last_call_t = obs["t"]
