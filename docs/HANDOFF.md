@@ -212,9 +212,15 @@ Grokka → Nyx → Bao → Bramble. Full WoW-analogy table in `README.md`.
   capped at 300 calls per fight. The game is paused while the model thinks.
 - **Interrupts in a priority list** only fire on an interruptible cast, so
   standing orders don't waste them.
-- **CLI:** `python -m mythicsim llm --model provider:model --seeds 0-4`. It
-  writes `runs/<model>/` and publishes to `web/public/replays/local/`, which the
-  viewer shows under "Model runs". Both folders are git-ignored.
+- **CLI:** `python -m mythicsim llm --model provider:model --seeds 0-4 [--name] [--tag]`.
+  - Each invocation is a run: `runs/<run_id>/` (`sim/mythicsim/runs.py`), with
+    a `manifest.json` (config, `HARNESS_VERSION`, prompt hash, git commit,
+    summary), `seeds/seed-N.json`, and a line in `runs/registry.jsonl`.
+  - `python -m mythicsim runs list|show|rm|publish|import-legacy`.
+  - The viewer reads `web/public/replays/local/catalog.json` (git-ignored) and
+    shows a Model runs drawer (`web/src/hud/RunBrowser.tsx`).
+  - Bump `HARNESS_VERSION` (`sim/mythicsim/llm/__init__.py`) whenever what the
+    model sees or can do changes.
 - **Keys:** `.env` at the repo root (copy `.env.example`).
 - **Prompt size:** ~1.6k tokens of rules (prompt-cached by the provider;
   OpenAI with `prompt_cache_key`) and ~0.3–0.5k of state per call.

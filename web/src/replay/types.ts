@@ -104,4 +104,37 @@ export interface ReplayIndexEntry {
   duration_s: number
   score?: number
   local?: boolean // a model run saved on this machine (replays/local/), not a committed showcase
+  runId?: string
+}
+
+/** One seed (or, later, one pull) of a model run, as listed in the catalog. */
+export interface CatalogItem {
+  seed: number
+  file: string
+  outcome: string
+  score: number
+  duration_s: number
+}
+
+/** A model run (one `mythicsim llm` invocation), from replays/local/catalog.json. */
+export interface CatalogRun {
+  run_id: string
+  name: string | null
+  tags: string[]
+  mode: string
+  label: string
+  provider: string
+  model: string
+  effort: string | null
+  created: string
+  harness_version: string | null
+  prompt_hash: string | null
+  git_commit: string | null
+  summary: { score_mean: number | null; score_ci95: [number, number] | null; win_rate: number | null; reference_means: Record<string, number> | null }
+  items: CatalogItem[]
+}
+
+export interface Catalog {
+  current_harness_version: string
+  runs: CatalogRun[]
 }

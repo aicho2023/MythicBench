@@ -3,6 +3,7 @@ import { BossFrame } from './hud/BossFrame'
 import { AboutPanel, EndBanner, ReplayControls, TimelineLegend, TopBar } from './hud/Controls'
 import { DamageMeter, DecisionLog, RaidWarnings, Scorecard } from './hud/Panels'
 import { PartyFrames } from './hud/PartyFrames'
+import { RunBrowser } from './hud/RunBrowser'
 import { WorldOverlay } from './hud/WorldOverlay'
 import { usePlayback } from './replay/store'
 import { Scene } from './scene/Scene'
@@ -13,6 +14,8 @@ export default function App() {
   const ready = usePlayback((p) => !!p.engine)
   const [about, setAbout] = useState(false)
   const closeAbout = useCallback(() => setAbout(false), [])
+  const [runs, setRuns] = useState(false)
+  const closeRuns = useCallback(() => setRuns(false), [])
   useEffect(() => { loadIndex() }, [loadIndex])
 
   return (
@@ -21,7 +24,7 @@ export default function App() {
       <WorldOverlay />
       {/* HUD: pointer-events-none so the camera can still be dragged through gaps */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-x-0 top-0"><TopBar onAbout={() => setAbout(true)} /></div>
+        <div className="absolute inset-x-0 top-0"><TopBar onAbout={() => setAbout(true)} onRuns={() => setRuns(true)} /></div>
 
         <div className="hud-s absolute left-4 top-16 origin-top-left"><PartyFrames /></div>
         <div className="absolute left-1/2 top-16 -translate-x-1/2"><div className="hud-s origin-top"><BossFrame /></div></div>
@@ -37,6 +40,7 @@ export default function App() {
         </div>
         <div className="absolute left-1/2 top-[28%] -translate-x-1/2"><div className="hud-s origin-top"><EndBanner /></div></div>
         {about && <AboutPanel onClose={closeAbout} />}
+        {runs && <RunBrowser onClose={closeRuns} />}
       </div>
       {!ready && !error && (
         <div className="absolute inset-0 grid place-items-center font-mono text-[12px] text-fg-faint">Loading replay…</div>
