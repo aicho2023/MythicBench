@@ -2,24 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root { height: 100%; margin: 0; background: #0b0a10; color: white; }
-body { font-family: Nunito, system-ui, sans-serif; user-select: none; }
+html, body, #root { height: 100%; margin: 0; background: #0a0a0c; color: #ededef; }
+body {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  font-size: 13px;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'tnum' 0;
+}
 
 @layer components {
-  /* The fantasy-MMO panel look: dark glass with a thin gold rim. */
-  .panel {
-    @apply rounded-lg;
-    background: linear-gradient(180deg, rgba(28, 22, 44, 0.9), rgba(12, 10, 20, 0.92));
-    box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.45), inset 0 0 0 2px rgba(0, 0, 0, 0.6), 0 6px 18px rgba(0, 0, 0, 0.55);
+  /* One surface style for every HUD card: quiet glass, hairline border. */
+  .card {
+    @apply rounded-[10px] border border-white/[0.08];
+    background: rgba(14, 14, 18, 0.78);
+    backdrop-filter: blur(14px) saturate(1.2);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   }
-  .ctl { @apply grid h-8 w-8 place-items-center rounded-full text-gold-300 transition hover:bg-white/10; }
-  .btn { @apply rounded-md bg-white/10 px-4 py-2 font-display text-sm font-bold text-white ring-1 ring-white/25 transition hover:bg-white/20; }
-  .btn-gold { @apply bg-gold-500/30 text-gold-300 ring-gold-400/70 hover:bg-gold-500/45; }
+  /* Small uppercase mono labels: the "instrument" voice. */
+  .label { @apply font-mono text-label uppercase text-fg-faint; }
+  .num { font-variant-numeric: tabular-nums; }
+  .icon-btn {
+    @apply grid h-8 w-8 place-items-center rounded-md text-fg-muted transition-colors hover:bg-white/[0.07] hover:text-fg;
+  }
+  .btn {
+    @apply inline-flex h-8 items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-3 text-[12.5px] font-medium text-fg transition-colors hover:bg-white/[0.09];
+  }
+  .btn-primary { @apply border-transparent bg-fg text-bg hover:bg-white; }
+  .seg { @apply flex rounded-lg border border-white/[0.08] bg-white/[0.03] p-0.5; }
+  .seg > button { @apply rounded-md px-2.5 py-1 text-[12px] font-medium text-fg-muted transition-colors hover:text-fg; }
+  .seg > button[aria-pressed='true'] { @apply bg-white/[0.1] text-fg; }
 }
 
 :root { --hud: 1; }
-@media (max-height: 840px), (max-width: 1380px) { :root { --hud: 0.82; } }
+@media (max-height: 840px), (max-width: 1380px) { :root { --hud: 0.86; } }
 /* Each HUD cluster scales from its own screen corner on small displays. */
 .hud-s { transform: scale(var(--hud)); }
 
-@keyframes fadein { from { opacity: 0; transform: translateY(12px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes slidein { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
