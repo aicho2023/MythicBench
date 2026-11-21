@@ -245,8 +245,8 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
           <div className="label !text-warn">Status: Phase 1</div>
           <p className="mt-1.5 text-[12.5px] leading-[19px] text-fg-muted">
             Only hand-written baseline bots exist so far. Over 200 seeds they score{' '}
-            <span className="text-fg">expert 121</span>, <span className="text-fg">competent 102</span>, and{' '}
-            <span className="text-fg">sloppy 22</span>, with non-overlapping 95% intervals. Ranking three known skill
+            <span className="text-fg">expert 128</span>, <span className="text-fg">competent 105</span>, and{' '}
+            <span className="text-fg">sloppy 21</span>, with non-overlapping 95% intervals. Ranking three known skill
             levels correctly is the check that the benchmark can tell good play from bad. Language-model policies
             and a leaderboard come in Phase 2.
           </p>

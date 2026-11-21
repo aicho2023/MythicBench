@@ -37,7 +37,11 @@ def r2(v: float) -> float:
 
 
 def dist(a: Vec, b: Vec) -> float:
-    return math.hypot(a[0] - b[0], a[1] - b[1])
+    # Not hypot(): its last bit can differ between CPU platforms, and one
+    # flipped comparison changes a whole replay. +, *, and sqrt are exactly
+    # rounded by IEEE 754 everywhere, so this is identical on every machine.
+    dx, dy = a[0] - b[0], a[1] - b[1]
+    return math.sqrt(dx * dx + dy * dy)
 
 
 def lerp(a: Vec, b: Vec, f: float) -> Vec:
@@ -202,7 +206,7 @@ class Encounter:
     # ----- movement --------------------------------------------------------
     def start_move(self, u: Unit, to: Vec) -> None:
         # Clamp inside the arena
-        d = math.hypot(*to)
+        d = dist(to, (0.0, 0.0))
         lim = C.ARENA_RADIUS - 1.0
         if d > lim:
             to = (to[0] * lim / d, to[1] * lim / d)

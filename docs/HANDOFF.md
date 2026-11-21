@@ -46,15 +46,15 @@ The owner's three goals for the project:
   [PR #2](https://github.com/aicho2023/MythicBench/pull/2) plus the
   integration, so merging #3 lands both.
 
-### Results (content 0.2.0, showcase seed 13)
+### Results (content 0.2.0, showcase seed 42)
 | Run | Outcome | Score | Interrupts | Deaths |
 |---|---|---|---|---|
-| Expert bots | Kill in 2:50 | 124.8 | 11/11 | 0 |
-| Competent bots | Wipe to enrage at 3:19 (boss 15%) | 84.6 | 11/13 | 5 |
-| Sloppy bots | Wipe at 1:41 (boss 68%) | 31.7 | 4/7 | 5 |
+| Expert bots | Kill in 2:47 | 127.8 | 11/11 | 0 |
+| Competent bots | Wipe to enrage at 3:19 (boss 3.8%) | 96.2 | 10/13 | 5 |
+| Sloppy bots | Wipe at 1:22 (boss 62%) | 38.3 | 3/5 | 5 |
 
-Over 200 seeds (score, 95% CI): expert 121.3 (119.9–122.7), competent 101.7
-(98.7–104.8), sloppy 21.5 (20.7–22.3). Win rates 97.5% / 65% / 0%.
+Over 200 seeds (score, 95% CI): expert 128.4 (127.3–129.5), competent 104.8
+(101.6–108.0), sloppy 21.3 (20.5–22.1). Win rates 99.5% / 68.5% / 0%.
 ~0.45 s per headless fight. Score = % boss HP removed, or 100 + seconds left on
 a kill (see `metrics.run_score`).
 
@@ -98,7 +98,7 @@ sim/mythicsim/
   engine.py                   Deterministic 100 ms tick loop -> event log; observe()/Action
   policies.py                 ScriptedPolicy + Skill profiles (EXPERT, SLOPPY)
   metrics.py                  Scores computed ONLY from the event log
-  __main__.py                 CLI: run / bench (95% CIs) / generate (SHOWCASE_SEED = 13)
+  __main__.py                 CLI: run / bench (95% CIs) / generate (SHOWCASE_SEED = 42)
 sim/tests/test_replays.py     Determinism, schema, hp consistency, no-acting-dead
 web/src/
   replay/types.ts             TS mirror of the schema (keep in sync by hand)
@@ -146,6 +146,14 @@ These are what make the benchmark trustworthy. Tests enforce most of them.
 
 ## 7. Gotchas already discovered (save yourself the debugging)
 
+- **Replays must match across machines.** CI regenerates them on Linux. Never
+  use `math.hypot/cos/sin/...` in the sim (last-bit differences between CPUs
+  flip decisions); a test enforces this. Policies must break ties deliberately:
+  float-noise tie-breaks in the dodge planner once swung the expert win rate
+  between ~2% and ~100%.
+- **Python 3.10+ for the sim.** The owner's system `python3` is 3.8; use the
+  `mythicbench` conda env.
+
 - **Black screen with bloom:** drei `<Sparkles>` divides by distance-to-centre
   in its shader → Infinity → bloom spreads NaN over the whole frame. Removed;
   use the custom `Motes` in `Arena.tsx`. Also never let opacity go negative
@@ -180,9 +188,8 @@ Grokka → Nyx → Bao → Bramble. Full WoW-analogy table in `README.md`.
 
 ## 9. Known limitations / tech debt
 
-- Expert bots still win 97.5%. That's fine because the score keeps
-  rewarding faster kills, but stronger-than-expert play would mostly show up as
-  kill time, not win rate.
+- Expert bots win 99.5%. That's fine because the score keeps rewarding
+  faster kills, but stronger-than-expert play shows up as kill time, not win rate.
 - The scripted bots' "inattentive" dodge still notices pools in time with a
   fast reaction, so dodge attention barely affects the expert; reaction speed does.
 - No mana, threat tables, line of sight, or boss movement.

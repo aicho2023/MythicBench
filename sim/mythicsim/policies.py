@@ -47,6 +47,14 @@ SLOPPY = Skill("sloppy", reaction_ms=1700, interrupt_attention=0.55, dodge_atten
 PROFILES = {"expert": EXPERT, "competent": COMPETENT, "sloppy": SLOPPY}
 
 
+# 16 compass directions as exact constants (cos and sin of k * 22.5 degrees).
+# Hard-coded rather than computed at runtime: libm trig results can differ in
+# the last bit between CPU platforms, which would make replays machine-dependent.
+_C1, _C2, _C3 = 0.9238795325112867, 0.7071067811865476, 0.3826834323650898
+_DIRS = ((1.0, 0.0), (_C1, _C3), (_C2, _C2), (_C3, _C1), (0.0, 1.0), (-_C3, _C1), (-_C2, _C2), (-_C1, _C3),
+         (-1.0, 0.0), (-_C1, -_C3), (-_C2, -_C2), (-_C3, -_C1), (0.0, -1.0), (_C3, -_C1), (_C2, -_C2), (_C1, -_C3))
+
+
 def _by_id(obs: dict) -> dict:
     return {u["id"]: u for u in obs["party"] + obs["enemies"]}
 
@@ -151,12 +159,15 @@ class ScriptedPolicy:
         best, best_score = None, math.inf
         lim = obs["arena_radius"] - 1.5
         for ring in (1.5, 2.5, 3.5, 4.5, 6.0, 8.0):
-            for k in range(16):
-                ang = 2 * math.pi * k / 16
-                cand = (near[0] + ring * math.cos(ang), near[1] + ring * math.sin(ang))
-                if math.hypot(*cand) > lim or self.unsafe(cand, obs, 0.9):
+            for cx, cz in _DIRS:
+                cand = (near[0] + ring * cx, near[1] + ring * cz)
+                if dist(cand, (0.0, 0.0)) > lim or self.unsafe(cand, obs, 0.9):
                     continue
-                score = dist(cand, near) + 0.5 * dist(cand, anchor)
+                # Shortest escape, near where we want to be; among equally good
+                # spots, prefer the middle of the room (stay with the group,
+                # never get pinned against the wall). Without this tie-break the
+                # choice between equal spots fell to floating-point noise.
+                score = dist(cand, near) + 0.5 * dist(cand, anchor) + 0.05 * dist(cand, (0.0, 0.0))
                 if score < best_score:
                     best, best_score = cand, score
         return best

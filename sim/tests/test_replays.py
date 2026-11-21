@@ -101,6 +101,18 @@ def test_seeds_vary_the_boss_script():
     assert len({first_requiem(s) for s in range(8)}) > 1
 
 
+def test_no_platform_dependent_math():
+    """Replays must be identical on every machine (CI regenerates them on Linux).
+    libm functions like hypot/cos/sin can differ in the last bit between CPU
+    platforms, and one flipped comparison changes the whole fight."""
+    import re
+    src = Path(__file__).parents[1] / "mythicsim"
+    banned = re.compile(r"math\.(hypot|cos|sin|tan|atan2?|exp|log|pow)\b|\*\* *0?\.5")
+    for f in ("engine.py", "policies.py", "content.py"):
+        hits = banned.findall((src / f).read_text())
+        assert not hits, f"{f} uses platform-dependent math: {hits}"
+
+
 def test_run_score():
     assert run_score("victory", 170.0, 0.0, 195.0) == 125.0
     assert run_score("wipe", 120.0, 38.0, 195.0) == 62.0

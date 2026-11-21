@@ -40,26 +40,28 @@ bottom. Interrupts, deaths, and avoidable damage explain where points went.
 
 ## Same fight, three teams
 
-The viewer ships three replays on **seed 13**. Each seed shuffles the boss's
+The viewer ships three replays on **seed 42**. Each seed shuffles the boss's
 timers, but every policy on a seed faces the identical boss script, so only the
 decision-maker differs.
 
 | Run | Outcome | Score | Interrupts | Deaths |
 | --- | --- | --- | --- | --- |
-| Expert bots | **Kill** in 2:50 | 124.8 | 11 / 11 | 0 |
-| Competent bots | **Wipe** to the enrage at 3:19 (boss at 15%) | 84.6 | 11 / 13 | 5 |
-| Sloppy bots | **Wipe** at 1:41 (boss at 68%) | 31.7 | 4 / 7 | 5 |
+| Expert bots | **Kill** in 2:47 | 127.8 | 11 / 11 | 0 |
+| Competent bots | **Wipe** to the enrage at 3:19, boss at 3.8% | 96.2 | 10 / 13 | 5 |
+| Sloppy bots | **Wipe** at 1:22 (boss at 62%) | 38.3 | 3 / 5 | 5 |
 
 Across 200 seeds (`python -m mythicsim bench --policy expert,competent,sloppy --runs 200`):
 
 | Bot | Score (95% CI) | Win rate (95% CI) | Interrupt rate |
 | --- | --- | --- | --- |
-| Expert | **121.3** (119.9–122.7) | 97.5% (94–99%) | 99.9% |
-| Competent | **101.7** (98.7–104.8) | 65% (58–71%) | 85.8% |
-| Sloppy | **21.5** (20.7–22.3) | 0% (0–2%) | 47.9% |
+| Expert | **128.4** (127.3–129.5) | 99.5% (97–100%) | 99.7% |
+| Competent | **104.8** (101.6–108.0) | 68.5% (62–75%) | 85.9% |
+| Sloppy | **21.3** (20.5–22.1) | 0% (0–2%) | 47.8% |
 
 Three known skill levels, ranked in the right order with no overlap. That's the
 check that the benchmark can tell good play from bad before any model plays it.
+Expert bots almost always win, so at the top the score separates agents by kill
+time (an expert kill leaves ~29 s on the clock).
 
 ![The sloppy party's wipe](docs/media/wipe.jpg)
 
@@ -116,7 +118,8 @@ python -m pytest
 
 ## Why you can trust the numbers
 
-1. **Deterministic.** Same seed + same policy ⇒ byte-identical replay (tested).
+1. **Deterministic.** Same seed + same policy ⇒ byte-identical replay, on any
+   machine: the sim avoids math functions whose last bit varies by CPU (tested).
 2. **The log is the truth.** The viewer and every metric derive from the replay
    file alone; health in every event is cross-checked against a running total.
 3. **The viewer is verified.** Viewer tests confirm it reconstructs the

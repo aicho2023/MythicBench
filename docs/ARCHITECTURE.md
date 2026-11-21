@@ -113,11 +113,19 @@ future comparison should have.
   repeats ±25% of the interval). Players can't shift these draws, so every
   policy on a seed faces the same script. Mechanics overlap on some seeds.
 - **Hard enrage at 3:15.** Hollow Fury pulses ramping damage on the whole party
-  every second, so the timer is a real deadline. Expert bots kill with ~20 s
+  every second, so the timer is a real deadline. Expert bots kill with ~29 s
   to spare; a few mistakes cost the kill.
 - **Run score** (`metrics.run_score`): % boss health removed on a wipe; 100 +
   seconds left on a kill. It separates every rung of a skill ladder from expert
   to sloppy, where win rate falls off a cliff in the middle.
+- **Cross-platform determinism.** CI regenerates replays on Linux and diffs
+  them against ones made on a Mac. libm results (`hypot`, `cos`, `sin`…) can
+  differ in the last bit between CPUs, so the sim uses only `+ - * /` and
+  `sqrt` (exactly rounded by IEEE 754) and hard-coded direction constants;
+  `test_no_platform_dependent_math` enforces it. Bots must also break ties on
+  purpose: the dodge planner prefers spots nearer the arena centre. Before
+  that rule, ties fell to float noise, and that noise alone swung the expert
+  bot's win rate between ~2% and ~100%.
 - **Validation.** `test_reference_bots_rank_in_order` requires the expert,
   competent, and sloppy bots to rank in order with non-overlapping 95% CIs.
 

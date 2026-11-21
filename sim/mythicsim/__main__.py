@@ -19,7 +19,7 @@ from .policies import PROFILES, make_policies
 
 # The showcase replays shipped with the viewer: three reference skill levels on
 # one seed, so the only difference between them is decision quality.
-SHOWCASE_SEED = 13
+SHOWCASE_SEED = 42
 SHOWCASE = [
     {"id": "expert-kill", "policy": "expert", "seed": SHOWCASE_SEED,
      "label": "Expert bots", "blurb": "Every kick lands, pools dodged, adds handled. Kills with time to spare."},
