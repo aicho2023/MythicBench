@@ -44,7 +44,7 @@ export function BossFrame() {
             </div>
           ) : flash ? (
             <div className={`flex h-[20px] items-center justify-center rounded-[3px] font-mono text-[11px] uppercase ${flash.how === 'interrupted' ? 'bg-info/10 text-info' : 'text-fg-faint'}`}>
-              {flash.how === 'interrupted' ? `${engine.replay.abilities[flash.ability]?.name ?? 'cast'} interrupted` : `${engine.replay.abilities[flash.ability]?.name} cast`}
+              {flash.how === 'interrupted' ? `${engine.replay.abilities[flash.ability]?.name ?? 'cast'} interrupted` : `${engine.replay.abilities[flash.ability]?.name} completed`}
             </div>
           ) : (
             <div className="h-[20px] rounded-[3px] bg-white/[0.03]" />
@@ -52,10 +52,10 @@ export function BossFrame() {
         </div>
       </div>
       {adds.length > 0 && (
-        <div className="mt-1.5 flex justify-center gap-1.5">
+        <div className="mt-1.5 flex flex-wrap justify-center gap-1.5">
           {adds.map((a) => (
-            <div key={a.info.id} className="card w-[140px] px-2.5 py-1.5">
-              <div className="flex justify-between text-[11px]">
+            <div key={a.info.id} className="card w-[124px] shrink-0 px-2.5 py-1.5">
+              <div className="flex justify-between gap-2 text-[11px]">
                 <span className="text-fg-muted">{a.info.name.replace('Risen ', '')}</span>
                 <span className="num font-mono text-fg-faint">{Math.round((100 * a.hp) / a.info.max_hp)}%</span>
               </div>
