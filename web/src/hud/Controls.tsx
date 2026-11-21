@@ -2,6 +2,7 @@ import { Info, ListTree, Pause, Play, RotateCcw, SkipBack, SkipForward, X } from
 import { useEffect, useMemo, useRef } from 'react'
 import { CLASS_COLORS, fmtNum, fmtTime } from '../content/display'
 import { usePlayback, useHud } from '../replay/store'
+import { SiteHeader } from '../site/Layout'
 
 const SPEEDS = [0.5, 1, 2, 4]
 
@@ -11,7 +12,7 @@ const MARKER_COLOR: Record<string, string> = {
 }
 
 // ---------------------------------------------------------------------------
-// Top bar: identity, which run you're watching, and the "what is this" link.
+// Top bar: the site header, plus which run you're watching and the "what is this" link.
 // ---------------------------------------------------------------------------
 export function TopBar({ onAbout, onRuns }: { onAbout: () => void; onRuns: () => void }) {
   const index = usePlayback((p) => p.index)
@@ -23,34 +24,34 @@ export function TopBar({ onAbout, onRuns }: { onAbout: () => void; onRuns: () =>
   const catalogSize = usePlayback((p) => p.catalog?.runs.length ?? 0)
   const watching = index.find((r) => r.id === current)
   return (
-    <div className="pointer-events-auto flex h-12 items-center gap-4 whitespace-nowrap border-b border-line bg-[rgba(15,15,16,0.92)] px-4">
-      <div className="flex shrink-0 items-baseline gap-3">
-        <span className="text-[15px] font-medium text-fg">MythicBench</span>
+    <SiteHeader
+      overlay
+      after={
         <span className="hidden items-baseline gap-2 text-[13px] text-fg-muted lg:flex">
           Gravecrown Crypt
           {tierName && <span className="num font-mono text-meta text-fg-faint">{tierName}</span>}
           {affixes.length > 0 && (
-            <span className="hidden truncate text-meta text-fg-faint xl:inline" title={affixes.map((a) => `${a.name}: ${a.description}`).join('\n\n')}>
+            <span className="hidden truncate text-meta text-fg-faint 2xl:inline" title={affixes.map((a) => `${a.name}: ${a.description}`).join('\n\n')}>
               {affixes.map((a) => a.name).join(', ')}
             </span>
           )}
         </span>
-      </div>
-
-      <div className="mx-auto flex min-w-0 items-center gap-2">
-        {/* What's on screen; opens the run list. Scripted bots live in that list as a reference, not up here. */}
-        <button onClick={onRuns} className="btn min-w-0 max-w-[420px]" title="Choose a run">
+      }
+      center={
+        // What's on screen; opens the run list. Scripted bots live in that list as a reference, not up here.
+        <button onClick={onRuns} className="btn min-w-0 max-w-[420px] shrink" title="Choose a run">
           <ListTree size={16} className="shrink-0 text-fg-muted" />
           <span className="truncate">{watching ? watching.label : 'Choose a run'}</span>
           {watching && !watching.local && <span className="shrink-0 text-meta text-fg-faint">reference</span>}
-          {catalogSize > 0 && <span className="num shrink-0 font-mono text-meta text-fg-faint">{catalogSize} runs</span>}
+          {catalogSize > 0 && <span className="num hidden shrink-0 font-mono text-meta text-fg-faint sm:inline">{catalogSize} runs</span>}
         </button>
-      </div>
-
-      <button onClick={onAbout} className="btn max-md:w-8 max-md:justify-center max-md:px-0" title="About this eval">
-        <Info size={16} className="text-fg-muted" /><span className="max-md:sr-only">About this eval</span>
-      </button>
-    </div>
+      }
+      right={
+        <button onClick={onAbout} className="icon-btn" title="About this eval" aria-label="About this eval">
+          <Info size={16} />
+        </button>
+      }
+    />
   )
 }
 
@@ -114,7 +115,7 @@ export function ReplayControls() {
         ))}
         <div className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-fg ring-[3px] ring-[#111113]" style={{ left: `${(t / dur) * 100}%` }} />
       </div>
-      <div className="seg">
+      <div className="seg max-sm:hidden">
         {SPEEDS.map((sp) => (
           <button key={sp} aria-pressed={sp === speed} onClick={() => setSpeed(sp)} className="num !px-2 font-mono !text-meta" title={`${sp}× speed`}>
             {sp}×

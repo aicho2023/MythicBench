@@ -1,0 +1,22 @@
+// Per-page titles and share cards. Used at runtime (document.title) and at build
+// time: vite.config.ts writes a copy of index.html per route with these tags, so
+// link previews on X, Slack and Discord work without running JavaScript.
+
+export interface PageMeta { path: string; title: string; description: string }
+
+const DESCRIPTION = 'An LLM eval: one model leads a five-person party through a Mythic+-style dungeon it has never seen, '
+  + 'writes notes after each wipe, and tries again. Leaderboard, replays of every pull, and the write-up.'
+
+export const PAGES: PageMeta[] = [
+  { path: '/', title: 'MythicBench: can an AI lead a Mythic+ group?', description: DESCRIPTION },
+  { path: '/watch', title: 'Watch a run | MythicBench', description: 'Replays of every pull in the benchmark, in 3D, with every decision the model made.' },
+  { path: '/paper', title: 'Paper | MythicBench', description: 'How MythicBench works, what it measures, and what the models did: the long-form write-up.' },
+  { path: '/about', title: 'About | MythicBench', description: 'How MythicBench works, for WoW players and for ML people, how to run it yourself, and credits.' },
+]
+
+export const OG_IMAGE = '/og.jpg'
+
+export function metaFor(path: string): PageMeta {
+  const top = '/' + (path.split('/')[1] ?? '')
+  return PAGES.find((p) => p.path === top) ?? PAGES[0]
+}

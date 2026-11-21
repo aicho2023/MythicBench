@@ -45,12 +45,12 @@ function outcome(r: CatalogRun) {
  * scripted bots as a reference. Built for hundreds of runs: search, filters,
  * sorting, and per-pull chips.
  */
-export function RunBrowser({ onClose }: { onClose: () => void }) {
+export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void; initialQuery?: string }) {
   const catalog = usePlayback((p) => p.catalog)
   const index = usePlayback((p) => p.index)
   const current = usePlayback((p) => p.currentId)
   const load = usePlayback((p) => p.load)
-  const [q, setQ] = useState('')
+  const [q, setQ] = useState(initialQuery)
   const [provider, setProvider] = useState('any')
   // Older-harness runs are hidden by default, unless they're all there is.
   const [showOld, setShowOld] = useState(() => !(catalog?.runs ?? []).some((r) => r.harness_version === catalog?.current_harness_version))

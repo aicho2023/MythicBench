@@ -31,7 +31,7 @@ seconds, and 1 to 4 set the speed. Click any line under Agent decisions to
 jump to that moment.
 
 Links can point at a moment:
-`http://localhost:5173/?replay=sloppy-wipe&t=30&paused=1`.
+`http://localhost:5173/watch?replay=sloppy-wipe&t=30&paused=1`.
 
 ## The dungeon
 
@@ -223,6 +223,25 @@ python -m mythicsim bench --policy expert,competent,sloppy --runs 200  # many ru
 python -m mythicsim generate --out ../web/public/replays             # rebuild the viewer's bot replays
 python -m pytest
 ```
+
+## The website
+
+`web/` is also the public site. `/` has the leaderboard and charts, `/watch`
+is the replay viewer (`/watch/<model>/<tier>/<episode>/<pull>` opens one
+pull), `/paper` is the write-up (`web/src/pages/paper.mdx`), and `/about`
+explains the project. The site reads only the dataset that `results` writes,
+from `web/public/results/<name>/`. `RESULTS_DIR` in `web/src/site/config.ts`
+(or the `VITE_RESULTS_DIR` variable) picks which one. It ships with
+`results/sample`, made with the mock model, which costs nothing:
+
+```bash
+cd web && npm run sample    # protocol/sample.json: campaign, then results
+```
+
+`npm run build` writes a static site to `web/dist`, with a copy of
+`index.html` for each page so link previews show the right title. For
+hosting, `web/vercel.json` (Vercel) and `web/public/_redirects` (Cloudflare
+Pages) send every other path to the app.
 
 ## Why the numbers hold up
 

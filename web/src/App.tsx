@@ -8,18 +8,35 @@ import { RunBrowser } from './hud/RunBrowser'
 import { WorldOverlay } from './hud/WorldOverlay'
 import { usePlayback } from './replay/store'
 import { Scene } from './scene/Scene'
+import { modelName } from './content/display'
+import { parseWatchPath } from './site/results'
 
-export default function App() {
-  const loadIndex = usePlayback((p) => p.loadIndex)
+/**
+ * The replay viewer, full screen. `path` is the /watch address: /watch/<model>
+ * opens that model's runs in the run list, /watch/<model>/<tier>/<episode>/<pull>
+ * one pull. ?replay= and ?run= deep links work as before.
+ */
+export default function App({ path = '/watch' }: { path?: string }) {
+  const ensureIndex = usePlayback((p) => p.ensureIndex)
+  const openFromUrl = usePlayback((p) => p.openFromUrl)
+  const indexed = usePlayback((p) => p.index.length > 0)
   const error = usePlayback((p) => p.error)
   const ready = usePlayback((p) => !!p.engine)
   const [about, setAbout] = useState(false)
   const closeAbout = useCallback(() => setAbout(false), [])
-  const [runs, setRuns] = useState(false)
+  const target = parseWatchPath(path)
+  const modelOnly = target && target.tier === undefined ? target.model : null
+  const [runs, setRuns] = useState(!!modelOnly)
   const [meter, setMeter] = useState(false)
   const learning = usePlayback((p) => !!p.engine?.replay.meta.progress)
   const closeRuns = useCallback(() => setRuns(false), [])
-  useEffect(() => { loadIndex() }, [loadIndex])
+  useEffect(() => { ensureIndex() }, [ensureIndex])
+  // Open what the address names, on arrival and on client-side navigation to another /watch address.
+  useEffect(() => {
+    if (!indexed) return
+    openFromUrl({ fallback: true })
+    if (modelOnly) setRuns(true)
+  }, [path, indexed, openFromUrl, modelOnly])
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-bg">
@@ -30,13 +47,13 @@ export default function App() {
         <div className="absolute inset-x-0 top-0"><TopBar onAbout={() => setAbout(true)} onRuns={() => setRuns(true)} /></div>
 
         {/* Top row: party | boss (+ adds, callouts) | scorecard. See .hud-top in index.css. */}
-        <div className="hud-top absolute inset-x-4 top-16">
+        <div className="hud-top absolute inset-x-4 top-[72px]">
           <div className="hud-s justify-self-start [grid-area:party]"><PartyFrames /></div>
           <div className="hud-s relative justify-self-center [grid-area:boss]">
             <BossFrame />
             <div className="absolute left-1/2 top-full mt-14 -translate-x-1/2"><RaidWarnings /></div>
           </div>
-          <div className="hud-s flex flex-col gap-2 justify-self-end [grid-area:side]">
+          <div className="hud-s hud-side flex flex-col gap-2 justify-self-end [grid-area:side]">
             <Scorecard />
             <div className="pointer-events-auto">
               {learning && !meter ? <LearningPanel onShowMeter={() => setMeter(true)} /> : <DamageMeter />}
@@ -49,12 +66,12 @@ export default function App() {
 
         {/* Bottom row: decision log | transport. See .hud-bottom in index.css. */}
         <div className="hud-bottom absolute inset-x-4 bottom-4">
-          <div className="hud-s pointer-events-auto justify-self-start [grid-area:log]"><DecisionLog /></div>
+          <div className="hud-s hud-log pointer-events-auto justify-self-start [grid-area:log]"><DecisionLog /></div>
           <div className="flex w-full flex-col items-center gap-2 [grid-area:transport]"><TimelineLegend /><ReplayControls /></div>
         </div>
         <div className="absolute left-1/2 top-[28%] z-10 -translate-x-1/2"><div className="hud-s"><EndBanner /></div></div>
         {about && <AboutPanel onClose={closeAbout} />}
-        {runs && <RunBrowser onClose={closeRuns} />}
+        {runs && <RunBrowser onClose={closeRuns} initialQuery={modelOnly ? modelName(modelOnly) : ''} />}
       </div>
       {!ready && !error && (
         <div className="absolute inset-0 grid place-items-center text-[13px] text-fg-faint">Loading replay…</div>
