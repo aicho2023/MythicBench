@@ -29,7 +29,7 @@ export function PartyFrames() {
             <div className="flex items-center gap-2">
               <RoleIcon role={u.info.role} size={12} />
               <span className="text-[13px] font-medium leading-5" style={{ color: col }}>{u.info.name}</span>
-              <span className="truncate text-meta text-fg-faint">{cls?.name} · {ROLE_LABEL[u.info.role]}</span>
+              <span className="truncate text-meta text-fg-faint" title={`${cls?.name}, ${ROLE_LABEL[u.info.role]?.toLowerCase()}`}>{cls?.name}</span>
               <span className={`num ml-auto font-mono text-meta ${!u.alive ? 'text-bad' : low ? 'text-warn' : 'text-fg-muted'}`}>
                 {u.alive ? `${pct}%` : <span className="flex items-center gap-1"><Skull size={12} />Dead</span>}
               </span>

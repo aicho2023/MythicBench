@@ -34,6 +34,8 @@ function PlaybackDriver() {
 
 const QUERY = new URLSearchParams(location.search)
 const NO_FX = QUERY.get('nofx') === '1'
+/** ?follow=0 keeps the camera where ?cam/?look put it (close-up shots, debugging). */
+const FOLLOW = QUERY.get('follow') !== '0'
 /** Optional camera override: ?cam=x,y,z&look=x,y,z (debugging and shareable shots). */
 const vec = (k: string, d: [number, number, number]) => {
   const v = QUERY.get(k)?.split(',').map(Number)
@@ -43,7 +45,9 @@ const CAM_POS = vec('cam', [15, 18, 23])
 const CAM_LOOK = vec('look', [0, 0.5, 1.2])
 
 /**
- * Dungeon runs: keep the camera on the party as it walks the crypt. The orbit
+ * Dungeon runs: keep the camera on the party as it walks the crypt. Boss-only
+ * fights look at the throne room (and a switch from a dungeon run snaps back
+ * there, instead of staring down an empty corridor). The orbit
  * angle and zoom stay the user's; only the point being looked at glides to the
  * party's centre (cosmetic smoothing, like facing damping). The sun follows so
  * shadows keep working away from the throne room.
@@ -54,12 +58,17 @@ function FollowParty() {
   const snapped = useRef<string | null>(null)
   useFrame((_, dt) => {
     const f = frameState()
-    if (!f || !controls || !f.engine.replay.arena.rooms) return
-    const alive = f.s.order.map((id) => f.s.units[id]).filter((u) => u.info.kind === 'player' && u.alive)
-    const pts = (alive.length ? alive : f.s.order.map((id) => f.s.units[id]).filter((u) => u.info.kind === 'player'))
-      .map((u) => posAt(u, f.t))
-    if (!pts.length) return
-    const want = new THREE.Vector3(pts.reduce((a, p) => a + p[0], 0) / pts.length, 0.6, pts.reduce((a, p) => a + p[1], 0) / pts.length)
+    if (!f || !controls || !FOLLOW) return
+    let want: THREE.Vector3
+    if (f.engine.replay.arena.rooms) {
+      const alive = f.s.order.map((id) => f.s.units[id]).filter((u) => u.info.kind === 'player' && u.alive)
+      const pts = (alive.length ? alive : f.s.order.map((id) => f.s.units[id]).filter((u) => u.info.kind === 'player'))
+        .map((u) => posAt(u, f.t))
+      if (!pts.length) return
+      want = new THREE.Vector3(pts.reduce((a, p) => a + p[0], 0) / pts.length, 0.6, pts.reduce((a, p) => a + p[1], 0) / pts.length)
+    } else {
+      want = new THREE.Vector3(...CAM_LOOK)
+    }
     const key = f.engine.replay.meta.seed + f.engine.replay.meta.policy
     const k = snapped.current === key ? 1 - Math.exp(-Math.min(dt, 0.1) * 3) : 1 // snap on a new replay
     snapped.current = key
