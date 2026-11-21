@@ -31,14 +31,22 @@ function PlaybackDriver() {
   return null
 }
 
-const NO_FX = new URLSearchParams(location.search).get('nofx') === '1'
+const QUERY = new URLSearchParams(location.search)
+const NO_FX = QUERY.get('nofx') === '1'
+/** Optional camera override: ?cam=x,y,z&look=x,y,z (debugging and shareable shots). */
+const vec = (k: string, d: [number, number, number]) => {
+  const v = QUERY.get(k)?.split(',').map(Number)
+  return v && v.length === 3 && v.every(Number.isFinite) ? (v as [number, number, number]) : d
+}
+const CAM_POS = vec('cam', [15, 18, 23])
+const CAM_LOOK = vec('look', [0, 0.5, 1.2])
 
 export function Scene() {
   return (
     <Canvas
       shadows
       dpr={[1, 2]}
-      camera={{ position: [15, 18, 23], fov: 40, near: 0.5, far: 200 }}
+      camera={{ position: CAM_POS, fov: 40, near: 0.5, far: 200 }}
       gl={{ antialias: false, powerPreference: 'high-performance' }}
     >
       <color attach="background" args={['#0d0a18']} />
@@ -65,11 +73,11 @@ export function Scene() {
       <Units />
       <Effects />
       <OrbitControls
-        target={[0, 0.5, 1.2]}
+        target={CAM_LOOK}
         enablePan={false}
         enableDamping
         dampingFactor={0.08}
-        minDistance={12}
+        minDistance={4}
         maxDistance={42}
         minPolarAngle={0.45}
         maxPolarAngle={1.15}

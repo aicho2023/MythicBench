@@ -111,13 +111,13 @@ More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## Roadmap
 
 - **Phase 1 — Visual prototype** ✅ simulator, replays, 3D viewer
-- **Phase 1.5** — swap placeholder characters for KayKit models ([docs/ASSETS.md](docs/ASSETS.md)), panda ranger
+- **Phase 1.5** — KayKit models and dungeon ✅ ([docs/ASSETS.md](docs/ASSETS.md)); panda ranger customization next
 - **Phase 2 — LLM agents & evals** — plug models into `Policy`, multi-seed evaluation, confidence intervals
 - **Phase 3 — Training** — generate expert trajectories, SFT a small open model, then preference optimization / RL
 - **Phase 4 — Public benchmark** — leaderboard, side-by-side failure replays
 
 ## License
 
-Code: MIT. Placeholder art is generated procedurally in code. KayKit assets (when
-added) are CC0 by Kay Lousberg. MythicBench is an independent project and is not
+Code: MIT. Character, weapon, and dungeon art: KayKit packs by Kay Lousberg (CC0).
+Fallback art is generated procedurally in code. MythicBench is an independent project and is not
 affiliated with or endorsed by Blizzard Entertainment.

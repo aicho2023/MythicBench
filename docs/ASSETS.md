@@ -1,8 +1,23 @@
 # Art assets
 
-Today every character and prop is built procedurally in code
-(`web/src/scene/avatars.tsx`, `web/src/scene/Arena.tsx`), so the repo ships no
-image or model files and has no licensing questions.
+The viewer uses the **KayKit** packs (CC0, by Kay Lousberg) committed under
+`web/public/assets/kaykit/`. If those files are missing — or you add
+`?art=procedural` to the URL — it falls back to the procedural placeholder art
+built in code (`web/src/scene/avatars.tsx`, `web/src/scene/Arena.tsx`).
+
+## How the KayKit integration works
+
+- `web/src/scene/kaykit/assets.ts` — which model each unit uses, weapon loadouts, scales.
+- `web/src/scene/kaykit/clips.ts` — which animation clip plays for each action
+  (e.g. Throat Punch → `Melee_Unarmed_Attack_Punch_A`).
+- `web/src/scene/kaykit/KayKitAvatar.tsx` — clones the skinned model, attaches
+  weapons to the `handslot` bones, and sets each clip's playhead from **replay
+  time** every frame, so pause/scrub stay deterministic.
+- `web/src/scene/kaykit/Dungeon.tsx` — walls, pillars, gates, clutter, statues.
+
+Every character shares the 23-bone `Rig_Medium` skeleton, so one animation
+library drives heroes and skeletons alike. Characters are picked by the
+`units[].model` field the simulator writes into each replay.
 
 ## KayKit packs to download (CC0, free / pay-what-you-want)
 
@@ -10,13 +25,13 @@ image or model files and has no licensing questions.
 | --- | --- | --- |
 | Character Pack: Adventurers | the five party members | https://kaylousberg.itch.io/kaykit-adventurers |
 | Character Animations | shared walk / attack / cast / death clips | https://kaylousberg.itch.io/kaykit-character-animations |
-| Character Pack: Skeletons | Mortisar (scaled-up Skeleton Mage) + Bonewalkers | https://kaylousberg.itch.io/kaykit-skeletons |
+| Character Pack: Skeletons | Mortisar (scaled-up Skeleton Warrior) + Bonewalkers + statues | https://kaylousberg.itch.io/kaykit-skeletons |
 | Dungeon Remastered Pack | floors, walls, pillars, doors, props | https://kaylousberg.itch.io/kaykit-dungeon-remastered |
 
 (The original *Dungeon Pack* — https://kaylousberg.itch.io/kaykit-dungeon-pack —
 also works; Remastered is the newer version.)
 
-## How to add them
+## How to (re)add them
 
 1. Download each pack from itch.io (choose $0 if you like).
 2. Copy the **glTF/GLB** files (not FBX/OBJ) into:
@@ -27,13 +42,7 @@ also works; Remastered is the newer version.)
    web/public/assets/kaykit/dungeon/
    ```
    Include each pack's `License.txt`.
-3. Commit them. Then the viewer can be switched from procedural rigs to the GLB
-   models: each rig only needs to implement the same pose contract used by
-   `animateHumanoid` (`idle / walk / attack / shoot / cast / dead`).
-
-The simulator already names each unit's intended model (`Knight`, `Mage`,
-`Barbarian`, `Rogue`, `Rogue_Hooded`, `Skeleton_Mage`, `Skeleton_Minion`) in
-the replay's `units[].model` field.
+3. Commit them. The viewer picks them up automatically.
 
 ## Rules we follow
 
