@@ -216,8 +216,34 @@ Grokka → Nyx → Bao → Bramble. Full WoW-analogy table in `README.md`.
   writes `runs/<model>/` and publishes to `web/public/replays/local/`, which the
   viewer shows under "Model runs". Both folders are git-ignored.
 - **Keys:** `.env` at the repo root (copy `.env.example`).
-- **Prompt size:** ~1.6k tokens of rules (prompt-cached by the provider) and
-  ~0.3–0.5k of state per call.
+- **Prompt size:** ~1.6k tokens of rules (prompt-cached by the provider;
+  OpenAI with `prompt_cache_key`) and ~0.3–0.5k of state per call.
+- **Fairness decisions from the first live runs (2026-11-21):**
+  - Queued interrupts react after 350 ms, the expert bot's reaction time, not instantly.
+  - `move_to: "safe"` uses the bots' dodge planner (`policies.find_safe_spot`).
+    Without it, every model, including gpt-5.4, died to pools: they couldn't
+    find spots that are both clear of a pool and in melee range from raw
+    coordinates. gpt-5.4-mini went from ~25 to ~88.
+  - Each character's state line says "STANDING IN POOL … (x m from centre)":
+    perception that's obvious on screen.
+  - A character in an armed pool triggers a new call. A resent move always
+    executes. `self`/`party` target aliases and `{"x","z"}` moves are
+    accepted. Orders for dead characters are ignored.
+  - Billing, auth, and bad-request errors stop the run. Output budget is 16k
+    because thinking shares it.
+- **First results on the final harness (2026-11-21):** claude-haiku-5-5,
+  seed 0: kill, score 121.2, no deaths, 12/12 kicks. gpt-5.4-mini, seeds 0–4:
+  mean 74.8 (95% CI 56–94), 0 wins, two near misses (boss at 1–3%). It fails
+  mostly on adds (no taunt or swap) and occasional pools. gpt-4.1-mini,
+  seeds 0–2: ~23 (herds the party onto one spot). Reference bots on seeds 0–4:
+  expert 133.5, competent 94.5, sloppy 17.0.
+- **Run-to-run variance is large:** gpt-5.4-mini scored 130.6, then 60.9, on
+  the same seed. Report many seeds, ideally repeated.
+- **Open:** OpenAI prompt caching rarely hits during runs (~1k of ~290k input
+  tokens per fight) even with `prompt_cache_key`.
+- **Observed cost and speed:** claude-haiku-5-5 thinks heavily (~1.9k output
+  tokens per call, ~8 s per call, ~19 min per fight). gpt-5.4-mini makes
+  ~100–130 calls per fight at ~2.7k input / ~0.3k output tokens each.
 
 ## 10. Suggested next steps
 

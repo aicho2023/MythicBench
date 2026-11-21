@@ -55,6 +55,53 @@ _DIRS = ((1.0, 0.0), (_C1, _C3), (_C2, _C2), (_C3, _C1), (0.0, 1.0), (-_C3, _C1)
          (-1.0, 0.0), (-_C1, -_C3), (-_C2, -_C2), (-_C3, -_C1), (0.0, -1.0), (_C3, -_C1), (_C2, -_C2), (_C1, -_C3))
 
 
+def unsafe(pos, ground: list[dict], margin: float = 0.6) -> bool:
+    return any(dist(pos, g["pos"]) <= g["radius"] + margin for g in ground)
+
+
+def crosses_pool(a: tuple, b: tuple, ground: list[dict], margin: float = 0.3) -> bool:
+    """Does walking straight from a to b pass through an armed pool? (sampled every ~0.25 m)"""
+    steps = max(1, int(dist(a, b) / 0.25))
+    for i in range(1, steps + 1):
+        f = i / steps
+        p = (a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f)
+        if any(g.get("armed", True) and dist(p, g["pos"]) <= g["radius"] + margin for g in ground):
+            return True
+    return False
+
+
+def find_safe_spot(ground: list[dict], arena_radius: float, near: tuple, anchor: tuple,
+                   reach=None, avoid_paths: bool = False) -> tuple | None:
+    """Nearest spot clear of pools (the dodge planner shared by bots and LLM agents).
+
+    ``reach`` = (target_pos, target_radius, range): only consider spots from
+    which that target is still in range (e.g. a melee character stays in melee).
+    ``avoid_paths``: also reject spots whose straight path from ``near`` crosses
+    another armed pool (the pool being escaped from is ignored).
+    """
+    escaping = [g for g in ground if dist(near, g["pos"]) <= g["radius"] + 0.6]
+    others = [g for g in ground if g not in escaping]
+    best, best_score = None, math.inf
+    lim = arena_radius - 1.5
+    for ring in (1.5, 2.5, 3.5, 4.5, 6.0, 8.0):
+        for cx, cz in _DIRS:
+            cand = (near[0] + ring * cx, near[1] + ring * cz)
+            if dist(cand, (0.0, 0.0)) > lim or unsafe(cand, ground, 0.9):
+                continue
+            if reach and dist(cand, reach[0]) - 0.45 - reach[1] > reach[2]:
+                continue
+            if avoid_paths and crosses_pool(near, cand, others):
+                continue
+            # Shortest escape, near where we want to be; among equally good
+            # spots, prefer the middle of the room (stay with the group,
+            # never get pinned against the wall). Without this tie-break the
+            # choice between equal spots fell to floating-point noise.
+            score = dist(cand, near) + 0.5 * dist(cand, anchor) + 0.05 * dist(cand, (0.0, 0.0))
+            if score < best_score:
+                best, best_score = cand, score
+    return best
+
+
 def _by_id(obs: dict) -> dict:
     return {u["id"]: u for u in obs["party"] + obs["enemies"]}
 
@@ -143,7 +190,7 @@ class ScriptedPolicy:
     # Movement: dodge pools, otherwise hold position.
     # ------------------------------------------------------------------
     def unsafe(self, pos, obs, margin: float = 0.6) -> bool:
-        return any(dist(pos, g["pos"]) <= g["radius"] + margin for g in obs["ground"])
+        return unsafe(pos, obs["ground"], margin)
 
     def noticed_pools(self, obs: dict) -> list[dict]:
         out = []
@@ -156,21 +203,7 @@ class ScriptedPolicy:
         return out
 
     def safe_spot(self, obs: dict, near: tuple, anchor: tuple) -> tuple | None:
-        best, best_score = None, math.inf
-        lim = obs["arena_radius"] - 1.5
-        for ring in (1.5, 2.5, 3.5, 4.5, 6.0, 8.0):
-            for cx, cz in _DIRS:
-                cand = (near[0] + ring * cx, near[1] + ring * cz)
-                if dist(cand, (0.0, 0.0)) > lim or self.unsafe(cand, obs, 0.9):
-                    continue
-                # Shortest escape, near where we want to be; among equally good
-                # spots, prefer the middle of the room (stay with the group,
-                # never get pinned against the wall). Without this tie-break the
-                # choice between equal spots fell to floating-point noise.
-                score = dist(cand, near) + 0.5 * dist(cand, anchor) + 0.05 * dist(cand, (0.0, 0.0))
-                if score < best_score:
-                    best, best_score = cand, score
-        return best
+        return find_safe_spot(obs["ground"], obs["arena_radius"], near, anchor)
 
     def movement(self, obs: dict) -> Action | None:
         me = obs["self"]

@@ -124,8 +124,13 @@ the reply format, and no strategy). It answers with standing orders per
 character: an optional move, and a priority list of `[ability, target]`.
 
 - **When it's asked:** every 2 s of game time, and immediately when something
-  important happens: a boss cast starts, pools appear, adds spawn, or an ally
-  gets low or dies.
+  important happens: a boss cast starts, pools appear, adds spawn, someone is
+  standing in an armed pool, or an ally gets low or dies.
+- **Same controls as the bots:** a move can be coordinates or `"safe"`, which
+  uses the bots' own dodge planner to step out of pools while keeping the
+  target in range. Queued interrupts react after 350 ms, like the expert bot.
+  The model decides *when* and *what*; it isn't asked to do coordinate geometry
+  the bots get for free.
 - **No time pressure:** the game pauses while the model thinks, so slow models
   aren't penalised.
 - **Bad replies:** invalid entries are dropped and counted, never guessed.

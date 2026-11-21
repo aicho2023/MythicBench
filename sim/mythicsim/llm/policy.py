@@ -22,11 +22,17 @@ from dataclasses import dataclass, field
 
 from .. import content as C
 from ..engine import Action, dist
+from ..policies import find_safe_spot, unsafe
 from .clients import ChatClient, ClientError
-from .prompt import Order, parse_reply, render_state, system_prompt
+from .prompt import POOL_HIT_PAD, Order, parse_reply, render_state, system_prompt
 
 PLAYER_RADIUS = 0.45
 LOW_HP_PCT = 40.0
+# A queued interrupt reacts this long after a cast starts: the same reaction
+# time as the expert bot. Without it, a standing order would kick on the very
+# first tick (0 ms), faster than any player or bot, and the interrupt
+# mechanic would stop measuring anything.
+REACTION_MS = 350
 
 
 @dataclass
@@ -38,6 +44,7 @@ class BrainStats:
     latency_s: float = 0.0
     cached_calls: int = 0
     unusable_replies: int = 0  # not JSON / no orders: the party keeps its old orders
+    truncated_replies: int = 0  # cut off by the output-token limit
     invalid_entries: int = 0  # unknown abilities/targets etc. that we dropped
     api_errors: int = 0
     budget_exhausted: bool = False
@@ -95,6 +102,9 @@ class PartyBrain:
         if new_adds:
             why.append(f"adds appeared: {', '.join(new_adds)}")
         for p in obs["party"]:
+            if p["alive"] and any(g["armed"] and dist(p["pos"], g["pos"]) <= g["radius"] + POOL_HIT_PAD
+                                  for g in obs["ground"]):
+                why.append(f"{p['id']} is standing in an armed pool")
             if not p["alive"] and p["id"] not in self.dead:
                 why.append(f"{p['id']} died")
             elif p["alive"] and p["hp_pct"] < LOW_HP_PCT and p["id"] not in self.low:
@@ -133,6 +143,7 @@ class PartyBrain:
     def call(self, obs: dict, why: list[str]) -> None:
         for w in why:
             kind = ("boss_cast" if "started casting" in w else "pools" if w.startswith("new pools")
+                    else "in_pool" if "standing in" in w
                     else "adds" if w.startswith("adds") else "death" if w.endswith("died")
                     else "low_hp" if "is low" in w else "start" if "starting" in w else "routine")
             self.stats.triggers[kind] = self.stats.triggers.get(kind, 0) + 1
@@ -146,6 +157,8 @@ class PartyBrain:
         try:
             reply = self.client.complete(self.system, user)
         except ClientError as err:
+            if err.fatal:
+                raise
             self.stats.api_errors += 1
             self.note(f"t={obs['t']}: {err}")
             return
@@ -154,8 +167,12 @@ class PartyBrain:
         self.stats.cache_read_tokens += reply.cache_read_tokens
         self.stats.latency_s += reply.latency_s
         self.stats.cached_calls += reply.cached
+        if reply.truncated:
+            self.stats.truncated_replies += 1
+            self.note(f"t={obs['t']}: reply cut off at the output-token limit")
         ids = {u["id"] for u in obs["party"] + obs["enemies"]}
-        parsed = parse_reply(reply.text, ids)
+        dead = {p["id"] for p in obs["party"] if not p["alive"]}
+        parsed = parse_reply(reply.text, ids, dead)
         if not parsed.ok:
             self.stats.unusable_replies += 1
         self.stats.invalid_entries += len(parsed.problems)
@@ -164,7 +181,10 @@ class PartyBrain:
         for uid, order in parsed.orders.items():
             old = self.orders.get(uid)
             if old and old.order == order:
-                continue  # unchanged: keep it (don't re-walk or re-log the same decision)
+                # Same orders again: don't re-log the decision, but a move the
+                # model sends again is a fresh instruction (e.g. "safe" for a new pool).
+                old.move_done = order.move_to is None
+                continue
             self.orders[uid] = Standing(order, obs["t"])
 
     def note(self, msg: str) -> None:
@@ -207,8 +227,12 @@ class LLMPolicy:
         moving = me["moving"]
         if st.order.move_to and not st.move_done:
             st.move_done = True
-            out.append(Action("move", to=st.order.move_to, reason=self.say(st)))
-            moving = True
+            dest = self.safe_destination(obs, st) if st.order.move_to == "safe" else st.order.move_to
+            # Ordering a character to the spot it already stands on is a no-op:
+            # don't send it, so it doesn't show up as a "Move" decision.
+            if dest is not None and dist(me["pos"], dest) > 0.3:
+                out.append(Action("move", to=dest, reason=self.say(st)))
+                moving = True
         if me["casting"]:
             return out
         units = {u["id"]: u for u in obs["party"] + obs["enemies"]}
@@ -217,6 +241,29 @@ class LLMPolicy:
                 out.append(Action("cast", ab_id, tgt_id, reason=self.say(st)))
                 break
         return out
+
+    def safe_destination(self, obs: dict, st: Standing):
+        """Resolve "safe": the bots' dodge planner, keeping the first priority
+        target in range when possible and never walking through another
+        pool. None = already safe and in range."""
+        me = obs["self"]
+        pos = tuple(me["pos"])
+        units = {u["id"]: u for u in obs["party"] + obs["enemies"]}
+        reach = None
+        for ab_id, tgt_id in st.order.priority:
+            tgt, ab = units.get(tgt_id), C.ABILITIES[ab_id]
+            if tgt and tgt["alive"] and tgt_id != self.uid and ab.kind not in ("taunt", "buff", "raid_heal", "aoe_damage"):
+                radius = C.BOSS.radius if tgt["role"] == "boss" else C.ADD.radius if tgt["role"] == "add" else PLAYER_RADIUS
+                reach = (tuple(tgt["pos"]), radius, ab.range - 0.2)
+                break
+        in_reach = reach is None or dist(pos, reach[0]) - PLAYER_RADIUS - reach[1] <= reach[2]
+        if not unsafe(pos, obs["ground"], 0.3) and in_reach:
+            return None
+        g, r = obs["ground"], obs["arena_radius"]
+        # Prefer: in range and a clean path; then a clean path; then just clear of pools.
+        return (find_safe_spot(g, r, pos, pos, reach, avoid_paths=True)
+                or find_safe_spot(g, r, pos, pos, avoid_paths=True)
+                or find_safe_spot(g, r, pos, pos))
 
     def say(self, st: Standing) -> str | None:
         if st.said or not st.order.say:
@@ -238,7 +285,8 @@ class LLMPolicy:
         if ab.kind == "interrupt":
             # Standing orders persist, so an interrupt only fires when there is
             # something to interrupt (otherwise it would be wasted instantly).
-            if not (tgt["casting"] and tgt["casting"]["interruptible"]):
+            c = tgt["casting"]
+            if not (c and c["interruptible"] and c["elapsed_ms"] >= REACTION_MS):
                 return False
         if ab.kind in ("taunt", "buff") or tgt_id == self.uid:
             return True

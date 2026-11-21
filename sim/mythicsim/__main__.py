@@ -121,7 +121,7 @@ def run_llm(args) -> None:
         print(f"seed {seed:>3}: {s['outcome']:7s} score {s['score']:6.1f} "
               f"(expert {refs['expert']:.1f}, competent {refs['competent']:.1f}, sloppy {refs['sloppy']:.1f})  "
               f"calls {st['calls']} ({st['cached_calls']} cached), tokens {st['input_tokens']}+{st['output_tokens']}, "
-              f"bad replies {st['unusable_replies']}, dropped entries {st['invalid_entries']}, "
+              f"bad replies {st['unusable_replies']} ({st['truncated_replies']} cut off), dropped entries {st['invalid_entries']}, "
               f"api errors {st['api_errors']}", flush=True)
     vals = [r["score"] for r in rows]
     tin = sum(r["stats"]["input_tokens"] for r in rows)

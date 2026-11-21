@@ -13,6 +13,10 @@ import re
 from dataclasses import dataclass, field
 
 from .. import content as C
+from ..engine import dist
+
+# Same hit test the engine uses for pools (centre within radius + half a body).
+POOL_HIT_PAD = 0.45 * 0.5
 
 KIND_TEXT = {
     "damage": "single-target damage", "aoe_damage": "damages every enemy within {radius:g} m of you",
@@ -39,6 +43,7 @@ def _ability_line(aid: str) -> str:
 
 
 def system_prompt() -> str:
+    from .policy import REACTION_MS  # local import: policy imports this module
     party = []
     for m in C.PARTY:
         cd = C.CLASSES[m.cls]
@@ -49,6 +54,7 @@ def system_prompt() -> str:
     boss = [_ability_line(a).replace("    - ", "  - ") for a in
             ("hollow_strike", "soul_rend", "requiem_of_bones", "desecrate", "raise_dead", "hollow_fury")]
     b = C.BOSS
+    reaction = f"{REACTION_MS / 1000:g}"
     return f"""You control a party of five adventurers fighting a dungeon boss in a turn-based simulation of a real-time fight. Your goal: kill the boss as fast as possible without dying. The boss enrages at {b.enrage_ms / 1000:g}s and then kills everyone within seconds.
 
 ## Score
@@ -69,10 +75,10 @@ Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) i
 
 ## How you play
 You are asked for orders every couple of seconds, and immediately when something important happens (a boss cast starts, pools appear, adds spawn, an ally gets low). The game is paused while you think. Each character keeps following its latest orders until you give it new ones:
-  - "move_to": [x, z] walks there once (omit or null to stay put).
-  - "priority": an ordered list of [ability_id, target_id]. Every tick, the character uses the FIRST entry that is ready (off cooldown, in range, GCD free, not casting or moving for cast-time spells). Off-GCD abilities in the list fire even during the GCD. Interrupts only fire while their target is casting something interruptible, so they can stay in the list. Put a reliable filler ability last so the character never idles.
+  - "move_to": [x, z] walks there once, or "safe" steps to the nearest spot clear of all pools, reachable without walking through another pool, from which the character's first priority target is still in range when possible (the scripted bots' movement logic). Omit or null to stay put. A move is carried out each time you send it.
+  - "priority": an ordered list of [ability_id, target_id]. Every tick, the character uses the FIRST entry that is ready (off cooldown, in range, GCD free, not casting or moving for cast-time spells). Off-GCD abilities in the list fire even during the GCD. Interrupts only fire while their target is casting something interruptible (reacting {reaction} s after the cast starts), so they can stay in the list; once one character interrupts, the others' interrupts see nothing to stop and stay ready. Put a reliable filler ability last so the character never idles.
   - "say": one short sentence explaining the decision (shown in the replay).
-Targets are unit ids from the state (e.g. "mortisar", "bonewalker_1", "lumi"). For self-buffs and party-wide abilities use the character's own id.
+Targets are unit ids from the state (e.g. "mortisar", "bonewalker_1", "lumi"). For self-buffs and party-wide abilities use the character's own id ("self" and "party" also work).
 Characters you leave out keep their previous orders.
 
 Reply with ONLY a JSON object, no prose:
@@ -93,6 +99,25 @@ def _cast(c: dict | None) -> str:
     tgt = f" on {c['target']}" if c.get("target") else ""
     kick = " INTERRUPTIBLE" if c["interruptible"] else ""
     return f", casting {c['ability']}{tgt} ({c['remaining_ms'] / 1000:.1f}s left){kick}"
+
+
+def _danger(p: dict, ground: list[dict]) -> str:
+    """What a player would see at their feet. In the 3D game a swirl under you
+    is unmissable; in text, the model would have to compare coordinates by hand."""
+    inside, near = [], []
+    for g in ground:
+        d = dist(p["pos"], g["pos"])
+        state = "ARMED" if g["armed"] else "arming"
+        if d <= g["radius"] + POOL_HIT_PAD:
+            inside.append(f"{g['id']} ({state}, {d:.1f} m from its centre, radius {g['radius']:g})")
+        elif d <= g["radius"] + 1.0:
+            near.append(g["id"])
+    out = ""
+    if inside:
+        out += f" STANDING IN POOL {', '.join(inside)}!"
+    if near:
+        out += f" Next to pool {', '.join(near)}."
+    return out
 
 
 def _auras(a: dict) -> str:
@@ -129,7 +154,8 @@ def render_state(obs: dict, gcd: dict[str, int], orders_age_s: float | None) -> 
             + f" at {_p(p['pos'])}{' moving' if p['moving'] else ''}{_cast(p['casting'])}{_auras(p['auras'])}"
             + (f", GCD {g / 1000:.1f}s" if g else "")
             + f". Ready: {', '.join(ready) or 'nothing'}"
-            + (f". On cooldown: {', '.join(waiting)}" if waiting else "") + ".")
+            + (f". On cooldown: {', '.join(waiting)}" if waiting else "") + "."
+            + _danger(p, obs["ground"]))
     if orders_age_s is not None:
         lines.append(f"Your current orders were given {orders_age_s:.1f}s ago.")
     return "\n".join(lines)
@@ -141,7 +167,7 @@ def render_state(obs: dict, gcd: dict[str, int], orders_age_s: float | None) -> 
 
 @dataclass
 class Order:
-    move_to: tuple[float, float] | None = None
+    move_to: tuple[float, float] | str | None = None  # (x, z) or "safe"
     priority: list[tuple[str, str]] = field(default_factory=list)
     say: str = ""
 
@@ -153,7 +179,7 @@ class Parsed:
     ok: bool  # False when the reply was not usable JSON at all
 
 
-def parse_reply(text: str, unit_ids: set[str]) -> Parsed:
+def parse_reply(text: str, unit_ids: set[str], dead: set[str] = frozenset()) -> Parsed:
     """Read the model's JSON. Invalid pieces are dropped and reported, never guessed."""
     m = re.search(r"\{.*\}", text, re.S)
     if not m:
@@ -169,14 +195,20 @@ def parse_reply(text: str, unit_ids: set[str]) -> Parsed:
     problems: list[str] = []
     for m_ in C.PARTY:
         spec = raw.get(m_.id)
-        if spec is None:
-            continue
+        if spec is None or m_.id in dead:
+            continue  # orders for a dead character are moot, not an error
         if not isinstance(spec, dict):
             problems.append(f"{m_.id}: orders must be an object")
             continue
         o = Order(say=str(spec.get("say") or "")[:200])
         mv = spec.get("move_to")
-        if mv is not None:
+        if isinstance(mv, dict) and set(mv) >= {"x", "z"}:
+            mv = [mv["x"], mv["z"]]  # {"x": .., "z": ..} is unambiguous; accept it
+        if isinstance(mv, list) and len(mv) == 1 and isinstance(mv[0], str):
+            mv = mv[0]  # ["safe"] means "safe"
+        if isinstance(mv, str) and mv.strip().lower() == "safe":
+            o.move_to = "safe"
+        elif mv is not None:
             if isinstance(mv, (list, tuple)) and len(mv) == 2 and all(isinstance(v, (int, float)) for v in mv):
                 o.move_to = (float(mv[0]), float(mv[1]))
             else:
@@ -187,6 +219,8 @@ def parse_reply(text: str, unit_ids: set[str]) -> Parsed:
                 problems.append(f"{m_.id}: bad priority entry {entry!r}")
                 continue
             ab, tgt = str(entry[0]), str(entry[1])
+            if tgt in ("self", "party", "me", "all"):
+                tgt = m_.id
             if ab not in allowed:
                 problems.append(f"{m_.id}: cannot use {ab!r}")
                 continue
