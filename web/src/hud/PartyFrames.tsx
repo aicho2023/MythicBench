@@ -1,7 +1,7 @@
 import { Skull } from 'lucide-react'
 import { CLASS_COLORS, ROLE_LABEL, TRACKED_COOLDOWNS, fmtNum } from '../content/display'
 import { useHud } from '../replay/store'
-import { AbilityIcon, Bar, secs } from './bits'
+import { AbilityIcon, Bar, RoleIcon, secs } from './bits'
 
 /** One card, five rows: the party at a glance. */
 export function PartyFrames() {
@@ -28,6 +28,7 @@ export function PartyFrames() {
           >
             <div className="flex items-baseline gap-2">
               <span className="h-2 w-2 shrink-0 translate-y-[-1px] rounded-full" style={{ background: col }} />
+              <span className="translate-y-[1px]"><RoleIcon role={u.info.role} size={12} /></span>
               <span className="text-[13px] font-medium text-fg">{u.info.name}</span>
               <span className="truncate text-[11px] text-fg-faint">{cls?.name} · {ROLE_LABEL[u.info.role]}</span>
               <span className={`num ml-auto font-mono text-[11px] ${!u.alive ? 'text-bad' : low ? 'text-warn' : 'text-fg-muted'}`}>
