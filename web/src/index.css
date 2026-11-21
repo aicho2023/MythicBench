@@ -8,38 +8,68 @@ body {
   font-size: 13px;
   user-select: none;
   -webkit-font-smoothing: antialiased;
-  font-feature-settings: 'tnum' 0;
 }
 
 @layer components {
-  /* One surface style for every HUD card: quiet glass, hairline border. */
+  /* One surface for every HUD card: opaque enough to read over the scene, one hairline. */
   .card {
-    @apply rounded-[10px] border border-white/[0.08];
-    background: rgba(14, 14, 18, 0.78);
-    backdrop-filter: blur(14px) saturate(1.2);
-    -webkit-backdrop-filter: blur(14px) saturate(1.2);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    @apply rounded-xl border border-line;
+    background: rgba(17, 17, 19, 0.88);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   }
-  /* Small uppercase mono labels: the "instrument" voice. */
-  .label { @apply font-mono text-label uppercase text-fg-faint; }
+  /* Panel titles: sentence case, quiet. */
+  .label { @apply text-label font-medium text-fg-muted; }
   .num { font-variant-numeric: tabular-nums; }
   .icon-btn {
-    @apply grid h-8 w-8 place-items-center rounded-md text-fg-muted transition-colors hover:bg-white/[0.07] hover:text-fg;
+    @apply grid h-8 w-8 place-items-center rounded-lg text-fg-muted transition-colors hover:bg-white/[0.07] hover:text-fg;
   }
   .btn {
-    @apply inline-flex h-8 items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-3 text-[12.5px] font-medium text-fg transition-colors hover:bg-white/[0.09];
+    @apply inline-flex h-8 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border border-line bg-surface-raised px-3 text-[13px] font-medium text-fg transition-colors hover:bg-[#232326];
   }
   .btn-primary { @apply border-transparent bg-fg text-bg hover:bg-white; }
-  .filter { @apply h-7 rounded-md border border-white/10 bg-white/[0.03] px-1.5 text-fg-muted outline-none hover:text-fg; }
-  .seg { @apply flex rounded-lg border border-white/[0.08] bg-white/[0.03] p-0.5; }
-  .seg > button { @apply rounded-md px-2.5 py-1 text-[12px] font-medium text-fg-muted transition-colors hover:text-fg; }
+  .filter { @apply h-8 rounded-lg border border-line bg-surface-raised px-2 text-fg-muted outline-none transition-colors hover:text-fg; }
+  .seg { @apply flex rounded-lg border border-line bg-white/[0.03] p-0.5; }
+  .seg > button { @apply whitespace-nowrap rounded-md px-2 py-1 text-[12px] font-medium text-fg-muted transition-colors hover:text-fg; }
   .seg > button[aria-pressed='true'] { @apply bg-white/[0.1] text-fg; }
+  button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-fg/60;
+  }
 }
 
+/*
+ * HUD layout. Clusters sit in grids so they know about each other; `zoom`
+ * (not transform) shrinks them on small screens so the grid sees their real size.
+ */
 :root { --hud: 1; }
 @media (max-height: 840px), (max-width: 1380px) { :root { --hud: 0.86; } }
-/* Each HUD cluster scales from its own screen corner on small displays. */
-.hud-s { transform: scale(var(--hud)); }
+.hud-s { zoom: var(--hud); }
+
+/* Top: party | boss | scorecard. Below 1024px the boss frame takes its own row. */
+.hud-top {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-areas: 'party boss side';
+  align-items: start;
+  column-gap: 16px;
+}
+@media (max-width: 1023px) {
+  .hud-top { grid-template-areas: 'boss boss boss' 'party . side'; row-gap: 12px; }
+}
+
+/* Bottom: decision log | transport. Below 1180px the transport takes its own row. */
+.hud-bottom {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-areas: 'log transport .';
+  align-items: end;
+  gap: 16px;
+}
+/* The transport shrinks to leave room for the log on both sides of it. */
+.transport-w { width: min(640px, calc(100vw - 680px * var(--hud) - 64px)); }
+@media (max-width: 1179px) {
+  .transport-w { width: min(640px, 100%); }
+  .hud-bottom { grid-template-columns: 1fr; grid-template-areas: 'log' 'transport'; gap: 12px; }
+}
 
 @keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-@keyframes slidein { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+@keyframes slidein { from { transform: translateX(16px); } to { transform: none; } }

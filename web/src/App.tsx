@@ -29,29 +29,35 @@ export default function App() {
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute inset-x-0 top-0"><TopBar onAbout={() => setAbout(true)} onRuns={() => setRuns(true)} /></div>
 
-        <div className="hud-s absolute left-4 top-16 origin-top-left"><PartyFrames /></div>
-        <div className="absolute left-1/2 top-16 -translate-x-1/2"><div className="hud-s origin-top"><BossFrame /></div></div>
-        <div className="absolute left-1/2 top-[178px] -translate-x-1/2"><div className="hud-s origin-top"><RaidWarnings /></div></div>
-        <div className="hud-s absolute right-4 top-16 flex origin-top-right flex-col gap-2">
-          <Scorecard />
-          <div className="pointer-events-auto">
-            {learning && !meter ? <LearningPanel onShowMeter={() => setMeter(true)} /> : <DamageMeter />}
-            {learning && meter && (
-              <button onClick={() => setMeter(false)} className="mt-1 w-full text-right font-mono text-[10px] text-fg-faint hover:text-fg">show learning</button>
-            )}
+        {/* Top row: party | boss (+ adds, callouts) | scorecard. See .hud-top in index.css. */}
+        <div className="hud-top absolute inset-x-4 top-16">
+          <div className="hud-s justify-self-start [grid-area:party]"><PartyFrames /></div>
+          <div className="hud-s relative justify-self-center [grid-area:boss]">
+            <BossFrame />
+            <div className="absolute left-1/2 top-full mt-14 -translate-x-1/2"><RaidWarnings /></div>
+          </div>
+          <div className="hud-s flex flex-col gap-2 justify-self-end [grid-area:side]">
+            <Scorecard />
+            <div className="pointer-events-auto">
+              {learning && !meter ? <LearningPanel onShowMeter={() => setMeter(true)} /> : <DamageMeter />}
+              {learning && meter && (
+                <button onClick={() => setMeter(false)} className="mt-1 w-full text-right text-meta text-fg-faint transition-colors hover:text-fg">Show learning</button>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="hud-s pointer-events-auto absolute bottom-4 left-4 origin-bottom-left"><DecisionLog /></div>
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-          <div className="hud-s flex origin-bottom flex-col gap-1.5"><TimelineLegend /><ReplayControls /></div>
+        {/* Bottom row: decision log | transport. See .hud-bottom in index.css. */}
+        <div className="hud-bottom absolute inset-x-4 bottom-4">
+          <div className="hud-s pointer-events-auto justify-self-start [grid-area:log]"><DecisionLog /></div>
+          <div className="flex w-full flex-col items-center gap-2 [grid-area:transport]"><TimelineLegend /><ReplayControls /></div>
         </div>
-        <div className="absolute left-1/2 top-[28%] -translate-x-1/2"><div className="hud-s origin-top"><EndBanner /></div></div>
+        <div className="absolute left-1/2 top-[28%] z-10 -translate-x-1/2"><div className="hud-s"><EndBanner /></div></div>
         {about && <AboutPanel onClose={closeAbout} />}
         {runs && <RunBrowser onClose={closeRuns} />}
       </div>
       {!ready && !error && (
-        <div className="absolute inset-0 grid place-items-center font-mono text-[12px] text-fg-faint">Loading replay…</div>
+        <div className="absolute inset-0 grid place-items-center text-[13px] text-fg-faint">Loading replay…</div>
       )}
       {error && <div className="absolute inset-0 grid place-items-center text-[13px] text-bad">{error}</div>}
     </div>

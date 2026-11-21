@@ -65,45 +65,48 @@ export function RunBrowser({ onClose }: { onClose: () => void }) {
   })
 
   return (
-    <div className="pointer-events-auto absolute inset-0 z-20 flex justify-end bg-black/40" onClick={onClose}>
-      <aside className="flex h-full w-[460px] max-w-full animate-[slidein_0.25s_ease-out] flex-col border-l border-line bg-[#0c0c0f]"
+    <div className="pointer-events-auto absolute inset-0 z-30 flex justify-end bg-black/50" onClick={onClose}>
+      <aside className="flex h-full w-[480px] max-w-full animate-[slidein_300ms_cubic-bezier(0.22,1,0.36,1)] flex-col border-l border-line bg-surface"
         onClick={(e) => e.stopPropagation()}>
-        <div className="border-b border-line px-5 pb-3 pt-4">
+        <div className="border-b border-line px-5 pb-4 pt-4">
           <div className="flex items-center justify-between">
-            <span className="label">Model runs · {shown.length === runs.length ? runs.length : `${shown.length} of ${runs.length}`}</span>
+            <span className="text-[15px] font-medium text-fg">
+              Model runs <span className="num ml-1 font-mono text-meta font-normal text-fg-faint">{shown.length === runs.length ? runs.length : `${shown.length} of ${runs.length}`}</span>
+            </span>
             <button onClick={onClose} className="icon-btn -mr-2" title="Close (Esc)"><X size={16} /></button>
           </div>
-          <div className="mt-3 flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-2.5">
-            <Search size={14} className="text-fg-faint" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search model, name, tag, run id"
-              className="h-8 w-full bg-transparent text-[12.5px] text-fg outline-none placeholder:text-fg-faint" />
+          <div className="mt-3 flex items-center gap-2 rounded-lg border border-line bg-surface-raised px-3 focus-within:border-white/20">
+            <Search size={16} className="shrink-0 text-fg-faint" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" aria-label="Search model, name, tag or run id"
+              title="Matches model, name, tag and run id"
+              className="h-8 w-full bg-transparent text-[13px] text-fg outline-none placeholder:text-fg-faint focus-visible:outline-none" />
           </div>
-          <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[11.5px]">
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px]">
             <select value={provider} onChange={(e) => setProvider(e.target.value)} className="filter">
               {providers.map((p) => <option key={p} value={p}>{p === 'any' ? 'All providers' : p}</option>)}
             </select>
             <select value={effort} onChange={(e) => setEffort(e.target.value as (typeof EFFORTS)[number])} className="filter">
-              {EFFORTS.map((x) => <option key={x} value={x}>{x === 'any' ? 'Any effort' : `effort: ${x}`}</option>)}
+              {EFFORTS.map((x) => <option key={x} value={x}>{x === 'any' ? 'Any effort' : `Effort ${x}`}</option>)}
             </select>
             <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="filter">
               <option value="newest">Newest first</option>
               <option value="best">Best score</option>
               <option value="model">By model</option>
             </select>
-            <label className="flex cursor-pointer items-center gap-1.5 text-fg-muted">
-              <input type="checkbox" checked={showLegacy} onChange={(e) => setShowLegacy(e.target.checked)} className="accent-[#a78bfa]" />
-              legacy
+            <label className="flex cursor-pointer items-center gap-2 text-fg-muted">
+              <input type="checkbox" checked={showLegacy} onChange={(e) => setShowLegacy(e.target.checked)} className="accent-[#d4d4d8]" />
+              Show legacy
             </label>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 py-2">
+        <div className="flex-1 overflow-y-auto px-3 py-3">
           {runs.length === 0 && (
-            <p className="px-2 py-6 text-[12.5px] leading-[19px] text-fg-muted">
+            <p className="px-2 py-6 text-[13px] leading-5 text-fg-muted">
               No model runs yet. Play some with <code className="font-mono text-fg">python -m mythicsim llm --model …</code>; each run shows up here.
             </p>
           )}
-          {runs.length > 0 && shown.length === 0 && <p className="px-2 py-6 text-[12.5px] text-fg-faint">No runs match.</p>}
+          {runs.length > 0 && shown.length === 0 && <p className="px-2 py-6 text-[13px] text-fg-faint">No runs match</p>}
           {shown.map((r) => {
             const t = title(r)
             const isOpen = open.has(r.run_id)
@@ -113,57 +116,59 @@ export function RunBrowser({ onClose }: { onClose: () => void }) {
               : r.items.filter((i) => i.outcome === 'victory').length
             const stale = r.harness_version !== catalog?.current_harness_version
             return (
-              <div key={r.run_id} className={`mb-1.5 rounded-lg border ${currentRun === r.run_id ? 'border-white/20 bg-white/[0.05]' : 'border-transparent hover:bg-white/[0.03]'}`}>
-                <button onClick={() => toggle(r.run_id)} className="flex w-full items-start gap-2 px-2.5 py-2 text-left">
-                  <span className="mt-[3px] text-fg-faint">{isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
+              <div key={r.run_id} className={`mb-1 rounded-lg border transition-colors ${currentRun === r.run_id ? 'border-white/15 bg-surface-raised' : 'border-transparent hover:bg-white/[0.03]'}`}>
+                <button onClick={() => toggle(r.run_id)} aria-expanded={isOpen} className="flex w-full items-start gap-2 rounded-lg p-3 text-left">
+                  <span className="mt-0.5 text-fg-faint">{isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-medium text-fg">{t.main}</span>
-                    <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[10.5px] text-fg-faint">
+                    <span className="block truncate text-[13px] font-medium leading-5 text-fg">{t.main}</span>
+                    <span className="mt-1 flex flex-wrap items-center gap-x-2 font-mono text-meta text-fg-faint">
                       {t.sub && <span className="text-fg-muted">{t.sub}</span>}
                       <span>{r.provider}</span>
-                      <span className="text-fg-muted">+{r.level ?? 12}</span>
+                      <span>+{r.level ?? 12}</span>
                       <span>{when(r.created)}</span>
-                      <span className={stale ? 'rounded border border-warn/40 px-1 text-warn' : ''}
+                    </span>
+                    <span className="flex flex-wrap items-center gap-x-2 font-mono text-meta text-fg-faint">
+                      <span className={stale ? 'text-warn' : ''}
                         title={stale ? `Played on harness ${r.harness_version}; current is ${catalog?.current_harness_version}. Not directly comparable.` : 'Current harness'}>
                         harness {r.harness_version ?? '?'}
                       </span>
-                      {prog && <span className="rounded border border-accent/40 px-1 text-accent">learning · {r.knowledge ?? 'blind'} · memory {r.memory === false ? 'off' : 'on'}</span>}
+                      {prog && <span className="text-accent">learning, {r.knowledge ?? 'blind'}, memory {r.memory === false ? 'off' : 'on'}</span>}
                       {r.summary.cost_usd != null && (
-                        <span title="What this run costs to play from scratch at list prices (replaying the recording is free)">
+                        <span className="num" title="What this run costs to play from scratch at list prices (replaying the recording is free)">
                           {usd(r.summary.cost_usd)}
                         </span>
                       )}
                       {r.status === 'stopped' && (
-                        <span className="rounded border border-warn/40 px-1 text-warn" title={r.note ?? 'Stopped at its spend budget'}>stopped at budget</span>
+                        <span className="text-warn" title={r.note ?? 'Stopped at its spend budget'}>stopped at budget</span>
                       )}
-                      {r.tags.map((tag) => <span key={tag} className="text-accent">#{tag}</span>)}
+                      {r.tags.map((tag) => <span key={tag}>#{tag}</span>)}
                     </span>
                   </span>
-                  <span className="text-right">
-                    <span className="num block font-mono text-[15px] text-fg">{r.summary.score_mean?.toFixed(1) ?? '–'}</span>
-                    <span className={`num block font-mono text-[10.5px] ${wins ? 'text-good' : 'text-fg-faint'}`}>
+                  <span className="shrink-0 text-right">
+                    <span className="num block font-mono text-[15px] leading-5 text-fg">{r.summary.score_mean?.toFixed(1) ?? '–'}</span>
+                    <span className={`num mt-1 block font-mono text-meta ${wins ? 'text-good' : 'text-fg-faint'}`}>
                       {prog ? `${wins}/${episodes.length} killed · ${r.summary.pulls_to_kill_mean ?? '–'} pulls` : `${wins}/${r.items.length} kills`}
                     </span>
                   </span>
                 </button>
                 {isOpen && (
-                  <div className="px-2.5 pb-2.5 pl-8">
+                  <div className="px-3 pb-3 pl-9">
                     {prog ? episodes.map((e) => {
                       const pulls = r.items.filter((i) => i.episode === e).sort((a, b) => (a.pull ?? 0) - (b.pull ?? 0))
                       return (
-                        <div key={e} className="mb-1.5 flex items-center gap-1.5">
-                          <span className="w-10 shrink-0 font-mono text-[10px] text-fg-faint">ep {e}</span>
+                        <div key={e} className="mb-2 flex items-center gap-2">
+                          <span className="w-10 shrink-0 font-mono text-meta text-fg-faint">ep {e}</span>
                           <div className="flex flex-wrap gap-1">
                             {pulls.map((it) => <ItemChip key={it.pull} run={r} it={it} current={current} load={load} />)}
                           </div>
                         </div>
                       )
                     }) : (
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-1">
                         {r.items.map((it) => <ItemChip key={it.seed} run={r} it={it} current={current} load={load} />)}
                       </div>
                     )}
-                    <div className="mt-2 font-mono text-[10px] text-fg-faint">
+                    <div className="mt-2 font-mono text-meta leading-5 text-fg-faint">
                       {r.run_id}
                       {r.summary.usd_per_fight != null && <span className="ml-2">· {usd(r.summary.usd_per_fight)} per {prog ? 'pull' : 'fight'}</span>}
                       {prog && r.summary.curve_mean && <span className="ml-2">· mean score by pull: {r.summary.curve_mean.join(' → ')}</span>}
@@ -189,9 +194,9 @@ function ItemChip({ run, it, current, load }: { run: CatalogRun; it: CatalogItem
   return (
     <button onClick={() => load(id)}
       title={`${head} (seed ${it.seed}): ${win ? 'kill' : 'wipe'} at ${fmtTime(it.duration_s * 1000)}, score ${it.score}`}
-      className={`rounded-md border px-2 py-1 text-left transition-colors ${current === id ? 'border-fg/60 bg-white/[0.1]' : 'border-white/10 hover:bg-white/[0.06]'}`}>
-      <span className="block font-mono text-[10px] text-fg-faint">{head}{win && it.pull !== undefined ? ' ✓' : ''}</span>
-      <span className={`num block font-mono text-[12px] ${win ? 'text-good' : 'text-bad'}`}>{it.score.toFixed(1)}</span>
+      className={`w-16 rounded-md border px-2 py-1 text-left transition-colors ${current === id ? 'border-fg/50 bg-white/[0.1]' : 'border-line hover:bg-white/[0.06]'}`}>
+      <span className="block font-mono text-meta text-fg-faint">{head}</span>
+      <span className={`num block font-mono text-[13px] ${win ? 'text-good' : 'text-bad'}`}>{it.score.toFixed(1)}</span>
     </button>
   )
 }
