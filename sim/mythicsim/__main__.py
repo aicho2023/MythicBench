@@ -35,8 +35,8 @@ SHOWCASE = [
 ]
 
 
-def simulate(policy: str, seed: int) -> dict:
-    enc = Encounter(seed, make_policies(policy, seed), f"scripted-{policy}")
+def simulate(policy: str, seed: int, level: int = C.SIGIL_LEVEL) -> dict:
+    enc = Encounter(seed, make_policies(policy, seed), f"scripted-{policy}", level)
     return enc.run()
 
 
@@ -48,18 +48,18 @@ def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
     return round(max(0.0, centre - half), 3), round(min(1.0, centre + half), 3)
 
 
-def bench(policy: str, runs: int) -> dict:
+def bench(policy: str, runs: int, level: int = C.SIGIL_LEVEL) -> dict:
     """Play seeds 0..runs-1 and report the score and win rate with 95% CIs."""
     if policy not in PROFILES:
         raise SystemExit(f"unknown policy {policy!r}; choose from {', '.join(PROFILES)}")
-    scores = [score(simulate(policy, seed)) for seed in range(runs)]
+    scores = [score(simulate(policy, seed, level)) for seed in range(runs)]
     vals = [s["score"] for s in scores]
     wins = sum(s["outcome"] == "victory" for s in scores)
     times = [s["duration_s"] for s in scores if s["outcome"] == "victory"]
     sd = statistics.stdev(vals) if runs > 1 else 0.0
     half = 1.96 * sd / math.sqrt(runs)
     return {
-        "policy": policy, "runs": runs,
+        "policy": policy, "runs": runs, "level": level,
         "score_mean": round(statistics.mean(vals), 1),
         "score_ci95": [round(statistics.mean(vals) - half, 1), round(statistics.mean(vals) + half, 1)],
         "win_rate": round(wins / runs, 3), "win_rate_ci95": list(wilson(wins, runs)),
@@ -68,6 +68,16 @@ def bench(policy: str, runs: int) -> dict:
         "interrupt_rate": round(sum(s["interrupts"]["interrupted"] for s in scores) /
                                 max(1, sum(s["interrupts"]["interruptible_casts"] for s in scores)), 3),
     }
+
+
+LEVEL_NAMES = {"normal": 4, "heroic": 8, "mythic": 12}
+
+
+def parse_level(text: str) -> int:
+    lvl = LEVEL_NAMES.get(str(text).lower().lstrip("+"), None)
+    lvl = lvl if lvl is not None else int(str(text).lstrip("+"))
+    C.level_multiplier(lvl)  # validates the range
+    return lvl
 
 
 def parse_seeds(text: str) -> list[int]:
@@ -79,8 +89,9 @@ def parse_seeds(text: str) -> list[int]:
 
 
 def play_llm_seed(client, seed: int, args, label: str, run) -> tuple[dict, dict]:
-    policies, brain = make_llm_policies(client, interval_ms=args.interval_ms, max_calls=args.max_calls)
-    rep = Encounter(seed, policies, f"llm:{label}").run()
+    policies, brain = make_llm_policies(client, interval_ms=args.interval_ms, max_calls=args.max_calls,
+                                        level=args.level)
+    rep = Encounter(seed, policies, f"llm:{label}", args.level).run()
     s = score(rep)
     rep["meta"]["metrics"] = s
     rep["meta"]["run"] = {k: run.manifest.get(k) for k in
@@ -101,8 +112,8 @@ def run_llm(args) -> None:
     if not args.no_cache:
         client = CachedClient(client, runs_mod.RUNS_DIR / "cache" / f"{safe}.jsonl", offline=args.offline)
     run = runs_mod.new_run(label, mode="single", name=args.name, tags=args.tag, config={
-        "seeds": seeds, "interval_ms": args.interval_ms, "max_calls": args.max_calls,
-        "harness_version": HARNESS_VERSION, "prompt_hash": prompt_hash(),
+        "seeds": seeds, "interval_ms": args.interval_ms, "max_calls": args.max_calls, "level": args.level,
+        "harness_version": HARNESS_VERSION, "prompt_hash": prompt_hash("full", args.level),
         "sim_version": SIM_VERSION, "content_version": C.CONTENT_VERSION,
         "offline": args.offline, "cache": not args.no_cache,
     })
@@ -123,7 +134,7 @@ def run_llm(args) -> None:
                 run.save_manifest()
                 raise SystemExit(f"seed {seed}: {err}")
             s = rep["meta"]["metrics"]
-            refs = {p: score(simulate(p, seed))["score"] for p in ("expert", "competent", "sloppy")}
+            refs = {p: score(simulate(p, seed, args.level))["score"] for p in ("expert", "competent", "sloppy")}
             rows.append({"seed": seed, "score": s["score"], "outcome": s["outcome"],
                          "duration_s": s["duration_s"], "deaths": len(s["deaths"]),
                          "interrupts": f"{s['interrupts']['interrupted']}/{s['interrupts']['interruptible_casts']}",
@@ -176,12 +187,13 @@ def run_progress(args) -> None:
         client = CachedClient(client, runs_mod.RUNS_DIR / "cache" / f"{safe}.jsonl", offline=args.offline)
     run = runs_mod.new_run(label, mode="progression", name=args.name, tags=args.tag, config={
         "episodes": episodes, "max_pulls": args.max_pulls, "memory": memory, "knowledge": args.knowledge,
-        "interval_ms": args.interval_ms, "max_calls": args.max_calls,
-        "harness_version": HARNESS_VERSION, "prompt_hash": prompt_hash(args.knowledge),
+        "interval_ms": args.interval_ms, "max_calls": args.max_calls, "level": args.level,
+        "harness_version": HARNESS_VERSION, "prompt_hash": prompt_hash(args.knowledge, args.level),
         "sim_version": SIM_VERSION, "content_version": C.CONTENT_VERSION,
         "offline": args.offline, "cache": not args.no_cache,
     })
-    print(f"run {run.run_id}  ({args.knowledge} knowledge, memory {args.memory}, up to {args.max_pulls} pulls)", flush=True)
+    print(f"run {run.run_id}  (+{args.level} key, {args.knowledge} knowledge, memory {args.memory}, "
+          f"up to {args.max_pulls} pulls)", flush=True)
 
     def on_pull(ep, pr):
         d = run.dir / "episodes" / str(ep.episode)
@@ -201,7 +213,7 @@ def run_progress(args) -> None:
     with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
         futures = {pool.submit(run_episode, client, e, max_pulls=args.max_pulls, memory=memory,
                                knowledge=args.knowledge, interval_ms=args.interval_ms,
-                               max_calls=args.max_calls, on_pull=on_pull): e for e in episodes}
+                               max_calls=args.max_calls, level=args.level, on_pull=on_pull): e for e in episodes}
         for fut in as_completed(futures):
             try:
                 results.append(fut.result())
@@ -233,7 +245,8 @@ def run_runs(args) -> None:
             n = len(m.get("items") or [])
             mean = s.get("score_mean")
             print(f"{m['run_id']:<52} {m.get('status', '?'):7s} {m.get('mode', ''):11s} "
-                  f"{n:>3} seeds  score {mean if mean is not None else '-':>6}  "
+                  f"{n:>3} {'pulls' if m.get('mode') == 'progression' else 'seeds'}  +{m.get('level') or 12:<3} "
+                  f"score {mean if mean is not None else '-':>6}  "
                   f"harness {m.get('harness_version')}  {m.get('name') or ''} {' '.join('#' + t for t in m.get('tags') or [])}")
     elif args.runs_cmd == "show":
         print(json.dumps(runs_mod.find_run(args.run), indent=2))
@@ -246,6 +259,10 @@ def run_runs(args) -> None:
         only = None if args.all or not args.runs else [runs_mod.find_run(r)["run_id"] for r in args.runs]
         n = runs_mod.publish(only=only)
         print(f"catalog: {n} runs -> {runs_mod.LOCAL_REPLAYS / 'catalog.json'}")
+    elif args.runs_cmd == "rescore":
+        n = runs_mod.rescore()
+        runs_mod.publish(only=None)
+        print(f"rescored {n} replays with the current scoring and refreshed the catalog")
     elif args.runs_cmd == "import-legacy":
         made = runs_mod.import_legacy()
         runs_mod.publish()
@@ -259,16 +276,22 @@ def main() -> None:
     r.add_argument("--policy", choices=PROFILES, default="expert")
     r.add_argument("--seed", type=int, default=7)
     r.add_argument("--out", type=Path, help="also write the replay JSON here")
+    r.add_argument("--level", type=parse_level, default=C.SIGIL_LEVEL,
+                     help="key level 2-30, or normal/heroic/mythic (= +4/+8/+12). Default +12")
     b = sub.add_parser("bench", help="simulate many seeds headlessly and aggregate")
     b.add_argument("--policy", default="expert",
                    help=f"one or more of {', '.join(PROFILES)}, comma-separated")
     b.add_argument("--runs", type=int, default=100)
+    b.add_argument("--level", type=parse_level, default=C.SIGIL_LEVEL,
+                     help="key level 2-30, or normal/heroic/mythic (= +4/+8/+12). Default +12")
     m = sub.add_parser("llm", help="let a language model play; compares it to the reference bots")
     m.add_argument("--model", required=True,
                    help="provider:model, e.g. anthropic:claude-haiku-5-5, openai:<model>, or mock:basic")
     m.add_argument("--seeds", default="0-4", help="e.g. 0-4 or 3,7,11 (default 0-4)")
     m.add_argument("--interval-ms", type=int, default=2000, help="routine decision interval in game time")
     m.add_argument("--max-calls", type=int, default=300, help="safety cap on model calls per fight")
+    m.add_argument("--level", type=parse_level, default=C.SIGIL_LEVEL,
+                     help="key level 2-30, or normal/heroic/mythic (= +4/+8/+12). Default +12")
     m.add_argument("--offline", action="store_true", help="only use recorded replies (no API calls)")
     m.add_argument("--no-cache", action="store_true", help="don't record or reuse replies")
     m.add_argument("--effort", choices=("none", "low", "medium", "high"),
@@ -284,6 +307,8 @@ def main() -> None:
     pg.add_argument("--effort", choices=("none", "low", "medium", "high"))
     pg.add_argument("--episodes", default="0", help="episode numbers, e.g. 0-4 (each is an independent attempt series)")
     pg.add_argument("--max-pulls", type=int, default=8)
+    pg.add_argument("--level", type=parse_level, default=C.SIGIL_LEVEL,
+                     help="key level 2-30, or normal/heroic/mythic (= +4/+8/+12). Default +12")
     pg.add_argument("--memory", choices=("on", "off"), default="on",
                     help="off = control condition: notes are wiped between pulls")
     pg.add_argument("--knowledge", choices=("blind", "full"), default="blind",
@@ -308,17 +333,18 @@ def main() -> None:
     rp.add_argument("runs", nargs="*", help="run ids (default: refresh the catalog only)")
     rp.add_argument("--all", action="store_true", help="copy every run's replays")
     rsub.add_parser("import-legacy", help="convert old runs/<model>/ folders into run folders")
+    rsub.add_parser("rescore", help="recompute every saved run's scores with the current scoring")
     g = sub.add_parser("generate", help="write the showcase replays for the viewer")
     g.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
 
     if args.cmd == "run":
-        rep = simulate(args.policy, args.seed)
+        rep = simulate(args.policy, args.seed, args.level)
         print(json.dumps(score(rep), indent=2))
         if args.out:
             args.out.write_text(json.dumps(rep, separators=(",", ":")))
     elif args.cmd == "bench":
-        results = [bench(p, args.runs) for p in args.policy.split(",")]
+        results = [bench(p, args.runs, args.level) for p in args.policy.split(",")]
         print(json.dumps(results[0] if len(results) == 1 else results, indent=2))
     elif args.cmd == "llm":
         run_llm(args)

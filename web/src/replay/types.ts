@@ -63,7 +63,7 @@ export interface ReplayMeta {
   /** Model runs: which run produced this replay. */
   run?: { run_id: string; name: string | null; label: string; model: string; effort: string | null; harness_version: string; prompt_hash: string }
   /** Progression runs: this pull's place in its episode and what the model knew. */
-  progress?: { episode: number; pull: number; memory: boolean; knowledge: string; notes_before: string; notes_after: string; debrief: string }
+  progress?: { episode: number; pull: number; memory: boolean; knowledge: string; level?: number; notes_before: string; notes_after: string; debrief: string }
 }
 
 interface Base { t: number }
@@ -138,11 +138,13 @@ export interface CatalogRun {
   git_commit: string | null
   knowledge?: string | null
   memory?: boolean | null
+  level?: number | null
   max_pulls?: number | null
   summary: {
     score_mean: number | null; score_ci95: [number, number] | null; win_rate: number | null; reference_means: Record<string, number> | null
     kill_rate?: number | null; pulls_to_kill_mean?: number | null; pulls_to_kill_ci95?: [number, number] | null
     learning_gain_mean?: number | null; learning_gain_ci95?: [number, number] | null; curve_mean?: number[] | null
+    progression_score_mean?: number | null; progression_score_ci95?: [number, number] | null
   }
   items: CatalogItem[]
 }

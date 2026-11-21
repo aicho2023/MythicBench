@@ -114,8 +114,12 @@ def test_no_platform_dependent_math():
 
 
 def test_run_score():
-    assert run_score("victory", 170.0, 0.0, 195.0) == 125.0
-    assert run_score("wipe", 120.0, 38.0, 195.0) == 62.0
+    assert run_score("wipe", 120.0, 100.0, 195.0) == 0.0
+    assert run_score("wipe", 120.0, 38.0, 195.0) == 43.4  # 70 x 62% removed
+    assert run_score("wipe", 199.0, 0.5, 195.0) < run_score("victory", 195.0, 0.0, 195.0) == 70.0
+    assert run_score("victory", 195.0 * 0.75, 0.0, 195.0) == 100.0  # a quarter of the timer left = par
+    assert run_score("victory", 60.0, 0.0, 195.0) == 100.0  # capped
+    assert run_score("victory", 175.5, 0.0, 195.0) == 82.0  # 19.5 s left = 40% of par
 
 
 def test_reference_bots_rank_in_order():
@@ -124,3 +128,23 @@ def test_reference_bots_rank_in_order():
     e, c, s = (bench(p, 40) for p in ("expert", "competent", "sloppy"))
     assert e["score_ci95"][0] > c["score_ci95"][1]
     assert c["score_ci95"][0] > s["score_ci95"][1]
+
+
+def test_key_levels_scale_enemies_and_keep_plus_12_unchanged():
+    from mythicsim import content as C
+    base = simulate("expert", 7)
+    assert digest(simulate("expert", 7, 12)) == digest(base)
+    hard = simulate("expert", 7, 16)
+    boss = lambda rep: next(u for u in rep["units"] if u["kind"] == "boss")  # noqa: E731
+    assert boss(hard)["max_hp"] == round(boss(base)["max_hp"] * C.level_multiplier(16))
+    assert hard["meta"]["sigil_level"] == 16
+    assert C.level_multiplier(13) == 1.08 and C.level_multiplier(11) == 1 / 1.08
+    with pytest.raises(ValueError):
+        C.level_multiplier(99)
+
+
+def test_harder_keys_are_harder():
+    """Over a few seeds, the expert bot scores lower as the key level rises."""
+    from mythicsim.metrics import score as sc
+    mean = lambda lvl: sum(sc(simulate("expert", s, lvl))["score"] for s in range(6)) / 6  # noqa: E731
+    assert mean(8) >= mean(14) > mean(18)

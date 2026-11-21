@@ -49,12 +49,16 @@ export const WARN_CASTS: Record<string, string> = {
 }
 
 /**
- * The run score (mirror of sim/mythicsim/metrics.py run_score):
- * kill = 100 + seconds left on the timer; wipe = % of boss health removed.
+ * The 0-100 pull score (mirror of sim/mythicsim/metrics.py run_score):
+ * a wipe earns up to 70 for boss health removed; a kill earns 70 plus up to 30
+ * for speed (the full 30 with a quarter of the timer or more left).
  */
 export function runScore(outcome: string | null, endMs: number, bossHpPctLeft: number, limitMs: number): number {
-  if (outcome === 'victory') return Math.round((100 + Math.max(0, (limitMs - endMs) / 1000)) * 10) / 10
-  return Math.round((100 - bossHpPctLeft) * 10) / 10
+  if (outcome === 'victory') {
+    const speed = Math.min(1, Math.max(0, limitMs - endMs) / (0.25 * limitMs))
+    return Math.round((70 + 30 * speed) * 10) / 10
+  }
+  return Math.round(0.7 * (100 - bossHpPctLeft) * 10) / 10
 }
 
 export function fmtNum(n: number): string {

@@ -115,9 +115,15 @@ future comparison should have.
 - **Hard enrage at 3:15.** Hollow Fury pulses ramping damage on the whole party
   every second, so the timer is a real deadline. Expert bots kill with ~29 s
   to spare; a few mistakes cost the kill.
-- **Run score** (`metrics.run_score`): % boss health removed on a wipe; 100 +
-  seconds left on a kill. It separates every rung of a skill ladder from expert
-  to sloppy, where win rate falls off a cliff in the middle.
+- **Run score** (`metrics.run_score`, `SCORE_VERSION` 2), 0–100: a wipe earns
+  up to 70 for boss health removed; a kill earns 70 plus up to 30 for speed
+  (full 30 with ≥25% of the timer left). It separates every rung of a skill
+  ladder, where win rate falls off a cliff. Old runs are converted with
+  `mythicsim runs rescore`, which is exact because scores are a pure function
+  of the event log.
+- **Key levels** (`content.level_multiplier`): +2…+30. Enemy health and damage
+  are ×1.08 per level from +12, built by repeated multiplication (no `pow()`)
+  for cross-platform determinism. +12 is byte-identical to the tuned fight.
 - **Cross-platform determinism.** CI regenerates replays on Linux and diffs
   them against ones made on a Mac. libm results (`hypot`, `cos`, `sin`…) can
   differ in the last bit between CPUs, so the sim uses only `+ - * /` and

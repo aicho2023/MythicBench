@@ -29,8 +29,8 @@ const oneShot = (p: Pose, rate: number) => (d: number) => Math.min(d - 1e-3, (p.
 const TARGET_S = 1.0
 const MAX_RATE = 1.3
 export const gestureRate = (dur: number) => Math.min(MAX_RATE, Math.max(1, dur / TARGET_S))
-/** follow cast progress 0..1 */
-const progress = (p: Pose) => (d: number) => Math.min(d - 1e-3, p.k * d)
+/** follow cast progress 0..1, mapped onto the [from, 1] part of the clip */
+const progress = (p: Pose, from = 0) => (d: number) => Math.min(d - 1e-3, (from + (1 - from) * p.k) * d)
 
 type Group = 'hero' | 'boss' | 'add'
 
@@ -60,12 +60,24 @@ const ACTION: Record<string, string> = {
   bone_claw: 'Melee_Unarmed_Attack_Punch_A',
 }
 /** What to show WHILE a cast bar is filling. */
-const CASTING: Record<string, { name: string; mode: 'loop' | 'progress' }> = {
+// Archery. Measured from the clips (bow axis in the archer's frame):
+// - Ranged_Bow_Draw opens with the bow horizontal at the shoulder, string
+//   pointing up (pulling it off the back). The bow is raised, vertical, string
+//   toward the archer from ~55% in, so shots draw from there.
+// - Ranged_Bow_Release lowers the bow back to the hip after ~25%. A ranger
+//   firing every ~1.2 s would bob up and down, so a shot shows only the
+//   release snap (first quarter, bow still up) and holds it.
+const BOW_DRAW_FROM = 0.55
+const BOW_RELEASE_CUT = 0.25
+const BOW_RELEASE_HOLD_S = 0.9
+const BOW_SHOTS = new Set(['steady_arrow', 'piercing_shot', 'silencing_arrow'])
+// `from`: where in the clip the cast starts (see archery note above).
+const CASTING: Record<string, { name: string; mode: 'loop' | 'progress'; from?: number }> = {
   mending_light: { name: 'Ranged_Magic_Spellcasting', mode: 'loop' },
   radiant_hymn: { name: 'Ranged_Magic_Spellcasting_Long', mode: 'loop' },
   sunspark: { name: 'Ranged_Magic_Spellcasting', mode: 'loop' },
-  steady_arrow: { name: 'Ranged_Bow_Draw', mode: 'progress' },
-  piercing_shot: { name: 'Ranged_Bow_Draw', mode: 'progress' },
+  steady_arrow: { name: 'Ranged_Bow_Draw', mode: 'progress', from: BOW_DRAW_FROM },
+  piercing_shot: { name: 'Ranged_Bow_Draw', mode: 'progress', from: BOW_DRAW_FROM },
   requiem_of_bones: { name: 'Ranged_Magic_Spellcasting_Long', mode: 'loop' },
   soul_rend: { name: 'Ranged_Magic_Raise', mode: 'progress' },
   raise_dead: { name: 'Ranged_Magic_Spellcasting', mode: 'loop' },
@@ -96,7 +108,7 @@ export function chooseClip(cls: string, group: Group, p: Pose, durOf: (name: str
     case 'cast': {
       if (!p.instant && p.ability && CASTING[p.ability]) {
         const c = CASTING[p.ability]
-        return { name: c.name, time: c.mode === 'loop' ? loop(p) : progress(p), key: `${c.name}@${startOf(p)}` }
+        return { name: c.name, time: c.mode === 'loop' ? loop(p) : progress(p, c.from), key: `${c.name}@${startOf(p)}` }
       }
       if (p.ability && ACTION[p.ability]) return gesture(ACTION[p.ability])
       if (p.instant) return gesture('Ranged_Magic_Shoot')
@@ -104,6 +116,10 @@ export function chooseClip(cls: string, group: Group, p: Pose, durOf: (name: str
     }
     case 'attack':
     case 'shoot':
+      if (p.ability && BOW_SHOTS.has(p.ability)) {
+        if (p.since / 1000 >= BOW_RELEASE_HOLD_S) return idle(cls, p)
+        return { name: 'Ranged_Bow_Release', time: (d) => Math.min(BOW_RELEASE_CUT * d, p.since / 1000), key: `bowrel@${startOf(p)}` }
+      }
       return gesture((p.ability && ACTION[p.ability]) || 'Melee_1H_Attack_Chop')
     default:
       return idle(cls, p)

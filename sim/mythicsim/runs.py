@@ -189,10 +189,11 @@ def publish(runs_dir: Path = RUNS_DIR, out_dir: Path = LOCAL_REPLAYS, only: list
         s = m.get("summary") or {}
         runs.append({k: m.get(k) for k in ("run_id", "name", "tags", "mode", "label", "provider", "model", "effort",
                                            "created", "harness_version", "prompt_hash", "git_commit",
-                                           "knowledge", "memory", "max_pulls")}
+                                           "knowledge", "memory", "max_pulls", "level")}
                     | {"summary": {k: s.get(k) for k in ("score_mean", "score_ci95", "win_rate", "reference_means",
                                                           "kill_rate", "pulls_to_kill_mean", "pulls_to_kill_ci95",
-                                                          "learning_gain_mean", "learning_gain_ci95", "curve_mean")},
+                                                          "learning_gain_mean", "learning_gain_ci95", "curve_mean",
+                                                          "progression_score_mean", "progression_score_ci95")},
                        "items": items})
     catalog = {"current_harness_version": HARNESS_VERSION, "runs": runs}
     (out_dir / "catalog.json").write_text(json.dumps(catalog, indent=1))
@@ -200,6 +201,53 @@ def publish(runs_dir: Path = RUNS_DIR, out_dir: Path = LOCAL_REPLAYS, only: list
     if old.exists():
         old.unlink()
     return len(runs)
+
+
+# ---------------------------------------------------------------------------
+# Rescoring (scores are a pure function of the event log, so this is exact)
+# ---------------------------------------------------------------------------
+
+def rescore(runs_dir: Path = RUNS_DIR) -> int:
+    """Recompute every saved replay's metrics with the current scoring, then
+    each run's items and summary. Returns the number of replays rescored."""
+    import math
+    import statistics as st
+    from .__main__ import simulate
+    from .llm.progress import summarize_items
+    from .metrics import score as score_fn
+    n = 0
+    for m in load_manifests(runs_dir):
+        if m.get("status") != "done":
+            continue
+        rid = m["run_id"]
+        for it in m.get("items") or []:
+            p = runs_dir / rid / it["file"]
+            if not p.exists():
+                continue
+            rep = json.loads(p.read_text())
+            s = score_fn(rep)
+            rep["meta"]["metrics"] = s
+            p.write_text(json.dumps(rep, separators=(",", ":")))
+            it.update(score=s["score"], outcome=s["outcome"], duration_s=s["duration_s"])
+            n += 1
+        items = m.get("items") or []
+        summ = dict(m.get("summary") or {})
+        if m.get("mode") == "progression" and items:
+            summ.update(summarize_items(items, m.get("max_pulls") or max(i["pull"] for i in items)))
+        elif items:
+            vals = [i["score"] for i in items]
+            h = 1.96 * st.stdev(vals) / math.sqrt(len(vals)) if len(vals) > 1 else None
+            level = m.get("level") or 12
+            refs = {p: [score_fn(simulate(p, i["seed"], level))["score"] for i in items] for p in ("expert", "competent", "sloppy")}
+            summ.update(score_mean=round(st.mean(vals), 1),
+                        score_ci95=[round(st.mean(vals) - h, 1), round(st.mean(vals) + h, 1)] if h is not None else None,
+                        win_rate=round(sum(i["outcome"] == "victory" for i in items) / len(items), 3),
+                        reference_means={k: round(st.mean(v), 1) for k, v in refs.items()})
+        summ["score_version"] = 2
+        m["summary"] = summ
+        (runs_dir / rid / "manifest.json").write_text(json.dumps(m, indent=2))
+    rebuild_registry(runs_dir)
+    return n
 
 
 # ---------------------------------------------------------------------------

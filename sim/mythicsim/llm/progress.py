@@ -101,15 +101,15 @@ class EpisodeResult:
 
 def run_episode(client: ChatClient, episode: int, *, max_pulls: int = 8, memory: bool = True,
                 knowledge: str = "blind", interval_ms: int = 2000, max_calls: int = 300,
-                on_pull=None) -> EpisodeResult:
+                level: int = 12, on_pull=None) -> EpisodeResult:
     result = EpisodeResult(episode)
     notes = ""
     for k in range(1, max_pulls + 1):
         seed = pull_seed(episode, k)
         notes_in = notes if memory else ""
         policies, brain = make_llm_policies(client, interval_ms=interval_ms, max_calls=max_calls,
-                                            knowledge=knowledge, notes=notes_in or None, pull=k)
-        rep = Encounter(seed, policies, f"llm:{client.spec}").run()
+                                            knowledge=knowledge, notes=notes_in or None, pull=k, level=level)
+        rep = Encounter(seed, policies, f"llm:{client.spec}", level).run()
         rep["meta"]["metrics"] = score(rep)
         db = debrief_text(rep)
         problem = None
@@ -117,7 +117,7 @@ def run_episode(client: ChatClient, episode: int, *, max_pulls: int = 8, memory:
         won = rep["meta"]["metrics"]["outcome"] == "victory"
         if memory and not won and k < max_pulls:
             notes_out, problem = reflect(client, notes_in, db, k)
-        rep["meta"]["progress"] = {"episode": episode, "pull": k, "memory": memory, "knowledge": knowledge,
+        rep["meta"]["progress"] = {"episode": episode, "pull": k, "memory": memory, "knowledge": knowledge, "level": level,
                                    "notes_before": notes_in, "notes_after": notes_out, "debrief": db}
         pr = PullResult(k, seed, rep, brain.stats.as_dict(), notes_in, notes_out, db, problem)
         result.pulls.append(pr)
@@ -142,6 +142,31 @@ def curve(ep: EpisodeResult, max_pulls: int) -> list[float]:
         last = p.metrics["score"] if p else last
         out.append(round(last, 1))
     return out
+
+
+@dataclass
+class _Pull:
+    pull: int
+    metrics: dict
+
+
+@dataclass
+class _Episode:
+    episode: int
+    pulls: list
+
+    @property
+    def killed_on(self) -> int | None:
+        return next((p.pull for p in self.pulls if p.metrics["outcome"] == "victory"), None)
+
+
+def summarize_items(items: list[dict], max_pulls: int) -> dict:
+    """``summarize`` from a run manifest's items (used when rescoring saved runs)."""
+    eps: dict[int, _Episode] = {}
+    for it in sorted(items, key=lambda i: (i["episode"], i["pull"])):
+        eps.setdefault(it["episode"], _Episode(it["episode"], [])).pulls.append(
+            _Pull(it["pull"], {"score": it["score"], "outcome": it["outcome"]}))
+    return summarize(list(eps.values()), max_pulls)
 
 
 def summarize(episodes: list[EpisodeResult], max_pulls: int) -> dict:
@@ -170,6 +195,9 @@ def summarize(episodes: list[EpisodeResult], max_pulls: int) -> dict:
         "first_pull_score_mean": round(st.mean(firsts), 1),
         "best_score_mean": round(st.mean(bests), 1),
         "learning_gain_mean": round(st.mean(gain), 1), "learning_gain_ci95": ci(gain),
+        # Progression score (0-100): mean pull score over the whole episode, a
+        # kill carrying forward, so learning faster scores higher.
+        "progression_score_mean": round(st.mean(auc), 1), "progression_score_ci95": ci(auc),
         "auc_mean": round(st.mean(auc), 1), "auc_ci95": ci(auc),
         "curve_mean": [round(st.mean(c[k] for c in curves), 1) for k in range(max_pulls)],
         # Leaderboard-compatible fields (the run browser shows these).

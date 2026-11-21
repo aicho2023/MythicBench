@@ -108,3 +108,15 @@ def test_import_legacy_keeps_originals(tmp_path):
     assert (tmp_path / made[0] / "seeds" / "seed-3.stats.json").exists()
     assert (tmp_path / ".legacy-originals" / "openai_gpt-5.4-mini" / "seed-3.json").exists()
     assert R.import_legacy(tmp_path) == []  # idempotent
+
+
+def test_rescore_recomputes_scores_and_summaries(tmp_path):
+    run = make_run(tmp_path)
+    m = json.loads((run.dir / "manifest.json").read_text())
+    m["items"][0]["score"] = 999.0  # stale value from an older scoring
+    (run.dir / "manifest.json").write_text(json.dumps(m))
+    assert R.rescore(tmp_path) == 2
+    m = json.loads((run.dir / "manifest.json").read_text())
+    rep = json.loads((run.dir / m["items"][0]["file"]).read_text())
+    assert m["items"][0]["score"] == rep["meta"]["metrics"]["score"] <= 100
+    assert m["summary"]["score_version"] == 2 and m["summary"]["reference_means"]["expert"] <= 100

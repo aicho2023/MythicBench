@@ -17,11 +17,12 @@ Pieces:
 # rendering, triggers, controls). Runs record it, so results from different
 # harness versions are never silently compared.
 #   0.3.0  safe moves, pool perception, 350 ms kick reaction, effort settings
-HARNESS_VERSION = "0.3.0"
+#   0.4.0  0-100 score described in the rules; key levels; blind knowledge
+HARNESS_VERSION = "0.4.0"
 
 
-def prompt_hash(knowledge: str = "full") -> str:
+def prompt_hash(knowledge: str = "full", level: int = 12) -> str:
     """Short fingerprint of the exact rules text the model receives (before any notes)."""
     import hashlib
     from .prompt import system_prompt
-    return hashlib.sha256(system_prompt(knowledge).encode()).hexdigest()[:10]
+    return hashlib.sha256(system_prompt(knowledge, level=level).encode()).hexdigest()[:10]

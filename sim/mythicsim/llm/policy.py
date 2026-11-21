@@ -69,13 +69,13 @@ class Standing:
 class PartyBrain:
     def __init__(self, client: ChatClient, interval_ms: int = 2000, min_gap_ms: int = 500,
                  max_calls: int = 300, knowledge: str = "full", notes: str | None = None,
-                 pull: int | None = None):
+                 pull: int | None = None, level: int = C.SIGIL_LEVEL):
         self.client = client
         self.knowledge = knowledge
         self.interval_ms = interval_ms
         self.min_gap_ms = min_gap_ms
         self.max_calls = max_calls
-        self.system = system_prompt(knowledge, notes, pull)
+        self.system = system_prompt(knowledge, notes, pull, level)
         self.orders: dict[str, Standing] = {}
         self.gcd: dict[str, int] = {}
         self.stats = BrainStats()

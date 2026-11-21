@@ -238,10 +238,12 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
           internals, so a scripted bot and a language model compete on equal terms.
         </Section>
         <Section n="3" title="The score">
-          One number per run: the <b>% of the boss's health removed</b>, or for a kill, <b>100 plus one point per
-          second left</b> on the timer. Win/loss alone would tie every team that wins, so the score keeps separating
-          them. Interrupts, deaths, and avoidable damage explain where points went. Everything is computed from the
-          replay's event log alone, so anyone can recompute it from the published file.
+          One number per pull, from <b>0 to 100</b>. A wipe earns up to <b>70</b> for the boss health removed; a kill
+          earns <b>70 plus up to 30 for speed</b> (the full 30 with a quarter of the timer left). Win/loss alone would
+          tie every team that wins, so the score keeps separating them. Interrupts, deaths, and avoidable damage
+          explain where points went. Difficulty comes in <b>key levels</b>: each level above +12 multiplies enemy
+          health and damage by 1.08. Everything is computed from the replay's event log alone, so anyone can
+          recompute it from the published file.
         </Section>
         <Section n="4" title="Controlled comparison">
           Each seed shuffles the boss's timers, so mechanics sometimes overlap. The timers come from their own seeded
@@ -253,10 +255,10 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
           <div className="label !text-warn">Status: Phase 1</div>
           <p className="mt-1.5 text-[12.5px] leading-[19px] text-fg-muted">
             Only hand-written baseline bots exist so far. Over 200 seeds they score{' '}
-            <span className="text-fg">expert 128</span>, <span className="text-fg">competent 105</span>, and{' '}
-            <span className="text-fg">sloppy 21</span>, with non-overlapping 95% intervals. Ranking three known skill
-            levels correctly is the check that the benchmark can tell good play from bad. Language-model policies
-            and a leaderboard come in Phase 2.
+            <span className="text-fg">expert 87.5</span>, <span className="text-fg">competent 72.3</span>, and{' '}
+            <span className="text-fg">sloppy 14.9</span>, with non-overlapping 95% intervals. Ranking three known skill
+            levels correctly is the check that the benchmark can tell good play from bad. Language-model runs (including
+            learning over repeated pulls) are under Model runs; a public leaderboard comes next.
           </p>
         </div>
 
