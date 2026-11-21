@@ -50,6 +50,47 @@ def test_unusable_replies(text):
     assert not parse_reply(text, IDS).ok
 
 
+def test_state_flags_pools_under_a_character():
+    enc = Encounter(1, {}, "x")
+    obs = enc.observe(enc.units["bramble"])
+    lumi = next(p for p in obs["party"] if p["id"] == "lumi")
+    obs["ground"] = [{"id": "desecrate_9", "kind": "desecrate", "pos": list(lumi["pos"]), "radius": 2.2,
+                      "age_ms": 200, "armed": False}]
+    text = render_state(obs, {}, None)
+    line = next(l for l in text.splitlines() if l.strip().startswith("lumi"))
+    assert "STANDING IN POOL desecrate_9 (arming, 0.0 m from its centre" in line
+
+
+def test_move_to_accepts_xz_object():
+    p = parse_reply(json.dumps({"orders": {"bao": {"move_to": {"x": 3, "z": -1.5}}}}), IDS)
+    assert p.orders["bao"].move_to == (3.0, -1.5) and not p.problems
+
+
+def test_move_safe_leaves_the_pool_and_stays_in_melee():
+    from mythicsim.engine import dist
+    reply = json.dumps({"orders": {"grokka": {"move_to": "safe", "priority": [["savage_hew", "mortisar"]]}}})
+    brain = PartyBrain(Scripted([reply]))
+    pol = LLMPolicy("grokka", brain)
+    enc = Encounter(1, {}, "x")
+    obs = enc.observe(enc.units["grokka"])
+    me = obs["self"]["pos"]
+    obs["ground"] = [{"id": "desecrate_1", "kind": "desecrate", "pos": list(me), "radius": 2.2, "age_ms": 0, "armed": False}]
+    acts = pol.act(obs)
+    move = next(a for a in acts if a.type == "move")
+    assert dist(move.to, me) > 2.2 + 0.45  # out of the pool
+    boss = (0.0, -2.0)
+    assert dist(move.to, boss) - 0.45 - 1.6 <= 3.0  # still in melee range
+
+
+def test_self_and_party_target_aliases():
+    reply = json.dumps({"orders": {"lumi": {"priority": [["radiant_hymn", "party"]]},
+                                   "bao": {"priority": [["wild_roar", "self"]]}}})
+    p = parse_reply(reply, IDS)
+    assert p.orders["lumi"].priority == [("radiant_hymn", "lumi")]
+    assert p.orders["bao"].priority == [("wild_roar", "bao")]
+    assert not p.problems
+
+
 def test_prompts_render():
     sp = system_prompt()
     for m in C.PARTY:

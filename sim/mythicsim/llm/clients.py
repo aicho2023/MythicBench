@@ -146,6 +146,9 @@ class OpenAIClient:
                     {"authorization": f"Bearer {_key('OPENAI_API_KEY')}"},
                     {"model": self.model, "max_completion_tokens": self.max_tokens,
                      "response_format": {"type": "json_object"},
+                     # Route requests that share the rules prefix together so
+                     # OpenAI's (best-effort) prompt cache actually hits.
+                     "prompt_cache_key": "mythicbench-rules",
                      "messages": [{"role": "system", "content": system},
                                   {"role": "user", "content": user}]})
         choices = out.get("choices") or [{}]

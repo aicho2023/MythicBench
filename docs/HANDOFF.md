@@ -216,8 +216,24 @@ Grokka → Nyx → Bao → Bramble. Full WoW-analogy table in `README.md`.
   writes `runs/<model>/` and publishes to `web/public/replays/local/`, which the
   viewer shows under "Model runs". Both folders are git-ignored.
 - **Keys:** `.env` at the repo root (copy `.env.example`).
-- **Prompt size:** ~1.6k tokens of rules (prompt-cached by the provider) and
-  ~0.3–0.5k of state per call.
+- **Prompt size:** ~1.6k tokens of rules (prompt-cached by the provider;
+  OpenAI with `prompt_cache_key`) and ~0.3–0.5k of state per call.
+- **Fairness decisions from the first live runs (2026-11-21):**
+  - Queued interrupts react after 350 ms, the expert bot's reaction time, not instantly.
+  - `move_to: "safe"` uses the bots' dodge planner (`policies.find_safe_spot`).
+    Without it, every model, including gpt-5.4, died to pools: they couldn't
+    find spots that are both clear of a pool and in melee range from raw
+    coordinates. gpt-5.4-mini went from ~25 to ~88.
+  - Each character's state line says "STANDING IN POOL … (x m from centre)":
+    perception that's obvious on screen.
+  - A character in an armed pool triggers a new call. A resent move always
+    executes. `self`/`party` target aliases and `{"x","z"}` moves are
+    accepted. Orders for dead characters are ignored.
+  - Billing, auth, and bad-request errors stop the run. Output budget is 16k
+    because thinking shares it.
+- **Observed cost and speed:** claude-haiku-5-5 thinks heavily (~1.9k output
+  tokens per call, ~8 s per call, ~19 min per fight). gpt-5.4-mini makes
+  ~100–130 calls per fight at ~2.7k input / ~0.3k output tokens each.
 
 ## 10. Suggested next steps
 
