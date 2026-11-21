@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; margin: 0; background: #0b0a10; color: white; }
+body { font-family: Nunito, system-ui, sans-serif; user-select: none; }
+
+@layer components {
+  /* The fantasy-MMO panel look: dark glass with a thin gold rim. */
+  .panel {
+    @apply rounded-lg;
+    background: linear-gradient(180deg, rgba(28, 22, 44, 0.9), rgba(12, 10, 20, 0.92));
+    box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.45), inset 0 0 0 2px rgba(0, 0, 0, 0.6), 0 6px 18px rgba(0, 0, 0, 0.55);
+  }
+  .ctl { @apply grid h-8 w-8 place-items-center rounded-full text-gold-300 transition hover:bg-white/10; }
+  .btn { @apply rounded-md bg-white/10 px-4 py-2 font-display text-sm font-bold text-white ring-1 ring-white/25 transition hover:bg-white/20; }
+  .btn-gold { @apply bg-gold-500/30 text-gold-300 ring-gold-400/70 hover:bg-gold-500/45; }
+}
+
+:root { --hud: 1; }
+@media (max-height: 840px), (max-width: 1380px) { :root { --hud: 0.82; } }
+/* Each HUD cluster scales from its own screen corner on small displays. */
+.hud-s { transform: scale(var(--hud)); }
+
+@keyframes fadein { from { opacity: 0; transform: translateY(12px) scale(0.96); } to { opacity: 1; transform: none; } }

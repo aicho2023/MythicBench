@@ -1,0 +1,22 @@
+[
+  {
+    "id": "expert-kill",
+    "policy": "expert",
+    "seed": 2,
+    "label": "Expert bots",
+    "blurb": "Disciplined kick rotation, clean dodges, swaps to adds.",
+    "file": "expert-kill.json",
+    "outcome": "victory",
+    "duration_s": 176.5
+  },
+  {
+    "id": "sloppy-wipe",
+    "policy": "sloppy",
+    "seed": 2,
+    "label": "Sloppy bots",
+    "blurb": "Same fight, same seed. Missed kicks, slow feet, tunnel vision.",
+    "file": "sloppy-wipe.json",
+    "outcome": "wipe",
+    "duration_s": 133.2
+  }
+]

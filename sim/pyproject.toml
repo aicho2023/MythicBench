@@ -1,0 +1,20 @@
+[project]
+name = "mythicsim"
+version = "0.1.0"
+description = "Deterministic MMO dungeon-encounter simulator for the MythicBench benchmark"
+requires-python = ">=3.10"
+dependencies = []  # the simulator itself is pure standard library
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "jsonschema>=4"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["mythicsim"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

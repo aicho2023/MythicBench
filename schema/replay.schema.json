@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mythicbench.dev/schema/replay-0.1.0.json",
+  "title": "MythicBench replay (event log)",
+  "description": "A complete, self-contained record of one encounter. The viewer and all metrics are derived from this file alone.",
+  "type": "object",
+  "required": ["schema_version", "meta", "arena", "classes", "abilities", "auras", "units", "events"],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "meta": {
+      "type": "object",
+      "required": ["encounter", "title", "seed", "policy", "sim_version", "content_version", "tick_ms", "duration_ms", "outcome", "time_limit_ms"],
+      "properties": {
+        "seed": { "type": "integer" },
+        "policy": { "type": "string" },
+        "tick_ms": { "type": "integer", "minimum": 1 },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "outcome": { "enum": ["victory", "wipe", "timeout"] }
+      }
+    },
+    "arena": {
+      "type": "object",
+      "required": ["radius", "doors"],
+      "properties": {
+        "radius": { "type": "number" },
+        "doors": { "type": "array", "items": { "$ref": "#/$defs/vec2" } }
+      }
+    },
+    "classes": { "type": "object" },
+    "abilities": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["name", "kind", "icon", "school", "cast_ms", "cooldown_ms", "interruptible"]
+      }
+    },
+    "auras": {
+      "type": "object",
+      "additionalProperties": { "type": "object", "required": ["name", "icon", "harmful"] }
+    },
+    "units": { "type": "array", "items": { "$ref": "#/$defs/unit" } },
+    "events": { "type": "array", "items": { "$ref": "#/$defs/event" } }
+  },
+  "$defs": {
+    "vec2": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+    "id": { "type": "string", "minLength": 1 },
+    "idOrNull": { "type": ["string", "null"] },
+    "unit": {
+      "type": "object",
+      "required": ["id", "name", "kind", "class", "role", "max_hp", "radius", "model", "pos"],
+      "properties": {
+        "kind": { "enum": ["player", "boss", "add"] },
+        "role": { "enum": ["tank", "healer", "dps", "boss", "add"] },
+        "max_hp": { "type": "integer", "minimum": 1 },
+        "pos": { "$ref": "#/$defs/vec2" }
+      }
+    },
+    "event": {
+      "type": "object",
+      "required": ["t", "type"],
+      "properties": { "t": { "type": "integer", "minimum": 0 } },
+      "oneOf": [
+        { "properties": { "type": { "const": "encounter_start" } }, "required": ["encounter", "boss"] },
+        { "properties": { "type": { "const": "encounter_end" }, "outcome": { "enum": ["victory", "wipe", "timeout"] } }, "required": ["outcome", "final_hp"] },
+        { "properties": { "type": { "const": "spawn" }, "unit": { "$ref": "#/$defs/unit" } }, "required": ["unit"] },
+        { "properties": { "type": { "const": "move" }, "from": { "$ref": "#/$defs/vec2" }, "to": { "$ref": "#/$defs/vec2" }, "duration_ms": { "type": "integer", "minimum": 0 } }, "required": ["unit", "from", "to", "duration_ms"] },
+        { "properties": { "type": { "const": "cast_start" }, "cast_ms": { "type": "integer", "minimum": 1 }, "interruptible": { "type": "boolean" } }, "required": ["unit", "ability", "target", "cast_ms", "interruptible"] },
+        { "properties": { "type": { "const": "cast_success" } }, "required": ["unit", "ability", "target"] },
+        { "properties": { "type": { "const": "cast_interrupted" }, "reason": { "enum": ["interrupt", "moved"] } }, "required": ["unit", "ability", "by", "by_ability", "reason"] },
+        { "properties": { "type": { "const": "damage" }, "amount": { "type": "integer", "minimum": 0 }, "hp": { "type": "integer", "minimum": 0 } }, "required": ["source", "target", "ability", "amount", "absorbed", "overkill", "crit", "hp", "absorb"] },
+        { "properties": { "type": { "const": "heal" }, "amount": { "type": "integer", "minimum": 0 }, "hp": { "type": "integer", "minimum": 0 } }, "required": ["source", "target", "ability", "amount", "overheal", "crit", "hp"] },
+        { "properties": { "type": { "const": "aura_apply" }, "duration_ms": { "type": "integer" } }, "required": ["unit", "aura", "source", "duration_ms"] },
+        { "properties": { "type": { "const": "aura_remove" } }, "required": ["unit", "aura", "reason"] },
+        { "properties": { "type": { "const": "ground_spawn" }, "pos": { "$ref": "#/$defs/vec2" } }, "required": ["id", "kind", "source", "pos", "radius", "arm_ms", "duration_ms"] },
+        { "properties": { "type": { "const": "ground_expire" } }, "required": ["id"] },
+        { "properties": { "type": { "const": "projectile" }, "travel_ms": { "type": "integer", "minimum": 1 } }, "required": ["source", "target", "ability", "travel_ms"] },
+        { "properties": { "type": { "const": "death" } }, "required": ["unit", "killer", "ability"] },
+        { "properties": { "type": { "const": "emote" }, "style": { "enum": ["yell", "warning"] } }, "required": ["unit", "style", "text"] },
+        { "properties": { "type": { "const": "decision" } }, "required": ["unit", "action", "reason"] }
+      ]
+    }
+  }
+}

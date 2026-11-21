@@ -1,0 +1,84 @@
+import { OrbitControls } from '@react-three/drei'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing'
+import { useEffect } from 'react'
+import * as THREE from 'three'
+import { usePlayback } from '../replay/store'
+import { Arena } from './Arena'
+import { Effects } from './Effects'
+import { Units } from './Units'
+
+/** Lets DOM overlays (floating numbers, nameplates) project 3D -> screen. */
+export const sceneBridge: { camera: THREE.Camera | null; scene: THREE.Scene | null; size: { width: number; height: number } } = {
+  camera: null, scene: null, size: { width: 1, height: 1 },
+}
+
+function Bridge() {
+  const { camera, size, scene } = useThree()
+  useEffect(() => {
+    sceneBridge.scene = scene
+    if (import.meta.env.DEV) (window as unknown as { __bridge: typeof sceneBridge }).__bridge = sceneBridge
+    sceneBridge.camera = camera
+    sceneBridge.size = size
+  }, [camera, size, scene])
+  return null
+}
+
+/** Advances replay time once per rendered frame. */
+function PlaybackDriver() {
+  const advance = usePlayback((p) => p.advance)
+  useFrame((_, dt) => advance(Math.min(dt, 0.1) * 1000))
+  return null
+}
+
+const NO_FX = new URLSearchParams(location.search).get('nofx') === '1'
+
+export function Scene() {
+  return (
+    <Canvas
+      shadows
+      dpr={[1, 2]}
+      camera={{ position: [15, 18, 23], fov: 40, near: 0.5, far: 200 }}
+      gl={{ antialias: false, powerPreference: 'high-performance' }}
+    >
+      <color attach="background" args={['#0d0a18']} />
+      <fog attach="fog" args={['#140d24', 26, 62]} />
+      <Bridge />
+      <PlaybackDriver />
+      {/* Moonlight from above + cool/warm fill. */}
+      <hemisphereLight args={['#9d8cff', '#2a1838', 0.9]} />
+      <ambientLight intensity={0.25} />
+      <directionalLight
+        castShadow
+        position={[8, 22, 10]}
+        intensity={1.6}
+        color="#dcd6ff"
+        shadow-mapSize={[2048, 2048]}
+        shadow-camera-left={-20}
+        shadow-camera-right={20}
+        shadow-camera-top={20}
+        shadow-camera-bottom={-20}
+        shadow-bias={-0.0005}
+      />
+      <pointLight position={[0, 7, 3]} color="#8fe8ff" intensity={6} distance={14} />
+      <Arena />
+      <Units />
+      <Effects />
+      <OrbitControls
+        target={[0, 0.5, 1.2]}
+        enablePan={false}
+        enableDamping
+        dampingFactor={0.08}
+        minDistance={12}
+        maxDistance={42}
+        minPolarAngle={0.45}
+        maxPolarAngle={1.15}
+        rotateSpeed={0.6}
+      />
+      {!NO_FX && <EffectComposer multisampling={4}>
+        <Bloom mipmapBlur luminanceThreshold={0.9} luminanceSmoothing={0.2} intensity={0.9} />
+        <Vignette offset={0.25} darkness={0.75} />
+      </EffectComposer>}
+    </Canvas>
+  )
+}
