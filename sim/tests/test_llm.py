@@ -175,6 +175,27 @@ def test_fatal_api_errors_stop_the_run():
         Encounter(1, pols, "x").run()
 
 
+def test_effort_is_part_of_the_model_label():
+    from mythicsim.llm.clients import make_client
+    assert make_client("anthropic:claude-haiku-5-5").spec == "anthropic:claude-haiku-5-5"
+    assert make_client("anthropic:claude-haiku-5-5@none").spec == "anthropic:claude-haiku-5-5@none"
+    c = make_client("openai:gpt-5.4-mini", "low")
+    assert c.spec == "openai:gpt-5.4-mini@low"
+    with pytest.raises(ClientError):
+        make_client("openai:gpt-5.4-mini@turbo")
+
+
+def test_parallel_seeds_match_sequential(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    def run(seed):
+        pols, _ = make_llm_policies(CachedClient(MockClient(), tmp_path / "c.jsonl"))
+        return digest(Encounter(seed, pols, "x").run())
+    seq = [run(s) for s in range(4)]
+    with ThreadPoolExecutor(4) as pool:
+        par = list(pool.map(run, range(4)))
+    assert seq == par
+
+
 def test_call_budget_is_enforced():
     pols, brain = make_llm_policies(MockClient(), interval_ms=100, min_gap_ms=0, max_calls=5)
     Encounter(2, pols, "x").run(max_ms=20_000)

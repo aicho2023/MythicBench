@@ -91,43 +91,59 @@ def publish_local(rep: dict, model: str, safe: str, seed: int, s: dict) -> None:
     idx_path.write_text(json.dumps(idx, indent=2))
 
 
+def play_llm_seed(client, seed: int, args, label: str, out_dir) -> tuple[dict, dict]:
+    policies, brain = make_llm_policies(client, interval_ms=args.interval_ms, max_calls=args.max_calls)
+    rep = Encounter(seed, policies, f"llm:{label}").run()
+    s = score(rep)
+    rep["meta"]["metrics"] = s
+    (out_dir / f"seed-{seed}.json").write_text(json.dumps(rep, separators=(",", ":")))
+    st = brain.stats.as_dict()
+    (out_dir / f"seed-{seed}.stats.json").write_text(json.dumps(st, indent=2))
+    return rep, st
+
+
 def run_llm(args) -> None:
     """Play each seed with the model, save replays + stats, and print a comparison."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
     seeds = parse_seeds(args.seeds)
-    client = make_client(args.model)
-    safe = args.model.replace(":", "_").replace("/", "_")
+    client = make_client(args.model, args.effort)
+    label = client.spec  # includes @effort when set
+    safe = label.replace(":", "_").replace("/", "_").replace("@", "_")
     out_dir = REPO_ROOT / "runs" / safe
     out_dir.mkdir(parents=True, exist_ok=True)
     if not args.no_cache:
         client = CachedClient(client, REPO_ROOT / "runs" / "cache" / f"{safe}.jsonl", offline=args.offline)
     rows = []
-    for seed in seeds:
-        policies, brain = make_llm_policies(client, interval_ms=args.interval_ms, max_calls=args.max_calls)
-        try:
-            rep = Encounter(seed, policies, f"llm:{args.model}").run()
-        except ClientError as err:
-            raise SystemExit(f"seed {seed}: {err}")
-        s = score(rep)
-        rep["meta"]["metrics"] = s
-        (out_dir / f"seed-{seed}.json").write_text(json.dumps(rep, separators=(",", ":")))
-        publish_local(rep, args.model, safe, seed, s)
-        st = brain.stats.as_dict()
-        (out_dir / f"seed-{seed}.stats.json").write_text(json.dumps(st, indent=2))
-        refs = {p: score(simulate(p, seed))["score"] for p in ("expert", "competent", "sloppy")}
-        rows.append({"seed": seed, "score": s["score"], "outcome": s["outcome"],
-                     "duration_s": s["duration_s"], "deaths": len(s["deaths"]),
-                     "interrupts": f"{s['interrupts']['interrupted']}/{s['interrupts']['interruptible_casts']}",
-                     **{f"ref_{k}": v for k, v in refs.items()}, "stats": st})
-        print(f"seed {seed:>3}: {s['outcome']:7s} score {s['score']:6.1f} "
-              f"(expert {refs['expert']:.1f}, competent {refs['competent']:.1f}, sloppy {refs['sloppy']:.1f})  "
-              f"calls {st['calls']} ({st['cached_calls']} cached), tokens {st['input_tokens']}+{st['output_tokens']}, "
-              f"bad replies {st['unusable_replies']} ({st['truncated_replies']} cut off), dropped entries {st['invalid_entries']}, "
-              f"api errors {st['api_errors']}", flush=True)
+    # Fights are independent and mostly wait on the API, so seeds can run in
+    # parallel threads; each fight's own result is unaffected.
+    with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
+        futures = {pool.submit(play_llm_seed, client, seed, args, label, out_dir): seed for seed in seeds}
+        for fut in as_completed(futures):
+            seed = futures[fut]
+            try:
+                rep, st = fut.result()
+            except ClientError as err:
+                for f in futures:
+                    f.cancel()
+                raise SystemExit(f"seed {seed}: {err}")
+            s = rep["meta"]["metrics"]
+            publish_local(rep, label, safe, seed, s)
+            refs = {p: score(simulate(p, seed))["score"] for p in ("expert", "competent", "sloppy")}
+            rows.append({"seed": seed, "score": s["score"], "outcome": s["outcome"],
+                         "duration_s": s["duration_s"], "deaths": len(s["deaths"]),
+                         "interrupts": f"{s['interrupts']['interrupted']}/{s['interrupts']['interruptible_casts']}",
+                         **{f"ref_{k}": v for k, v in refs.items()}, "stats": st})
+            print(f"seed {seed:>3}: {s['outcome']:7s} score {s['score']:6.1f} "
+                  f"(expert {refs['expert']:.1f}, competent {refs['competent']:.1f}, sloppy {refs['sloppy']:.1f})  "
+                  f"calls {st['calls']} ({st['cached_calls']} cached), tokens {st['input_tokens']}+{st['output_tokens']}, "
+                  f"bad replies {st['unusable_replies']} ({st['truncated_replies']} cut off), dropped entries {st['invalid_entries']}, "
+                  f"api errors {st['api_errors']}", flush=True)
+    rows.sort(key=lambda r: r["seed"])
     vals = [r["score"] for r in rows]
     tin = sum(r["stats"]["input_tokens"] for r in rows)
     tout = sum(r["stats"]["output_tokens"] for r in rows)
     summary = {
-        "model": args.model, "seeds": seeds, "interval_ms": args.interval_ms,
+        "model": label, "seeds": seeds, "interval_ms": args.interval_ms,
         "score_mean": round(statistics.mean(vals), 1),
         "score_ci95": ([round(statistics.mean(vals) - 1.96 * statistics.stdev(vals) / math.sqrt(len(vals)), 1),
                         round(statistics.mean(vals) + 1.96 * statistics.stdev(vals) / math.sqrt(len(vals)), 1)]
@@ -168,6 +184,10 @@ def main() -> None:
     m.add_argument("--max-calls", type=int, default=300, help="safety cap on model calls per fight")
     m.add_argument("--offline", action="store_true", help="only use recorded replies (no API calls)")
     m.add_argument("--no-cache", action="store_true", help="don't record or reuse replies")
+    m.add_argument("--effort", choices=("none", "low", "medium", "high"),
+                   help="thinking/reasoning effort (default: the provider's own default). "
+                        "Also accepted as provider:model@effort. Each effort is a separate configuration")
+    m.add_argument("--workers", type=int, default=1, help="seeds to play in parallel (default 1)")
     m.add_argument("--price-in", type=float, help="USD per 1M input tokens (to estimate cost)")
     m.add_argument("--price-out", type=float, help="USD per 1M output tokens")
     g = sub.add_parser("generate", help="write the showcase replays for the viewer")

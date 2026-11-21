@@ -11,6 +11,7 @@ import hashlib
 import http.client
 import json
 import os
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -111,11 +112,12 @@ def _post(url: str, headers: dict, body: dict, timeout: float = 180.0, retries: 
 @dataclass
 class AnthropicClient:
     model: str
+    effort: str | None = None  # None = API default; "none" = thinking off; low/medium/high
     max_tokens: int = 16000  # thinking shares this budget with the answer
     spec: str = ""
 
     def __post_init__(self) -> None:
-        self.spec = f"anthropic:{self.model}"
+        self.spec = f"anthropic:{self.model}" + (f"@{self.effort}" if self.effort else "")
 
     def complete(self, system: str, user: str) -> Reply:
         t0 = time.monotonic()
@@ -124,7 +126,7 @@ class AnthropicClient:
                     {"model": self.model, "max_tokens": self.max_tokens,
                      # The rules never change between calls: let Anthropic cache them.
                      "system": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
-                     "messages": [{"role": "user", "content": user}]})
+                     "messages": [{"role": "user", "content": user}], **self.effort_params()})
         text = "".join(b.get("text", "") for b in out.get("content", []) if b.get("type") == "text")
         u = out.get("usage", {})
         read = u.get("cache_read_input_tokens", 0) or 0
@@ -132,15 +134,23 @@ class AnthropicClient:
         return Reply(text, total_in, u.get("output_tokens", 0), time.monotonic() - t0, cache_read_tokens=read,
                      truncated=out.get("stop_reason") == "max_tokens")
 
+    def effort_params(self) -> dict:
+        if not self.effort:
+            return {}
+        if self.effort == "none":
+            return {"thinking": {"type": "disabled"}}
+        return {"output_config": {"effort": self.effort}}
+
 
 @dataclass
 class OpenAIClient:
     model: str
+    effort: str | None = None  # None = API default; else reasoning_effort (none/low/medium/high)
     max_tokens: int = 16000  # reasoning models spend part of this budget thinking
     spec: str = ""
 
     def __post_init__(self) -> None:
-        self.spec = f"openai:{self.model}"
+        self.spec = f"openai:{self.model}" + (f"@{self.effort}" if self.effort else "")
 
     def complete(self, system: str, user: str) -> Reply:
         t0 = time.monotonic()
@@ -151,6 +161,7 @@ class OpenAIClient:
                      # Route requests that share the rules prefix together so
                      # OpenAI's (best-effort) prompt cache actually hits.
                      "prompt_cache_key": "mythicbench-rules",
+                     **({"reasoning_effort": self.effort} if self.effort else {}),
                      "messages": [{"role": "system", "content": system},
                                   {"role": "user", "content": user}]})
         choices = out.get("choices") or [{}]
@@ -188,14 +199,25 @@ class MockClient:
         return Reply(json.dumps({"orders": orders}), len(system + user) // 4, 200, 0.0)
 
 
-def make_client(spec: str) -> ChatClient:
+EFFORTS = ("none", "low", "medium", "high")
+
+
+def make_client(spec: str, effort: str | None = None) -> ChatClient:
+    """``provider:model`` or ``provider:model@effort`` (effort: none/low/medium/high).
+
+    Each effort setting is a separate configuration: its own label, replay
+    recording, and results folder, so runs at different efforts never mix."""
     provider, _, model = spec.partition(":")
     if not model:
-        raise ClientError(f"model spec must look like provider:model, got {spec!r}")
+        raise ClientError(f"model spec must look like provider:model, got {spec!r}", fatal=True)
+    model, _, at = model.partition("@")
+    effort = effort or at or None
+    if effort is not None and effort not in EFFORTS:
+        raise ClientError(f"effort must be one of {', '.join(EFFORTS)}, got {effort!r}", fatal=True)
     if provider == "anthropic":
-        return AnthropicClient(model)
+        return AnthropicClient(model, effort)
     if provider == "openai":
-        return OpenAIClient(model)
+        return OpenAIClient(model, effort)
     if provider == "mock":
         return MockClient(model)
     raise ClientError(f"unknown provider {provider!r} (use anthropic, openai, or mock)")
@@ -219,6 +241,7 @@ class CachedClient:
     offline: bool = False  # True: never call the API; a cache miss is an error
     spec: str = ""
     _mem: dict = field(default_factory=dict)
+    _lock: threading.Lock = field(default_factory=threading.Lock)  # seeds may run in parallel
 
     def __post_init__(self) -> None:
         self.spec = self.inner.spec
@@ -243,8 +266,9 @@ class CachedClient:
         rec = {"key": k, "spec": self.spec, "text": reply.text,
                "input_tokens": reply.input_tokens, "output_tokens": reply.output_tokens,
                "cache_read_tokens": reply.cache_read_tokens, "truncated": reply.truncated}
-        self._mem[k] = rec
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("a") as f:
-            f.write(json.dumps(rec) + "\n")
+        with self._lock:
+            self._mem[k] = rec
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            with self.path.open("a") as f:
+                f.write(json.dumps(rec) + "\n")
         return reply
