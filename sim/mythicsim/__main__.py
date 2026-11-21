@@ -13,8 +13,11 @@ import math
 import statistics
 from pathlib import Path
 
-from .engine import Encounter
-from .llm.clients import REPO_ROOT, CachedClient, ClientError, make_client
+from . import content as C
+from . import runs as runs_mod
+from .engine import SIM_VERSION, Encounter
+from .llm import HARNESS_VERSION, prompt_hash
+from .llm.clients import CachedClient, ClientError, make_client
 from .llm.policy import make_llm_policies
 from .metrics import score
 from .policies import PROFILES, make_policies
@@ -75,49 +78,40 @@ def parse_seeds(text: str) -> list[int]:
     return out
 
 
-def publish_local(rep: dict, model: str, safe: str, seed: int, s: dict) -> None:
-    """Copy a model run into the viewer's git-ignored replays/local/ folder."""
-    local = REPO_ROOT / "web" / "public" / "replays" / "local"
-    local.mkdir(parents=True, exist_ok=True)
-    file = f"{safe}-seed-{seed}.json"
-    (local / file).write_text(json.dumps(rep, separators=(",", ":")))
-    idx_path = local / "index.json"
-    idx = json.loads(idx_path.read_text()) if idx_path.exists() else []
-    entry = {"id": f"{safe}-seed-{seed}", "policy": f"llm:{model}", "seed": seed,
-             "label": f"{model.split(':', 1)[-1]} · seed {seed}",
-             "blurb": f"{model} on seed {seed}.", "file": file, "outcome": s["outcome"],
-             "duration_s": s["duration_s"], "score": s["score"]}
-    idx = [e for e in idx if e["id"] != entry["id"]] + [entry]
-    idx_path.write_text(json.dumps(idx, indent=2))
-
-
-def play_llm_seed(client, seed: int, args, label: str, out_dir) -> tuple[dict, dict]:
+def play_llm_seed(client, seed: int, args, label: str, run) -> tuple[dict, dict]:
     policies, brain = make_llm_policies(client, interval_ms=args.interval_ms, max_calls=args.max_calls)
     rep = Encounter(seed, policies, f"llm:{label}").run()
     s = score(rep)
     rep["meta"]["metrics"] = s
-    (out_dir / f"seed-{seed}.json").write_text(json.dumps(rep, separators=(",", ":")))
+    rep["meta"]["run"] = {k: run.manifest.get(k) for k in
+                          ("run_id", "name", "label", "model", "effort", "harness_version", "prompt_hash")}
+    run.replay_path(seed).write_text(json.dumps(rep, separators=(",", ":")))
     st = brain.stats.as_dict()
-    (out_dir / f"seed-{seed}.stats.json").write_text(json.dumps(st, indent=2))
+    (run.seeds_dir / f"seed-{seed}.stats.json").write_text(json.dumps(st, indent=2))
     return rep, st
 
 
 def run_llm(args) -> None:
-    """Play each seed with the model, save replays + stats, and print a comparison."""
+    """Play each seed with the model into a new run folder, then print a comparison."""
     from concurrent.futures import ThreadPoolExecutor, as_completed
     seeds = parse_seeds(args.seeds)
     client = make_client(args.model, args.effort)
     label = client.spec  # includes @effort when set
     safe = label.replace(":", "_").replace("/", "_").replace("@", "_")
-    out_dir = REPO_ROOT / "runs" / safe
-    out_dir.mkdir(parents=True, exist_ok=True)
     if not args.no_cache:
-        client = CachedClient(client, REPO_ROOT / "runs" / "cache" / f"{safe}.jsonl", offline=args.offline)
+        client = CachedClient(client, runs_mod.RUNS_DIR / "cache" / f"{safe}.jsonl", offline=args.offline)
+    run = runs_mod.new_run(label, mode="single", name=args.name, tags=args.tag, config={
+        "seeds": seeds, "interval_ms": args.interval_ms, "max_calls": args.max_calls,
+        "harness_version": HARNESS_VERSION, "prompt_hash": prompt_hash(),
+        "sim_version": SIM_VERSION, "content_version": C.CONTENT_VERSION,
+        "offline": args.offline, "cache": not args.no_cache,
+    })
+    print(f"run {run.run_id}", flush=True)
     rows = []
     # Fights are independent and mostly wait on the API, so seeds can run in
     # parallel threads; each fight's own result is unaffected.
     with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
-        futures = {pool.submit(play_llm_seed, client, seed, args, label, out_dir): seed for seed in seeds}
+        futures = {pool.submit(play_llm_seed, client, seed, args, label, run): seed for seed in seeds}
         for fut in as_completed(futures):
             seed = futures[fut]
             try:
@@ -125,9 +119,10 @@ def run_llm(args) -> None:
             except ClientError as err:
                 for f in futures:
                     f.cancel()
+                run.manifest.update(status="failed", error=str(err)[:500])
+                run.save_manifest()
                 raise SystemExit(f"seed {seed}: {err}")
             s = rep["meta"]["metrics"]
-            publish_local(rep, label, safe, seed, s)
             refs = {p: score(simulate(p, seed))["score"] for p in ("expert", "competent", "sloppy")}
             rows.append({"seed": seed, "score": s["score"], "outcome": s["outcome"],
                          "duration_s": s["duration_s"], "deaths": len(s["deaths"]),
@@ -159,10 +154,43 @@ def run_llm(args) -> None:
     }
     if args.price_in is not None and args.price_out is not None:
         summary["usd_per_fight"] = round((tin * args.price_in + tout * args.price_out) / 1e6 / len(rows), 4)
-    (out_dir / "summary.json").write_text(json.dumps({"summary": summary, "runs": rows}, indent=2))
+    items = [{"seed": r["seed"], "file": f"seeds/seed-{r['seed']}.json", "outcome": r["outcome"],
+              "score": r["score"], "duration_s": r["duration_s"]} for r in rows]
+    runs_mod.finish_run(run, summary, items)
+    runs_mod.publish(only=[run.run_id])
     print(json.dumps(summary, indent=2))
-    print(f"replays and stats: {out_dir}")
-    print("watch them: cd web && npm run dev, then pick from 'Model runs' in the top bar")
+    print(f"run {run.run_id}: {run.dir}")
+    print("watch it: cd web && npm run dev, then open Runs in the top bar")
+
+
+def run_runs(args) -> None:
+    """Manage saved model runs."""
+    if args.runs_cmd == "list":
+        ms = runs_mod.filter_runs(runs_mod.load_manifests(), args.model, args.tag, args.effort)[: args.last]
+        if not ms:
+            print("no runs")
+        for m in ms:
+            s = m.get("summary") or {}
+            n = len(m.get("items") or [])
+            mean = s.get("score_mean")
+            print(f"{m['run_id']:<52} {m.get('status', '?'):7s} {m.get('mode', ''):11s} "
+                  f"{n:>3} seeds  score {mean if mean is not None else '-':>6}  "
+                  f"harness {m.get('harness_version')}  {m.get('name') or ''} {' '.join('#' + t for t in m.get('tags') or [])}")
+    elif args.runs_cmd == "show":
+        print(json.dumps(runs_mod.find_run(args.run), indent=2))
+    elif args.runs_cmd == "rm":
+        m = runs_mod.find_run(args.run)
+        runs_mod.remove_run(m["run_id"])
+        runs_mod.publish(only=[])
+        print(f"removed {m['run_id']}")
+    elif args.runs_cmd == "publish":
+        only = None if args.all or not args.runs else [runs_mod.find_run(r)["run_id"] for r in args.runs]
+        n = runs_mod.publish(only=only)
+        print(f"catalog: {n} runs -> {runs_mod.LOCAL_REPLAYS / 'catalog.json'}")
+    elif args.runs_cmd == "import-legacy":
+        made = runs_mod.import_legacy()
+        runs_mod.publish()
+        print(f"imported {len(made)} legacy runs" + "".join(f"\n  {r}" for r in made))
 
 
 def main() -> None:
@@ -188,8 +216,23 @@ def main() -> None:
                    help="thinking/reasoning effort (default: the provider's own default). "
                         "Also accepted as provider:model@effort. Each effort is a separate configuration")
     m.add_argument("--workers", type=int, default=1, help="seeds to play in parallel (default 1)")
+    m.add_argument("--name", help="a human name for this run, e.g. 'haiku baseline'")
+    m.add_argument("--tag", action="append", default=[], help="label for filtering (repeatable)")
     m.add_argument("--price-in", type=float, help="USD per 1M input tokens (to estimate cost)")
     m.add_argument("--price-out", type=float, help="USD per 1M output tokens")
+    rs = sub.add_parser("runs", help="list, inspect, remove, and publish saved model runs")
+    rsub = rs.add_subparsers(dest="runs_cmd", required=True)
+    rl = rsub.add_parser("list", help="newest first")
+    rl.add_argument("--model", help="substring of provider:model@effort")
+    rl.add_argument("--tag")
+    rl.add_argument("--effort", help="none/low/medium/high, or 'default'")
+    rl.add_argument("--last", type=int, default=50)
+    rsub.add_parser("show", help="print a run's manifest").add_argument("run", help="run id or unique part of it")
+    rsub.add_parser("rm", help="delete a run").add_argument("run", help="run id or unique part of it")
+    rp = rsub.add_parser("publish", help="copy runs into the viewer and rebuild its catalog")
+    rp.add_argument("runs", nargs="*", help="run ids (default: refresh the catalog only)")
+    rp.add_argument("--all", action="store_true", help="copy every run's replays")
+    rsub.add_parser("import-legacy", help="convert old runs/<model>/ folders into run folders")
     g = sub.add_parser("generate", help="write the showcase replays for the viewer")
     g.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
@@ -204,6 +247,8 @@ def main() -> None:
         print(json.dumps(results[0] if len(results) == 1 else results, indent=2))
     elif args.cmd == "llm":
         run_llm(args)
+    elif args.cmd == "runs":
+        run_runs(args)
     elif args.cmd == "generate":
         args.out.mkdir(parents=True, exist_ok=True)
         index = []

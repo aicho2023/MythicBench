@@ -2,10 +2,14 @@
 // subscribe to just the slice they need, so the HUD doesn't re-render the 3D scene).
 import { create } from 'zustand'
 import { ReplayEngine } from './engine'
-import type { Replay, ReplayIndexEntry } from './types'
+import type { Catalog, CatalogRun, Replay, ReplayIndexEntry } from './types'
+
+/** Index id for one seed of a model run. */
+export const runItemId = (runId: string, seed: number) => `${runId}/seed-${seed}`
 
 interface Playback {
   index: ReplayIndexEntry[]
+  catalog: Catalog | null
   currentId: string | null
   engine: ReplayEngine | null
   error: string | null
@@ -22,11 +26,22 @@ interface Playback {
 }
 
 const base = import.meta.env.BASE_URL
+
+function runEntries(run: CatalogRun): ReplayIndexEntry[] {
+  const who = run.name || run.label.split(':').slice(1).join(':')
+  return run.items.map((it) => ({
+    id: runItemId(run.run_id, it.seed), policy: `llm:${run.label}`, seed: it.seed,
+    label: `${who} · seed ${it.seed}`, blurb: `${run.label} · run ${run.run_id}`,
+    file: `local/${it.file}`, outcome: it.outcome, duration_s: it.duration_s, score: it.score,
+    local: true, runId: run.run_id,
+  }))
+}
 let deepLinkUsed = false
 let indexRequested = false
 
 export const usePlayback = create<Playback>((set, get) => ({
   index: [],
+  catalog: null,
   currentId: null,
   engine: null,
   error: null,
@@ -40,17 +55,25 @@ export const usePlayback = create<Playback>((set, get) => ({
     try {
       const res = await fetch(`${base}replays/index.json`)
       const index: ReplayIndexEntry[] = await res.json()
-      // Model runs made on this machine (`python -m mythicsim llm ...`), if any.
+      // Model runs saved on this machine (`python -m mythicsim llm ...` publishes
+      // them to replays/local/catalog.json), if any.
+      let catalog: Catalog | null = null
       try {
-        const local = await fetch(`${base}replays/local/index.json`)
-        if (local.ok) {
-          const runs: ReplayIndexEntry[] = await local.json()
-          index.push(...runs.map((r) => ({ ...r, file: `local/${r.file}`, local: true })))
-        }
+        const local = await fetch(`${base}replays/local/catalog.json`)
+        if (local.ok && (local.headers.get('content-type') ?? '').includes('json')) catalog = await local.json()
       } catch { /* no local runs */ }
-      set({ index })
-      const fromUrl = new URLSearchParams(location.search).get('replay')
-      await get().load(index.find((r) => r.id === fromUrl)?.id ?? index[0].id)
+      for (const run of catalog?.runs ?? []) index.push(...runEntries(run))
+      set({ index, catalog })
+      // Deep links: ?replay=<id>, or ?run=<run id or unique part>&seed=N
+      const q = new URLSearchParams(location.search)
+      let want = q.get('replay')
+      const runQ = q.get('run')
+      if (runQ && catalog) {
+        const run = catalog.runs.find((r) => r.run_id === runQ) ?? catalog.runs.find((r) => r.run_id.includes(runQ))
+        const seed = q.get('seed') !== null ? Number(q.get('seed')) : run?.items[0]?.seed
+        if (run && seed !== undefined) want = runItemId(run.run_id, seed)
+      }
+      await get().load(index.find((r) => r.id === want)?.id ?? index[0].id)
     } catch (err) {
       set({ error: `Could not load replays: ${String(err)}. Run \`npm run replays\`.` })
     }
@@ -69,6 +92,17 @@ export const usePlayback = create<Playback>((set, get) => ({
     if (q.get('speed') && first) set({ speed: Number(q.get('speed')) })
     const engine = new ReplayEngine(replay)
     set({ engine, currentId: id, t: Math.max(0, Math.min(engine.duration, t0)), playing })
+    if (!first) {
+      // Keep the address bar shareable: it always names the replay on screen.
+      const url = new URL(location.href)
+      for (const k of ['t', 'paused', 'run', 'seed']) url.searchParams.delete(k)
+      if (entry.runId) {
+        url.searchParams.delete('replay')
+        url.searchParams.set('run', entry.runId)
+        url.searchParams.set('seed', String(entry.seed))
+      } else url.searchParams.set('replay', id)
+      history.replaceState(null, '', url)
+    }
   },
   seek: (t) => {
     const e = get().engine

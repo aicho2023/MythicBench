@@ -160,9 +160,31 @@ Each run prints the model's score next to the expert, competent, and sloppy
 bots on the same seeds. It also prints calls, tokens, and dropped entries;
 add `--price-in/--price-out` (USD per 1M tokens) for a cost estimate.
 
-- Replays, stats, and recordings go to `runs/` (git-ignored).
-- Each replay also appears in the viewer under **Model runs** (start it with
-  `cd web && npm run dev`).
+### Organizing runs
+
+Every invocation is one **run** in its own folder, and nothing is ever
+overwritten:
+
+```
+runs/2026-11-21T1530_claude-haiku-5-5@none_a1b2/
+  manifest.json            model, effort, seeds, harness version, prompt hash,
+                           git commit, name, tags, summary
+  seeds/seed-N.json        replays (+ .stats.json with calls and tokens)
+```
+
+Name and tag runs with `--name "prompt v2" --tag ablation`. Then:
+
+```bash
+python -m mythicsim runs list --model haiku --tag ablation   # newest first
+python -m mythicsim runs show a1b2                           # any unique part of the id
+python -m mythicsim runs rm a1b2
+python -m mythicsim runs publish --all                       # refresh the viewer catalog
+```
+
+In the viewer (`cd web && npm run dev`), **Model runs** in the top bar opens a
+browser with search, provider/effort filters, sorting, and per-seed score
+chips. Runs from an older harness version are flagged as not directly
+comparable. Links like `?run=a1b2&seed=3` open a specific fight.
 
 ## Why you can trust the numbers
 

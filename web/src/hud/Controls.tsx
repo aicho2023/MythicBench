@@ -1,4 +1,4 @@
-import { Info, Pause, Play, RotateCcw, SkipBack, SkipForward, X } from 'lucide-react'
+import { Info, ListTree, Pause, Play, RotateCcw, SkipBack, SkipForward, X } from 'lucide-react'
 import { useEffect, useMemo, useRef } from 'react'
 import { CLASS_COLORS, fmtNum, fmtTime } from '../content/display'
 import { usePlayback, useHud } from '../replay/store'
@@ -12,12 +12,14 @@ const MARKER_COLOR: Record<string, string> = {
 // ---------------------------------------------------------------------------
 // Top bar: identity, which run you're watching, and the "what is this" link.
 // ---------------------------------------------------------------------------
-export function TopBar({ onAbout }: { onAbout: () => void }) {
+export function TopBar({ onAbout, onRuns }: { onAbout: () => void; onRuns: () => void }) {
   const index = usePlayback((p) => p.index)
   const current = usePlayback((p) => p.currentId)
   const load = usePlayback((p) => p.load)
   const engine = usePlayback((p) => p.engine)
   const sigil = engine?.replay.meta.sigil_level
+  const catalogSize = usePlayback((p) => p.catalog?.runs.length ?? 0)
+  const currentLocal = index.find((r) => r.id === current && r.local)
   return (
     <div className="pointer-events-auto flex h-12 items-center gap-4 border-b border-line bg-[rgba(10,10,12,0.72)] px-4 backdrop-blur-md">
       <div className="flex items-baseline gap-2">
@@ -42,20 +44,11 @@ export function TopBar({ onAbout }: { onAbout: () => void }) {
             </button>
           ))}
         </div>
-        {index.some((r) => r.local) && (
-          <select
-            value={index.find((r) => r.id === current)?.local ? current ?? '' : ''}
-            onChange={(e) => e.target.value && load(e.target.value)}
-            className="h-8 max-w-[220px] rounded-lg border border-white/[0.08] bg-white/[0.03] px-2 text-[12px] text-fg-muted outline-none hover:text-fg"
-            title="Model runs saved on this machine"
-          >
-            <option value="">Model runs ({index.filter((r) => r.local).length})</option>
-            {index.filter((r) => r.local).map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.label} · {r.outcome === 'victory' ? 'kill' : 'wipe'} {fmtTime(r.duration_s * 1000)}{r.score !== undefined ? ` · ${r.score}` : ''}
-              </option>
-            ))}
-          </select>
+        {catalogSize > 0 && (
+          <button onClick={onRuns} className={`btn ${currentLocal ? '!border-white/25' : ''}`} title="Browse model runs saved on this machine">
+            <ListTree size={14} />
+            {currentLocal ? <span className="max-w-[180px] truncate">{currentLocal.label}</span> : <>Model runs <span className="num font-mono text-fg-faint">{catalogSize}</span></>}
+          </button>
         )}
       </div>
 
