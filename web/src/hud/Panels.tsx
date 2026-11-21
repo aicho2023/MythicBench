@@ -27,30 +27,30 @@ export function Scorecard() {
     : s.ended.outcome === 'victory' ? { text: 'Kill', cls: 'text-good' } : { text: 'Wipe', cls: 'text-bad' }
   return (
     <div className="card w-[272px]">
-      <div className="flex items-center justify-between px-3.5 pb-2 pt-2.5">
+      <div className="flex items-center justify-between px-3 pb-2 pt-2">
         <span className="label">Scorecard</span>
-        <span className={`text-[12px] font-medium ${outcome.cls}`}>{outcome.text}</span>
+        <span className={`text-label font-medium ${outcome.cls}`}>{outcome.text}</span>
       </div>
-      <div className="px-3.5">
+      <div className="px-3">
         <div className="flex items-baseline justify-between">
-          <span className={`num font-mono text-[22px] font-medium ${timer > limit ? 'text-bad' : 'text-fg'}`}>{fmtTime(timer)}</span>
-          <span className="num font-mono text-[11px] text-fg-faint">
+          <span className={`num font-mono text-[20px] leading-7 ${timer > limit ? 'text-bad' : 'text-fg'}`}>{fmtTime(timer)}</span>
+          <span className="num font-mono text-meta text-fg-faint">
             {dungeon && s.penaltyMs > 0 && <span className="text-bad">+{s.penaltyMs / 1000}s · </span>}
             limit {fmtTime(limit)}
           </span>
         </div>
-        <div className="mt-1.5 h-[3px] overflow-hidden rounded-full bg-white/[0.07]">
+        <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/[0.07]">
           <div className="h-full bg-fg/70" style={{ width: `${Math.min(100, (timer / limit) * 100)}%` }} />
         </div>
       </div>
-      <div className="mt-2.5 flex items-baseline justify-between border-t border-line px-3.5 pb-1 pt-2"
+      <div className="mt-3 flex items-baseline justify-between border-t border-line px-3 pb-1 pt-2"
         title={dungeon
           ? 'Score 0-100. A wipe earns up to 70 for progress (each pack 15%, Mortisar 70%); a clear earns 70 plus up to 30 for speed (full 30 with a quarter of the timer left; revive penalties count).'
           : 'Score 0-100. A wipe earns up to 70 for boss health removed; a kill earns 70 plus up to 30 for speed (full 30 with a quarter of the timer left).'}>
-        <span className="text-[12px] text-fg-muted">Score{!s.ended && <span className="text-fg-faint"> · so far</span>}</span>
-        <span className="num font-mono text-[18px] font-medium text-fg">{score.toFixed(1)}</span>
+        <span className="text-[12px] text-fg-muted">Score{!s.ended && <span className="text-fg-faint"> so far</span>}</span>
+        <span className="num font-mono text-[20px] leading-7 text-fg">{score.toFixed(1)}</span>
       </div>
-      <dl className="px-3.5 pb-1.5">
+      <dl className="px-3 pb-2">
         {dungeon && <>
           <Metric label="Run progress" value={`${progress.toFixed(1)}%`} tone={progress >= 100 ? 'good' : 'plain'} />
           {packs.map((p) => (
@@ -67,18 +67,18 @@ export function Scorecard() {
         <Metric label={dungeon ? 'Party deaths (revives)' : 'Party deaths'} value={`${s.deaths}`} tone={s.deaths === 0 ? 'good' : 'bad'} />
         <Metric label="Avoidable damage" value={fmtNum(avoidable)} tone={avoidable === 0 ? 'good' : 'bad'} />
       </dl>
-      <div className="border-t border-line px-3.5 py-2 font-mono text-[10.5px] leading-[15px] text-fg-faint">
-        <div className="flex justify-between"><span>policy</span><span className="text-fg-muted">{m.policy}</span></div>
-        <div className="flex justify-between"><span>seed</span><span className="text-fg-muted">{m.seed}</span></div>
-        <div className="flex justify-between"><span>sim / content</span><span className="text-fg-muted">v{m.sim_version} / v{m.content_version}</span></div>
-      </div>
+      <dl className="border-t border-line px-3 py-2 font-mono text-meta text-fg-faint">
+        <div className="flex justify-between gap-4"><dt>Policy</dt><dd className="truncate text-fg-muted">{m.policy}</dd></div>
+        <div className="flex justify-between gap-4"><dt>Seed</dt><dd className="num text-fg-muted">{m.seed}</dd></div>
+        <div className="flex justify-between gap-4"><dt>Sim / content</dt><dd className="num text-fg-muted">v{m.sim_version} / v{m.content_version}</dd></div>
+      </dl>
     </div>
   )
 }
 
 function Metric({ label, value, tone }: { label: string; value: string; tone: 'good' | 'bad' | 'plain' }) {
   return (
-    <div className="flex items-center justify-between py-[5px]">
+    <div className="flex h-6 items-center justify-between">
       <dt className="text-[12px] text-fg-muted">{label}</dt>
       <dd className={`num font-mono text-[12px] ${tone === 'good' ? 'text-good' : tone === 'bad' ? 'text-bad' : 'text-fg'}`}>{value}</dd>
     </div>
@@ -100,25 +100,25 @@ export function DamageMeter() {
   const max = Math.max(1, ...rows.map((r) => r.v))
   const sec = Math.max(1, t / 1000)
   return (
-    <div className="card w-[272px] pb-2">
-      <div className="flex items-center justify-between px-3.5 pb-1.5 pt-2">
-        <span className="label">{tab === 'damage' ? 'Damage' : 'Healing'} · per sec</span>
+    <div className="card w-[272px] pb-3">
+      <div className="flex items-center justify-between px-3 pb-2 pt-2">
+        <span className="label">Meter <span className="font-normal text-fg-faint">total · per s</span></span>
         <div className="seg">
           {(['damage', 'healing'] as Tab[]).map((k) => (
-            <button key={k} aria-pressed={tab === k} onClick={() => setTab(k)} className="!px-2 !py-0.5 capitalize">{k}</button>
+            <button key={k} aria-pressed={tab === k} onClick={() => setTab(k)} className="!py-0.5 capitalize">{k}</button>
           ))}
         </div>
       </div>
-      <div className="space-y-[7px] px-3.5">
+      <div className="space-y-2 px-3">
         {rows.map(({ u, v }) => (
           <div key={u.info.id}>
             <div className="flex items-baseline justify-between text-[12px]">
-              <span className="text-fg-muted">{u.info.name}</span>
-              <span className="num font-mono text-[11px] text-fg">
-                {fmtNum(v)} <span className="text-fg-faint">{fmtNum(v / sec)}</span>
+              <span style={{ color: CLASS_COLORS[u.info.class] }}>{u.info.name}</span>
+              <span className="num font-mono text-meta text-fg">
+                {fmtNum(v)} <span className="inline-block w-10 text-right text-fg-faint">{fmtNum(v / sec)}</span>
               </span>
             </div>
-            <div className="mt-[3px] h-[3px] rounded-full bg-white/[0.05]">
+            <div className="mt-1 h-1 rounded-full bg-white/[0.05]">
               <div className="h-full rounded-full" style={{ width: `${(v / max) * 100}%`, background: CLASS_COLORS[u.info.class] }} />
             </div>
           </div>
@@ -146,24 +146,24 @@ export function RaidWarnings() {
       const tgt = e.target ? s.units[e.target]?.info.name ?? '' : ''
       items.push({ key: i, text: WARN_CASTS[e.ability].replace('{target}', tgt), style: 'warning', age, dur: e.cast_ms + 10000 })
     } else if (e.type === 'cast_success' && e.ability === 'desecrate' && age < 2000) {
-      items.push({ key: i, text: 'Desecrate — move out of the pools', style: 'warning', age, dur: 2000 })
+      items.push({ key: i, text: 'Desecrate · move out of the pools', style: 'warning', age, dur: 2000 })
     }
   }
   const shown = items.slice(-3)
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className="flex flex-col items-center gap-2">
       {shown.map((w) => {
         const fade = Math.max(0, Math.min(1, (w.dur - w.age) / 400))
         return (
-          <div key={w.key} style={{ opacity: fade }} className="animate-[fadein_0.2s_ease-out]">
+          <div key={w.key} style={{ opacity: fade }} className="animate-[fadein_200ms_cubic-bezier(0.22,1,0.36,1)]">
             {w.style === 'yell' ? (
-              <div className="flex max-w-[560px] items-start gap-2 rounded-lg bg-black/55 px-3 py-1.5 text-[13px] italic text-fg backdrop-blur">
-                <Megaphone size={13} className="mt-[3px] shrink-0 text-fg-faint" />
-                <span><span className="not-italic text-fg-muted">Mortisar:</span> {w.text}</span>
+              <div className="flex w-max max-w-[min(560px,calc(100vw-32px))] items-start gap-2 rounded-lg bg-[rgba(17,17,19,0.85)] px-3 py-2 text-[13px] leading-5 text-fg">
+                <Megaphone size={14} className="mt-0.5 shrink-0 text-fg-faint" />
+                <span><span className="text-fg-muted">Mortisar:</span> {w.text}</span>
               </div>
             ) : (
-              <div className="flex items-center gap-2 whitespace-nowrap rounded-lg border border-warn/30 bg-black/65 px-3 py-1.5 text-[13.5px] font-medium text-warn backdrop-blur">
-                <AlertTriangle size={14} />
+              <div className="flex w-max max-w-[calc(100vw-32px)] items-center gap-2 rounded-lg border border-warn/30 bg-[rgba(17,17,19,0.88)] px-3 py-2 text-[13px] font-medium leading-5 text-warn">
+                <AlertTriangle size={14} className="shrink-0" />
                 {w.text}
               </div>
             )}
@@ -196,23 +196,23 @@ export function DecisionLog() {
   }
   const shown = rows.slice(window.innerHeight < 840 ? -4 : -6).reverse()
   return (
-    <div className="card w-[340px] pb-1.5">
-      <div className="flex items-center justify-between px-3.5 pb-1 pt-2">
+    <div className="card w-[340px] max-w-[calc((100vw-32px)/var(--hud))] py-2">
+      <div className="flex items-center justify-between px-3 pb-1">
         <span className="label">Agent decisions</span>
-        <span className="font-mono text-[10px] text-fg-faint">click a row to rewind</span>
+        <span className="text-meta text-fg-faint">Click a row to rewind</span>
       </div>
-      {shown.length === 0 && <div className="px-3.5 py-2 text-[12px] text-fg-faint">Nothing yet. Waiting for the pull.</div>}
+      {shown.length === 0 && <div className="px-3 py-2 text-[12px] text-fg-faint">Nothing yet, waiting for the pull</div>}
       {shown.map((r) => (
         <button
           key={r.key}
           onClick={() => seek(r.t - 2000)}
-          className="grid w-full grid-cols-[36px_1fr] gap-x-2 px-3.5 py-[5px] text-left transition-colors hover:bg-white/[0.05]"
+          className="grid w-full grid-cols-[36px_1fr] gap-x-2 px-3 py-1 text-left transition-colors hover:bg-white/[0.05]"
         >
-          <span className="num pt-px font-mono text-[10.5px] text-fg-faint">{fmtTime(r.t)}</span>
-          <span className="text-[12px] leading-[17px]">
+          <span className="num font-mono text-meta leading-5 text-fg-faint">{fmtTime(r.t)}</span>
+          <span className="text-[12px] leading-5">
             <span className="font-medium" style={{ color: r.tone === 'bad' && r.cls === 'boss' ? '#f87171' : CLASS_COLORS[r.cls] ?? '#ededef' }}>{r.who}</span>{' '}
             <span className={r.tone === 'bad' ? 'text-bad' : 'text-fg'}>{r.text}</span>
-            {r.sub && <span className="block text-[11.5px] leading-[16px] text-fg-faint">{r.sub}</span>}
+            {r.sub && <span className="block text-[12px] leading-4 text-fg-faint">{r.sub}</span>}
           </span>
         </button>
       ))}

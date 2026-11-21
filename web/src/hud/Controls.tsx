@@ -5,8 +5,9 @@ import { usePlayback, useHud } from '../replay/store'
 
 const SPEEDS = [0.5, 1, 2, 4]
 
+// Each hue is one kind of event. Adds spawn in the bone-walker class color.
 const MARKER_COLOR: Record<string, string> = {
-  death: '#f87171', missed: '#fbbf24', raise: '#a1a1aa', kick: '#7dd3fc', end: '#ededef', pull: '#a78bfa',
+  death: '#f87171', missed: '#fbbf24', raise: CLASS_COLORS.bonewalker, kick: '#7dd3fc', end: '#ededef', pull: '#a1a1aa',
 }
 
 // ---------------------------------------------------------------------------
@@ -23,44 +24,41 @@ export function TopBar({ onAbout, onRuns }: { onAbout: () => void; onRuns: () =>
   const catalogSize = usePlayback((p) => p.catalog?.runs.length ?? 0)
   const currentLocal = index.find((r) => r.id === current && r.local)
   return (
-    <div className="pointer-events-auto flex h-12 items-center gap-4 border-b border-line bg-[rgba(10,10,12,0.72)] px-4 backdrop-blur-md">
-      <div className="flex items-baseline gap-2">
-        <span className="text-[14px] font-semibold tracking-[-0.01em] text-fg">MythicBench</span>
-        <span className="font-mono text-[10.5px] text-fg-faint">replay viewer</span>
-      </div>
-      <div className="h-4 w-px bg-white/10" />
-      <div className="hidden items-baseline gap-2 text-[12.5px] text-fg-muted md:flex">
-        <span>Gravecrown Crypt</span>
-        {tierName && <span className="font-mono text-[11px] text-fg-faint">{tierName}</span>}
-        {affixes.length > 0 && (
-          <span className="text-[11px] text-fg-faint" title={affixes.map((a) => `${a.name}: ${a.description}`).join('\n\n')}>
-            {affixes.map((a) => a.name).join(' · ')}
-          </span>
-        )}
+    <div className="pointer-events-auto flex h-12 items-center gap-4 whitespace-nowrap border-b border-line bg-[rgba(15,15,16,0.92)] px-4">
+      <div className="flex shrink-0 items-baseline gap-3">
+        <span className="text-[15px] font-medium text-fg">MythicBench</span>
+        <span className="hidden items-baseline gap-2 text-[13px] text-fg-muted lg:flex">
+          Gravecrown Crypt
+          {tierName && <span className="num font-mono text-meta text-fg-faint">{tierName}</span>}
+          {affixes.length > 0 && (
+            <span className="hidden truncate text-meta text-fg-faint xl:inline" title={affixes.map((a) => `${a.name}: ${a.description}`).join('\n\n')}>
+              {affixes.map((a) => a.name).join(' · ')}
+            </span>
+          )}
+        </span>
       </div>
 
-      <div className="mx-auto flex items-center gap-2">
-        <span className="label hidden lg:inline">Run</span>
+      <div className="mx-auto flex min-w-0 items-center gap-2">
         <div className="seg">
           {index.filter((r) => !r.local).map((r) => (
-            <button key={r.id} aria-pressed={r.id === current} onClick={() => load(r.id)} title={r.blurb} className="flex items-baseline gap-2">
+            <button key={r.id} aria-pressed={r.id === current} onClick={() => load(r.id)} title={`${r.blurb}: ${r.outcome === 'victory' ? 'kill' : 'wipe'} at ${fmtTime(r.duration_s * 1000)}`} className="flex items-baseline gap-2">
               <span>{r.label}</span>
-              <span className={`num font-mono text-[10.5px] ${r.outcome === 'victory' ? 'text-good' : 'text-bad'}`}>
-                {r.outcome === 'victory' ? 'kill' : 'wipe'} {fmtTime(r.duration_s * 1000)}
+              <span className={`num hidden font-mono text-meta lg:inline ${r.outcome === 'victory' ? 'text-good' : 'text-bad'}`}>
+                {fmtTime(r.duration_s * 1000)}
               </span>
             </button>
           ))}
         </div>
         {catalogSize > 0 && (
-          <button onClick={onRuns} className={`btn ${currentLocal ? '!border-white/25' : ''}`} title="Browse model runs saved on this machine">
-            <ListTree size={14} />
-            {currentLocal ? <span className="max-w-[180px] truncate">{currentLocal.label}</span> : <>Model runs <span className="num font-mono text-fg-faint">{catalogSize}</span></>}
+          <button onClick={onRuns} className={`btn ${currentLocal ? '!border-white/20' : ''}`} title="Browse model runs saved on this machine">
+            <ListTree size={16} className="text-fg-muted" />
+            {currentLocal ? <span className="max-w-[180px] truncate">{currentLocal.label}</span> : <>Model runs <span className="num font-mono text-meta text-fg-faint">{catalogSize}</span></>}
           </button>
         )}
       </div>
 
-      <button onClick={onAbout} className="btn">
-        <Info size={14} /> About this eval
+      <button onClick={onAbout} className="btn max-md:w-8 max-md:justify-center max-md:px-0" title="About this eval">
+        <Info size={16} className="text-fg-muted" /><span className="max-md:sr-only">About this eval</span>
       </button>
     </div>
   )
@@ -99,13 +97,13 @@ export function ReplayControls() {
     seek(((clientX - r.left) / r.width) * dur)
   }
   return (
-    <div className="card pointer-events-auto flex w-[640px] items-center gap-2 px-2 py-1.5">
-      <button onClick={() => seek(t - 10000)} className="icon-btn" title="Back 10s (←)"><SkipBack size={15} /></button>
-      <button onClick={toggle} className="grid h-8 w-8 place-items-center rounded-md bg-fg text-bg transition-colors hover:bg-white" title="Play / pause (space)">
-        {playing ? <Pause size={15} fill="currentColor" /> : t >= dur ? <RotateCcw size={15} /> : <Play size={15} fill="currentColor" className="translate-x-px" />}
+    <div className="card transport-w pointer-events-auto flex items-center gap-2 p-2">
+      <button onClick={() => seek(t - 10000)} className="icon-btn" title="Back 10 s"><SkipBack size={16} /></button>
+      <button onClick={toggle} className="grid h-8 w-8 place-items-center rounded-lg bg-fg text-bg transition-[background-color,transform] duration-150 hover:bg-white active:scale-[0.97]" title="Play or pause (space)">
+        {playing ? <Pause size={16} fill="currentColor" /> : t >= dur ? <RotateCcw size={16} /> : <Play size={16} fill="currentColor" />}
       </button>
-      <button onClick={() => seek(t + 10000)} className="icon-btn" title="Forward 10s (→)"><SkipForward size={15} /></button>
-      <span className="num w-[78px] text-center font-mono text-[11px] text-fg-muted">
+      <button onClick={() => seek(t + 10000)} className="icon-btn" title="Forward 10 s"><SkipForward size={16} /></button>
+      <span className="num w-20 shrink-0 text-center font-mono text-meta text-fg-faint">
         <span className="text-fg">{fmtTime(t)}</span> / {fmtTime(dur)}
       </span>
       <div
@@ -114,21 +112,21 @@ export function ReplayControls() {
         onPointerDown={(e) => { (e.target as HTMLElement).setPointerCapture(e.pointerId); scrubTo(e.clientX) }}
         onPointerMove={(e) => { if (e.buttons & 1) scrubTo(e.clientX) }}
       >
-        <div className="absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-white/10" />
-        <div className="absolute left-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-fg/80" style={{ width: `${(t / dur) * 100}%` }} />
+        <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-white/10" />
+        <div className="absolute left-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-fg/70" style={{ width: `${(t / dur) * 100}%` }} />
         {markers.map((m, k) => (
           <div
             key={k}
             title={`${fmtTime(m.t)} · ${m.label}`}
-            className="absolute top-1/2 h-[11px] w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-[1px]"
+            className="absolute top-1/2 h-3 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-[1px]"
             style={{ left: `${(m.t / dur) * 100}%`, background: MARKER_COLOR[m.kind] ?? '#fff' }}
           />
         ))}
-        <div className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-fg shadow-[0_0_0_3px_rgba(10,10,12,0.8)] transition-transform group-hover:scale-110" style={{ left: `${(t / dur) * 100}%` }} />
+        <div className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-fg ring-[3px] ring-[#111113]" style={{ left: `${(t / dur) * 100}%` }} />
       </div>
       <div className="seg">
         {SPEEDS.map((sp) => (
-          <button key={sp} aria-pressed={sp === speed} onClick={() => setSpeed(sp)} className="num !px-1.5 !py-0.5 font-mono !text-[10.5px]">
+          <button key={sp} aria-pressed={sp === speed} onClick={() => setSpeed(sp)} className="num !px-2 font-mono !text-meta" title={`${sp}× speed`}>
             {sp}×
           </button>
         ))}
@@ -141,10 +139,10 @@ export function TimelineLegend() {
   const dungeon = usePlayback((p) => p.engine?.replay.meta.mode === 'dungeon')
   const items = [['death', 'Death'], ['missed', 'Missed interrupt'], ['raise', 'Adds spawn'], ...(dungeon ? [['pull', 'Pull'] as const] : []), ['end', 'End']] as const
   return (
-    <div className="mx-auto flex w-fit gap-3.5 rounded-full bg-black/55 px-3 py-1 font-mono text-[10px] text-fg-muted backdrop-blur">
+    <div className="pointer-events-auto flex w-fit flex-wrap justify-center gap-x-4 gap-y-1 rounded-lg bg-[rgba(17,17,19,0.8)] px-3 py-1 text-meta text-fg-muted">
       {items.map(([k, label]) => (
-        <span key={k} className="flex items-center gap-1.5">
-          <span className="h-[9px] w-[3px] rounded-[1px]" style={{ background: MARKER_COLOR[k] }} />{label}
+        <span key={k} className="flex items-center gap-2">
+          <span className="h-3 w-[3px] rounded-[1px]" style={{ background: MARKER_COLOR[k] }} />{label}
         </span>
       ))}
     </div>
@@ -169,19 +167,19 @@ export function EndBanner() {
   const top = players.map((u) => ({ u, v: h.s.damageDone[u.id] ?? 0 })).sort((a, b) => b.v - a.v)[0]
   const avoidable = m ? Object.values(m.avoidable_damage_taken).reduce((a, b) => a + b, 0) : 0
   return (
-    <div className="card pointer-events-auto w-[480px] animate-[fadein_0.4s_ease-out] p-5">
+    <div className="card pointer-events-auto w-[480px] max-w-[calc(100vw-32px)] animate-[fadein_400ms_cubic-bezier(0.22,1,0.36,1)] p-5">
       <div className="label">Result</div>
       <div className="mt-1 flex items-baseline gap-3">
-        <span className={`text-[28px] font-semibold tracking-[-0.02em] ${win ? 'text-good' : 'text-bad'}`}>{win ? (dungeonRun ? 'Crypt cleared' : 'Boss defeated') : 'Party wiped'}</span>
+        <span className={`text-[28px] font-medium leading-tight ${win ? 'text-good' : 'text-bad'}`}>{win ? (dungeonRun ? 'Crypt cleared' : 'Boss defeated') : 'Party wiped'}</span>
       </div>
-      <div className="mt-1 text-[13px] text-fg-muted">
+      <div className="mt-2 text-[13px] text-fg-muted">
         {dungeonRun
           ? win ? `Mortisar fell at ${fmtTime((m?.duration_s ?? 0) * 1000)}${m?.penalty_s ? ` (+${m.penalty_s}s revive penalties)` : ''}.`
             : `The party got ${m?.progress_pct ?? 0}% of the way through the crypt.`
           : win ? `Mortisar fell in ${fmtTime((m?.duration_s ?? 0) * 1000)}.` : `Mortisar survived with ${m?.boss_hp_pct_remaining}% health.`}
       </div>
       {m && (
-        <div className="mt-4 grid grid-cols-5 gap-px overflow-hidden rounded-lg border border-line bg-line">
+        <div className="mt-4 grid grid-cols-5 gap-px overflow-hidden rounded-lg border border-line bg-line max-sm:grid-cols-3">
           <Stat label="Score" value={m.score.toFixed(1)} />
           <Stat label="Time" value={fmtTime(m.duration_s * 1000)} />
           <Stat label="Deaths" value={`${m.deaths.length}`} bad={m.deaths.length > 0} />
@@ -190,7 +188,7 @@ export function EndBanner() {
         </div>
       )}
       {top && (
-        <div className="mt-3 text-[12px] text-fg-faint">
+        <div className="mt-3 text-[12px] text-fg-muted">
           Top damage: <span style={{ color: CLASS_COLORS[top.u.class] }}>{top.u.name}</span> <span className="num font-mono">{fmtNum(top.v)}</span>
         </div>
       )}
@@ -204,9 +202,9 @@ export function EndBanner() {
 
 function Stat({ label, value, bad = false }: { label: string; value: string; bad?: boolean }) {
   return (
-    <div className="bg-[#0e0e12] px-3 py-2">
-      <div className="label">{label}</div>
-      <div className={`num mt-0.5 font-mono text-[16px] ${bad ? 'text-bad' : 'text-fg'}`}>{value}</div>
+    <div className="bg-surface px-3 py-2">
+      <div className="text-meta text-fg-faint">{label}</div>
+      <div className={`num mt-1 font-mono text-[15px] ${bad ? 'text-bad' : 'text-fg'}`}>{value}</div>
     </div>
   )
 }
@@ -223,20 +221,20 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
   return (
-    <div className="pointer-events-auto absolute inset-0 z-20 flex justify-end bg-black/40" onClick={onClose}>
+    <div className="pointer-events-auto absolute inset-0 z-30 flex justify-end bg-black/50" onClick={onClose}>
       <aside
-        className="h-full w-[420px] animate-[slidein_0.25s_ease-out] overflow-y-auto border-l border-line bg-[#0c0c0f] px-6 py-5"
+        className="h-full w-[440px] max-w-full animate-[slidein_300ms_cubic-bezier(0.22,1,0.36,1)] overflow-y-auto border-l border-line bg-surface px-6 py-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
           <span className="label">About this eval</span>
           <button onClick={onClose} className="icon-btn -mr-2" title="Close (Esc)"><X size={16} /></button>
         </div>
-        <h2 className="mt-3 text-[20px] font-semibold leading-tight tracking-[-0.015em] text-fg">
+        <h2 className="mt-4 text-[20px] font-medium leading-[28px] text-fg">
           Can an AI agent play its role in a five-person dungeon team?
         </h2>
-        <p className="mt-2 text-[13px] leading-[20px] text-fg-muted">
-          MythicBench puts a decision-maker (the <i>policy</i>) in control of a party fighting one scripted boss,
+        <p className="mt-2 text-[13px] leading-5 text-fg-muted">
+          MythicBench puts a decision-maker (the policy) in control of a party fighting one scripted boss,
           then scores how well it handled the fight. You are watching one recorded run.
         </p>
 
@@ -264,9 +262,9 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
           decisions. Results are averaged over hundreds of seeds and reported with 95% confidence intervals.
         </Section>
 
-        <div className="mt-6 rounded-lg border border-warn/25 bg-warn/[0.06] p-3.5">
-          <div className="label !text-warn">Status: Phase 1</div>
-          <p className="mt-1.5 text-[12.5px] leading-[19px] text-fg-muted">
+        <div className="mt-6 rounded-lg border border-line bg-surface-raised p-4">
+          <div className="label !text-fg">Status: phase 1</div>
+          <p className="mt-2 text-[13px] leading-5 text-fg-muted">
             Only hand-written baseline bots exist so far. Over 200 seeds they score{' '}
             <span className="text-fg">expert 89.0</span>, <span className="text-fg">competent 74.6</span>, and{' '}
             <span className="text-fg">sloppy 30.8</span>, with non-overlapping 95% intervals. Ranking three known skill
@@ -278,15 +276,16 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
         {m && (
           <div className="mt-6">
             <div className="label">This replay</div>
-            <dl className="mt-2 space-y-1 font-mono text-[11.5px]">
-              {[['policy', m.policy], ['seed', String(m.seed)], ['outcome', m.outcome], ['sim version', m.sim_version], ['content version', m.content_version]].map(([k, v]) => (
+            <dl className="mt-2 space-y-1 font-mono text-meta">
+              {[['Policy', m.policy], ['Seed', String(m.seed)], ['Outcome', m.outcome], ['Sim version', m.sim_version], ['Content version', m.content_version]].map(([k, v]) => (
                 <div key={k} className="flex justify-between"><dt className="text-fg-faint">{k}</dt><dd className="text-fg">{v}</dd></div>
               ))}
             </dl>
           </div>
         )}
-        <div className="mt-6 text-[11.5px] leading-[18px] text-fg-faint">
-          Keyboard: space play/pause · ←/→ seek 5 s · 1–4 speed. Click any agent decision to rewind to it.
+        <div className="mt-6 text-[12px] leading-5 text-fg-faint">
+          <Key>Space</Key> play or pause · <Key>←</Key> <Key>→</Key> seek 5 s · <Key>1</Key>–<Key>4</Key> speed.
+          Click any agent decision to rewind to it.
         </div>
       </aside>
     </div>
@@ -295,12 +294,16 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
 
 function Section({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
   return (
-    <section className="mt-5 grid grid-cols-[22px_1fr] gap-x-2">
-      <span className="num pt-[1px] font-mono text-[11px] text-fg-faint">{n}</span>
+    <section className="mt-6 grid grid-cols-[20px_1fr] gap-x-2">
+      <span className="num font-mono text-[13px] leading-5 text-fg-faint">{n}</span>
       <div>
-        <h3 className="text-[13.5px] font-medium text-fg">{title}</h3>
-        <p className="mt-1 text-[12.5px] leading-[19px] text-fg-muted [&_b]:font-medium [&_b]:text-fg">{children}</p>
+        <h3 className="text-[13px] font-medium leading-5 text-fg">{title}</h3>
+        <p className="mt-1 text-[13px] leading-5 text-fg-muted [&_b]:font-medium [&_b]:text-fg">{children}</p>
       </div>
     </section>
   )
+}
+
+function Key({ children }: { children: React.ReactNode }) {
+  return <kbd className="inline-grid h-5 min-w-5 place-items-center rounded border border-line bg-surface-raised px-1 font-mono text-meta text-fg-muted">{children}</kbd>
 }

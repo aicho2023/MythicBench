@@ -66,7 +66,7 @@ export function WorldOverlay() {
           icons.dataset.role = role
           for (const c of Array.from(icons.children) as HTMLElement[]) c.style.display = c.dataset.role === role ? 'inline-flex' : 'none'
         }
-        name.style.color = u.info.kind === 'player' ? CLASS_COLORS[u.info.class] : '#ffb3b3'
+        name.style.color = u.info.kind === 'player' ? CLASS_COLORS[u.info.class] : '#fca5a5'
         const showBar = u.info.kind !== 'player'
         bar.style.display = showBar ? 'block' : 'none'
         if (showBar) (bar.firstElementChild as HTMLElement).style.width = `${(100 * u.hp) / u.info.max_hp}%`
@@ -93,15 +93,15 @@ export function WorldOverlay() {
           const crit = e.crit
           items.push({
             i, x: pos[0], y: HEAD[tgt.info.kind] - (toPlayer ? 0.2 : 0.6), z: pos[1], age,
-            text: crit ? `${text}!` : text,
-            color: heal ? '#7dff8a' : toPlayer ? '#ff5d5d' : crit ? '#ffd84d' : '#ffffff',
+            text,
+            color: heal ? '#4ade80' : toPlayer ? '#f87171' : crit ? '#fbbf24' : '#ffffff',
             size: (toPlayer || heal ? 13 : 15) * (crit ? 1.45 : 1),
           })
         } else if (e.type === 'cast_interrupted' && e.reason === 'interrupt') {
           const u = s.units[e.unit]
           if (!u) continue
           const pos = posAt(u, t)
-          items.push({ i, x: pos[0], y: 5.4, z: pos[1], age, text: 'Interrupted!', color: '#7fd0ff', size: 22 })
+          items.push({ i, x: pos[0], y: 5.4, z: pos[1], age, text: 'Interrupted', color: '#7dd3fc', size: 20 })
         }
       }
       const shown = items.slice(-MAX_TEXT)
@@ -132,11 +132,11 @@ export function WorldOverlay() {
     <div ref={root} className="pointer-events-none absolute inset-0 overflow-hidden">
       {Array.from({ length: MAX_PLATES }, (_, i) => (
         <div key={`p${i}`} ref={(el) => { if (el) plates.current[i] = el }} className="absolute left-0 top-0 hidden text-center">
-          <div className="flex items-center justify-center gap-1 whitespace-nowrap font-sans text-[11px] font-semibold [text-shadow:0_1px_2px_#000,0_0_3px_#000]">
+          <div className="flex items-center justify-center gap-1 whitespace-nowrap font-sans text-[12px] font-medium [text-shadow:0_1px_2px_#000,0_0_3px_#000]">
             <span className="inline-flex [filter:drop-shadow(0_1px_1px_#000)]">
               {Object.entries(ROLE_ICON).map(([role, Icon]) => (
                 <span key={role} data-role={role} style={{ display: 'none' }}>
-                  <Icon size={11} strokeWidth={2.5} style={{ color: ROLE_TINT[role] }} fill={role === 'healer' ? ROLE_TINT[role] : 'none'} />
+                  <Icon size={12} strokeWidth={2} style={{ color: ROLE_TINT[role] }} fill={role === 'healer' ? ROLE_TINT[role] : 'none'} />
                 </span>
               ))}
             </span>
@@ -149,7 +149,7 @@ export function WorldOverlay() {
       ))}
       {Array.from({ length: MAX_TEXT }, (_, i) => (
         <div key={`t${i}`} ref={(el) => { if (el) texts.current[i] = el }}
-          className="absolute left-0 top-0 hidden whitespace-nowrap font-sans font-semibold [text-shadow:0_1px_2px_#000,0_0_4px_rgba(0,0,0,0.8)]" />
+          className="absolute left-0 top-0 num hidden whitespace-nowrap font-sans font-semibold [text-shadow:0_1px_2px_#000,0_0_4px_rgba(0,0,0,0.8)]" />
       ))}
     </div>
   )

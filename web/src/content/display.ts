@@ -44,8 +44,8 @@ export const TRACKED_COOLDOWNS: Record<string, string[]> = {
 
 /** Boss casts important enough to flash a raid warning. */
 export const WARN_CASTS: Record<string, string> = {
-  requiem_of_bones: 'Requiem of Bones — Interrupt!',
-  soul_rend: 'Soul Rend on {target} — Defensives!',
+  requiem_of_bones: 'Requiem of Bones · interrupt it',
+  soul_rend: 'Soul Rend on {target} · use a defensive',
 }
 
 /**
