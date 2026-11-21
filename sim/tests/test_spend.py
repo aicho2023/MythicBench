@@ -99,15 +99,23 @@ def manifest(runs_dir):
     return json.loads(path.read_text())
 
 
+def mock_calls_per_fight(seed=0):
+    from mythicsim.llm.policy import make_llm_policies
+    policies, brain = make_llm_policies(MockClient(), interval_ms=2000, max_calls=300, mode="boss")
+    cli.make_encounter(seed, policies, "x", "plus10", "boss").run()
+    return brain.stats.calls
+
+
 def test_budget_stops_a_run_and_keeps_finished_fights(sandbox, capsys):
-    # The mock plays a boss fight in 24 calls; at $0.01 a call, $0.30 covers one
-    # fight and part of the next.
-    run_cli("llm", "--model", "anthropic:claude-haiku-5-5", "--mode", "boss", "--seeds", "0-2",
-            "--budget-usd", "0.30", "--no-cache")
+    # The same fight three times at $0.01 a call: the budget covers one and a half.
+    n = mock_calls_per_fight()
+    budget = round(n * 1.5 * 0.01, 2)
+    run_cli("llm", "--model", "anthropic:claude-haiku-5-5", "--mode", "boss", "--seeds", "0,0,0",
+            "--budget-usd", str(budget), "--no-cache")
     m = manifest(sandbox)
     assert m["status"] == "stopped" and "budget" in m["note"]
     assert [i["seed"] for i in m["items"]] == [0]
-    assert m["summary"]["spent_usd"] == pytest.approx(0.30, abs=0.011)
+    assert m["summary"]["spent_usd"] == pytest.approx(budget, abs=0.011)
     assert spend.total_spent() == pytest.approx(m["summary"]["spent_usd"])
     assert "STOPPED EARLY" in capsys.readouterr().out
     cat = json.loads((sandbox.parent / "local" / "catalog.json").read_text())

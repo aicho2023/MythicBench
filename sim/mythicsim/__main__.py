@@ -25,13 +25,13 @@ from .policies import PROFILES, make_policies
 
 # The showcase replays shipped with the viewer: three reference skill levels on
 # one seed, so the only difference between them is decision quality.
-SHOWCASE_SEED = 42
+SHOWCASE_SEED = 5
 SHOWCASE = [
-    {"id": "expert-clear", "policy": "expert", "seed": SHOWCASE_SEED, "mode": "dungeon",
-     "label": "Expert bots", "blurb": "Clean pulls, casters first, every kick lands. Clears the crypt with time to spare."},
-    {"id": "competent-run", "policy": "competent", "seed": SHOWCASE_SEED, "mode": "dungeon",
-     "label": "Competent bots", "blurb": "Same run, same seed. A few missed kicks and slow dodges, and the clock gets tight."},
-    {"id": "sloppy-wipe", "policy": "sloppy", "seed": SHOWCASE_SEED, "mode": "dungeon",
+    {"id": "expert-clear", "policy": "expert", "seed": SHOWCASE_SEED, "mode": "dungeon", "tier": "plus10",
+     "label": "Expert bots", "blurb": "Clean pulls, casters first, every kick lands. Clears the +10 in time."},
+    {"id": "competent-run", "policy": "competent", "seed": SHOWCASE_SEED, "mode": "dungeon", "tier": "plus10",
+     "label": "Competent bots", "blurb": "Same run, same seed. A few missed kicks and slow dodges, and Mortisar wins."},
+    {"id": "sloppy-wipe", "policy": "sloppy", "seed": SHOWCASE_SEED, "mode": "dungeon", "tier": "plus10",
      "label": "Sloppy bots", "blurb": "Same run, same seed. Missed kicks, tunnel vision, standing in the bad."},
 ]
 
@@ -39,21 +39,21 @@ SHOWCASE = [
 MODES = ("dungeon", "boss")
 
 
-def simulate(policy: str, seed: int, level: int = C.SIGIL_LEVEL, mode: str = "boss") -> dict:
+def simulate(policy: str, seed: int, tier: str = C.DEFAULT_TIER, mode: str = "boss") -> dict:
     """One scripted-bot run. ``mode="dungeon"`` plays the full run (trash, then boss)."""
     if mode == "dungeon":
         from .dungeon import DungeonRun
         from .policies import make_dungeon_policies
-        return DungeonRun(seed, make_dungeon_policies(policy, seed), f"scripted-{policy}", level).run()
-    enc = Encounter(seed, make_policies(policy, seed), f"scripted-{policy}", level)
+        return DungeonRun(seed, make_dungeon_policies(policy, seed), f"scripted-{policy}", tier).run()
+    enc = Encounter(seed, make_policies(policy, seed), f"scripted-{policy}", tier)
     return enc.run()
 
 
-def make_encounter(seed: int, policies, label: str, level: int, mode: str):
+def make_encounter(seed: int, policies, label: str, tier: str, mode: str):
     if mode == "dungeon":
         from .dungeon import DungeonRun
-        return DungeonRun(seed, policies, label, level)
-    return Encounter(seed, policies, label, level)
+        return DungeonRun(seed, policies, label, tier)
+    return Encounter(seed, policies, label, tier)
 
 
 def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
@@ -64,18 +64,18 @@ def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
     return round(max(0.0, centre - half), 3), round(min(1.0, centre + half), 3)
 
 
-def bench(policy: str, runs: int, level: int = C.SIGIL_LEVEL, mode: str = "boss") -> dict:
+def bench(policy: str, runs: int, tier: str = C.DEFAULT_TIER, mode: str = "boss") -> dict:
     """Play seeds 0..runs-1 and report the score and win rate with 95% CIs."""
     if policy not in PROFILES:
         raise SystemExit(f"unknown policy {policy!r}; choose from {', '.join(PROFILES)}")
-    scores = [score(simulate(policy, seed, level, mode)) for seed in range(runs)]
+    scores = [score(simulate(policy, seed, tier, mode)) for seed in range(runs)]
     vals = [s["score"] for s in scores]
     wins = sum(s["outcome"] == "victory" for s in scores)
     times = [s["duration_s"] for s in scores if s["outcome"] == "victory"]
     sd = statistics.stdev(vals) if runs > 1 else 0.0
     half = 1.96 * sd / math.sqrt(runs)
     return {
-        "policy": policy, "runs": runs, "level": level, "mode": mode,
+        "policy": policy, "runs": runs, "tier": tier, "mode": mode,
         "score_mean": round(statistics.mean(vals), 1),
         "score_ci95": [round(statistics.mean(vals) - half, 1), round(statistics.mean(vals) + half, 1)],
         "win_rate": round(wins / runs, 3), "win_rate_ci95": list(wilson(wins, runs)),
@@ -86,14 +86,17 @@ def bench(policy: str, runs: int, level: int = C.SIGIL_LEVEL, mode: str = "boss"
     }
 
 
-LEVEL_NAMES = {"normal": 4, "heroic": 8, "mythic": 12}
+def parse_tier(text: str) -> str:
+    try:
+        return C.tier(text).id
+    except ValueError as err:
+        raise argparse.ArgumentTypeError(str(err)) from None
 
 
-def parse_level(text: str) -> int:
-    lvl = LEVEL_NAMES.get(str(text).lower().lstrip("+"), None)
-    lvl = lvl if lvl is not None else int(str(text).lstrip("+"))
-    C.level_multiplier(lvl)  # validates the range
-    return lvl
+def tier_label(m: dict) -> str:
+    if m.get("tier"):
+        return C.tier(m["tier"]).name
+    return f"+{m.get('level') or 12} (old)"  # runs made before tiers existed
 
 
 def parse_seeds(text: str) -> list[int]:
@@ -154,8 +157,8 @@ def money_summary(tally, meter, n_fights: int) -> dict:
 
 def play_llm_seed(client, seed: int, args, label: str, run) -> tuple[dict, dict]:
     policies, brain = make_llm_policies(client, interval_ms=args.interval_ms, max_calls=args.max_calls,
-                                        level=args.level, mode=args.mode)
-    rep = make_encounter(seed, policies, f"llm:{label}", args.level, args.mode).run()
+                                        tier=args.tier, mode=args.mode)
+    rep = make_encounter(seed, policies, f"llm:{label}", args.tier, args.mode).run()
     s = score(rep)
     rep["meta"]["metrics"] = s
     rep["meta"]["run"] = {k: run.manifest.get(k) for k in
@@ -173,9 +176,9 @@ def run_llm(args) -> None:
     seeds = parse_seeds(args.seeds)
     client, label, args._price, meter = build_client(args, len(seeds))
     run = runs_mod.new_run(label, mode="single", name=args.name, tags=args.tag, config={
-        "seeds": seeds, "interval_ms": args.interval_ms, "max_calls": args.max_calls, "level": args.level,
+        "seeds": seeds, "interval_ms": args.interval_ms, "max_calls": args.max_calls, "tier": args.tier,
         "dungeon_mode": args.mode,
-        "harness_version": HARNESS_VERSION, "prompt_hash": prompt_hash("full", args.level, args.mode),
+        "harness_version": HARNESS_VERSION, "prompt_hash": prompt_hash("full", args.tier, args.mode),
         "sim_version": SIM_VERSION, "content_version": C.CONTENT_VERSION,
         "offline": args.offline, "cache": not args.no_cache,
         "budget_usd": meter.limit_usd if meter else None,
@@ -205,7 +208,7 @@ def run_llm(args) -> None:
                 run.save_manifest()
                 raise SystemExit(f"seed {seed}: {err}")
             s = rep["meta"]["metrics"]
-            refs = {p: score(simulate(p, seed, args.level, args.mode))["score"] for p in ("expert", "competent", "sloppy")}
+            refs = {p: score(simulate(p, seed, args.tier, args.mode))["score"] for p in ("expert", "competent", "sloppy")}
             rows.append({"seed": seed, "score": s["score"], "outcome": s["outcome"],
                          "duration_s": s["duration_s"], "deaths": len(s["deaths"]),
                          "interrupts": f"{s['interrupts']['interrupted']}/{s['interrupts']['interruptible_casts']}",
@@ -259,15 +262,15 @@ def run_progress(args) -> None:
     client, label, price, meter = build_client(args, len(episodes) * args.max_pulls)
     run = runs_mod.new_run(label, mode="progression", name=args.name, tags=args.tag, config={
         "episodes": episodes, "max_pulls": args.max_pulls, "memory": memory, "knowledge": args.knowledge,
-        "interval_ms": args.interval_ms, "max_calls": args.max_calls, "level": args.level, "dungeon_mode": args.mode,
-        "harness_version": HARNESS_VERSION, "prompt_hash": prompt_hash(args.knowledge, args.level, args.mode),
+        "interval_ms": args.interval_ms, "max_calls": args.max_calls, "tier": args.tier, "dungeon_mode": args.mode,
+        "harness_version": HARNESS_VERSION, "prompt_hash": prompt_hash(args.knowledge, args.tier, args.mode),
         "sim_version": SIM_VERSION, "content_version": C.CONTENT_VERSION,
         "offline": args.offline, "cache": not args.no_cache,
         "budget_usd": meter.limit_usd if meter else None,
     })
     if meter:
         meter.run_id = run.run_id
-    print(f"run {run.run_id}  (+{args.level} key, {args.knowledge} knowledge, memory {args.memory}, "
+    print(f"run {run.run_id}  ({C.tier(args.tier).name}, {args.knowledge} knowledge, memory {args.memory}, "
           f"up to {args.max_pulls} pulls)", flush=True)
 
     def on_pull(ep, pr):
@@ -290,7 +293,7 @@ def run_progress(args) -> None:
     with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
         futures = {pool.submit(run_episode, client, e, max_pulls=args.max_pulls, memory=memory,
                                knowledge=args.knowledge, interval_ms=args.interval_ms,
-                               max_calls=args.max_calls, level=args.level, mode=args.mode,
+                               max_calls=args.max_calls, tier=args.tier, mode=args.mode,
                                on_pull=on_pull): e for e in episodes}
         for fut in as_completed(futures):
             try:
@@ -336,7 +339,7 @@ def run_runs(args) -> None:
             n = len(m.get("items") or [])
             mean = s.get("score_mean")
             print(f"{m['run_id']:<52} {m.get('status', '?'):7s} {m.get('mode', ''):11s} "
-                  f"{n:>3} {'pulls' if m.get('mode') == 'progression' else 'seeds'}  +{m.get('level') or 12:<3} "
+                  f"{n:>3} {'pulls' if m.get('mode') == 'progression' else 'seeds'}  {tier_label(m):<7} "
                   f"score {mean if mean is not None else '-':>6}  "
                   f"harness {m.get('harness_version')}  {m.get('name') or ''} {' '.join('#' + t for t in m.get('tags') or [])}")
     elif args.runs_cmd == "show":
@@ -394,16 +397,16 @@ def main() -> None:
     r.add_argument("--out", type=Path, help="also write the replay JSON here")
     r.add_argument("--mode", choices=MODES, default="dungeon",
                      help="dungeon (default): trash packs then the boss; boss: the boss fight alone")
-    r.add_argument("--level", type=parse_level, default=C.SIGIL_LEVEL,
-                     help="key level 2-30, or normal/heroic/mythic (= +4/+8/+12). Default +12")
+    r.add_argument("--tier", type=parse_tier, default=C.DEFAULT_TIER,
+                     help="difficulty: normal, or +10 (default; harder mechanics via affixes)")
     b = sub.add_parser("bench", help="simulate many seeds headlessly and aggregate")
     b.add_argument("--policy", default="expert",
                    help=f"one or more of {', '.join(PROFILES)}, comma-separated")
     b.add_argument("--runs", type=int, default=100)
     b.add_argument("--mode", choices=MODES, default="dungeon",
                      help="dungeon (default): trash packs then the boss; boss: the boss fight alone")
-    b.add_argument("--level", type=parse_level, default=C.SIGIL_LEVEL,
-                     help="key level 2-30, or normal/heroic/mythic (= +4/+8/+12). Default +12")
+    b.add_argument("--tier", type=parse_tier, default=C.DEFAULT_TIER,
+                     help="difficulty: normal, or +10 (default; harder mechanics via affixes)")
     m = sub.add_parser("llm", help="let a language model play; compares it to the reference bots")
     m.add_argument("--model", required=True,
                    help="provider:model, e.g. anthropic:claude-haiku-5-5, openai:<model>, or mock:basic")
@@ -412,8 +415,8 @@ def main() -> None:
     m.add_argument("--max-calls", type=int, default=300, help="safety cap on model calls per fight")
     m.add_argument("--mode", choices=MODES, default="dungeon",
                      help="dungeon (default): trash packs then the boss; boss: the boss fight alone")
-    m.add_argument("--level", type=parse_level, default=C.SIGIL_LEVEL,
-                     help="key level 2-30, or normal/heroic/mythic (= +4/+8/+12). Default +12")
+    m.add_argument("--tier", type=parse_tier, default=C.DEFAULT_TIER,
+                     help="difficulty: normal, or +10 (default; harder mechanics via affixes)")
     m.add_argument("--offline", action="store_true", help="only use recorded replies (no API calls)")
     m.add_argument("--no-cache", action="store_true", help="don't record or reuse replies")
     m.add_argument("--effort", choices=("none", "low", "medium", "high"),
@@ -430,8 +433,8 @@ def main() -> None:
     pg.add_argument("--max-pulls", type=int, default=8)
     pg.add_argument("--mode", choices=MODES, default="dungeon",
                      help="dungeon (default): trash packs then the boss; boss: the boss fight alone")
-    pg.add_argument("--level", type=parse_level, default=C.SIGIL_LEVEL,
-                     help="key level 2-30, or normal/heroic/mythic (= +4/+8/+12). Default +12")
+    pg.add_argument("--tier", type=parse_tier, default=C.DEFAULT_TIER,
+                     help="difficulty: normal, or +10 (default; harder mechanics via affixes)")
     pg.add_argument("--memory", choices=("on", "off"), default="on",
                     help="off = control condition: notes are wiped between pulls")
     pg.add_argument("--knowledge", choices=("blind", "full"), default="blind",
@@ -466,12 +469,12 @@ def main() -> None:
     args = ap.parse_args()
 
     if args.cmd == "run":
-        rep = simulate(args.policy, args.seed, args.level, args.mode)
+        rep = simulate(args.policy, args.seed, args.tier, args.mode)
         print(json.dumps(score(rep), indent=2))
         if args.out:
             args.out.write_text(json.dumps(rep, separators=(",", ":")))
     elif args.cmd == "bench":
-        results = [bench(p, args.runs, args.level, args.mode) for p in args.policy.split(",")]
+        results = [bench(p, args.runs, args.tier, args.mode) for p in args.policy.split(",")]
         print(json.dumps(results[0] if len(results) == 1 else results, indent=2))
     elif args.cmd == "llm":
         run_llm(args)
@@ -483,7 +486,7 @@ def main() -> None:
         args.out.mkdir(parents=True, exist_ok=True)
         index = []
         for spec in SHOWCASE:
-            rep = simulate(spec["policy"], spec["seed"], C.SIGIL_LEVEL, spec.get("mode", "boss"))
+            rep = simulate(spec["policy"], spec["seed"], spec.get("tier", C.DEFAULT_TIER), spec.get("mode", "boss"))
             s = score(rep)
             rep["meta"]["metrics"] = s
             (args.out / f"{spec['id']}.json").write_text(json.dumps(rep, separators=(",", ":")))

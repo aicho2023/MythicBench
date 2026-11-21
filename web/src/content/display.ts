@@ -83,7 +83,7 @@ export function dungeonProgress(units: Record<string, { hp: number; info: { max_
 /** The 0-100 dungeon-run score (mirror of metrics.dungeon_score); timer includes revive penalties. */
 export function dungeonScore(outcome: string | null, timerMs: number, progressPct: number, limitMs: number): number {
   if (outcome === 'victory') return runScore('victory', timerMs, 0, limitMs)
-  return Math.round(0.7 * progressPct * 10) / 10
+  return Math.round((70 * progressPct) / 100 * 10) / 10 // same operation order as metrics.dungeon_score
 }
 
 export function fmtNum(n: number): string {

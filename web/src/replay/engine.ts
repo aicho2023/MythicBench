@@ -35,7 +35,7 @@ export interface UnitState {
   /** last time the cast bar ended and how — drives the "Interrupted!" flash */
   lastCastEnd: { ability: string; t: number; how: 'success' | 'interrupted' } | null
   lastHitT: number
-  auras: Record<string, { t0: number; dur: number; source: string }>
+  auras: Record<string, { t0: number; dur: number; source: string; stacks?: number }>
   /** ability id -> time it becomes ready again */
   readyAt: Record<string, number>
   target: string | null
@@ -141,7 +141,7 @@ export function applyEvent(s: ReplayState, e: ReplayEvent, replay: Replay): void
       tgt.absorb = e.absorb
       tgt.lastHitT = e.t
       s.damageDone[e.source] = (s.damageDone[e.source] ?? 0) + e.amount
-      if (e.ability === 'desecrate') s.avoidableTaken[e.target] = (s.avoidableTaken[e.target] ?? 0) + e.amount + e.absorbed
+      if (e.ability === 'desecrate' || e.ability === 'restless_grave') s.avoidableTaken[e.target] = (s.avoidableTaken[e.target] ?? 0) + e.amount + e.absorbed
       break
     }
     case 'heal':
@@ -150,7 +150,7 @@ export function applyEvent(s: ReplayState, e: ReplayEvent, replay: Replay): void
       break
     case 'aura_apply': {
       const u = s.units[e.unit]
-      u.auras[e.aura] = { t0: e.t, dur: e.duration_ms, source: e.source }
+      u.auras[e.aura] = { t0: e.t, dur: e.duration_ms, source: e.source, stacks: e.stacks }
       if (e.absorb) u.absorb = e.absorb
       break
     }

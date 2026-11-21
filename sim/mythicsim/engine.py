@@ -82,6 +82,7 @@ class Aura:
     t0: int
     dur: int
     next_tick: int = 0
+    stacks: int = 1
 
 
 @dataclass
@@ -143,11 +144,11 @@ class Policy(Protocol):
 
 class Encounter:
     def __init__(self, seed: int, policies: dict[str, Policy], policy_label: str,
-                 level: int = C.SIGIL_LEVEL):
+                 tier: str = C.DEFAULT_TIER):
         self.seed = seed
-        self.level = level
-        # Enemy health and damage scale with the key level (1.0 at the tuned +12).
-        self.level_mult = C.level_multiplier(level)
+        # Difficulty: enemy health/damage multipliers plus the tier's affixes.
+        self.tier = C.tier(tier)
+        self.affixes = frozenset(self.tier.affixes)
         self.rng = random.Random(seed)
         self.policies = policies
         self.policy_label = policy_label
@@ -164,7 +165,8 @@ class Encounter:
         self.timer_rng = {k: random.Random(f"{seed}:timer:{k}") for k in C.BOSS.timers}
         self.boss_next = {k: self.jitter(k, v[0], C.BOSS.first_jitter_ms)
                           for k, v in C.BOSS.timers.items()}
-        self.raise_dead_left = list(C.BOSS.raise_dead_at)
+        self.tyrant = "hollow_tyrant" in self.affixes
+        self.raise_dead_left = list(C.TYRANT_RAISE_AT if self.tyrant else C.BOSS.raise_dead_at)
         self.raise_queued = False
         self.add_count = 0
         self.ground_count = 0
@@ -177,7 +179,10 @@ class Encounter:
             self.units[m.id] = Unit(m.id, m.name, "player", cd.id, cd.role, cd.max_hp,
                                     cd.radius, cd.speed, cd.model, m.home, target=C.BOSS.id)
         b = C.BOSS
-        self.units[b.id] = Unit(b.id, b.name, "boss", "boss", "boss", self.scaled_hp(b.max_hp), b.radius, 0.0,
+        boss_hp = self.scaled_hp(b.max_hp)
+        if self.tyrant:
+            boss_hp = int(round(boss_hp * C.TYRANT_HP))
+        self.units[b.id] = Unit(b.id, b.name, "boss", "boss", "boss", boss_hp, b.radius, 0.0,
                                 b.model, C.BOSS_POS, target=C.PARTY[0].id)
         self.boss = self.units[b.id]
         self.boss_engaged_t = 0  # when Mortisar was pulled (the dungeon run pulls him later)
@@ -188,7 +193,7 @@ class Encounter:
         return max(TICK_MS, int(round(ms / TICK_MS)) * TICK_MS)
 
     def scaled_hp(self, base: int) -> int:
-        return base if self.level == C.SIGIL_LEVEL else int(round(base * self.level_mult))
+        return base if self.tier.enemy_hp == 1.0 else int(round(base * self.tier.enemy_hp))
 
     # ----- event helpers ---------------------------------------------------
     def emit(self, type_: str, **data) -> None:
@@ -255,8 +260,8 @@ class Encounter:
         crit = crit_ok and src.kind == "player" and self.rng.random() < 0.15
         if crit:
             amt *= 2
-        if src.kind != "player" and self.level != C.SIGIL_LEVEL:
-            amt *= self.level_mult
+        if src.kind != "player" and self.tier.enemy_dmg != 1.0:
+            amt *= self.tier.enemy_dmg
         if "hollow_fury" in src.auras:
             amt *= 4
         if "ironhide" in tgt.auras:
@@ -289,9 +294,19 @@ class Encounter:
 
     def apply_aura(self, tgt: Unit, aura_id: str, src: Unit, *, absorb: int = 0) -> None:
         a = C.AURAS[aura_id]
+        old = tgt.auras.get(aura_id)
+        if a.stacks and old:
+            # Another stack: refresh the duration, keep the tick rhythm.
+            old.stacks += 1
+            old.t0, old.dur, old.source = self.t, a.duration_ms, src.id
+            self.emit("aura_apply", unit=tgt.id, aura=aura_id, source=src.id, duration_ms=a.duration_ms,
+                      stacks=old.stacks)
+            return
         tgt.auras[aura_id] = Aura(aura_id, src.id, self.t, a.duration_ms,
                                   next_tick=self.t + a.tick_ms if a.tick_ms else 0)
         data = {"unit": tgt.id, "aura": aura_id, "source": src.id, "duration_ms": a.duration_ms}
+        if a.stacks:
+            data["stacks"] = 1
         if absorb:
             tgt.absorb = absorb
             data["absorb"] = absorb
@@ -314,6 +329,25 @@ class Encounter:
         for aid in list(u.auras):
             del u.auras[aid]
         u.absorb = 0
+        if u.kind == "add":
+            self.on_undead_death(u)
+
+    def on_undead_death(self, u: Unit) -> None:
+        """Affixes that trigger when an undead (not Mortisar) dies."""
+        if "restless_graves" in self.affixes:
+            self.ground_count += 1
+            gid = f"grave_{self.ground_count}"
+            pos = (r2(u.pos[0]), r2(u.pos[1]))
+            arm = C.BOSS.desecrate_arm_ms
+            self.ground[gid] = {"id": gid, "kind": "grave", "source": u.id, "pos": pos, "radius": C.GRAVE_RADIUS,
+                                "spawned_at": self.t, "armed_at": self.t + arm,
+                                "expires_at": self.t + C.GRAVE_DURATION_MS, "next_tick": self.t + arm,
+                                "tick_ms": C.GRAVE_TICK_MS}
+            self.emit("ground_spawn", id=gid, kind="grave", source=u.id, pos=list(pos), radius=C.GRAVE_RADIUS,
+                      arm_ms=arm, duration_ms=C.GRAVE_DURATION_MS, target=None)
+        if "marrowburst" in self.affixes:
+            for p in self.players():
+                self.apply_aura(p, "marrow_shards", u)
 
     # ----- casting ---------------------------------------------------------
     def can_cast(self, u: Unit, ab: C.Ability, tgt: Unit | None) -> bool:
@@ -482,15 +516,16 @@ class Encounter:
     def cast_desecrate(self, b: Unit) -> None:
         self.emit("cast_success", unit=b.id, ability="desecrate", target=None)
         candidates = [p for p in self.players() if p.role != "tank"]
-        k = min(C.BOSS.desecrate_targets, len(candidates))
+        k = min(C.TYRANT_DESECRATE_TARGETS if self.tyrant else C.BOSS.desecrate_targets, len(candidates))
         for p in self.rng.sample(candidates, k):
             self.ground_count += 1
             gid = f"desecrate_{self.ground_count}"
             pos = (r2(p.pos[0]), r2(p.pos[1]))
             g = {"id": gid, "kind": "desecrate", "source": b.id, "pos": pos,
-                 "radius": C.BOSS.desecrate_radius, "armed_at": self.t + C.BOSS.desecrate_arm_ms,
+                 "radius": C.BOSS.desecrate_radius, "spawned_at": self.t,
+                 "armed_at": self.t + C.BOSS.desecrate_arm_ms,
                  "expires_at": self.t + C.BOSS.desecrate_duration_ms,
-                 "next_tick": self.t + C.BOSS.desecrate_arm_ms}
+                 "next_tick": self.t + C.BOSS.desecrate_arm_ms, "tick_ms": C.BOSS.desecrate_tick_ms}
             self.ground[gid] = g
             self.emit("ground_spawn", id=gid, kind="desecrate", source=b.id, pos=list(pos),
                       radius=g["radius"], arm_ms=C.BOSS.desecrate_arm_ms,
@@ -503,7 +538,16 @@ class Encounter:
                 self.emit("ground_expire", id=gid)
                 continue
             if self.t >= g["next_tick"]:
-                g["next_tick"] = self.t + C.BOSS.desecrate_tick_ms
+                g["next_tick"] = self.t + g["tick_ms"]
+                if g["kind"] == "grave":
+                    src = self.units[g["source"]]
+                    for p in self.players():
+                        if dist(p.pos, g["pos"]) <= g["radius"] + p.radius * 0.5:
+                            self.damage(src, p, "restless_grave", C.GRAVE_DAMAGE, crit_ok=False)
+                    for e in self.enemies():
+                        if e.kind == "add" and dist(e.pos, g["pos"]) <= g["radius"] + e.radius * 0.5:
+                            self.heal(src, e, "restless_grave", e.max_hp * C.GRAVE_HEAL_PCT, crit_ok=False)
+                    continue
                 for p in self.players():
                     if dist(p.pos, g["pos"]) <= g["radius"] + p.radius * 0.5:
                         self.damage(self.boss, p, "desecrate", C.ABILITIES["desecrate"].amount,
@@ -550,9 +594,9 @@ class Encounter:
                     au.next_tick += d.tick_ms
                     src = self.units[au.source]
                     if d.harmful:
-                        self.damage(src, u, aid, d.tick_amount, crit_ok=False)
+                        self.damage(src, u, aid, d.tick_amount * au.stacks, crit_ok=False)
                     else:
-                        self.heal(src, u, aid, d.tick_amount, crit_ok=False)
+                        self.heal(src, u, aid, d.tick_amount * au.stacks, crit_ok=False)
                     if not u.alive:
                         break
                 if self.t >= au.t0 + au.dur:
@@ -580,6 +624,9 @@ class Encounter:
             "auras": {aid: au.t0 + au.dur - self.t for aid, au in u.auras.items()},
             "casting": None,
         }
+        stacks = {aid: au.stacks for aid, au in u.auras.items() if au.stacks > 1}
+        if stacks:
+            v["stacks"] = stacks
         if u.cast:
             ab = C.ABILITIES[u.cast.ability]
             v["casting"] = {"ability": ab.id, "name": ab.name, "target": u.cast.target,
@@ -601,8 +648,10 @@ class Encounter:
             "party": [self.view(p, False) for p in self.players(alive_only=False)],
             "enemies": [self.view(e, False) for e in self.enemies()],
             "ground": [{"id": g["id"], "kind": g["kind"], "pos": list(g["pos"]),
-                        "radius": g["radius"], "age_ms": self.t - (g["armed_at"] - C.BOSS.desecrate_arm_ms),
+                        "radius": g["radius"], "age_ms": self.t - g["spawned_at"],
                         "armed": self.t >= g["armed_at"]} for g in self.ground.values()],
+            "tier": self.tier.id,
+            "affixes": list(self.tier.affixes),
             "arena_radius": C.ARENA_RADIUS,
             "boss_next_ms": {k: max(0, v - self.t) for k, v in self.boss_next.items()},
         }
@@ -703,7 +752,9 @@ class Encounter:
                 "tick_ms": TICK_MS,
                 "duration_ms": self.t,
                 "outcome": self.outcome,
-                "sigil_level": self.level,
+                "tier": self.tier.id,
+                "tier_name": self.tier.name,
+                "affixes": list(self.tier.affixes),
                 "time_limit_ms": C.TIME_LIMIT_MS,
             },
             "arena": {"radius": C.ARENA_RADIUS, "doors": [list(d) for d in C.CRYPT_DOORS]},
@@ -711,6 +762,8 @@ class Encounter:
                             "abilities": list(c.abilities)} for k, c in C.CLASSES.items()},
             "abilities": abilities,
             "auras": {k: a.to_json() for k, a in C.AURAS.items()},
+            "affixes": {k: {"name": C.AFFIXES[k].name, "description": C.AFFIXES[k].description}
+                        for k in self.tier.affixes},
             "units": self.roster,
             "events": self.events,
         }

@@ -23,6 +23,7 @@ import json
 import re
 from dataclasses import dataclass, field
 
+from .. import content as C
 from ..engine import Encounter
 from ..metrics import score
 from .clients import ChatClient, ClientError
@@ -101,20 +102,20 @@ class EpisodeResult:
 
 def run_episode(client: ChatClient, episode: int, *, max_pulls: int = 8, memory: bool = True,
                 knowledge: str = "blind", interval_ms: int = 2000, max_calls: int = 300,
-                level: int = 12, mode: str = "boss", on_pull=None) -> EpisodeResult:
+                tier: str = C.DEFAULT_TIER, mode: str = "boss", on_pull=None) -> EpisodeResult:
     result = EpisodeResult(episode)
     notes = ""
     for k in range(1, max_pulls + 1):
         seed = pull_seed(episode, k)
         notes_in = notes if memory else ""
         policies, brain = make_llm_policies(client, interval_ms=interval_ms, max_calls=max_calls,
-                                            knowledge=knowledge, notes=notes_in or None, pull=k, level=level,
+                                            knowledge=knowledge, notes=notes_in or None, pull=k, tier=tier,
                                             mode=mode)
         if mode == "dungeon":
             from ..dungeon import DungeonRun
-            rep = DungeonRun(seed, policies, f"llm:{client.spec}", level).run()
+            rep = DungeonRun(seed, policies, f"llm:{client.spec}", tier).run()
         else:
-            rep = Encounter(seed, policies, f"llm:{client.spec}", level).run()
+            rep = Encounter(seed, policies, f"llm:{client.spec}", tier).run()
         rep["meta"]["metrics"] = score(rep)
         db = debrief_text(rep)
         problem = None
@@ -122,7 +123,7 @@ def run_episode(client: ChatClient, episode: int, *, max_pulls: int = 8, memory:
         won = rep["meta"]["metrics"]["outcome"] == "victory"
         if memory and not won and k < max_pulls:
             notes_out, problem = reflect(client, notes_in, db, k)
-        rep["meta"]["progress"] = {"episode": episode, "pull": k, "memory": memory, "knowledge": knowledge, "level": level,
+        rep["meta"]["progress"] = {"episode": episode, "pull": k, "memory": memory, "knowledge": knowledge, "tier": tier,
                                    "notes_before": notes_in, "notes_after": notes_out, "debrief": db}
         pr = PullResult(k, seed, rep, brain.stats.as_dict(), notes_in, notes_out, db, problem)
         result.pulls.append(pr)

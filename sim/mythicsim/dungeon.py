@@ -38,8 +38,8 @@ def clamp_to_walkable(p: tuple[float, float]) -> tuple[float, float]:
 
 
 class DungeonRun(Encounter):
-    def __init__(self, seed, policies, policy_label, level: int = C.SIGIL_LEVEL):
-        super().__init__(seed, policies, policy_label, level)
+    def __init__(self, seed, policies, policy_label, tier: str = C.DEFAULT_TIER):
+        super().__init__(seed, policies, policy_label, tier)
         # The party starts at the crypt entrance, in a small cluster.
         offsets = ((0.0, -1.5), (0.0, 1.5), (-1.6, 0.0), (1.6, 0.0), (0.0, 0.0))
         for m, (dx, dz) in zip(C.PARTY, offsets):

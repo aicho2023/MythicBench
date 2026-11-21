@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-CONTENT_VERSION = "0.3.0"
+CONTENT_VERSION = "1.0.0"
 
 GCD_MS = 1000
 MELEE_RANGE = 3.0
@@ -66,14 +66,18 @@ class AuraDef:
     tick_ms: int = 0
     tick_amount: int = 0
     description: str = ""
+    stacks: bool = False  # re-applying adds a stack (each stack ticks) and refreshes it
 
     def to_json(self) -> dict:
-        return {
+        out = {
             "name": self.name,
             "icon": self.icon,
             "harmful": self.harmful,
             "description": self.description,
         }
+        if self.stacks:
+            out["stacks"] = True
+        return out
 
 
 @dataclass(frozen=True)
@@ -192,6 +196,8 @@ _AURAS = [
     AuraDef("hollow_fury", "Hollow Fury", "fury", False, 600000,
             description="Enraged. Damage dealt increased by 300%."),
     AuraDef("taunted", "Taunted", "roar", True, 600000, description="Forced to attack the Guardian."),
+    AuraDef("marrow_shards", "Marrow Shards", "claw", True, 4000, tick_ms=1000, tick_amount=900,
+            description="Bone shards from a fallen undead: damage every second, per stack.", stacks=True),
 ]
 AURAS: dict[str, AuraDef] = {a.id: a for a in _AURAS}
 
@@ -297,23 +303,67 @@ class AddDef:
 ADD = AddDef()
 CRYPT_DOORS: tuple[tuple[float, float], ...] = ((-12.5, -4.0), (12.5, -4.0), (-9.0, 10.0))
 
-# Key levels (Mythic+ style). +12 is the level the fight is tuned at; each level
-# up or down multiplies enemy health and enemy damage by LEVEL_STEP.
-SIGIL_LEVEL = 12
-LEVEL_STEP = 1.08
-MIN_LEVEL, MAX_LEVEL = 2, 30
+# ---------------------------------------------------------------------------
+# Difficulty: two tiers, like a Normal dungeon and a +10 Mythic+ key.
+# ---------------------------------------------------------------------------
+# Normal is the dungeon with softer numbers. +10 is the tuned dungeon plus three
+# affixes that change how it has to be played, not just how big the numbers are.
+
+@dataclass(frozen=True)
+class Affix:
+    id: str
+    name: str
+    description: str
 
 
-def level_multiplier(level: int) -> float:
-    """LEVEL_STEP ** (level - 12), built from plain multiplication/division
-    (exactly rounded everywhere) rather than pow(), whose last bit can differ
-    between CPU platforms."""
-    if not MIN_LEVEL <= level <= MAX_LEVEL:
-        raise ValueError(f"sigil level must be between {MIN_LEVEL} and {MAX_LEVEL}")
-    m = 1.0
-    for _ in range(abs(level - SIGIL_LEVEL)):
-        m = m * LEVEL_STEP if level > SIGIL_LEVEL else m / LEVEL_STEP
-    return m
+AFFIXES: dict[str, Affix] = {a.id: a for a in (
+    Affix("restless_graves", "Restless Graves",
+          "When an undead enemy other than Mortisar dies, it leaves a Restless Grave on the ground for 12 sec. "
+          "The grave heals other undead standing in it by 5% of their health every second, and hurts players "
+          "standing in it. Fight enemies away from graves."),
+    Affix("marrowburst", "Marrowburst",
+          "When an undead enemy other than Mortisar dies, every player gains a stack of Marrow Shards: shadow "
+          "damage every second for 4 sec, for each stack. Many kills at once stack it high: stagger kills."),
+    Affix("hollow_tyrant", "Hollow Tyrant",
+          "Mortisar has 15% more health, Summons the Restless three times (at 80%, 50% and 25% health), "
+          "and Desecrates four players instead of three."),
+)}
+
+
+@dataclass(frozen=True)
+class Tier:
+    id: str
+    name: str
+    enemy_hp: float  # multiplies every enemy's health
+    enemy_dmg: float  # multiplies every enemy's damage
+    affixes: tuple[str, ...]
+
+
+TIERS: dict[str, Tier] = {t.id: t for t in (
+    Tier("normal", "Normal", 0.6, 0.6, ()),
+    Tier("plus10", "+10", 0.85, 1.0, ("restless_graves", "marrowburst", "hollow_tyrant")),
+)}
+DEFAULT_TIER = "plus10"
+TIER_ALIASES = {"normal": "normal", "n": "normal", "plus10": "plus10", "+10": "plus10", "10": "plus10"}
+
+# Affix numbers
+GRAVE_RADIUS = 2.5
+GRAVE_DURATION_MS = 12_000
+GRAVE_TICK_MS = 1_000
+GRAVE_HEAL_PCT = 0.05
+GRAVE_DAMAGE = 3_500
+TYRANT_HP = 1.0
+TYRANT_RAISE_AT = (0.80, 0.50, 0.25)
+TYRANT_DESECRATE_TARGETS = 4
+
+
+def tier(tier_id: str) -> Tier:
+    t = TIERS.get(TIER_ALIASES.get(str(tier_id).lower(), str(tier_id)))
+    if t is None:
+        raise ValueError(f"tier must be one of: normal, +10 (got {tier_id!r})")
+    return t
+
+
 TIME_LIMIT_MS = BOSS.enrage_ms
 
 
@@ -388,6 +438,8 @@ ABILITIES.update({a.id: a for a in (
             description="Restores 30% health to the most injured undead ally. Interrupt it, or kill the Mender first."),
     Ability("bone_bolt", "Bone Bolt", "trash", "claw", school="shadow", cast_ms=1500,
             range=30.0, amount=5000, description="A ranged bolt at the caster's target."),
+    Ability("restless_grave", "Restless Grave", "affix", "desecrate", school="shadow", amount=GRAVE_DAMAGE,
+            description=AFFIXES["restless_graves"].description),
 )})
 
 TRASH: dict[str, TrashDef] = {

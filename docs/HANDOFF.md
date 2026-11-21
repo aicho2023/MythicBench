@@ -58,9 +58,13 @@ competent 72.3 (70.2–74.5), sloppy 14.9 (14.3–15.4). Win rates 99.5% / 68.5%
 0%. ~0.45 s per headless fight.
 
 Score (`metrics.run_score`, v2): wipe = 70 × share of boss removed; kill = 70 +
-30 × speed (full speed with ≥25% of the timer left). Key levels `--level`
-+2…+30 scale enemy health and damage ×1.08 per level from +12. Expert bots
-start losing around +14; sloppy bots around +4.
+30 × speed (full speed with ≥25% of the timer left).
+
+**Difficulty is two tiers (content 1.0.0):** Normal (enemies at 0.6×, no
+affixes) and +10 (0.85× health, 1.0× damage, plus Restless Graves, Marrowburst
+and Hollow Tyrant). On dungeon runs over 200 seeds, +10 clear rates are expert
+60%, competent 13%, sloppy 0%; on Normal they are 100%, 99.5% and 19%. The
+old `--level` key levels are gone; runs made with them show as "+N (old)".
 
 ### Pending from the owner
 - They said they **have questions before continuing** — ask for them first.
