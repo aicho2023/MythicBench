@@ -91,10 +91,14 @@ def new_run(label: str, *, mode: str, config: dict, name: str | None = None,
     return run
 
 
-def finish_run(run: Run, summary: dict, items: list[dict], runs_dir: Path = RUNS_DIR) -> None:
-    """Record the summary and per-seed results, mark done, append to the registry."""
-    run.manifest.update(status="done", summary=summary, items=items,
+def finish_run(run: Run, summary: dict, items: list[dict], runs_dir: Path = RUNS_DIR,
+               status: str = "done", note: str | None = None) -> None:
+    """Record the summary and per-seed results, mark done (or ``stopped`` when
+    the budget ran out part-way), and append to the registry."""
+    run.manifest.update(status=status, summary=summary, items=items,
                         finished=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+    if note:
+        run.manifest["note"] = note
     run.save_manifest()
     runs_dir.mkdir(parents=True, exist_ok=True)
     with (runs_dir / "registry.jsonl").open("a") as f:
@@ -105,7 +109,8 @@ def registry_line(m: dict) -> dict:
     s = m.get("summary") or {}
     return {k: m.get(k) for k in ("run_id", "name", "tags", "mode", "label", "provider", "model", "effort",
                                   "created", "harness_version", "status")} | {
-        "n": len(m.get("items") or []), "score_mean": s.get("score_mean"), "win_rate": s.get("win_rate")}
+        "n": len(m.get("items") or []), "score_mean": s.get("score_mean"), "win_rate": s.get("win_rate"),
+        "cost_usd": s.get("cost_usd")}
 
 
 # ---------------------------------------------------------------------------
@@ -146,7 +151,7 @@ def filter_runs(ms: list[dict], model: str | None = None, tag: str | None = None
 
 
 def rebuild_registry(runs_dir: Path = RUNS_DIR) -> None:
-    lines = [json.dumps(registry_line(m)) for m in reversed(load_manifests(runs_dir)) if m.get("status") == "done"]
+    lines = [json.dumps(registry_line(m)) for m in reversed(load_manifests(runs_dir)) if m.get("status") in ("done", "stopped")]
     (runs_dir / "registry.jsonl").write_text("".join(l + "\n" for l in lines))
 
 
@@ -172,7 +177,7 @@ def publish(runs_dir: Path = RUNS_DIR, out_dir: Path = LOCAL_REPLAYS, only: list
     out_dir.mkdir(parents=True, exist_ok=True)
     runs = []
     for m in load_manifests(runs_dir):
-        if m.get("status") != "done" or not m.get("items"):
+        if m.get("status") not in ("done", "stopped") or not m.get("items"):
             continue
         rid = m["run_id"]
         dest = out_dir / rid
@@ -186,14 +191,17 @@ def publish(runs_dir: Path = RUNS_DIR, out_dir: Path = LOCAL_REPLAYS, only: list
         items = [{**it, "file": f"{rid}/{it['file']}"} for it in m["items"] if (dest / it["file"]).exists()]
         if not items:
             continue
-        s = m.get("summary") or {}
+        s = dict(m.get("summary") or {})
+        if s.get("cost_usd") is None:
+            s.update(estimate_cost(m, runs_dir / rid))
         runs.append({k: m.get(k) for k in ("run_id", "name", "tags", "mode", "label", "provider", "model", "effort",
                                            "created", "harness_version", "prompt_hash", "git_commit",
-                                           "knowledge", "memory", "max_pulls", "level")}
+                                           "knowledge", "memory", "max_pulls", "level", "status", "note")}
                     | {"summary": {k: s.get(k) for k in ("score_mean", "score_ci95", "win_rate", "reference_means",
                                                           "kill_rate", "pulls_to_kill_mean", "pulls_to_kill_ci95",
                                                           "learning_gain_mean", "learning_gain_ci95", "curve_mean",
-                                                          "progression_score_mean", "progression_score_ci95")},
+                                                          "progression_score_mean", "progression_score_ci95",
+                                                          "cost_usd", "usd_per_fight")},
                        "items": items})
     catalog = {"current_harness_version": HARNESS_VERSION, "runs": runs}
     (out_dir / "catalog.json").write_text(json.dumps(catalog, indent=1))
@@ -201,6 +209,18 @@ def publish(runs_dir: Path = RUNS_DIR, out_dir: Path = LOCAL_REPLAYS, only: list
     if old.exists():
         old.unlink()
     return len(runs)
+
+
+def estimate_cost(m: dict, run_dir: Path) -> dict:
+    """List-price cost of a run saved before costs were recorded, from its
+    fights' token counts (reflection calls weren't counted, so slightly low)."""
+    from .spend import FREE, price_for, stats_cost
+    price = price_for(m.get("label") or "")
+    files = sorted(run_dir.rglob("*.stats.json"))
+    if price is None or price is FREE or not files:
+        return {}
+    usd = sum(stats_cost(price, json.loads(p.read_text())) for p in files)
+    return {"cost_usd": round(usd, 4), "usd_per_fight": round(usd / len(files), 4)}
 
 
 # ---------------------------------------------------------------------------
@@ -217,7 +237,7 @@ def rescore(runs_dir: Path = RUNS_DIR) -> int:
     from .metrics import score as score_fn
     n = 0
     for m in load_manifests(runs_dir):
-        if m.get("status") != "done":
+        if m.get("status") not in ("done", "stopped"):
             continue
         rid = m["run_id"]
         for it in m.get("items") or []:
