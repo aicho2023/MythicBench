@@ -82,6 +82,15 @@ def test_move_safe_leaves_the_pool_and_stays_in_melee():
     assert dist(move.to, boss) - 0.45 - 1.6 <= 3.0  # still in melee range
 
 
+def test_safe_move_does_not_walk_through_another_pool():
+    from mythicsim.policies import crosses_pool, find_safe_spot
+    here = (6.0, -4.0)
+    ground = [{"pos": [6.0, -4.0], "radius": 2.2, "armed": True},   # the pool we're in
+              {"pos": [3.0, -3.0], "radius": 2.2, "armed": True}]   # between us and the boss
+    spot = find_safe_spot(ground, 15.0, here, here, ((0.0, -2.0), 1.6, 2.8), avoid_paths=True)
+    assert spot is None or not crosses_pool(here, spot, ground[1:])
+
+
 def test_self_and_party_target_aliases():
     reply = json.dumps({"orders": {"lumi": {"priority": [["radiant_hymn", "party"]]},
                                    "bao": {"priority": [["wild_roar", "self"]]}}})

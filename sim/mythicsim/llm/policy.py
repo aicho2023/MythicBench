@@ -244,7 +244,8 @@ class LLMPolicy:
 
     def safe_destination(self, obs: dict, st: Standing):
         """Resolve "safe": the bots' dodge planner, keeping the first priority
-        target in range when possible. None = already safe and in range."""
+        target in range when possible and never walking through another
+        pool. None = already safe and in range."""
         me = obs["self"]
         pos = tuple(me["pos"])
         units = {u["id"]: u for u in obs["party"] + obs["enemies"]}
@@ -258,8 +259,11 @@ class LLMPolicy:
         in_reach = reach is None or dist(pos, reach[0]) - PLAYER_RADIUS - reach[1] <= reach[2]
         if not unsafe(pos, obs["ground"], 0.3) and in_reach:
             return None
-        spot = find_safe_spot(obs["ground"], obs["arena_radius"], pos, pos, reach)
-        return spot or find_safe_spot(obs["ground"], obs["arena_radius"], pos, pos)
+        g, r = obs["ground"], obs["arena_radius"]
+        # Prefer: in range and a clean path; then a clean path; then just clear of pools.
+        return (find_safe_spot(g, r, pos, pos, reach, avoid_paths=True)
+                or find_safe_spot(g, r, pos, pos, avoid_paths=True)
+                or find_safe_spot(g, r, pos, pos))
 
     def say(self, st: Standing) -> str | None:
         if st.said or not st.order.say:
