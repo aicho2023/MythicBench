@@ -62,7 +62,9 @@ Pieces:
 #   1.0.0-rc.6 shorter melee reach (content 1.7.0): a melee character in reach
 #          of its target follows it a little on its own (never into a pool), and
 #          "safe" keeps the reach of the first attack, not of a standing kick;
-#          the rules describe the solid throne and pillars (sim 0.10.0)
+#          the rules describe the solid throne and pillars (sim 0.10.0); and they
+#          no longer give each character a "usual spot" (a leftover from the
+#          boss-only mode that every party copied as its boss-fight layout)
 HARNESS_VERSION = "1.0.0-rc.6"
 
 

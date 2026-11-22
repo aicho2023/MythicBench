@@ -188,8 +188,9 @@ def system_prompt(knowledge: str = "full", notes: str | None = None, pull: int |
     party = []
     for m in C.PARTY:
         cd = C.CLASSES[m.cls]
-        party.append(f"  {m.id} - {m.name}, {cd.name} ({cd.role}){' (YOU)' if m.id == me else ''}, {cd.max_hp} HP, "
-                     f"usual spot ({m.home[0]:g}, {m.home[1]:g})"
+        # No standing spot here: where to stand is the agents' call (each
+        # character's position is in the state they get on every call).
+        party.append(f"  {m.id} - {m.name}, {cd.name} ({cd.role}){' (YOU)' if m.id == me else ''}, {cd.max_hp} HP"
                      + (f", melee auto-attacks" if cd.auto_attack else "") + ":")
         party.extend(_ability_line(a) for a in cd.abilities)
     b = C.BOSS

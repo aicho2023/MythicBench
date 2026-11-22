@@ -266,7 +266,7 @@ class PartyMember:
     id: str
     name: str
     cls: str
-    home: tuple[float, float]  # default standing spot (x, z)
+    home: tuple[float, float]  # where it starts a boss-only fight (x, z); never shown to the agents
 
 
 # The boss starts on a dais at (0, -2) facing +z, toward the party.
