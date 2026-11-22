@@ -7,6 +7,7 @@ import { Link, usePath } from './router'
 const NAV = [
   { to: '/', label: 'Leaderboard' },
   { to: '/watch', label: 'Watch' },
+  { to: '/party', label: 'Party' },
   { to: '/paper', label: 'Paper' },
   { to: '/about', label: 'About' },
 ]

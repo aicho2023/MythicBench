@@ -547,6 +547,9 @@ def main() -> None:
             print(f"{spec['id']}: {s['outcome']} in {s['duration_s']}s, score {s['score']}, "
                   f"{len(s['deaths'])} deaths, kicks {s['interrupts']}")
         (args.out / "index.json").write_text(json.dumps(index, indent=2))
+        # The site's Party page reads this: every character, ability, enemy and affix.
+        from .guide import game_guide
+        (args.out / "game.json").write_text(json.dumps(game_guide(), indent=1) + "\n")
 
 
 if __name__ == "__main__":

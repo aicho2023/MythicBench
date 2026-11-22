@@ -1,0 +1,611 @@
+{
+ "content_version": "1.2.0",
+ "gcd_s": 1.0,
+ "melee_range_m": 3.0,
+ "party": [
+  {
+   "id": "bramble",
+   "name": "Bramble",
+   "class": "guardian",
+   "class_name": "Guardian",
+   "role": "tank",
+   "max_hp": 62000,
+   "auto_attack": {
+    "amount": 700,
+    "every_s": 2.0
+   },
+   "abilities": [
+    {
+     "id": "bulwark_slam",
+     "name": "Bulwark Slam",
+     "kind": "damage",
+     "kind_name": "Damage",
+     "school": "physical",
+     "icon": "shield",
+     "description": "Slam the target with your shield.",
+     "cast_s": 0.0,
+     "cooldown_s": 6.0,
+     "on_gcd": true,
+     "interruptible": false,
+     "amount": 2200,
+     "range_m": 3.0
+    },
+    {
+     "id": "rampart_strike",
+     "name": "Rampart Strike",
+     "kind": "damage",
+     "kind_name": "Damage",
+     "school": "physical",
+     "icon": "sword",
+     "description": "A dependable sword strike.",
+     "cast_s": 0.0,
+     "cooldown_s": 0.0,
+     "on_gcd": true,
+     "interruptible": false,
+     "amount": 1100,
+     "range_m": 3.0
+    },
+    {
+     "id": "ironhide",
+     "name": "Ironhide",
+     "kind": "buff",
+     "kind_name": "Buff",
+     "school": "physical",
+     "icon": "shield_star",
+     "description": "Reduce damage taken by 60% for 8 sec.",
+     "cast_s": 0.0,
+     "cooldown_s": 25.0,
+     "on_gcd": false,
+     "interruptible": false
+    },
+    {
+     "id": "rampart_bash",
+     "name": "Rampart Bash",
+     "kind": "interrupt",
+     "kind_name": "Interrupt",
+     "school": "physical",
+     "icon": "shield_bash",
+     "description": "Interrupt the target's spellcasting.",
+     "cast_s": 0.0,
+     "cooldown_s": 15.0,
+     "on_gcd": false,
+     "interruptible": false,
+     "range_m": 4.0
+    },
+    {
+     "id": "challenging_roar",
+     "name": "Challenging Roar",
+     "kind": "taunt",
+     "kind_name": "Taunt",
+     "school": "physical",
+     "icon": "roar",
+     "description": "Force all nearby enemies to attack you.",
+     "cast_s": 0.0,
+     "cooldown_s": 20.0,
+     "on_gcd": true,
+     "interruptible": false,
+     "radius_m": 40.0
+    }
+   ]
+  },
+  {
+   "id": "lumi",
+   "name": "Lumi",
+   "class": "lightweaver",
+   "class_name": "Lightweaver",
+   "role": "healer",
+   "max_hp": 42000,
+   "auto_attack": null,
+   "abilities": [
+    {
+     "id": "mending_light",
+     "name": "Mending Light",
+     "kind": "heal",
+     "kind_name": "Heal",
+     "school": "holy",
+     "icon": "heal",
+     "description": "A fast, focused heal.",
+     "cast_s": 1.5,
+     "cooldown_s": 0.0,
+     "on_gcd": true,
+     "interruptible": false,
+     "amount": 9000,
+     "range_m": 30.0
+    },
+    {
+     "id": "bloomward",
+     "name": "Bloomward",
+     "kind": "hot",
+     "kind_name": "Heal over time",
+     "school": "holy",
+     "icon": "bloom",
+     "description": "Heals the target over 12 sec.",
+     "cast_s": 0.0,
+     "cooldown_s": 0.0,
+     "on_gcd": true,
+     "interruptible": false,
+     "range_m": 30.0
+    },
+    {
+     "id": "lumen_ward",
+     "name": "Lumen Ward",
+     "kind": "absorb",
+     "kind_name": "Shield",
+     "school": "holy",
+     "icon": "ward",
+     "description": "Shield an ally, absorbing 15,000 damage.",
+     "cast_s": 0.0,
+     "cooldown_s": 8.0,
+     "on_gcd": true,
+     "interruptible": false,
+     "amount": 15000,
+     "range_m": 30.0
+    },
+    {
+     "id": "radiant_hymn",
+     "name": "Radiant Hymn",
+     "kind": "raid_heal",
+     "kind_name": "Group heal",
+     "school": "holy",
+     "icon": "hymn",
+     "description": "Heal the entire party for a large amount.",
+     "cast_s": 2.0,
+     "cooldown_s": 60.0,
+     "on_gcd": true,
+     "interruptible": false,
+     "amount": 14000
+    },
+    {
+     "id": "sunspark",
+     "name": "Sunspark",
+     "kind": "damage",
+     "kind_name": "Damage",
+     "school": "holy",
+     "icon": "sun",
+     "description": "Hurl a mote of light at an enemy.",
+     "cast_s": 1.5,
+     "cooldown_s": 0.0,
+     "on_gcd": true,
+     "interruptible": false,
+     "amount": 1400,
+     "range_m": 30.0
+    }
+   ]
+  },
+  {
+   "id": "grokka",
+   "name": "Grokka",
+   "class": "berserker",
+   "class_name": "Berserker",
+   "role": "dps",
+   "max_hp": 44000,
+   "auto_attack": {
+    "amount": 1000,
+    "every_s": 2.0
+   },
+   "abilities": [
+    {
+     "id": "ravage",
+     "name": "Ravage",
+     "kind": "damage",
+     "kind_name": "Damage",
+     "school": "physical",
+     "icon": "axe",
+     "description": "A brutal, heavy blow.",
+     "cast_s": 0.0,
+     "cooldown_s": 4.5,
+     "on_gcd": true,
+     "interruptible": false,
+     "amount": 3200,
+     "range_m": 3.0
+    },
+    {
+     "id": "savage_hew",
+     "name": "Savage Hew",
+     "kind": "damage",
+     "kind_name": "Damage",
+     "school": "physical",
+     "icon": "slash",
+     "description": "Hack at the target.",
+     "cast_s": 0.0,
+     "cooldown_s": 0.0,
+     "on_gcd": true,
+     "interruptible": false,
+     "amount": 1500,
+     "range_m": 3.0
+    },
+    {
+     "id": "cleaving_storm",
+     "name": "Cleaving Storm",
+     "kind": "aoe_damage",
+     "kind_name": "Area damage",
+     "school": "physical",
+     "icon": "whirl",
+     "description": "Spin, striking all nearby enemies.",
+     "cast_s": 0.0,
+     "cooldown_s": 8.0,
+     "on_gcd": true,
+     "interruptible": false,
+     "amount": 2600,
+     "radius_m": 8.0
+    },
+    {
+     "id": "throat_punch",
+     "name": "Throat Punch",
+     "kind": "interrupt",
+     "kind_name": "Interrupt",
+     "school": "physical",
+     "icon": "fist",
+     "description": "Interrupt the target's spellcasting.",
+     "cast_s": 0.0,
+     "cooldown_s": 15.0,
+     "on_gcd": false,
+     "interruptible": false,
+     "range_m": 4.0
+    }
+   ]
+  },
+  {
+   "id": "nyx",
+   "name": "Nyx",
+   "class": "shadowblade",
+   "class_name": "Shadowblade",
+   "role": "dps",
+   "max_hp": 40000,
+   "auto_attack": {
+    "amount": 800,
+    "every_s": 1.3
+   },
+   "abilities": [
+    {
+     "id": "twin_fang",
+     "name": "Twin Fang",
+     "kind": "damage",
+     "kind_name": "Damage",
+     "school": "physical",
+     "icon": "daggers",
+     "description": "Strike twice with your daggers.",
+     "cast_s": 0.0,
+     "cooldown_s": 0.0,
+     "on_gcd": true,
+     "interruptible": false,
+     "amount": 1600,
+     "range_m": 3.0
+    },
+    {
+     "id": "venom_burst",
+     "name": "Venom Burst",
+     "kind": "damage",
+     "kind_name": "Damage",
+     "school": "nature",
+     "icon": "venom",
+     "description": "Detonate your poisons.",
+     "cast_s": 0.0,
+     "cooldown_s": 8.0,
+     "on_gcd": true,
+     "interruptible": false,
+     "amount": 4200,
+     "range_m": 3.0
+    },
+    {
+     "id": "fan_of_blades",
+     "name": "Scatterblades",
+     "kind": "aoe_damage",
+     "kind_name": "Area damage",
+     "school": "physical",
+     "icon": "fan",
+     "description": "Throw blades at all nearby enemies.",
+     "cast_s": 0.0,
+     "cooldown_s": 6.0,
+     "on_gcd": true,
+     "interruptible": false,
+     "amount": 1700,
+     "radius_m": 8.0
+    },
+    {
+     "id": "quick_jab",
+     "name": "Quick Jab",
+     "kind": "interrupt",
+     "kind_name": "Interrupt",
+     "school": "physical",
+     "icon": "jab",
+     "description": "Interrupt the target's spellcasting.",
+     "cast_s": 0.0,
+     "cooldown_s": 15.0,
+     "on_gcd": false,
+     "interruptible": false,
+     "range_m": 4.0
+    }
+   ]
+  },
+  {
+   "id": "bao",
+   "name": "Bao",
+   "class": "ranger",
+   "class_name": "Ranger",
+   "role": "dps",
+   "max_hp": 40000,
+   "auto_attack": null,
+   "abilities": [
+    {
+     "id": "steady_arrow",
+     "name": "Steady Arrow",
+     "kind": "damage",
+     "kind_name": "Damage",
+     "school": "physical",
+     "icon": "arrow",
+     "description": "A careful, aimed arrow.",
+     "cast_s": 1.5,
+     "cooldown_s": 0.0,
+     "on_gcd": true,
+     "interruptible": false,
+     "amount": 2100,
+     "range_m": 30.0
+    },
+    {
+     "id": "piercing_shot",
+     "name": "Piercing Shot",
+     "kind": "damage",
+     "kind_name": "Damage",
+     "school": "physical",
+     "icon": "pierce",
+     "description": "A powerful shot that punches through armor.",
+     "cast_s": 2.0,
+     "cooldown_s": 9.0,
+     "on_gcd": true,
+     "interruptible": false,
+     "amount": 6000,
+     "range_m": 30.0
+    },
+    {
+     "id": "silencing_arrow",
+     "name": "Silencing Arrow",
+     "kind": "interrupt",
+     "kind_name": "Interrupt",
+     "school": "physical",
+     "icon": "silence",
+     "description": "Interrupt the target's spellcasting.",
+     "cast_s": 0.0,
+     "cooldown_s": 20.0,
+     "on_gcd": false,
+     "interruptible": false,
+     "range_m": 30.0
+    },
+    {
+     "id": "wild_roar",
+     "name": "Wild Roar",
+     "kind": "buff",
+     "kind_name": "Buff",
+     "school": "physical",
+     "icon": "wild",
+     "description": "Increase the party's haste by 30% for 30 sec.",
+     "cast_s": 0.0,
+     "cooldown_s": 300.0,
+     "on_gcd": true,
+     "interruptible": false
+    }
+   ]
+  }
+ ],
+ "trash": [
+  {
+   "id": "bonewalker",
+   "name": "Risen Bonewalker",
+   "max_hp": 42000,
+   "melee": true,
+   "spells": []
+  },
+  {
+   "id": "bone_chanter",
+   "name": "Bone Chanter",
+   "max_hp": 90000,
+   "melee": false,
+   "spells": [
+    {
+     "id": "grave_volley",
+     "name": "Grave Volley",
+     "kind": "trash",
+     "kind_name": "Enemy spell",
+     "school": "shadow",
+     "icon": "requiem",
+     "description": "A volley of bone shards hits the whole party. Interrupt it.",
+     "cast_s": 2.0,
+     "cooldown_s": 5.0,
+     "on_gcd": true,
+     "interruptible": true,
+     "amount": 13000
+    },
+    {
+     "id": "bone_bolt",
+     "name": "Bone Bolt",
+     "kind": "trash",
+     "kind_name": "Enemy spell",
+     "school": "shadow",
+     "icon": "claw",
+     "description": "A ranged bolt at the caster's target.",
+     "cast_s": 1.5,
+     "cooldown_s": 0.0,
+     "on_gcd": true,
+     "interruptible": false,
+     "amount": 5000
+    }
+   ]
+  },
+  {
+   "id": "marrow_mender",
+   "name": "Marrow Mender",
+   "max_hp": 80000,
+   "melee": false,
+   "spells": [
+    {
+     "id": "mend_bones",
+     "name": "Mend Bones",
+     "kind": "trash",
+     "kind_name": "Enemy spell",
+     "school": "nature",
+     "icon": "raise",
+     "description": "Restores 30% health to the most injured undead ally. Interrupt it, or kill the Mender first.",
+     "cast_s": 2.0,
+     "cooldown_s": 5.0,
+     "on_gcd": true,
+     "interruptible": true
+    },
+    {
+     "id": "bone_bolt",
+     "name": "Bone Bolt",
+     "kind": "trash",
+     "kind_name": "Enemy spell",
+     "school": "shadow",
+     "icon": "claw",
+     "description": "A ranged bolt at the caster's target.",
+     "cast_s": 1.5,
+     "cooldown_s": 0.0,
+     "on_gcd": true,
+     "interruptible": false,
+     "amount": 5000
+    }
+   ]
+  }
+ ],
+ "boss": {
+  "id": "mortisar",
+  "name": "Mortisar, the Hollow King",
+  "max_hp": 1500000,
+  "abilities": [
+   {
+    "id": "hollow_strike",
+    "name": "Hollow Strike",
+    "kind": "boss",
+    "kind_name": "Boss ability",
+    "school": "frost",
+    "icon": "sword",
+    "description": "Mortisar strikes his current target.",
+    "cast_s": 0.0,
+    "cooldown_s": 0.0,
+    "on_gcd": true,
+    "interruptible": false,
+    "amount": 3200
+   },
+   {
+    "id": "soul_rend",
+    "name": "Soul Rend",
+    "kind": "boss",
+    "kind_name": "Boss ability",
+    "school": "shadow",
+    "icon": "rend",
+    "description": "Tank buster. Massive damage plus a lingering wound. Use a defensive!",
+    "cast_s": 2.0,
+    "cooldown_s": 0.0,
+    "on_gcd": true,
+    "interruptible": false,
+    "amount": 30000
+   },
+   {
+    "id": "requiem_of_bones",
+    "name": "Requiem of Bones",
+    "kind": "boss",
+    "kind_name": "Boss ability",
+    "school": "shadow",
+    "icon": "requiem",
+    "description": "Damages the whole party. INTERRUPT IT.",
+    "cast_s": 3.0,
+    "cooldown_s": 0.0,
+    "on_gcd": true,
+    "interruptible": true,
+    "amount": 22000
+   },
+   {
+    "id": "desecrate",
+    "name": "Desecrate",
+    "kind": "boss",
+    "kind_name": "Boss ability",
+    "school": "shadow",
+    "icon": "desecrate",
+    "description": "Corrupts the ground beneath three players. Move out!",
+    "cast_s": 0.0,
+    "cooldown_s": 0.0,
+    "on_gcd": true,
+    "interruptible": false,
+    "amount": 9000
+   },
+   {
+    "id": "raise_dead",
+    "name": "Summon the Restless",
+    "kind": "boss",
+    "kind_name": "Boss ability",
+    "school": "shadow",
+    "icon": "raise",
+    "description": "Summons Bonewalkers from the crypt doors. Kill them!",
+    "cast_s": 2.5,
+    "cooldown_s": 0.0,
+    "on_gcd": true,
+    "interruptible": false
+   },
+   {
+    "id": "grave_mark",
+    "name": "Grave Mark",
+    "kind": "boss",
+    "kind_name": "Boss ability",
+    "school": "shadow",
+    "icon": "raise",
+    "description": "Brands a player; after 6 sec it detonates on everyone within 6 m. Spread out.",
+    "cast_s": 0.0,
+    "cooldown_s": 0.0,
+    "on_gcd": true,
+    "interruptible": false,
+    "amount": 22000
+   },
+   {
+    "id": "hollow_fury",
+    "name": "Hollow Fury",
+    "kind": "boss",
+    "kind_name": "Boss ability",
+    "school": "shadow",
+    "icon": "fury",
+    "description": "Enraged: shadow damage to the whole party every second, growing each time.",
+    "cast_s": 0.0,
+    "cooldown_s": 0.0,
+    "on_gcd": true,
+    "interruptible": false
+   }
+  ],
+  "adds_at_pct": [
+   70,
+   35
+  ]
+ },
+ "tiers": [
+  {
+   "id": "normal",
+   "name": "Normal",
+   "enemy_hp": 0.95,
+   "enemy_dmg": 0.9,
+   "limit_s": 255.0,
+   "affixes": []
+  },
+  {
+   "id": "plus10",
+   "name": "+10",
+   "enemy_hp": 0.85,
+   "enemy_dmg": 1.15,
+   "limit_s": 255.0,
+   "affixes": [
+    {
+     "id": "restless_graves",
+     "name": "Restless Graves",
+     "description": "When an undead enemy other than Mortisar dies, it leaves a Restless Grave on the ground for 12 sec. The grave heals other undead standing in it by 5% of their health every second, and hurts players standing in it. Fight enemies away from graves."
+    },
+    {
+     "id": "marrowburst",
+     "name": "Marrowburst",
+     "description": "When an undead enemy other than Mortisar dies, every player gains a stack of Marrow Shards: shadow damage every second for 4 sec, for each stack. Many kills at once stack it high: stagger kills."
+    },
+    {
+     "id": "hollow_tyrant",
+     "name": "Hollow Tyrant",
+     "description": "Mortisar Summons the Restless three times (at 80%, 50% and 25% health), Desecrates four players instead of three, and every ~24 sec brands a player with a Grave Mark: after 6 sec it detonates, hitting the marked player and, much harder, every ally within 6 m of them. Spread out."
+    }
+   ]
+  }
+ ]
+}

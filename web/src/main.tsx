@@ -8,6 +8,7 @@ import { createRoot } from 'react-dom/client'
 import { About } from './pages/About'
 import { Home } from './pages/Home'
 import { NotFound } from './pages/NotFound'
+import { Party } from './pages/Party'
 import { usePageMeta } from './site/Layout'
 import { usePath } from './site/router'
 import './index.css'
@@ -30,6 +31,7 @@ function Site() {
   if (path === '/') page = <Home />
   else if (path === '/watch' || path.startsWith('/watch/')) page = <div className="viewer h-full"><Watch path={path} /></div>
   else if (path === '/paper') page = <Paper />
+  else if (path === '/party') page = <Party />
   else if (path === '/about') page = <About />
   else if (path === '/compare') page = <Compare />
   else page = <NotFound />

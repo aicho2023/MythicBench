@@ -1,10 +1,11 @@
 import { useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { frameState } from '../../replay/store'
+import { muzzles, weaponAnchor } from '../anchors'
 import type { UnitInfo } from '../../replay/types'
 import { glow, toonGradient } from '../materials'
 import { poseOf } from '../pose'
@@ -160,7 +161,7 @@ export function KayKitAvatar({ id, info }: { id: string; info: UnitInfo }) {
       findBone(root, bone)?.add(w)
       return w
     }
-    attach(load.right, 'handslot.r')
+    const mainHand = attach(load.right, 'handslot.r')
     const offHand = attach(load.left, 'handslot.l')
     // KayKit's bow has its string on the model's -X side, which the hand slot
     // points at the target: turned as-is, the string faces away from the
@@ -210,8 +211,19 @@ export function KayKitAvatar({ id, info }: { id: string; info: UnitInfo }) {
       orb.visible = false
       findBone(root, 'handslot.l')?.add(orb)
     }
-    return { root, mixer: new THREE.AnimationMixer(root), orb }
+    // Where this unit's arrows and spells leave from (see ../anchors.ts).
+    let muzzle: THREE.Object3D | null = null
+    if (info.model === 'Ranger' && offHand) muzzle = weaponAnchor(offHand, 'center')
+    else if (orb) muzzle = orb
+    else if (mainHand && /Mage/.test(info.model)) muzzle = weaponAnchor(mainHand, 'tip')
+    return { root, mixer: new THREE.AnimationMixer(root), orb, muzzle }
   }, [gltf, gearList, info.model, info.role, isBoss, isAdd])
+
+  useEffect(() => {
+    if (!rig.muzzle) return
+    muzzles.set(id, rig.muzzle)
+    return () => { if (muzzles.get(id) === rig.muzzle) muzzles.delete(id) }
+  }, [id, rig.muzzle])
 
   const actions = useRef(new Map<string, THREE.AnimationAction>())
   // cur/prev are action slots: "<clip>#0" or "<clip>#1". Two slots per clip

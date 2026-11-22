@@ -7,7 +7,7 @@
  */
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
-import { CLASS_COLORS, fmtNum } from '../content/display'
+import { CLASS_COLORS, SCHOOL_COLORS, fmtNum } from '../content/display'
 import { posAt } from '../replay/engine'
 import { frameState } from '../replay/store'
 import { sceneBridge } from '../scene/Scene'
@@ -18,6 +18,7 @@ const MAX_PLATES = 16
 const MAX_BUBBLES = 5
 const BUBBLE_MS = 5000 // a chat bubble stays up this long, as in the game
 const BUBBLE_CHARS = 140
+const ABILITY_MS = 1200 // how long an instant ability's name shows under the caster's name
 const TEXT_MS = 1100
 
 const HOT_TICKS = new Set(['bloomward', 'radiant_afterglow'])
@@ -72,6 +73,12 @@ export function WorldOverlay() {
       if (!f) return
       const { s, t, engine } = f
 
+      // ---- what each player just used (ability names; auto attacks have no cast events)
+      const used: Record<string, string> = {}
+      for (const { e } of engine.eventsBetween(t - ABILITY_MS, t)) {
+        if (e.type === 'cast_success' && s.units[e.unit]?.info.kind === 'player') used[e.unit] = e.ability
+      }
+
       // ---- nameplates
       let p = 0
       const placed: { el: HTMLDivElement; x: number; y: number }[] = []
@@ -90,6 +97,14 @@ export function WorldOverlay() {
         const icons = row.firstElementChild as HTMLElement
         const name = row.lastElementChild as HTMLElement
         const bar = el.lastElementChild as HTMLElement
+        const doing = el.children[1] as HTMLElement
+        const casting = u.cast && u.info.kind === 'player' ? u.cast.ability : null
+        const ab = casting ?? (u.info.kind === 'player' ? used[id] : undefined)
+        const abInfo = ab ? engine.replay.abilities[ab] : undefined
+        const doingText = abInfo ? (casting ? `Casting ${abInfo.name}` : abInfo.name) : ''
+        if (doing.textContent !== doingText) doing.textContent = doingText
+        doing.style.display = doingText ? 'block' : 'none'
+        if (abInfo) doing.style.color = SCHOOL_COLORS[abInfo.school] ?? '#ededef'
         const label = u.info.kind === 'player' ? u.info.name : ''
         if (name.textContent !== label) name.textContent = label
         const role = u.info.kind === 'player' ? u.info.role : ''
@@ -193,6 +208,7 @@ export function WorldOverlay() {
             </span>
             <span />
           </div>
+          <div className="hidden whitespace-nowrap font-sans text-[11px] font-medium leading-[14px] [text-shadow:0_1px_2px_#000,0_0_3px_#000]" />
           <div className="mx-auto mt-0.5 h-[6px] overflow-hidden rounded-sm bg-black/80 ring-1 ring-black">
             <div className="h-full bg-[#e5484d]" />
           </div>

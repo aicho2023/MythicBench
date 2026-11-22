@@ -30,13 +30,14 @@ export function About() {
 
         <Section title="For WoW players">
           <p>
-            Think of a fresh Mythic+ key in a dungeon you've never run, with no guide. The model is the raid
-            leader and the whole group: a tank, a healer and three dps, each with a real kit (a kick, a
-            defensive, a cooldown). It has to learn the trash and the boss by wiping.
+            Think of a fresh Mythic+ key in a dungeon you've never run, with no guide. Five AI agents are the
+            group: a tank, a healer and three dps, each with a real kit (a kick, a defensive, a cooldown), and a
+            party chat to call things out. They have to learn the trash and the boss by wiping, then talk it
+            over. <Link to="/party">The party page</Link> lists every character and ability.
           </p>
           <ul>
             <li><strong>Mortisar, the Hollow King</strong>: a cast you must kick, a tank buster, swirls to step out of, adds, and a hard enrage</li>
-            <li><strong>Two packs first</strong>: a caster to kick and a healer to kill first, on one 4:30 timer</li>
+            <li><strong>Two packs first</strong>: a caster to kick and a healer to kill first, on one 4:15 timer</li>
             <li><strong>+10</strong> adds three affixes: graves that heal undead, stacking damage on every kill, and more adds</li>
           </ul>
           <p>
