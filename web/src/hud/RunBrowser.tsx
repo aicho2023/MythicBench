@@ -44,7 +44,7 @@ function outcome(r: CatalogRun) {
 
 /**
  * Side drawer listing every run saved on this machine (catalog.json), plus the
- * scripted bots as a reference. Built for hundreds of runs: search, filters,
+ * scripted commander as a reference. Built for hundreds of runs: search, filters,
  * sorting, and per-pull chips.
  */
 export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void; initialQuery?: string }) {
@@ -82,8 +82,8 @@ export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void
     if (sort === 'best') out = [...out].sort((a, b) => (b.summary.score_mean ?? -1) - (a.summary.score_mean ?? -1))
     return out
   }, [runs, q, provider, showOld, sort, currentHarness])
-  // The scripted bots are a reference for local work, not shown to visitors.
-  const bots = SHOW_REFERENCE_RUNS ? index.filter((r) => !r.local && !r.id.startsWith('featured:')) : []
+  // The scripted commander's replays are a reference for local work, not shown to visitors.
+  const refs = SHOW_REFERENCE_RUNS ? index.filter((r) => !r.local && !r.id.startsWith('featured:')) : []
   // Pulls picked out to show (the home page's clip), listed until the official runs replace them.
   const featured = index.filter((r) => r.id.startsWith('featured:'))
 
@@ -214,9 +214,6 @@ export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void
                       {r.name && <><dt className="text-fg-faint">Name</dt><dd className="text-fg-muted">{r.name}</dd></>}
                       {prog && r.summary.curve_mean && <><dt className="text-fg-faint">Score by pull</dt><dd className="num font-mono text-fg-muted">{r.summary.curve_mean.join(', ')}</dd></>}
                       {r.summary.usd_per_fight != null && <><dt className="text-fg-faint">Cost per {prog ? 'pull' : 'fight'}</dt><dd className="text-fg-muted">{usd(r.summary.usd_per_fight)}</dd></>}
-                      {r.summary.reference_means && (
-                        <><dt className="text-fg-faint">Bots, same seeds</dt><dd className="text-fg-muted">expert {r.summary.reference_means.expert}, competent {r.summary.reference_means.competent}</dd></>
-                      )}
                       {r.tags.length > 0 && <><dt className="text-fg-faint">Tags</dt><dd className="text-fg-muted">{r.tags.join(', ')}</dd></>}
                       <dt className="text-fg-faint">Run id</dt><dd className="truncate font-mono text-fg-faint">{r.run_id}</dd>
                     </dl>
@@ -226,12 +223,12 @@ export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void
             )
           })}
 
-          {bots.length > 0 && (
+          {refs.length > 0 && (
             <section className="mt-4 border-t border-line px-2 pt-4">
-              <h3 className="text-[13px] font-medium text-fg">Reference: scripted bots</h3>
-              <p className="mt-1 text-[12px] leading-5 text-fg-faint">Hand-written players at three skill levels, on the same dungeon. They show what good and bad play look like.</p>
+              <h3 className="text-[13px] font-medium text-fg">Reference: scripted commander</h3>
+              <p className="mt-1 text-[12px] leading-5 text-fg-faint">Fixed, obvious rules through the agents' own interface (kick every cast, step out of every pool). It never learns.</p>
               <div className="mt-2">
-                {bots.map((b) => <BotRow key={b.id} b={b} current={current} load={load} />)}
+                {refs.map((b) => <RefRow key={b.id} b={b} current={current} load={load} />)}
               </div>
             </section>
           )}
@@ -241,7 +238,7 @@ export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void
   )
 }
 
-function BotRow({ b, current, load }: { b: ReplayIndexEntry; current: string | null; load: (id: string) => void }) {
+function RefRow({ b, current, load }: { b: ReplayIndexEntry; current: string | null; load: (id: string) => void }) {
   const win = b.outcome === 'victory'
   return (
     <button onClick={() => load(b.id)} title={b.blurb}

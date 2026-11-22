@@ -22,8 +22,9 @@ from typing import Callable, Protocol
 from . import content as C
 
 TICK_MS = 100
-SIM_VERSION = "0.5.0"  # 0.3.0: bodies collide where they stop; 0.4.0: a run ends at its timer;
-# 0.5.0: enemies keep their space too, and Oruth walks after his target
+SIM_VERSION = "0.6.0"  # 0.3.0: bodies collide where they stop; 0.4.0: a run ends at its timer;
+# 0.5.0: enemies keep their space too, and the boss walks after his target;
+# 0.6.0: Bone Pyre, a soak
 
 
 # ---------------------------------------------------------------------------
@@ -54,6 +55,14 @@ def lerp(a: Vec, b: Vec, f: float) -> Vec:
 # their bodies keep at least BODY_GAP between them. A destination that's taken
 # shifts to the nearest free spot on rings around it. Literal unit vectors, not
 # cos/sin, so every machine gets the same answer.
+# 16 compass directions as exact constants (cos and sin of k * 22.5 degrees).
+# Hard-coded rather than computed at runtime: libm trig results can differ in
+# the last bit between CPU platforms, which would make replays machine-dependent.
+_C1, _C2, _C3 = 0.9238795325112867, 0.7071067811865476, 0.3826834323650898
+COMPASS16 = ((1.0, 0.0), (_C1, _C3), (_C2, _C2), (_C3, _C1), (0.0, 1.0), (-_C3, _C1), (-_C2, _C2), (-_C1, _C3),
+         (-1.0, 0.0), (-_C1, -_C3), (-_C2, -_C2), (-_C3, -_C1), (0.0, -1.0), (_C3, -_C1), (_C2, -_C2), (_C1, -_C3))
+
+
 BODY_GAP = 0.2
 # Enemies swing when their target is this close, edge to edge (m).
 ENEMY_REACH = 1.2
@@ -180,6 +189,7 @@ class Encounter:
         # from its own seeded stream, so every policy that plays this seed faces
         # the same sequence of timers, whatever the party does.
         self.timer_rng = {k: random.Random(f"{seed}:timer:{k}") for k in C.BOSS.timers}
+        self.pyre_rng = random.Random(f"{seed}:pyre")  # where each Bone Pyre lands, its own stream
         self.boss_next = {k: self.jitter(k, v[0], C.BOSS.first_jitter_ms)
                           for k, v in C.BOSS.timers.items()}
         if "hollow_tyrant" in self.tier.affixes:
@@ -298,7 +308,8 @@ class Encounter:
 
     def in_pool(self, u: Unit, spot: Vec) -> bool:
         """Would u standing there be hit by a pool? (Same reach as ground_tick, plus a margin.)"""
-        return any(dist(spot, g["pos"]) <= g["radius"] + u.radius * 0.5 + 0.2 for g in self.ground.values())
+        return any(dist(spot, g["pos"]) <= g["radius"] + u.radius * 0.5 + 0.2 for g in self.ground.values()
+                   if g["kind"] in C.HAZARD_POOLS)
 
     def free_spot(self, u: Unit, to: Vec) -> Vec:
         """Nearest spot to ``to`` where u's body fits: walkable, not inside
@@ -583,7 +594,7 @@ class Encounter:
             self.emit("emote", unit=b.id, style="warning", text="Oruth begins to Summon the Restless!")
             self.begin_cast(b, "raise_dead", None)
             return
-        for key in ("soul_rend", "requiem_of_bones", "grave_mark", "desecrate"):
+        for key in ("soul_rend", "requiem_of_bones", "grave_mark", "desecrate", "bone_pyre"):
             if key not in self.boss_next or self.t < self.boss_next[key]:
                 continue
             if self.t >= self.boss_next[key]:
@@ -596,6 +607,8 @@ class Encounter:
                     self.begin_cast(b, key, tank.id)
                 elif key == "requiem_of_bones":
                     self.begin_cast(b, key, None)
+                elif key == "bone_pyre":
+                    self.cast_bone_pyre(b)
                 else:
                     self.cast_desecrate(b)
                 return
@@ -643,8 +656,50 @@ class Encounter:
                       radius=g["radius"], arm_ms=C.BOSS.desecrate_arm_ms,
                       duration_ms=C.BOSS.desecrate_duration_ms, target=p.id)
 
+    def cast_bone_pyre(self, b: Unit) -> None:
+        """Mark a circle a few metres from Oruth, clear of other pools, inside his room."""
+        self.emit("cast_success", unit=b.id, ability="bone_pyre", target=None)
+        lim = C.ARENA_RADIUS - C.PYRE_RADIUS - 1.5
+        pos = b.pos
+        for _ in range(12):
+            # A compass direction, not cos/sin of a random angle: libm trig can
+            # differ in the last bit between machines (replays must not).
+            dx, dz = self.pyre_rng.choice(COMPASS16)
+            r = self.pyre_rng.uniform(C.PYRE_MIN_DIST, C.PYRE_MAX_DIST)
+            c = (r2(b.pos[0] + r * dx), r2(b.pos[1] + r * dz))
+            if dist(c, (0.0, 0.0)) > lim:
+                continue
+            pos = c
+            if not any(dist(c, g["pos"]) < g["radius"] + C.PYRE_RADIUS for g in self.ground.values()):
+                break
+        self.ground_count += 1
+        gid = f"pyre_{self.ground_count}"
+        fuse = C.PYRE_FUSE_MS
+        self.ground[gid] = {"id": gid, "kind": "pyre", "source": b.id, "pos": pos, "radius": C.PYRE_RADIUS,
+                            "spawned_at": self.t, "armed_at": self.t + fuse, "detonate_at": self.t + fuse,
+                            "expires_at": self.t + fuse + TICK_MS, "next_tick": 1 << 62, "tick_ms": 1 << 62}
+        self.emit("ground_spawn", id=gid, kind="pyre", source=b.id, pos=list(pos), radius=C.PYRE_RADIUS,
+                  arm_ms=fuse, duration_ms=fuse)
+
+    def detonate_pyre(self, g: dict) -> None:
+        src = self.units[g["source"]]
+        inside = [p for p in self.players() if dist(p.pos, g["pos"]) <= g["radius"] + p.radius * 0.5]
+        soaked = len(inside) >= C.PYRE_SOAKERS
+        self.emit("pyre_detonate", id=g["id"], pos=list(g["pos"]), inside=[p.id for p in inside], soaked=soaked)
+        if soaked:
+            for p in inside:
+                self.damage(src, p, "bone_pyre", C.PYRE_SOAK / len(inside), crit_ok=False)
+        else:
+            for p in self.players():
+                self.damage(src, p, "bone_pyre", C.PYRE_BLAST, crit_ok=False)
+
     def ground_tick(self) -> None:
         for gid, g in list(self.ground.items()):
+            if g["kind"] == "pyre" and self.t >= g["detonate_at"]:
+                del self.ground[gid]
+                self.detonate_pyre(g)
+                self.emit("ground_expire", id=gid)
+                continue
             if self.t >= g["expires_at"]:
                 del self.ground[gid]
                 self.emit("ground_expire", id=gid)
@@ -776,7 +831,9 @@ class Encounter:
             "enemies": [self.view(e, False) for e in self.enemies()],
             "ground": [{"id": g["id"], "kind": g["kind"], "pos": list(g["pos"]),
                         "radius": g["radius"], "age_ms": self.t - g["spawned_at"],
-                        "armed": self.t >= g["armed_at"]} for g in self.ground.values()],
+                        "armed": g["kind"] in C.HAZARD_POOLS and self.t >= g["armed_at"],
+                        **({"detonates_in_ms": g["detonate_at"] - self.t} if g["kind"] == "pyre" else {})}
+                       for g in self.ground.values()],
             "tier": self.tier.id,
             "affixes": list(self.tier.affixes),
             "arena_radius": C.ARENA_RADIUS,

@@ -89,6 +89,19 @@ ceiling. Scripted commander over 30 seeds: 49.2 on +10, 63.3 on Normal.
 Check on 1.5.0: Sol cleared 1 of 2 blind first pulls (78.4, with 18 s to
 spare; the other ran out of time with Oruth at 7.1%).
 
+Content 1.6.0 / sim 0.6.0: Bone Pyre, a soak. Every ~28 s Oruth marks a
+circle (r 2.5 m) 5 to 9 m from him; 6 s later it goes off. With 2+ players
+inside they split 20,000; otherwise it hits the whole party for 30,000 (tier
+damage applies). Generic MMO sense says step out of glowing circles, so it
+has to be learned from the combat log; that's the point. The "safe" move and
+the in-pool alarm ignore it, every agent is woken when one appears, and the
+debrief lists each detonation with who stood inside. The scripted commander
+never soaks: 34.1 on +10 (wipes every time), 56.2 on Normal, over 60 seeds.
+
+The scripted bots (expert, competent, sloppy) are gone. Their dodge planner
+lives on in `dodge.py` (the "safe" move); tests and the viewer's reference
+replays use the scripted commander instead.
+
 Sim 0.5.0 / content 1.4.0: Oruth walks after his target when it's out of
 his melee reach (after a 3 s rise from his throne when pulled), enemies take
 free spots like players, and bodies are 0.6 m.

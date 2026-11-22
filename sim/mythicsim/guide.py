@@ -48,7 +48,7 @@ def game_guide() -> dict:
               "spells": [ability(s) for s in d.spells]} for d in C.TRASH.values()]
     b = C.BOSS
     boss = {"id": b.id, "name": b.name, "max_hp": b.max_hp,
-            "abilities": [ability(a) for a in ("hollow_strike", "soul_rend", "requiem_of_bones", "desecrate",
+            "abilities": [ability(a) for a in ("hollow_strike", "soul_rend", "requiem_of_bones", "desecrate", "bone_pyre",
                                                "raise_dead", "grave_mark", "hollow_fury")],
             "adds_at_pct": [int(x * 100) for x in b.raise_dead_at]}
     tiers = [{"id": t.id, "name": t.name, "enemy_hp": t.enemy_hp, "enemy_dmg": t.enemy_dmg,

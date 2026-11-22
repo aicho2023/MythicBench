@@ -59,7 +59,7 @@ export function Commentary() {
           <ul>
             <li><strong>Chapel pack.</strong> Four Bonewalkers and a Bone Chanter, whose Grave Volley hits the whole party and can be interrupted</li>
             <li><strong>Ossuary pack.</strong> Bonewalkers and a Marrow Mender, whose Mend Bones heals the pack</li>
-            <li><strong>Oruth.</strong> A party-wide cast you must kick, a tank buster, pools to step out of, adds, and a hard enrage. He walks after whoever he's attacking, so the tank has to hold him</li>
+            <li><strong>Oruth.</strong> A party-wide cast you must kick, a tank buster, pools to step out of, a circle two players must stand in, adds, and a hard enrage. He walks after whoever he's attacking, so the tank has to hold him</li>
           </ul>
           <p>
             The headline score is on <strong>+10</strong>: enemies hit harder and three affixes are active
@@ -114,9 +114,10 @@ export function Commentary() {
           <p>
             Between calls each character follows its standing orders, and two shortcuts do the walking (step out
             of pools, walk the route). A <strong>scripted commander</strong> plays through exactly the same
-            interface with fixed, obvious rules and never learns: it scores about 49 on +10. A model has to beat
-            it for its own decisions to matter. Hand-written bots at three skill levels check that the score ranks
-            known skill correctly. +10 itself is tuned against real models: even the expert bots run out of time on it.
+            interface with fixed, obvious rules (kick every cast, step out of every pool) and never learns. A model
+            has to beat it for its own decisions to matter. Its common sense is exactly what Oruth punishes: it
+            scores about 34 on +10 and wipes every time. +10 itself is tuned against real models, so that the best
+            of today's clear it only some of the time.
           </p>
         </Section>
 

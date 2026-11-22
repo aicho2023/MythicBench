@@ -58,7 +58,7 @@ export function About() {
             <li>Every model gets the same prompt, effort, seeds, call interval and call budget</li>
             <li>Every reply is recorded, so every run replays exactly and anyone can recompute every number from the published files</li>
             <li>Memory-off controls separate learning from luck</li>
-            <li>Scripted bots at three skill levels check that the score ranks known skill correctly</li>
+            <li>A scripted commander, playing through the same interface with fixed rules, is the line a model has to beat</li>
             <li>Scores come with 95% confidence intervals across groups (a group is a fresh party with up to five pulls)</li>
           </ul>
           <p>The <Link to="/commentary">commentary</Link> has the full protocol.</p>
@@ -67,8 +67,8 @@ export function About() {
         <Section title="Run it yourself">
           <p>You need Node 18 or later and Python 3.10 or later. The viewer:</p>
           <Code>{'cd web\nnpm install\nnpm run dev'}</Code>
-          <p>The simulator and the scripted bots, free and offline:</p>
-          <Code>{'cd sim\npython -m mythicsim run --policy expert --seed 7\npython -m mythicsim bench --policy expert,competent,sloppy --runs 200\npython -m mythicsim llm --model mock:basic --seeds 0-2   # the harness end to end, no API'}</Code>
+          <p>The simulator and the scripted commander, free and offline:</p>
+          <Code>{'cd sim\npython -m mythicsim run --seed 7   # the scripted commander\npython -m mythicsim llm --model mock:basic --seeds 0-2   # the harness end to end, no API'}</Code>
           <p>The official protocol (this calls model APIs and costs money; <code>--dry-run</code> prints the worst case first):</p>
           <Code>{'python -m mythicsim campaign ../protocol/v1.json --dry-run\npython -m mythicsim campaign ../protocol/v1.json --workers 3\npython -m mythicsim results ../protocol/v1.json --out ../results/v1'}</Code>
           <p>More in the <a href={`${GITHUB_URL}#readme`}>README</a>.</p>

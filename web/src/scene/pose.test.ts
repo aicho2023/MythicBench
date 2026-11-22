@@ -6,7 +6,7 @@ import { ReplayEngine } from '../replay/engine'
 import type { Replay } from '../replay/types'
 import { RELEASE_MS, poseOf, walkSegments } from './pose'
 
-const replay: Replay = JSON.parse(readFileSync(join(__dirname, '../../public/replays/expert-clear.json'), 'utf8'))
+const replay: Replay = JSON.parse(readFileSync(join(__dirname, '../../public/replays/commander-plus10.json'), 'utf8'))
 const engine = new ReplayEngine(replay)
 const pose = (id: string, t: number) => poseOf(engine.stateAt(t).units[id], t, replay)
 

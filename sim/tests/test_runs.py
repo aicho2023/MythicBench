@@ -17,7 +17,7 @@ def make_run(tmp, label="anthropic:claude-haiku-5-5@none", seeds=(0, 1), name=No
                     config={"seeds": list(seeds), "harness_version": "0.3.0"}, runs_dir=tmp)
     items = []
     for s in seeds:
-        rep = simulate("sloppy", s)
+        rep = simulate(s, "plus10", "boss")
         m = score(rep)
         rep["meta"]["metrics"] = m
         run.replay_path(s).write_text(json.dumps(rep))
@@ -96,7 +96,7 @@ def test_import_legacy_keeps_originals(tmp_path):
     old = tmp_path / "openai_gpt-5.4-mini"
     old.mkdir()
     for s in (3, 4):
-        rep = simulate("sloppy", s)
+        rep = simulate(s, "plus10", "boss")
         rep["meta"]["policy"] = "llm:openai:gpt-5.4-mini"
         (old / f"seed-{s}.json").write_text(json.dumps(rep))
         (old / f"seed-{s}.stats.json").write_text("{}")
@@ -119,4 +119,4 @@ def test_rescore_recomputes_scores_and_summaries(tmp_path):
     m = json.loads((run.dir / "manifest.json").read_text())
     rep = json.loads((run.dir / m["items"][0]["file"]).read_text())
     assert m["items"][0]["score"] == rep["meta"]["metrics"]["score"] <= 100
-    assert m["summary"]["score_version"] == 2 and m["summary"]["reference_means"]["expert"] <= 100
+    assert m["summary"]["score_version"] == 2 and m["summary"]["score_mean"] <= 100

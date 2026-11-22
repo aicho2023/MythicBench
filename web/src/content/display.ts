@@ -69,12 +69,16 @@ export const WARN_CASTS: Record<string, string> = {
  * a wipe earns up to 70 for boss health removed; a kill earns 70 plus up to 30
  * for speed (the full 30 with a quarter of the timer or more left).
  */
+/** Python's round(x, 1): rounds the number actually stored, so 31.149999… (from 70 × 44.5 / 100) gives
+ * 31.1. Math.round(x * 10) / 10 would round it to 31.2, since multiplying by 10 lands on exactly 311.5. */
+export const round1 = (x: number) => Number(x.toFixed(1))
+
 export function runScore(outcome: string | null, endMs: number, bossHpPctLeft: number, limitMs: number): number {
   if (outcome === 'victory') {
     const speed = Math.min(1, Math.max(0, limitMs - endMs) / (0.25 * limitMs))
-    return Math.round((70 + 30 * speed) * 10) / 10
+    return round1(70 + 30 * speed)
   }
-  return Math.round(0.7 * (100 - bossHpPctLeft) * 10) / 10
+  return round1(0.7 * (100 - bossHpPctLeft))
 }
 
 /** Dungeon progress weights (mirror of content.PROGRESS_WEIGHTS). */
@@ -89,17 +93,17 @@ export function dungeonProgress(units: Record<string, { hp: number; info: { max_
       const p = (packs[u.info.pack] ??= [0, 0])
       p[0] += u.info.max_hp - u.hp
       p[1] += u.info.max_hp
-    } else if (u.info.kind === 'boss') boss = (u.info.max_hp - u.hp) / u.info.max_hp
+    } else if (u.info.kind === 'boss') boss = (100 - round1((100 * u.hp) / u.info.max_hp)) / 100 // as metrics.score rounds it
   }
   let total = PROGRESS_WEIGHTS.boss * boss
   for (const [k, [done, all]] of Object.entries(packs)) total += (PROGRESS_WEIGHTS[k] ?? 0) * (done / all)
-  return Math.round(1000 * total) / 10
+  return round1(100 * total)
 }
 
 /** The 0-100 dungeon-run score (mirror of metrics.dungeon_score); timer includes revive penalties. */
 export function dungeonScore(outcome: string | null, timerMs: number, progressPct: number, limitMs: number): number {
   if (outcome === 'victory') return runScore('victory', timerMs, 0, limitMs)
-  return Math.round((70 * progressPct) / 100 * 10) / 10 // same operation order as metrics.dungeon_score
+  return round1((70 * progressPct) / 100) // same operations as metrics.dungeon_score
 }
 
 export function fmtNum(n: number): string {

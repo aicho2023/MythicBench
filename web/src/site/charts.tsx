@@ -3,12 +3,12 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { modelName } from '../content/display'
 import {
-  BOT_NAMES, botHeadline, costPerRun, fmtScore, fmtUsd, headlineTier, modelColor, tierName, type CI, type Results,
+  costPerRun, fmtScore, fmtUsd, headlineTier, modelColor, tierName, type CI, type Results,
 } from './results'
 
 const GRID = 'rgba(255,255,255,0.06)'
 const AXIS = '#8b8b93'
-const BOT = '#6b6b73'
+const BASELINE = '#6b6b73' // the scripted commander's dashed line
 /** A halo in the surface color behind chart labels, so rules never cut through text. */
 const HALO = { stroke: '#111113', strokeWidth: 4, paintOrder: 'stroke' as const, strokeLinejoin: 'round' as const }
 
@@ -106,14 +106,13 @@ export function LearningCurves({ results, tier }: { results: Results; tier: stri
     }
     for (const b of results.baselines ?? []) {
       const c = b.tiers[tier]?.curve_mean
-      if (c?.length) out.push({ key: b.model, label: b.name, color: BOT, values: c, dashed: true })
+      if (c?.length) out.push({ key: b.model, label: b.name, color: BASELINE, values: c, dashed: true })
     }
     for (const c of results.controls.filter((c) => c.tier === tier && c.curve_mean?.length)) {
       out.push({ key: `${c.model}:off`, label: `${modelName(c.model)}, memory off`, color: modelColor(results, c.model), values: c.curve_mean!, dashed: true })
     }
     return out
   }, [results, tier])
-  const bots = Object.entries(results.bots?.[tier] ?? {}).map(([k, b]) => ({ key: `bot:${k}`, label: BOT_NAMES[k] ?? k, y: b.progression_score_mean }))
 
   const narrow = w < 560
   const H = narrow ? 260 : 340
@@ -122,9 +121,8 @@ export function LearningCurves({ results, tier }: { results: Results; tier: stri
   const ih = H - m.t - m.b
   const x = (k: number) => m.l + (pulls === 1 ? iw / 2 : ((k - 1) / (pulls - 1)) * iw)
   const y = (v: number) => m.t + ih - (clamp100(v) / 100) * ih
-  const ends = spread([...series.map((s) => y(s.values[s.values.length - 1])), ...bots.map((b) => y(b.y))], 16, m.t + 4, m.t + ih)
-  const legend = [...series.map((s) => ({ key: s.key, label: s.label, color: s.color, dashed: s.dashed })),
-    ...bots.map((b) => ({ key: b.key, label: b.label, color: BOT, dashed: true }))]
+  const ends = spread(series.map((s) => y(s.values[s.values.length - 1])), 16, m.t + 4, m.t + ih)
+  const legend = series.map((s) => ({ key: s.key, label: s.label, color: s.color, dashed: s.dashed }))
   const dim = (k: string) => (hover && hover !== k ? 0.2 : 1)
 
   const onMove = (e: React.PointerEvent<SVGRectElement>) => {
@@ -149,12 +147,6 @@ export function LearningCurves({ results, tier }: { results: Results; tier: stri
             ))}
             {Array.from({ length: pulls }, (_, i) => i + 1).map((k) => (
               <text key={k} x={x(k)} y={H - 10} textAnchor={narrow && k === pulls && pulls > 1 ? 'end' : 'middle'} fill={AXIS} fontSize={11} fontFamily="IBM Plex Mono">Pull {k}</text>
-            ))}
-            {bots.map((b, i) => (
-              <g key={b.key} opacity={dim(b.key)}>
-                <line x1={m.l} x2={m.l + iw} y1={y(b.y)} y2={y(b.y)} stroke={BOT} strokeWidth={1.5} strokeDasharray="4 4" />
-                {!narrow && <text x={m.l + iw + 12} y={ends[series.length + i]} dy="0.32em" fill={AXIS} fontSize={12} {...HALO}>{b.label}</text>}
-              </g>
             ))}
             {series.map((s, i) => {
               const d = s.values.map((v, k) => `${k ? 'L' : 'M'}${x(k + 1)},${y(v)}`).join('')
@@ -222,8 +214,6 @@ export function CostScatter({ results }: { results: Results }) {
   const y = (v: number) => m.t + ih - (clamp100(v) / 100) * ih
   const labelY = spread(pts.map((p) => y(p.score)), 16, m.t + 4, m.t + ih)
   const hp = pts.find((p) => p.key === hover)
-  const bots = Object.keys(BOT_NAMES).map((k) => ({ k, h: botHeadline(results, k) })).filter((b) => b.h)
-  const botY = spread(bots.map((b) => y(b.h!.score) - 6), 14, m.t + 4, m.t + ih)
   const tick = (d: number) => '$' + d.toLocaleString('en-US', { maximumFractionDigits: 3 })
 
   return (
@@ -240,12 +230,6 @@ export function CostScatter({ results }: { results: Results }) {
             ))}
             {decades.map((d) => (
               <text key={d} x={x(d)} y={H - 10} textAnchor="middle" fill={AXIS} fontSize={11} fontFamily="IBM Plex Mono">{tick(d)}</text>
-            ))}
-            {bots.map(({ k, h }, i) => (
-              <g key={k}>
-                <line x1={m.l} x2={m.l + iw} y1={y(h!.score)} y2={y(h!.score)} stroke={BOT} strokeDasharray="4 4" strokeWidth={1} />
-                <text x={m.l + iw} y={botY[i]} textAnchor="end" fill={AXIS} fontSize={11} {...HALO}>{BOT_NAMES[k]} {fmtScore(h!.score)}</text>
-              </g>
             ))}
             {curves.map((c) => (
               <g key={`curve-${c.key}`} opacity={hover && hover !== c.key ? 0.2 : 0.8}>

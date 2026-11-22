@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-CONTENT_VERSION = "1.5.0"
+CONTENT_VERSION = "1.6.0"
 
 GCD_MS = 1000
 MELEE_RANGE = 3.0
@@ -103,6 +103,20 @@ class ClassDef:
 # Abilities
 # ---------------------------------------------------------------------------
 
+# Bone Pyre: Oruth's soak. A circle appears on the floor and detonates after a
+# short fuse. Everyone's instinct is to step out of glowing circles; this one
+# has to be stood in by at least PYRE_SOAKERS players, who split a modest hit,
+# or it hits the whole party hard. Learnable from the combat log, not from
+# general MMO sense.
+PYRE_FUSE_MS = 6000
+PYRE_RADIUS = 2.5
+PYRE_SOAKERS = 2
+PYRE_SOAK = 20_000  # split between the players inside
+PYRE_BLAST = 30_000  # to every player, when fewer than PYRE_SOAKERS are inside
+PYRE_MIN_DIST, PYRE_MAX_DIST = 5.0, 9.0  # from Oruth
+# Ground effects that hurt to stand in (a pyre doesn't, until it goes off).
+HAZARD_POOLS = frozenset({"desecrate", "grave"})
+
 _ABILITIES = [
     # --- Guardian (tank) ---------------------------------------------------
     Ability("bulwark_slam", "Bulwark Slam", "damage", "shield", cooldown_ms=6000, amount=2200,
@@ -169,6 +183,10 @@ _ABILITIES = [
     Ability("requiem_of_bones", "Requiem of Bones", "boss", "requiem", school="shadow",
             cast_ms=3000, amount=22000, interruptible=True, aura="haunted",
             description="Damages the whole party. INTERRUPT IT."),
+    Ability("bone_pyre", "Bone Pyre", "boss", "raise", school="shadow", amount=PYRE_BLAST,
+            description=f"Marks a circle on the floor that detonates after {PYRE_FUSE_MS // 1000} sec. With at least "
+                        f"{PYRE_SOAKERS} players inside, they split {PYRE_SOAK:,} damage between them; with fewer, "
+                        f"it hits the whole party for {PYRE_BLAST:,}."),
     Ability("desecrate", "Desecrate", "boss", "desecrate", school="shadow", amount=9000,
             description="Corrupts the ground beneath three players. Move out!"),
     Ability("hollow_fury", "Hollow Fury", "boss", "fury", school="shadow",
@@ -278,6 +296,7 @@ class BossDef:
         "requiem_of_bones": (7000, 16000),
         "soul_rend": (11000, 24000),
         "desecrate": (15000, 20000),
+        "bone_pyre": (20000, 28000),
     })
     raise_dead_at: tuple[float, ...] = (0.70, 0.35)
     # Per-seed variation: each repeat lands within +/- this fraction of its

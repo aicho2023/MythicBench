@@ -83,8 +83,8 @@ export function reproduceCommand(m: ReplayMeta): string {
   const r = m.run
   const lines = r?.git_commit ? [`git checkout ${r.git_commit.replace(/-dirty$/, '')}`] : []
   if (!r || !m.progress) {
-    if (m.policy.startsWith('scripted-')) {
-      lines.push(`cd sim && python -m mythicsim run --policy ${m.policy.slice(9)} --seed ${m.seed} --tier ${tier} --mode ${mode} --out replay.json`)
+    if (m.policy === 'llm:scripted:commander') {
+      lines.push(`cd sim && python -m mythicsim run --seed ${m.seed} --tier ${tier} --mode ${mode} --out replay.json`)
     } else if (r) {
       lines.push(`cd sim && python -m mythicsim llm --model ${r.label} --seeds ${m.seed} --tier ${tier} --mode ${mode} --offline`)
     }
@@ -202,6 +202,8 @@ export function RaidWarnings() {
     } else if (e.type === 'cast_start' && t < over && WARN_CASTS[e.ability] && s.units[e.unit]?.cast?.t0 === e.t) {
       const tgt = e.target ? s.units[e.target]?.info.name ?? '' : ''
       items.push({ key: i, text: WARN_CASTS[e.ability].replace('{target}', tgt), style: 'warning', age, dur: e.cast_ms + 10000 })
+    } else if (e.type === 'cast_success' && e.ability === 'bone_pyre' && age < 3000) {
+      items.push({ key: i, text: 'Bone Pyre: two players must stand in it', style: 'warning', age, dur: 3000 })
     } else if (e.type === 'cast_success' && e.ability === 'desecrate' && age < 2000) {
       items.push({ key: i, text: 'Desecrate: move out of the pools', style: 'warning', age, dur: 2000 })
     }

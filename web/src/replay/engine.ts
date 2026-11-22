@@ -280,7 +280,7 @@ export class ReplayEngine {
   }
 
   /** Interesting moments for the timeline (deaths, raises, big misses). */
-  markers(): { t: number; kind: 'death' | 'raise' | 'missed' | 'kick' | 'end' | 'pull' | 'pool' | 'mark'; label: string; unit?: string }[] {
+  markers(): { t: number; kind: 'death' | 'raise' | 'missed' | 'kick' | 'end' | 'pull' | 'pool' | 'mark' | 'soak'; label: string; unit?: string }[] {
     const out: ReturnType<ReplayEngine['markers']> = []
     const names: Record<string, string> = Object.fromEntries(this.replay.units.map((u) => [u.id, u.name]))
     const players = new Set(this.replay.units.filter((u) => u.kind === 'player').map((u) => u.id))
@@ -303,6 +303,9 @@ export class ReplayEngine {
       if (e.type === 'death' && names[e.unit]) out.push({ t: e.t, kind: 'death', label: `${names[e.unit]} died` })
       else if (e.type === 'cast_start' && e.ability === 'raise_dead') out.push({ t: e.t, kind: 'raise', label: 'Summon the Restless' })
       else if (e.type === 'cast_success' && e.ability === 'requiem_of_bones') out.push({ t: e.t, kind: 'missed', label: 'Requiem not interrupted!' })
+      else if (e.type === 'pyre_detonate' && !e.soaked) {
+        out.push({ t: e.t, kind: 'soak', label: e.inside.length ? `Bone Pyre: only ${e.inside.map((u) => names[u]).join(', ')} inside` : 'Bone Pyre: nobody inside' })
+      }
       else if (e.type === 'encounter_end') out.push({ t: e.t, kind: 'end', label: e.outcome === 'victory' ? 'Victory' : 'Wipe' })
       else if (e.type === 'pull') {
         const pack = this.replay.arena.packs?.find((p) => p.id === e.pack)

@@ -32,6 +32,7 @@ function GroundPools() {
 const POOL_COLORS: Record<string, { fill: string; swirl: string; edge: string }> = {
   desecrate: { fill: '#3fbf6a', swirl: '#5fd08a', edge: '#a8f0a0' },
   grave: { fill: '#8f7ad6', swirl: '#b7a6f0', edge: '#e6dcff' },
+  pyre: { fill: '#f2b84b', swirl: '#ffd98a', edge: '#fff0c2' },
 }
 
 function Pool({ id }: { id: string }) {
@@ -79,7 +80,7 @@ function Pool({ id }: { id: string }) {
   })
   return (
     <group ref={group}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} material={mats.void} scale={1}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} material={mats.void} scale={1} visible={kind !== 'pyre'}>
         <circleGeometry args={[0.98, 40]} />
       </mesh>
       <mesh ref={fill} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]} material={mats.fill}>
@@ -215,6 +216,11 @@ function collectBursts(): Burst[] {
       const p = e.unit.pos
       out.push({ kind: 'ring', pos: [p[0], 0.2, p[1]], k: age / 900, color: '#9dff6b', size: 3 })
       out.push({ kind: 'pillar', pos: [p[0], 0, p[1]], k: age / 900, color: '#9dff6b', size: 1.4 })
+    } else if (e.type === 'pyre_detonate' && age < 1000) {
+      // Bone Pyre goes off: a small gold flash on the soakers, or a blast across the room.
+      const p: [number, number, number] = [e.pos[0], 0.3, e.pos[1]]
+      out.push({ kind: 'ring', pos: p, k: age / 1000, color: e.soaked ? '#ffd98a' : '#ff6a3c', size: e.soaked ? 5 : 26 })
+      out.push({ kind: 'pillar', pos: [e.pos[0], 0, e.pos[1]], k: age / 1000, color: e.soaked ? '#ffe7a3' : '#ff8a5c', size: e.soaked ? 2.2 : 3 })
     } else if (e.type === 'death' && age < 2200 && f.s.units[e.unit]?.info.kind === 'player') {
       const p = at(e.unit, 0.5)
       if (p) out.push({ kind: 'wisp', pos: p, k: age / 2200, color: '#bfe8ff', size: 1 })

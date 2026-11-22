@@ -81,7 +81,7 @@ def _boss_section(knowledge: str) -> str:
   - You have never fought him. His abilities, their timing, and what they do are unknown: learn them from what you see (his casts by name with a cast bar, the damage your party takes, anything that appears on the ground, any new enemies).
   - Oruth attacks whoever he is targeting (normally the tank)."""
     boss = [_ability_line(a).replace("    - ", "  - ") for a in
-            ("hollow_strike", "soul_rend", "requiem_of_bones", "desecrate", "raise_dead", "hollow_fury")]
+            ("hollow_strike", "soul_rend", "requiem_of_bones", "desecrate", "bone_pyre", "raise_dead", "hollow_fury")]
     return f"""## Oruth the Unburied ({b.max_hp:,} HP)
 {chr(10).join(boss)}
   - Desecrate pools have radius {b.desecrate_radius:g} m, become dangerous {b.desecrate_arm_ms / 1000:g}s after appearing, hit for {C.ABILITIES['desecrate'].amount} every {b.desecrate_tick_ms / 1000:g}s while you stand in them, and last {b.desecrate_duration_ms / 1000:g}s.
@@ -246,15 +246,21 @@ def _cast(c: dict | None) -> str:
 def _danger(p: dict, ground: list[dict]) -> str:
     """What a player would see at their feet. In the 3D game a swirl under you
     is unmissable; in text, the model would have to compare coordinates by hand."""
-    inside, near = [], []
+    inside, near, circles = [], [], []
     for g in ground:
         d = dist(p["pos"], g["pos"])
+        if "detonates_in_ms" in g:  # not a pool that hurts to stand in: just say where you are
+            if d <= g["radius"] + POOL_HIT_PAD:
+                circles.append(f"{g['id']} ({d:.1f} m from its centre)")
+            continue
         state = "ARMED" if g["armed"] else "arming"
         if d <= g["radius"] + POOL_HIT_PAD:
             inside.append(f"{g['id']} ({state}, {d:.1f} m from its centre, radius {g['radius']:g})")
         elif d <= g["radius"] + 1.0:
             near.append(g["id"])
     out = ""
+    if circles:
+        out += f" Inside {', '.join(circles)}."
     if inside:
         out += f" STANDING IN POOL {', '.join(inside)}!"
     if near:
@@ -308,7 +314,9 @@ def render_state(obs: dict, me: str, gcd_ms: int, orders_age_s: float | None, kn
         idle = [e for e in obs["enemies"] if e["role"] == "add" and not e.get("engaged", True)]
         if idle:
             lines.append("NOT YET PULLED: " + "; ".join(f"{e['id']} ({e['name']}) at {_p(e['pos'])}" for e in idle) + ".")
-    pools = [f"{g['id']} ({g['kind']}) at {_p(g['pos'])} r={g['radius']:g} {'ARMED' if g['armed'] else 'arming'}"
+    pools = [f"{g['id']} ({g['kind']}) at {_p(g['pos'])} r={g['radius']:g} "
+             + (f"goes off in {g['detonates_in_ms'] / 1000:.1f}s" if "detonates_in_ms" in g
+                else 'ARMED' if g['armed'] else 'arming')
              for g in obs["ground"]]
     lines.append("POOLS: " + ("; ".join(pools) if pools else "none") + ".")
     lines.append("PARTY:")

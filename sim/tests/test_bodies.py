@@ -60,15 +60,17 @@ def test_one_order_one_move_event():
 
 def test_enemies_do_not_stand_inside_each_other_or_the_party():
     """A boss fight's adds crowd the tank but keep their bodies apart."""
-    from mythicsim.policies import make_policies
-    enc = Encounter(8, make_policies("expert", 8), "test", "plus10")
+    from mythicsim.llm.policy import make_llm_policies
+    from mythicsim.llm.scripted import ScriptedCommander
+    pols, _ = make_llm_policies(ScriptedCommander(), tier="plus10", mode="boss", knowledge="blind", parallel=False)
+    enc = Encounter(8, pols, "test", "plus10")
     enc.run(max_ms=150_000)
     standing = [u for u in enc.units.values() if u.alive and u.move is None]
     for a, b in combinations(standing, 2):
         assert dist(a.pos, b.pos) >= a.radius + b.radius - 0.01, (a.id, b.id, a.pos, b.pos)
 
 
-def test_mortisar_walks_after_a_target_out_of_reach():
+def test_oruth_walks_after_a_target_out_of_reach():
     class Stand:
         def act(self, obs):
             return []

@@ -5,9 +5,9 @@ import { reproduceCommand } from './Panels'
 const base = { encounter: 'x', title: 'x', seed: 10, sim_version: '0.3.0', content_version: '1.2.0', tick_ms: 100, duration_ms: 1, outcome: 'wipe', time_limit_ms: 255000, tier: 'plus10', mode: 'dungeon' } as const
 
 describe('reproduceCommand', () => {
-  it('replays a bot run from its seed', () => {
-    expect(reproduceCommand({ ...base, policy: 'scripted-expert' } as ReplayMeta))
-      .toBe('cd sim && python -m mythicsim run --policy expert --seed 10 --tier plus10 --mode dungeon --out replay.json')
+  it('replays a scripted commander run from its seed', () => {
+    expect(reproduceCommand({ ...base, policy: 'llm:scripted:commander' } as ReplayMeta))
+      .toBe('cd sim && python -m mythicsim run --seed 10 --tier plus10 --mode dungeon --out replay.json')
   })
 
   it('rebuilds a campaign pull offline from its recordings, at its commit', () => {

@@ -489,7 +489,8 @@
             "kind": {
               "enum": [
                 "desecrate",
-                "grave"
+                "grave",
+                "pyre"
               ]
             }
           },
@@ -511,6 +512,39 @@
           },
           "required": [
             "id"
+          ]
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "pyre_detonate"
+            },
+            "id": {
+              "type": "string"
+            },
+            "pos": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "inside": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "soaked": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "pos",
+            "inside",
+            "soaked"
           ]
         },
         {

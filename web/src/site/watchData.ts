@@ -24,7 +24,7 @@ function cellRun(r: Results, model: string, provider: string, effort: string | n
     status: null, note: null,
     summary: {
       score_mean: cell.progression_score, score_ci95: cell.progression_score_ci95, win_rate: cell.clear_rate,
-      reference_means: null, kill_rate: cell.clear_rate, pulls_to_kill_mean: cell.pulls_to_clear_mean,
+      kill_rate: cell.clear_rate, pulls_to_kill_mean: cell.pulls_to_clear_mean,
       curve_mean: cell.curve_mean, progression_score_mean: cell.progression_score,
       progression_score_ci95: cell.progression_score_ci95, cost_usd: cell.cost_usd, usd_per_fight: cell.usd_per_pull,
     },

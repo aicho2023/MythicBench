@@ -12,7 +12,7 @@ export default function DevPortraits() {
   const at = Number(new URLSearchParams(location.search).get('at') ?? 0.6)
   const [info, setInfo] = useState<UnitInfo | null>(null)
   useEffect(() => {
-    fetch('/replays/expert-clear.json').then((r) => r.json()).then((rep: Replay) => setInfo(rep.units.find((u) => u.id === id) ?? null))
+    fetch('/replays/commander-plus10.json').then((r) => r.json()).then((rep: Replay) => setInfo(rep.units.find((u) => u.id === id) ?? null))
   }, [id])
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#ff00ff' }}>

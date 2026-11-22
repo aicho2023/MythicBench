@@ -39,6 +39,7 @@ def debrief_data(replay: dict) -> dict:
     open_casts: dict[str, dict] = {}
     pool_hits = defaultdict(lambda: defaultdict(lambda: [0, 0]))  # ability -> player -> [hits, damage]
     enraged_at = None
+    pyres: list[dict] = []  # each Bone Pyre detonation: who stood inside, whom it hit
     for e in ev:
         t = e["type"]
         if t == "spawn":
@@ -52,6 +53,8 @@ def debrief_data(replay: dict) -> dict:
                 amt = e["amount"] + e.get("absorbed", 0)
                 taken[e["target"]][e["ability"]] += amt
                 recent[e["target"]].append((e["t"], e["ability"], amt))
+                if e["ability"] == "bone_pyre" and pyres and pyres[-1]["t"] == e["t"]:
+                    pyres[-1]["hits"].append((e["target"], amt))
                 if e["ability"] in POOL_ABILITIES:
                     h = pool_hits[e["ability"]][e["target"]]
                     h[0] += 1
@@ -89,6 +92,8 @@ def debrief_data(replay: dict) -> dict:
                                   "result": "instant", "by": None})
             elif e["unit"] in players and (replay["abilities"].get(e["ability"]) or {}).get("kind") == "interrupt":
                 interrupts_used[e["unit"]] += 1
+        elif t == "pyre_detonate":
+            pyres.append({"t": e["t"], "inside": e["inside"], "hits": []})
         elif t == "aura_apply" and e["unit"] == boss["id"] and e["aura"] == "hollow_fury" and enraged_at is None:
             enraged_at = e["t"]
     kicks_landed = defaultdict(int)  # on any target (boss and dungeon trash)
@@ -98,7 +103,7 @@ def debrief_data(replay: dict) -> dict:
     return {
         "outcome": meta["outcome"], "duration_ms": meta["duration_ms"],
         "boss_hp_pct_left": round(100 * boss_hp / boss["max_hp"], 1),
-        "deaths": deaths, "taken": {p: dict(v) for p, v in taken.items()}, "casts": casts,
+        "deaths": deaths, "taken": {p: dict(v) for p, v in taken.items()}, "casts": casts, "pyres": pyres,
         "adds": adds, "pool_hits": {a: {p: list(v) for p, v in per.items()} for a, per in pool_hits.items()},
         "interrupts_used": dict(interrupts_used), "interrupts_landed": dict(kicks_landed),
         "enraged_at": enraged_at, "names": {k: u["name"] for k, u in units.items()},
@@ -138,7 +143,7 @@ def debrief_text(replay: dict) -> str:
         hit = sorted(((p, per.get(a, 0)) for p, per in d["taken"].items() if per.get(a)), key=lambda kv: -kv[1])
         out.append(f"  {_name(replay, a)}: {n:,}  (" + ", ".join(f"{who(p)} {v:,}" for p, v in hit[:5]) + ")")
 
-    out.append("\nMORTISAR'S ABILITIES OBSERVED:")
+    out.append("\nORUTH'S ABILITIES OBSERVED:")
     by_ability = defaultdict(list)
     for c in d["casts"]:
         by_ability[c["ability"]].append(c)
@@ -151,6 +156,15 @@ def debrief_text(replay: dict) -> str:
         kind = "interruptible" if cs[0]["interruptible"] else "not interruptible"
         out.append(f"  {_name(replay, a)}: cast bar, {kind}, {len(cs)}x at {times}"
                    + (f"; interrupted {kicked}/{len(cs)}" if cs[0]["interruptible"] else "") + ".")
+
+    if d.get("pyres"):
+        out.append("\nBONE PYRE (the circle it leaves on the floor), each time it went off:")
+        for x in d["pyres"]:
+            inside = ", ".join(who(p) for p in x["inside"]) or "nobody"
+            hit = x["hits"]
+            dealt = (f"it hit {len(hit)} player{'s' if len(hit) != 1 else ''} for {sum(a for _, a in hit) // len(hit):,} each"
+                     if hit else "it hit nobody")
+            out.append(f"  {_t(x['t'])}: {len(x['inside'])} inside ({inside}); {dealt}.")
 
     if d["interrupts_used"]:
         out.append("\nYOUR INTERRUPTS: " + "; ".join(

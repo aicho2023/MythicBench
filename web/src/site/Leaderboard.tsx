@@ -2,7 +2,7 @@ import { ChevronRight } from 'lucide-react'
 import { modelName } from '../content/display'
 import { CIBar } from './charts'
 import {
-  BOT_NAMES, botHeadline, costPerRun, episodeHeadlines, fmtPct, fmtScore, fmtUsd, headlineTier, labName, modelColor, tierName,
+  costPerRun, episodeHeadlines, fmtPct, fmtScore, fmtUsd, headlineTier, labName, modelColor, tierName,
   type LeaderboardRow, type Results,
 } from './results'
 import { navigate } from './router'
@@ -35,7 +35,6 @@ export function LeaderboardTable({ results }: { results: Results }) {
   const tiers = Object.keys(results.tiers)
   const hard = headlineTier(results)
   const baselines = results.baselines ?? []
-  const bots = Object.keys(BOT_NAMES).map((k) => ({ k, h: botHeadline(results, k) })).filter((b) => b.h)
   const lead = results.leaderboard.find((r) => r.rank !== null)?.model
   const hasEffect = results.leaderboard.some((r) => r.tiers[hard]?.learning_effect !== undefined)
 
@@ -86,10 +85,10 @@ export function LeaderboardTable({ results }: { results: Results }) {
               </tr>
             )
           })}
-          {(bots.length > 0 || baselines.length > 0) && (
+          {baselines.length > 0 && (
             <tr>
               <td colSpan={10} className="px-0 pb-2 pt-6 text-[12px] text-fg-faint">
-                References on the same seeds, not ranked. The scripted commander gives fixed, obvious orders through the agents' own interface: a model has to beat it for its decisions to matter. The bots play the game directly at three skill levels. None of them learn
+                A reference on the same seeds, not ranked. The scripted commander gives fixed, obvious orders through the agents' own interface and never learns: a model has to beat it for its decisions to matter
               </td>
             </tr>
           )}
@@ -112,29 +111,6 @@ export function LeaderboardTable({ results }: { results: Results }) {
               <td className={`${TD} ${NUM} hidden text-fg-faint lg:table-cell`}>{fmtPct(row.tiers[hard]?.clear_rate)}</td>
               <td className={`${TD} ${NUM} hidden text-fg-faint lg:table-cell`}>{pullsToClear(results, row, hard).text}</td>
               {hasEffect && <td className={`${TD} ${NUM} hidden text-fg-faint xl:table-cell`} title="Fixed rules don't learn">0</td>}
-              <td className={`${TD} ${NUM} hidden pr-0 text-fg-faint sm:table-cell`}>$0</td>
-              <td />
-            </tr>
-          ))}
-          {bots.map(({ k, h }) => (
-            <tr key={k} className="border-t border-line">
-              <td className={`${TD} pl-0`}>
-                <span className="flex items-center gap-3">
-                  <span className="h-2 w-2 shrink-0 rounded-full border border-fg-faint" aria-hidden />
-                  <span className="text-[14px] text-fg-muted">{BOT_NAMES[k]}</span>
-                </span>
-              </td>
-              <td className={TD}>
-                <span className="flex items-center gap-3">
-                  <span className="num w-10 text-right font-mono text-[15px] text-fg-muted">{fmtScore(h!.score)}</span>
-                  <span className="opacity-70 sm:hidden"><CIBar mean={h!.score} ci={h!.ci} width={80} /></span>
-                  <span className="hidden opacity-70 sm:block"><CIBar mean={h!.score} ci={h!.ci} /></span>
-                </span>
-              </td>
-              {tiers.map((t) => <td key={t} className={`${TD} ${NUM} hidden text-fg-faint md:table-cell`}>{fmtScore(results.bots?.[t]?.[k]?.progression_score_mean)}</td>)}
-              <td className={`${TD} ${NUM} hidden text-fg-faint lg:table-cell`}>–</td>
-              <td className={`${TD} ${NUM} hidden text-fg-faint lg:table-cell`}>–</td>
-              {hasEffect && <td className={`${TD} ${NUM} hidden text-fg-faint xl:table-cell`} title="Bots don't learn">0</td>}
               <td className={`${TD} ${NUM} hidden pr-0 text-fg-faint sm:table-cell`}>$0</td>
               <td />
             </tr>

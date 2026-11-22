@@ -1,5 +1,5 @@
 {
- "content_version": "1.5.0",
+ "content_version": "1.6.0",
  "gcd_s": 1.0,
  "melee_range_m": 3.0,
  "party": [
@@ -527,6 +527,20 @@
     "on_gcd": true,
     "interruptible": false,
     "amount": 9000
+   },
+   {
+    "id": "bone_pyre",
+    "name": "Bone Pyre",
+    "kind": "boss",
+    "kind_name": "Boss ability",
+    "school": "shadow",
+    "icon": "raise",
+    "description": "Marks a circle on the floor that detonates after 6 sec. With at least 2 players inside, they split 20,000 damage between them; with fewer, it hits the whole party for 30,000.",
+    "cast_s": 0.0,
+    "cooldown_s": 0.0,
+    "on_gcd": true,
+    "interruptible": false,
+    "amount": 30000
    },
    {
     "id": "raise_dead",
