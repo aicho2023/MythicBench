@@ -211,6 +211,27 @@ In the viewer, the button in the top bar opens the run list, with search,
 filters and a score for each attempt. Runs from an older harness version are
 hidden by default because their scores aren't comparable.
 
+### Analysing results
+
+`export` turns runs or a results folder into flat files for spreadsheets,
+pandas or an LLM:
+- `overview.md`, every cell plus averages by pull number;
+- CSVs of pulls, groups, deaths, mechanics (each kick, Bone Pyre and Grave
+  Mark) and damage taken;
+- every model call as JSONL;
+- one readable story per group, with the timeline, debrief, talk and notes
+  for each pull.
+
+It only reads, so it never changes a run or a score.
+
+```bash
+python -m mythicsim export ../web/public/results/v1 --zip   # a results dataset
+python -m mythicsim export --tag soak-check                 # local runs (or --run <id>)
+```
+
+It writes to `runs/analysis/<name>/`. Add `--prompts` to include every call's
+full prompt, which makes the export much bigger.
+
 ## Simulator commands
 
 ```bash

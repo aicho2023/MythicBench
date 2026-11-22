@@ -499,6 +499,15 @@ def main() -> None:
     vr.add_argument("--no-replay", action="store_true",
                     help="skip replaying from the recordings (faster, but costs and reply counts go unchecked)")
     vr.add_argument("--protocol", type=Path, help="also require the dataset's protocol to be this file")
+    ex = sub.add_parser("export", help="turn runs or a results folder into flat files for analysis "
+                                       "(CSV, JSONL, one Markdown story per group)")
+    ex.add_argument("source", type=Path, nargs="?",
+                    help="a results folder (with leaderboard.json) or a runs folder; default: the local runs")
+    ex.add_argument("--out", type=Path, help="default: runs/analysis/<source name>")
+    ex.add_argument("--run", action="append", help="only these runs (id or part of it); repeatable")
+    ex.add_argument("--tag", help="only runs with this tag")
+    ex.add_argument("--prompts", action="store_true", help="include every call's full prompt (much bigger)")
+    ex.add_argument("--zip", action="store_true", help="also write <out>.zip, ready to send")
     g = sub.add_parser("generate", help="write the showcase replays for the viewer")
     g.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
@@ -533,6 +542,24 @@ def main() -> None:
         from .campaign import verify_results
         raise SystemExit(verify_results(args.results, first=args.first, replay=not args.no_replay,
                                         official=args.protocol))
+    elif args.cmd == "export":
+        from . import analysis
+        from .runs import RUNS_DIR
+        src = args.source or RUNS_DIR
+        if (src / "leaderboard.json").exists():
+            if args.run or args.tag:
+                raise SystemExit("--run and --tag pick local runs; a results folder is exported whole")
+            refs, max_pulls = analysis.from_results(src)
+        else:
+            refs, max_pulls = analysis.from_runs(src, args.run, args.tag)
+        if not refs:
+            raise SystemExit(f"no pulls found in {src}")
+        name = (src.resolve().name if (src / "leaderboard.json").exists() else
+                args.tag or ("-".join(args.run) if args.run else "local"))
+        out = args.out or RUNS_DIR / "analysis" / name
+        res = analysis.export(refs, max_pulls, out, src.resolve().name, prompts=args.prompts, make_zip=args.zip)
+        print(f"{res['pulls']} pulls in {res['groups']} groups -> {res['out']}/ (start with overview.md)"
+              + (f"; zipped to {out.with_suffix('.zip')}" if args.zip else ""))
     elif args.cmd == "generate":
         args.out.mkdir(parents=True, exist_ok=True)
         index = []
