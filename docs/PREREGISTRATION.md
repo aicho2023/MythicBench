@@ -5,6 +5,17 @@ Written before the official run, and frozen with the code that plays it
 metrics, the analysis and the stopping rules. Anything decided after seeing
 official data is reported as exploratory, and labelled as such.
 
+**Amendment 1 (2026-11-22, before any official data; git tag `v1.0.1`).**
+After an outside review, and before stage 1 played a single call: the
+analysis below was tightened (model-against-model claims need same-seed
+paired differences; exact intervals for clear rates; the learning question
+says what the control can and can't separate), the restart on reserve seeds
+became a pinned protocol of its own, and the limitations section says how
+the difficulty was calibrated. Nothing that plays changed: the harness is
+still 1.0.0, the sim 0.11.0, the content 1.8.0, and the seeds are the same.
+`v1.0.1` differs from `v1.0.0` only in documentation and in the analysis
+code that builds and checks the results.
+
 ## The question
 
 Can a team of AI agents learn a dungeon it has never seen? Five copies of
@@ -17,8 +28,11 @@ five pulls?** (the MythicBench score).
 
 Secondary questions:
 
-1. **Do the notes help?** Is the score with memory on higher than with memory
-   off, on the same seeds (the learning effect)?
+1. **Does carrying information across wipes help?** Is the score with memory
+   on higher than with memory off, on the same seeds (the learning effect)?
+   Memory on is a whole pipeline: a factual debrief, the party's talk, each
+   agent's private notes, and the extra calls they take. The control removes
+   all of it, so the effect is the pipeline's, not any one part's.
 2. **What does a score cost?** Dollars per group, at list prices, thinking
    included, and how score moves with reasoning effort.
 3. **How often does each model clear, and after how many pulls?**
@@ -68,10 +82,22 @@ and `campaign.py`.
 - **MythicBench score**: a model's mean group score on +10, with a 95%
   Student-t interval across its groups.
 - **Learning effect**: the mean paired difference, memory on minus memory
-  off, across the 12 matched groups, with a 95% Student-t interval. It
-  measures talk and notes together: with memory off there is neither.
-- **Clear rate** (share of groups with a timed clear), **pulls to clear**, and
-  **cost per group** (list prices at the time of the run, thinking included).
+  off, across the 12 matched groups, with a 95% Student-t interval and a
+  paired-t p-value. It measures the debrief, talk and notes together: with
+  memory off there are none of them. The 12 paired differences are the
+  learning result; a rising curve of scores by pull is descriptive only (a
+  clear's score carries forward, which lifts later pulls on its own).
+- **Model against model**: for each pair of ranked models, the paired
+  difference of their group scores, group by group on the same seeds (every
+  model's group *g* plays the same seeds), with a 95% Student-t interval and a
+  paired-t p-value, Holm-adjusted over all the pairs.
+- **Clear rate** (share of groups with a timed clear, `clears / groups`, with
+  an exact Clopper-Pearson 95% interval: 0 of 6 still allows up to 46%),
+  **pulls to clear**, and **cost per group**: the observed cost at list prices
+  at the time of the run, thinking included, shown with the calls, tokens,
+  cut-off replies and the model ids the providers report serving (the
+  published `served_models.json`). Providers' "medium" efforts and an equal
+  output cap don't make compute equal; cost is an end-to-end outcome.
 
 ## What the harness does for the agents
 
@@ -108,8 +134,12 @@ the agents' own.
 - Every model is ranked on the same six groups (0 to 5, the same seeds).
   Haiku's and Luna's extra memory-on groups (6 to 11) only feed the learning
   effect. A model whose six groups aren't all finished is shown, not ranked.
-- Models are ranked by MythicBench score. Where two models' 95% intervals
-  overlap, we don't claim an order between them.
+- Models are listed by MythicBench score. The order is descriptive: it is
+  not a claim that one model is better than another.
+- One model is claimed better than another only where their same-seed paired
+  difference has a Holm-adjusted p below 0.05 (over every pair of ranked
+  models). Every pair's difference and interval is reported either way.
+  Overlapping or separate intervals on the leaderboard decide nothing.
 - A learning effect is claimed only if its 95% interval excludes zero.
 - Every finished group counts. A group is finished when it has pulls 1..*n*
   with no gaps, ending at its first timed clear or at pull 5. Bad replies,
@@ -144,7 +174,12 @@ the agents' own.
 3. If there is a fault, it's fixed, the version goes up, stage 1 is reported as
    a pilot and not counted, and the whole protocol runs again on the new
    version and on the reserve seeds (`restart_seed_base` 80000, set now), so
-   nothing seen while inspecting stage 1 can help.
+   nothing seen while inspecting stage 1 can help. The restart is its own
+   pinned protocol, `protocol/v1-restart.json` (identical to v1 but for its
+   name and seeds), and runs the same way, staged as well:
+   `campaign protocol/v1-restart.json --first 1`, then
+   `campaign protocol/v1-restart.json`. Its recordings and results are
+   separate from v1's.
 
 ## Budget
 
@@ -169,7 +204,9 @@ memory-on groups behind the learning effect), the recorded replies, and the
 agents' notes and talk. Anyone can check every number offline, for free, from
 the published folder alone: `python -m mythicsim verify <folder>` rescores
 every pull from its replay, checks every seed against the schedule, rebuilds
-the leaderboard and compares it, checks each cell has exactly the groups the
+the leaderboard (with the pairwise comparisons and clear-rate intervals) and
+compares it, checks which models served the calls against the recordings,
+checks each cell has exactly the groups the
 protocol calls for, and replays every group from the recordings, recomputing
 each pull's reply counts, tokens and list-price cost from them. The v1
 protocol's fingerprint is pinned in the code, so a dataset can't pass against
@@ -178,6 +215,15 @@ reported whatever they show, including a learning effect of zero.
 
 ## Known limitations
 
-One dungeon and one boss. Six groups per model separate clear gaps, not small
-ones. Orders come every few seconds of game time, not every global cooldown,
-and the game waits for the agents. List prices change.
+One dungeon and one boss: the results are about this task, not a general
+ranking of models or a broad claim about AI learning. Fresh seeds give fresh
+runs of one tuned task (the map, the boss and the mechanics stay the same).
+Six groups per model separate clear gaps, not small ones. Orders come every
+few seconds of game time, not every global cooldown, and the game waits for
+the agents. List prices change.
+
+How the difficulty was set: +10 was calibrated in pilots against GPT-6.2 Sol
+(on seeds outside the official schedule), aiming for "the best models can
+clear, but not reliably". Sol is also one of the ranked models. The scripted
+commander is a floor, not a skilled player: it never soaks Bone Pyre and
+clears 0 of 60 dev seeds on +10, so beating it is a modest bar.

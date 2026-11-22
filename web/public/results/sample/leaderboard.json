@@ -1,4 +1,5 @@
 {
+ "pairwise": [],
  "protocol": {
   "name": "sample",
   "description": "A free sample of the v1 protocol for building the site: the mock model (no API, no cost) through the Hollow Vault, blind, up to 3 pulls, on Normal and +10.",
@@ -79,6 +80,10 @@
      ],
      "clear_rate": 0.0,
      "clears": 0,
+     "clear_rate_ci95": [
+      0.0,
+      0.8419
+     ],
      "pulls_to_clear_mean": null,
      "pulls_to_clear": [
       null,
@@ -110,7 +115,7 @@
      "episode_list": [
       {
        "episode": 0,
-       "run_id": "2026-11-22T2207_basic_6a82c2a7",
+       "run_id": "2026-11-22T2229_basic_5e530f81",
        "pulls": [
         {
          "pull": 1,
@@ -284,7 +289,7 @@
       },
       {
        "episode": 1,
-       "run_id": "2026-11-22T2207_basic_6a82c2a7",
+       "run_id": "2026-11-22T2229_basic_5e530f81",
        "pulls": [
         {
          "pull": 1,
@@ -477,6 +482,10 @@
      ],
      "clear_rate": 0.0,
      "clears": 0,
+     "clear_rate_ci95": [
+      0.0,
+      0.8419
+     ],
      "pulls_to_clear_mean": null,
      "pulls_to_clear": [
       null,
@@ -508,7 +517,7 @@
      "episode_list": [
       {
        "episode": 0,
-       "run_id": "2026-11-22T2207_basic_b8a4f0f6",
+       "run_id": "2026-11-22T2229_basic_fcd1f436",
        "pulls": [
         {
          "pull": 1,
@@ -682,7 +691,7 @@
       },
       {
        "episode": 1,
-       "run_id": "2026-11-22T2207_basic_b8a4f0f6",
+       "run_id": "2026-11-22T2229_basic_fcd1f436",
        "pulls": [
         {
          "pull": 1,
@@ -860,6 +869,7 @@
       0.0,
       0.0
      ],
+     "learning_effect_p": 1.0,
      "learning_pairs": [
       {
        "episode": 0,
@@ -910,6 +920,10 @@
      ],
      "clear_rate": 0.0,
      "clears": 0,
+     "clear_rate_ci95": [
+      0.0,
+      0.8419
+     ],
      "pulls_to_clear_mean": null,
      "pulls_to_clear": [
       null,
@@ -941,7 +955,7 @@
      "episode_list": [
       {
        "episode": 0,
-       "run_id": "2026-11-22T2207_commander_cc6eea86",
+       "run_id": "2026-11-22T2229_commander_44b417ca",
        "pulls": [
         {
          "pull": 1,
@@ -1115,7 +1129,7 @@
       },
       {
        "episode": 1,
-       "run_id": "2026-11-22T2207_commander_cc6eea86",
+       "run_id": "2026-11-22T2229_commander_44b417ca",
        "pulls": [
         {
          "pull": 1,
@@ -1308,6 +1322,10 @@
      ],
      "clear_rate": 0.0,
      "clears": 0,
+     "clear_rate_ci95": [
+      0.0,
+      0.8419
+     ],
      "pulls_to_clear_mean": null,
      "pulls_to_clear": [
       null,
@@ -1339,7 +1357,7 @@
      "episode_list": [
       {
        "episode": 0,
-       "run_id": "2026-11-22T2207_commander_d74e1088",
+       "run_id": "2026-11-22T2229_commander_171b58f4",
        "pulls": [
         {
          "pull": 1,
@@ -1513,7 +1531,7 @@
       },
       {
        "episode": 1,
-       "run_id": "2026-11-22T2207_commander_d74e1088",
+       "run_id": "2026-11-22T2229_commander_171b58f4",
        "pulls": [
         {
          "pull": 1,
@@ -1720,6 +1738,10 @@
    ],
    "clear_rate": 0.0,
    "clears": 0,
+   "clear_rate_ci95": [
+    0.0,
+    0.8419
+   ],
    "pulls_to_clear_mean": null,
    "pulls_to_clear": [
     null,
@@ -1751,7 +1773,7 @@
    "episode_list": [
     {
      "episode": 0,
-     "run_id": "2026-11-22T2207_basic_82a306be",
+     "run_id": "2026-11-22T2230_basic_deaa7801",
      "pulls": [
       {
        "pull": 1,
@@ -1925,7 +1947,7 @@
     },
     {
      "episode": 1,
-     "run_id": "2026-11-22T2207_basic_82a306be",
+     "run_id": "2026-11-22T2230_basic_deaa7801",
      "pulls": [
       {
        "pull": 1,

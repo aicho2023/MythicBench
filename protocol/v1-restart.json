@@ -1,0 +1,116 @@
+{
+  "name": "v1-restart",
+  "description": "MythicBench v1 on its reserve seeds: the pre-registered restart. Identical to protocol v1 except the seed schedule (seed_base 80000, v1's restart_seed_base). Used only if stage 1 of v1 finds a harness fault: the fault is fixed, the version goes up, v1's stage 1 is reported as a pilot, and this protocol runs in full, so nothing seen in v1's stage 1 can help.",
+  "mode": "dungeon",
+  "knowledge": "blind",
+  "tiers": [
+    "plus10"
+  ],
+  "headline_tier": "plus10",
+  "episodes": 6,
+  "max_pulls": 5,
+  "effort": "medium",
+  "seed_base": 80000,
+  "interval_ms": 4000,
+  "max_calls": 300,
+  "run_budget_usd": 500,
+  "models": [
+    {
+      "provider": "anthropic",
+      "id": "claude-haiku-5-5",
+      "name": "Claude Haiku 5.5"
+    },
+    {
+      "provider": "anthropic",
+      "id": "claude-sonnet-5-5",
+      "name": "Claude Sonnet 5.5"
+    },
+    {
+      "provider": "anthropic",
+      "id": "claude-opus-5-5",
+      "name": "Claude Opus 5.5"
+    },
+    {
+      "provider": "openai",
+      "id": "gpt-6-luna",
+      "name": "GPT-6 Luna"
+    },
+    {
+      "provider": "openai",
+      "id": "gpt-6.2-sol",
+      "name": "GPT-6.2 Sol"
+    }
+  ],
+  "baselines": [
+    {
+      "provider": "scripted",
+      "id": "commander",
+      "name": "Scripted commander"
+    }
+  ],
+  "controls": [
+    {
+      "model": "claude-haiku-5-5",
+      "memory": false,
+      "tiers": [
+        "plus10"
+      ],
+      "episodes": 12
+    },
+    {
+      "model": "gpt-6-luna",
+      "memory": false,
+      "tiers": [
+        "plus10"
+      ],
+      "episodes": 12
+    }
+  ],
+  "sanity": [
+    {
+      "model": "claude-haiku-5-5",
+      "tiers": [
+        "normal"
+      ],
+      "episodes": 3
+    },
+    {
+      "model": "gpt-6-luna",
+      "tiers": [
+        "normal"
+      ],
+      "episodes": 3
+    },
+    {
+      "model": "commander",
+      "tiers": [
+        "normal"
+      ],
+      "episodes": 3
+    }
+  ],
+  "efforts": [
+    {
+      "model": "claude-haiku-5-5",
+      "efforts": [
+        "low",
+        "high"
+      ],
+      "tiers": [
+        "plus10"
+      ],
+      "episodes": 3
+    },
+    {
+      "model": "gpt-6-luna",
+      "efforts": [
+        "low",
+        "high"
+      ],
+      "tiers": [
+        "plus10"
+      ],
+      "episodes": 3
+    }
+  ]
+}

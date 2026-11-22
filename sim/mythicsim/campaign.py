@@ -25,7 +25,8 @@ from . import runs as runs_mod
 from . import spend
 from .engine import SIM_VERSION
 from .llm import HARNESS_VERSION
-from .llm.progress import ci95 as _ci
+from .llm.progress import ci95 as _ci, cleared
+from .stats import clopper_pearson, holm, paired
 
 FREE_PROVIDERS = ("mock", "scripted")  # no API: nothing to pay, nothing to record
 REQUIRED = ("name", "mode", "knowledge", "tiers", "episodes", "max_pulls", "effort", "models")
@@ -400,6 +401,9 @@ def _rescore(rep: dict, ep: int, pull: int, proto: dict) -> tuple[dict, list[str
 # verifier pass would only prove it complete against some other protocol.
 OFFICIAL_PROTOCOLS: dict[str, str] = {
     "v1": "8ff5337d414ceac9f4944bd23081d6058d459ed3d1f264fd0d7b695d6d0e6641",  # protocol/v1.json
+    # The pre-registered restart: v1 on its reserve seeds (seed_base 80000), run in
+    # full only if v1's stage 1 finds a harness fault (docs/PREREGISTRATION.md).
+    "v1-restart": "8bcc88a37769d812845924300c2630a14fc361dfbbbeba8e17819aefa32c5169",  # protocol/v1-restart.json
 }
 
 
@@ -577,6 +581,12 @@ def verify_results(out_dir: Path, first: int | None = None, replay: bool = True,
         if mine != published:
             for path in _diff(published, mine)[:20]:
                 bad.append(f"leaderboard.json differs from a rebuild at {path}")
+    # Which models really served the calls: recomputed from the published recordings.
+    sm = out_dir / "served_models.json"
+    if not sm.exists():
+        bad.append("served_models.json is missing")
+    elif json.loads(sm.read_text()) != served_models(_inside(out_dir, out_dir / "recordings")):
+        bad.append("served_models.json differs from the published recordings")
     for b in bad:
         print("FAIL", b)
     if replay:
@@ -720,6 +730,8 @@ def _cell(c: Combo, done: dict, planned: set, out_dir: Path, runs_dir: Path, max
         "progression_score_ci95": _ci(eps_scores), "episode_scores": [round(x, 2) for x in eps_scores],
         "clear_rate": summ["kill_rate"] if summ else None, "clears": sum(1 for e in sorted(done) if any(
             i.get("outcome") == "victory" for i in done[e][1])),
+        # Exact (Clopper-Pearson) interval on the share of groups with a timed clear.
+        "clear_rate_ci95": clopper_pearson(sum(1 for e in sorted(done) if any(cleared(i) for i in done[e][1])), n),
         "pulls_to_clear_mean": summ["pulls_to_kill_mean"] if summ else None,
         "pulls_to_clear": summ["pulls_to_kill"] if summ else [],
         "first_pull_score_mean": summ["first_pull_score_mean"] if summ else None,
@@ -800,12 +812,13 @@ def build_results(proto: dict, out_dir: Path, runs_dir: Path | None = None) -> d
         diffs = [p["on"] - p["off"] for p in pairs]
         # The memory-on curve over the same groups as the control (not the six ranked ones).
         on_items = items_by[(_spec_of(on_row, proto), ctl["tier"], True)]
-        paired = [i for e in sorted(off) for i in on_items[e]]
-        ctl["paired_on_curve_mean"] = summarize_items(paired, max_pulls)["curve_mean"]
+        twin_items = [i for e in sorted(off) for i in on_items[e]]
+        ctl["paired_on_curve_mean"] = summarize_items(twin_items, max_pulls)["curve_mean"]
         cell = on_row["tiers"].get(ctl["tier"])
         if cell is not None:
             cell["learning_effect"] = round(st.mean(diffs), 1)
             cell["learning_effect_ci95"] = _ci(diffs)
+            cell["learning_effect_p"] = paired(diffs)["p"] if len(diffs) > 1 else None
             cell["learning_pairs"] = pairs
     # Effort sweeps compare like with like: the default effort on the same
     # groups as the sweep (its first few), next to the six-group headline.
@@ -849,7 +862,25 @@ def build_results(proto: dict, out_dir: Path, runs_dir: Path | None = None) -> d
     for r in baseline_rows:
         r["rank"] = None
         r["baseline"] = True
+    # Model against model, on the same seeds: the paired difference of their
+    # group scores on the headline tier, group by group (the ranked groups only).
+    # An order is claimed only where the Holm-adjusted p (over every pair) is
+    # below 0.05; the leaderboard's order itself is descriptive.
+    ranked_eps = set(range(proto["episodes"]))
+    heads = [(r["model"], scores.get((_spec_of(r, proto), head, True)) or {}) for r in board if r["complete"]]
+    pairwise = []
+    for i in range(len(heads)):
+        for j in range(i + 1, len(heads)):
+            (ma, sa), (mb, sb) = heads[i], heads[j]
+            eps = sorted(e for e in ranked_eps if e in sa and e in sb)
+            res = paired([sa[e] - sb[e] for e in eps])
+            if res:
+                pairwise.append({"a": ma, "b": mb, "episodes": eps, **res})
+    for pw, adj in zip(pairwise, holm([pw["p"] for pw in pairwise])):
+        pw["p_holm"] = adj
+        pw["claim"] = (pw["a"] if pw["mean"] > 0 else pw["b"]) if adj < 0.05 else None
     result = {
+        "pairwise": pairwise,
         "protocol": {k: proto[k] for k in proto if k != "models"} | {"models": [m["id"] for m in proto["models"]]},
         "harness_version": HARNESS_VERSION, "content_version": C.CONTENT_VERSION, "sim_version": SIM_VERSION,
         "tiers": {t: {"name": C.tier(t).name, "affixes": [C.AFFIXES[a].name for a in C.tier(t).affixes]}
@@ -868,4 +899,21 @@ def build_results(proto: dict, out_dir: Path, runs_dir: Path | None = None) -> d
             g.write(f.read_bytes())
     (out_dir / "leaderboard.json").write_text(json.dumps(result, indent=1) + "\n")
     (out_dir / "protocol.json").write_text(json.dumps(proto, indent=1) + "\n")
+    (out_dir / "served_models.json").write_text(json.dumps(served_models(out_dir / "recordings"), indent=1) + "\n")
     return result
+
+
+def served_models(rec_dir: Path) -> dict:
+    """Per configuration, the model ids the provider reports actually serving
+    its calls, with call counts (a provider can route an alias to a dated
+    model; this is what ran). Read from the recordings, so anyone can check it."""
+    out: dict[str, dict[str, int]] = {}
+    for f in sorted(rec_dir.glob("*.jsonl.gz")) if rec_dir.exists() else []:
+        for line in gzip.decompress(f.read_bytes()).decode().splitlines():
+            if not line.strip():
+                continue
+            r = json.loads(line)
+            served = out.setdefault(r.get("spec", f.name), {})
+            m = r.get("model") or "(not reported)"
+            served[m] = served.get(m, 0) + 1
+    return {spec: dict(sorted(v.items())) for spec, v in sorted(out.items())}

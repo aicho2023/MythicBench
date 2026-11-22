@@ -427,3 +427,52 @@ def test_an_altered_official_protocol_is_refused_before_anything_runs(tmp_path):
     p.write_text(json.dumps(v1))
     with pytest.raises(SystemExit, match="pinned"):
         K.run_campaign(K.load_protocol(p), dry_run=True)
+
+
+def test_the_restart_protocol_is_v1_on_its_reserve_seeds():
+    """The pre-registered restart is executable as is: pinned, and identical to
+    v1 except its name and seed schedule (v1's restart_seed_base)."""
+    root = Path(__file__).resolve().parents[2] / "protocol"
+    v1 = K.load_protocol(root / "v1.json")
+    rs = K.load_protocol(root / "v1-restart.json")
+    for p in (v1, rs):
+        assert K.protocol_digest(p) == K.OFFICIAL_PROTOCOLS[p["name"]]
+    assert rs["seed_base"] == v1["restart_seed_base"] != v1["seed_base"]
+    same = {k: v for k, v in v1.items() if k not in ("name", "description", "seed_base", "restart_seed_base")}
+    assert same == {k: v for k, v in rs.items() if k not in ("name", "description", "seed_base")}
+    # Its own recordings and cells: nothing from v1 is reused.
+    assert K.recordings_dir(rs) != K.recordings_dir(v1)
+    c = K.combos(rs)[0]
+    assert c.key(rs) != c.key(v1)
+
+
+def test_results_say_which_models_served_the_calls(sandbox, capsys):
+    tmp, proto = sandbox
+    K.run_campaign(proto)
+    out = tmp / "res"
+    K.build_results(proto, out, tmp / "runs")
+    served = json.loads((out / "served_models.json").read_text())
+    assert served and all(sum(v.values()) > 0 for v in served.values())
+    assert K.verify_results(out, replay=False) == 0
+    (out / "served_models.json").write_text(json.dumps({"mock:basic": {"some-other-model": 1}}))
+    assert K.verify_results(out, replay=False) != 0
+    assert "served_models.json differs" in capsys.readouterr().out
+
+
+def test_models_are_compared_on_the_same_seeds(sandbox):
+    tmp, _ = sandbox
+    proto = json.loads(json.dumps(PROTO))
+    proto["models"] = [{"provider": "mock", "id": "basic", "name": "Mock A"},
+                       {"provider": "mock", "id": "basic2", "name": "Mock B"}]
+    proto["controls"] = []
+    for m in proto["models"]:
+        m.setdefault("effort", proto["effort"])
+    K.run_campaign(proto)
+    res = K.build_results(proto, tmp / "res", tmp / "runs")
+    (pw,) = res["pairwise"]
+    assert {pw["a"], pw["b"]} == {"basic", "basic2"} and pw["episodes"] == [0, 1]
+    assert {"mean", "ci95", "p", "p_holm", "claim"} <= set(pw)
+    for row in res["leaderboard"]:
+        lo, hi = row["tiers"]["plus10"]["clear_rate_ci95"]
+        assert 0.0 <= lo <= hi <= 1.0
+    assert K.verify_results(tmp / "res", replay=False) == 0

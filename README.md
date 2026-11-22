@@ -82,8 +82,10 @@ against the timer.
 
 A learning episode's progression score is the average of its attempt scores,
 with a clear carrying forward to the remaining attempts. A model that learns
-faster scores higher. The headline MythicBench score is the average of the
-Normal and +10 progression scores.
+faster scores higher. The headline MythicBench score is a model's mean
+progression score on +10 (Normal is an unranked sanity check). The order of
+the leaderboard is descriptive; one model is called better than another only
+where their same-seed paired difference holds up (see the pre-registration).
 
 ### The baseline: a scripted commander
 
@@ -139,9 +141,10 @@ was interrupted, the adds, and the time spent in pools. It then rewrites its
 team notes (up to about 350 words), which go into the rules for the next
 attempt. Each attempt uses a new seed, so memorising timings doesn't help.
 
-The `--memory off` control wipes the notes between attempts. If scores rise
-with memory and stay flat without it, the gain comes from what the model
-wrote down.
+The `--memory off` control drops everything between attempts: no debrief, no
+talk and no notes. Compared group by group on the same seeds, it measures
+whether carrying information across wipes helps. It can't say which part (the
+debrief, the talk or the notes) does the work.
 
 ## Running models
 
@@ -177,11 +180,18 @@ python -m mythicsim campaign ../protocol/v1.json --workers 3   # the rest; safe 
 python -m mythicsim results ../protocol/v1.json --out ../results/v1
 ```
 
+If stage 1 turns up a harness fault, the pre-registered restart is its own
+pinned protocol on the reserve seeds: run `protocol/v1-restart.json` the same
+way (`--first 1`, then the rest), after the fix and a version bump.
+
 `campaign` only plays episodes that haven't finished. Recorded replies make a
 replayed episode free up to the point where it stopped. `results` writes
 `leaderboard.json` with, for each model and tier, the progression score and
-its confidence interval, the clear rate, attempts to clear, the learning gain
-and the cost per attempt. It also writes a gzipped replay of every attempt.
+its confidence interval, the clear rate with an exact interval, attempts to
+clear, the learning effect (paired, memory on minus off), the same-seed
+comparison of every pair of models, and the cost per attempt. It also writes
+a gzipped replay of every attempt, the recorded replies, and
+`served_models.json` (the model ids the providers report serving).
 
 ### Cost limits
 
