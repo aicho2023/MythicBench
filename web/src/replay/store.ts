@@ -6,6 +6,7 @@ import { ReplayEngine } from './engine'
 import type { Catalog, CatalogItem, CatalogRun, Replay, ReplayIndexEntry } from './types'
 import { fetchMaybeGzipJson, fetchResults, parseWatchPath, watchPath, type Results } from '../site/results'
 import { resultsCatalogRuns, resultsIndexEntries } from '../site/watchData'
+import { REFERENCE_PROVIDERS, SHOW_REFERENCE_RUNS } from '../site/config'
 
 /** Index id for one item (seed, or episode+pull) of a model run. */
 export const runItemId = (runId: string, it: Pick<CatalogItem, 'seed' | 'episode' | 'pull'>) =>
@@ -112,7 +113,11 @@ export const usePlayback = create<Playback>((set, get) => ({
         try { results = await fetchResults() } catch { /* no dataset */ }
         // Model runs saved on this machine (`python -m mythicsim llm ...` publishes
         // them to replays/local/catalog.json), if any. Local development only.
-        const local = await fetchJson<Catalog>(`${base}replays/local/catalog.json`)
+        const saved = await fetchJson<Catalog>(`${base}replays/local/catalog.json`)
+        // Mock and scripted runs saved locally stay out of the run list unless references are on.
+        const local = saved && !SHOW_REFERENCE_RUNS
+          ? { ...saved, runs: saved.runs.filter((r) => !REFERENCE_PROVIDERS.includes(r.provider)) }
+          : saved
         const fromResults = results ? resultsCatalogRuns(results) : []
         const catalog: Catalog | null = local || results
           ? { current_harness_version: local?.current_harness_version ?? results!.harness_version, runs: [...fromResults, ...(local?.runs ?? [])] }
@@ -133,9 +138,12 @@ export const usePlayback = create<Playback>((set, get) => ({
       return true
     }
     if (fallback && (!engine || quietLoaded) && index.length) {
-      // Plain /watch: the leaderboard's top model on +10 if there is one, else the first showcase.
-      const top = index.find((e) => e.path?.includes('/plus10/')) ?? index[0]
-      await get().load(top.id, { deepLink: true })
+      // Plain /watch: the leaderboard's top model on +10 if there is one, else (only
+      // when references are on) the first showcase. Visitors never land on a bot run.
+      const models = index.filter((e) => e.local)
+      const top = models.find((e) => e.path?.includes('/plus10/')) ?? models[0] ?? (SHOW_REFERENCE_RUNS ? index[0] : undefined)
+      if (top) await get().load(top.id, { deepLink: true })
+      else set({ error: 'No model runs to watch yet. The official results are coming soon.' })
     }
     return false
   },

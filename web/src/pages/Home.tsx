@@ -3,7 +3,8 @@ import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { CostScatter, LearningCurves } from '../site/charts'
 import { LeaderboardTable } from '../site/Leaderboard'
 import { Page } from '../site/Layout'
-import { tierName, type Results } from '../site/results'
+import { modelName } from '../content/display'
+import { tierName, topPull, type Results } from '../site/results'
 import { Link } from '../site/router'
 import { useResults } from '../site/useResults'
 
@@ -19,6 +20,14 @@ export function HowToRead({ children }: { children: ReactNode }) {
 
 export function SampleNotice({ results }: { results: Results }) {
   if (results.protocol.name === 'v1') return null
+  if (!results.leaderboard.length) {
+    return (
+      <p className="rounded-xl border border-line bg-surface px-4 py-3 text-[13px] leading-5 text-fg-muted">
+        <span className="text-fg">Results are coming soon.</span> The official run of seven models fills in the
+        leaderboard and charts on launch.
+      </p>
+    )
+  }
   return (
     <p className="rounded-xl border border-line bg-surface px-4 py-3 text-[13px] leading-5 text-fg-muted">
       <span className="text-fg">Sample data.</span> These numbers come from the <span className="font-mono text-[12px]">{results.protocol.name}</span> protocol:
@@ -30,6 +39,8 @@ export function SampleNotice({ results }: { results: Results }) {
 
 export function Home() {
   const { results, error } = useResults()
+  // The hero shows the top model's best +10 pull once there are results (see site/Teaser.tsx).
+  const top = results ? topPull(results) : null
   return (
     <Page>
       {/* Hero: the question and two actions, the live crypt beside them */}
@@ -49,7 +60,7 @@ export function Home() {
           </div>
         </div>
         <figure className="m-0">
-          <Link to="/watch?replay=expert-clear" aria-label="Open this replay in the viewer"
+          <Link to={top?.path ?? '/watch?replay=expert-clear'} aria-label="Open this replay in the viewer"
             className="group relative block aspect-[16/10] overflow-hidden rounded-2xl border border-line bg-[#0d0a18]">
             <Suspense fallback={null}><Teaser /></Suspense>
             <span className="absolute bottom-3 right-3 inline-flex items-center gap-2 rounded-lg border border-line bg-[rgba(15,15,16,0.88)] px-3 py-2 text-[13px] text-fg transition-colors group-hover:bg-surface-raised">
@@ -57,7 +68,9 @@ export function Home() {
             </span>
           </Link>
           <figcaption className="mt-3 text-[13px] leading-5 text-fg-faint">
-            Scripted expert bots clearing the +10, a reference run. Every model pull is replayable the same way
+            {top
+              ? <>{modelName(top.model)}'s best pull on {tierName(results!, top.tier)} (episode {top.episode}, pull {top.pull}). Every pull is replayable the same way</>
+              : 'Scripted expert bots clearing the +10, a reference run. Every model pull is replayable the same way'}
           </figcaption>
         </figure>
       </section>
@@ -69,6 +82,11 @@ export function Home() {
 }
 
 function Results({ results }: { results: Results }) {
+  if (!results.leaderboard.length) return <div className="pt-16"><SampleNotice results={results} /></div>
+  return <ResultsBody results={results} />
+}
+
+function ResultsBody({ results }: { results: Results }) {
   const tiers = Object.keys(results.tiers)
   const [tier, setTier] = useState(tiers.includes('plus10') ? 'plus10' : tiers[0])
   const p = results.protocol
@@ -88,8 +106,7 @@ function Results({ results }: { results: Results }) {
           A model's MythicBench score is its progression score on +10. Normal is a sanity check, shown but not
           ranked on: strong models clear it on the first pull. A progression score averages every pull of an
           episode on a 0 to 100 scale, where a clear within the timer scores 70 and up, and a clear counts again
-          for each pull it saved, so clearing sooner scores higher. The scripted commander below gives fixed,
-          obvious orders through the same interface: a model has to beat it for its own decisions to matter. The bar is the 95% confidence interval
+          for each pull it saved, so clearing sooner scores higher.{(results.baselines ?? []).length > 0 && ' The scripted commander below gives fixed, obvious orders through the same interface: a model has to beat it for its own decisions to matter.'} The bar is the 95% confidence interval
           across episodes: where two bars overlap, the order of those two models isn't settled. Cost per run is
           what one blind episode on each tier costs at list prices. Click a model to watch its pulls.
         </HowToRead>

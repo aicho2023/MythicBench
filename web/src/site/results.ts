@@ -1,6 +1,6 @@
 // The results dataset: what `python -m mythicsim results <protocol> --out <dir>`
 // writes (sim/mythicsim/campaign.py, build_results). The site reads nothing else.
-import { RESULTS_DIR, resultsUrl } from './config'
+import { REFERENCE_PROVIDERS, RESULTS_DIR, SHOW_REFERENCE_RUNS, resultsUrl } from './config'
 
 export type CI = [number, number] | null
 
@@ -74,11 +74,41 @@ export function fetchResults(): Promise<Results> {
     if (!res.ok || !(res.headers.get('content-type') ?? '').includes('json')) {
       throw new Error(`No results at ${RESULTS_DIR}/leaderboard.json`)
     }
-    return res.json() as Promise<Results>
+    const r = await res.json() as Results
+    return SHOW_REFERENCE_RUNS ? r : modelsOnly(r)
   })
   cached.catch(() => { cached = null })
   return cached
 }
+
+/** The dataset as visitors see it: real models only (no mock model, scripted commander or bots). */
+export function modelsOnly(r: Results): Results {
+  const real = (provider: string) => !REFERENCE_PROVIDERS.includes(provider)
+  const models = new Set(r.leaderboard.filter((row) => real(row.provider)).map((row) => row.model))
+  return {
+    ...r,
+    leaderboard: r.leaderboard.filter((row) => models.has(row.model)),
+    controls: r.controls.filter((c) => models.has(c.model)),
+    baselines: [],
+    bots: undefined,
+  }
+}
+
+/** The hero replay: the top model's best pull on the headline tier, or null before there are results. */
+export function topPull(r: Results): { id: string; path: string; model: string; tier: string; episode: number; pull: number } | null {
+  const row = r.leaderboard.find((x) => x.rank) ?? r.leaderboard[0]
+  const tier = headlineTier(r)
+  const pulls = row?.tiers[tier]?.episode_list.flatMap((ep) => ep.pulls.map((p) => ({ ep: ep.episode, ...p }))) ?? []
+  if (!row || !pulls.length) return null
+  const best = pulls.reduce((a, b) => (b.score > a.score ? b : a))
+  return {
+    id: `${resultsRunId(row.model, tier, true)}/e${best.ep}-p${best.pull}`,
+    path: watchPath({ model: row.model, tier, memory: true, episode: best.ep, pull: best.pull }),
+    model: row.model, tier, episode: best.ep, pull: best.pull,
+  }
+}
+
+export const topPullId = (r: Results) => topPull(r)?.id ?? null
 
 /**
  * Fetch JSON that may be gzipped on disk (`.json.gz`). Hosts serve these as

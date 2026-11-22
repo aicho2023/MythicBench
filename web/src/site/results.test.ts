@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { gzipSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
 import { resultsIndexEntries } from './watchData'
-import { botHeadline, costPerRun, gunzipIfNeeded, headlineTier, parseWatchPath, watchPath, type Results } from './results'
+import { botHeadline, costPerRun, gunzipIfNeeded, headlineTier, modelsOnly, parseWatchPath, topPull, watchPath, type Results } from './results'
 
 const sample: Results = JSON.parse(readFileSync(new URL('../../public/results/sample/leaderboard.json', import.meta.url), 'utf8'))
 
@@ -52,5 +52,24 @@ describe('gunzipIfNeeded', () => {
     const json = '{"a":1}'
     expect(await gunzipIfNeeded(new Uint8Array(gzipSync(json)))).toBe(json)
     expect(await gunzipIfNeeded(new TextEncoder().encode(json))).toBe(json)
+  })
+})
+
+
+describe('what visitors see', () => {
+  it('drops the mock model, the scripted commander and the bots', () => {
+    const r = modelsOnly(sample)
+    expect(r.leaderboard).toHaveLength(0) // the sample's only "model" is the mock
+    expect(r.baselines).toEqual([])
+    expect(r.bots).toBeUndefined()
+    expect(r.controls).toHaveLength(0)
+  })
+  it('keeps real models and picks the hero pull from the top one', () => {
+    const real = { ...sample.leaderboard[0], model: 'claude-haiku-5-5', provider: 'anthropic', rank: 1 }
+    const r = modelsOnly({ ...sample, leaderboard: [real, ...sample.leaderboard] })
+    expect(r.leaderboard.map((x) => x.model)).toEqual(['claude-haiku-5-5'])
+    const top = topPull(r)!
+    expect(top.id.startsWith('results:claude-haiku-5-5:plus10/')).toBe(true)
+    expect(top.path).toMatch(/^\/watch\/claude-haiku-5-5\/plus10\/\d+\/\d+$/)
   })
 })

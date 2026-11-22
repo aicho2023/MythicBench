@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { fmtTime, modelName } from '../content/display'
 import { runItemId, usePlayback } from '../replay/store'
 import type { CatalogItem, CatalogRun, ReplayIndexEntry } from '../replay/types'
+import { SHOW_REFERENCE_RUNS } from '../site/config'
 
 type Sort = 'newest' | 'best'
 
@@ -81,7 +82,8 @@ export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void
     if (sort === 'best') out = [...out].sort((a, b) => (b.summary.score_mean ?? -1) - (a.summary.score_mean ?? -1))
     return out
   }, [runs, q, provider, showOld, sort, currentHarness])
-  const bots = index.filter((r) => !r.local)
+  // The scripted bots are a reference for local work, not shown to visitors.
+  const bots = SHOW_REFERENCE_RUNS ? index.filter((r) => !r.local) : []
 
   const toggle = (id: string) => setOpen((s) => {
     const n = new Set(s)
