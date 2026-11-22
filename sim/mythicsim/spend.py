@@ -170,12 +170,12 @@ class CostMeter:
     def __post_init__(self) -> None:
         self.spec = self.inner.spec
 
-    def complete(self, system: str, user: str) -> Reply:
+    def complete(self, system: str, user: str, tag: str = "") -> Reply:
         # Calls already in flight on other threads may finish after the limit
         # is reached, so a run can overshoot by about one call per worker.
         if self.limit_usd is not None and self.usd >= self.limit_usd:
             raise BudgetExceeded(f"budget of ${self.limit_usd:.2f} reached (spent ${self.usd:.2f})")
-        reply = self.inner.complete(system, user)
+        reply = self.inner.complete(system, user, tag=tag)
         cost = self.price.reply_cost(reply)
         with self._lock:
             self.usd += cost

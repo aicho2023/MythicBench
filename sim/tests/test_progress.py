@@ -5,6 +5,7 @@ All offline: fake or mock models, no network.
 
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -14,7 +15,9 @@ from mythicsim.engine import Encounter
 from mythicsim.llm.clients import CachedClient, MockClient, Reply
 from mythicsim.llm.debrief import debrief_data, debrief_text
 from mythicsim.llm.policy import make_llm_policies
-from mythicsim.llm.progress import curve, pull_seed, reflect, run_episode, summarize
+from mythicsim import content as C
+from mythicsim.llm.progress import (ci95, cleared, curve, diff_ci95, pull_seed, run_episode, summarize,
+                                      t95, write_notes)
 from mythicsim.llm.prompt import render_state, system_prompt
 
 REPLAYS = Path(__file__).parents[2] / "web" / "public" / "replays"
@@ -33,8 +36,8 @@ def test_blind_prompt_hides_the_boss_but_keeps_the_party_kit():
 def test_blind_state_has_no_boss_timers():
     enc = Encounter(1, {}, "x")
     obs = enc.observe(enc.units["bramble"])
-    assert "Next boss abilities" in render_state(obs, {}, None, "full")
-    blind = render_state(obs, {}, None, "blind")
+    assert "Next boss abilities" in render_state(obs, "bramble", 0, None, "full")
+    blind = render_state(obs, "bramble", 0, None, "blind")
     assert "Next boss abilities" not in blind and "enrage" not in blind and "time limit" in blind
 
 
@@ -72,48 +75,84 @@ def test_debrief_of_a_clean_kill():
 
 
 class Recorder:
-    """Fake model: mock orders + scripted reflections; records every system prompt."""
+    """Fake model: mock play and talk, scripted notes; records every (system, user)."""
     spec = "fake:recorder"
 
     def __init__(self):
-        self.systems = []
+        self.calls = []
         self.inner = MockClient()
 
-    def complete(self, system, user):
-        self.systems.append(system)
-        if "over repeated attempts" in system:
-            pull = user.split("DEBRIEF OF PULL ")[1].split(":")[0]
-            return Reply(json.dumps({"notes": f"LESSON-{pull}"}), 10, 10)
-        return self.inner.complete(system, user)
+    def complete(self, system, user, tag=""):
+        self.calls.append((system, user))
+        if "WRITE YOUR NOTES" in user:
+            uid = re.search(r"\((\w+)\), the ", system).group(1)
+            pull = re.search(r"THE PULL \(PULL (\d+)\)", user).group(1)
+            return Reply(json.dumps({"notes": f"LESSON-{uid}-{pull}"}), 10, 10)
+        return self.inner.complete(system, user, tag)
+
+    def play_systems(self):
+        return [s for s, u in self.calls if "THE PULL (PULL" not in u]
 
 
-def test_notes_carry_into_the_next_pull():
+def test_each_agent_carries_only_its_own_notes():
     rec = Recorder()
     ep = run_episode(rec, 0, max_pulls=3, memory=True, max_calls=3)
     assert [p.pull for p in ep.pulls] == [1, 2, 3]
     assert [p.seed for p in ep.pulls] == [pull_seed(0, k) for k in (1, 2, 3)]
-    assert ep.pulls[0].notes_before == "" and ep.pulls[1].notes_before == "LESSON-1" and ep.pulls[2].notes_before == "LESSON-2"
-    play_prompts = [s for s in rec.systems if "over repeated attempts" not in s]
-    assert any("LESSON-1" in s and "this is pull 2" in s for s in play_prompts)
-    assert ep.pulls[1].replay["meta"]["progress"]["notes_before"] == "LESSON-1"
+    assert all(v == "" for v in ep.pulls[0].notes_before.values())
+    assert ep.pulls[1].notes_before == {m.id: f"LESSON-{m.id}-1" for m in C.PARTY}
+    assert ep.pulls[2].notes_before["nyx"] == "LESSON-nyx-2"
+    for system in rec.play_systems():
+        if "this is pull 2" in system:
+            mine = re.search(r"\((\w+)\), the ", system).group(1)
+            assert f"LESSON-{mine}-1" in system
+            assert not any(f"LESSON-{m.id}-1" in system for m in C.PARTY if m.id != mine)
+    prog = ep.pulls[1].replay["meta"]["progress"]
+    assert prog["notes_before"]["lumi"] == "LESSON-lumi-1" and prog["agents"] == "per-character"
     assert "RESULT:" in ep.pulls[0].debrief
+
+
+def test_party_talks_in_turn_until_everyone_is_ready():
+    rec = Recorder()
+    ep = run_episode(rec, 0, max_pulls=2, memory=True, max_calls=3)
+    talk = ep.pulls[0].talk
+    assert [x["agent"] for x in talk[:5]] == [m.id for m in C.PARTY]
+    assert all(x["ready"] for x in talk[-5:]) and len(talk) == 10  # mock: speaks once, then ready
+    # Later speakers see what earlier ones said; notes see the whole talk.
+    talk_prompts = [u for s, u in rec.calls if "PARTY TALK" in u]
+    assert "bramble here" in talk_prompts[1]
+    notes_prompts = [u for s, u in rec.calls if "WRITE YOUR NOTES" in u]
+    assert len(notes_prompts) == 5 and all("bao here" in u for u in notes_prompts)
+    assert ep.pulls[1].stats["calls"] >= 5 and ep.pulls[0].stats["between_pulls"]["calls"] == 15
+
+
+def test_between_pull_prompts_give_no_advice():
+    rec = Recorder()
+    run_episode(rec, 0, max_pulls=2, memory=True, max_calls=3)
+    for s, u in rec.calls:
+        if "THE PULL (PULL" in u:
+            low = u.lower()
+            for advice in ("interrupt", "should", "improve", "mistake", "lesson", "strategy"):
+                assert advice not in low.split("combat log summary")[0], advice
+                assert advice not in low.split("party talk")[-1].split("what the party said")[-1] \
+                    .replace(low.split("combat log summary")[1].split("party talk")[0], ""), advice
 
 
 def test_memory_off_is_a_true_control():
     rec = Recorder()
     ep = run_episode(rec, 0, max_pulls=3, memory=False, max_calls=3)
-    assert all(p.notes_before == "" for p in ep.pulls)
-    assert not any("over repeated attempts" in s for s in rec.systems)  # no reflection calls at all
-    plays = {s for s in rec.systems}
-    assert plays == {system_prompt("blind")}  # every pull sees exactly the pull-1 rules
+    assert all(not any(p.notes_before.values()) for p in ep.pulls)
+    assert not any("THE PULL (PULL" in u for s, u in rec.calls)  # no talk, no notes
+    assert set(rec.play_systems()) == {system_prompt("blind", me=m.id) for m in C.PARTY}
 
 
-def test_reflection_failure_keeps_old_notes():
+def test_notes_failure_keeps_old_notes():
+    from mythicsim.llm.policy import Agent
     class Junk:
         spec = "fake:junk"
-        def complete(self, system, user):
+        def complete(self, system, user, tag=""):
             return Reply("I think we should try harder", 1, 1)
-    notes, problem = reflect(Junk(), "old notes", "debrief", 1)
+    notes, problem = write_notes(Junk(), Agent("lumi", system_prompt(me="lumi")), "old notes", "debrief", [], 1, "t")
     assert notes == "old notes" and problem
 
 
@@ -125,23 +164,41 @@ def test_episode_is_reproducible_from_recordings(tmp_path):
     assert run(False) == run(True)
 
 
-def test_curve_carries_a_kill_forward_and_summary():
-    class P:
-        def __init__(self, pull, score, outcome):
-            self.pull, self.metrics = pull, {"score": score, "outcome": outcome}
-    class E:
-        def __init__(self, episode, pulls):
-            self.episode, self.pulls = episode, pulls
-        @property
-        def killed_on(self):
-            return next((p.pull for p in self.pulls if p.metrics["outcome"] == "victory"), None)
-    a = E(0, [P(1, 20, "wipe"), P(2, 60, "wipe"), P(3, 120, "victory")])
-    b = E(1, [P(1, 30, "wipe"), P(2, 30, "wipe"), P(3, 40, "wipe"), P(4, 50, "wipe")])
-    assert curve(a, 4) == [20, 60, 120, 120]
+class _P:
+    def __init__(self, pull, score, outcome, in_time=True):
+        self.pull, self.metrics = pull, {"score": score, "outcome": outcome, "in_time": in_time}
+
+
+class _E:
+    def __init__(self, episode, pulls):
+        self.episode, self.pulls = episode, pulls
+
+    @property
+    def killed_on(self):
+        return next((p.pull for p in self.pulls if cleared(p.metrics)), None)
+
+
+def test_curve_carries_a_timed_clear_forward_and_summary():
+    a = _E(0, [_P(1, 20, "wipe"), _P(2, 60, "wipe"), _P(3, 90, "victory")])
+    b = _E(1, [_P(1, 30, "wipe"), _P(2, 30, "wipe"), _P(3, 40, "wipe"), _P(4, 50, "wipe")])
+    assert curve(a, 4) == [20, 60, 90, 90]
     s = summarize([a, b], 4)
-    assert s["pulls_to_kill"] == [3, 5] and s["kill_rate"] == 0.5
-    assert s["curve_mean"] == [25.0, 45.0, 80.0, 85.0]
-    assert s["learning_gain_mean"] == pytest.approx(((120 - 40) + (45 - 30)) / 2, abs=0.1)
+    assert s["pulls_to_kill"] == [3, None] and s["kill_rate"] == 0.5 and s["pulls_to_kill_mean"] == 3
+    assert s["curve_mean"] == [25.0, 45.0, 65.0, 70.0]
+    assert "learning_gain_mean" not in s  # biased upward; the campaign compares against the control instead
+
+
+def test_an_over_time_kill_is_not_a_clear():
+    late = _E(0, [_P(1, 70, "victory", in_time=False), _P(2, 85, "victory")])
+    assert late.killed_on == 2
+    assert not cleared({"outcome": "victory", "in_time": False}) and cleared({"outcome": "victory", "in_time": True})
+
+
+def test_intervals_use_student_t():
+    xs = [60.0, 70.0, 80.0]  # mean 70, sd 10, n 3: half-width 4.303 * 10 / sqrt(3) = 24.8
+    assert ci95(xs) == [45.2, 94.8]
+    assert t95(2) == 4.303 and t95(500) == 1.96
+    assert diff_ci95([1.0, 1.0], [0.0, 0.0]) == [1.0, 1.0]
 
 
 def test_progression_items_publish_without_collisions(tmp_path):

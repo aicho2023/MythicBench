@@ -40,7 +40,7 @@ class Reply:
 class ChatClient(Protocol):
     spec: str
 
-    def complete(self, system: str, user: str) -> Reply: ...
+    def complete(self, system: str, user: str, tag: str = "") -> Reply: ...
 
 
 class ClientError(RuntimeError):
@@ -140,7 +140,7 @@ class AnthropicClient:
         if self.effort == "none" and self.model.startswith(_ALWAYS_THINK):
             raise ClientError(f"{self.model} cannot turn thinking off; use @low or higher", fatal=True)
 
-    def complete(self, system: str, user: str) -> Reply:
+    def complete(self, system: str, user: str, tag: str = "") -> Reply:
         t0 = time.monotonic()
         # No server-side model fallback on refusals: an answer from a different
         # model would silently contaminate this model's results. A refusal is
@@ -182,12 +182,14 @@ class OpenAIClient:
     def __post_init__(self) -> None:
         self.spec = f"openai:{self.model}" + (f"@{self.effort}" if self.effort else "")
 
-    def complete(self, system: str, user: str) -> Reply:
+    def complete(self, system: str, user: str, tag: str = "") -> Reply:
         t0 = time.monotonic()
+        # No JSON mode: Anthropic has no equivalent here, and both providers
+        # must get the same reply contract (the prompt asks for JSON; the same
+        # parser reads both).
         out = _post("https://api.openai.com/v1/chat/completions",
                     {"authorization": f"Bearer {_key('OPENAI_API_KEY')}"},
                     {"model": self.model, "max_completion_tokens": self.max_tokens,
-                     "response_format": {"type": "json_object"},
                      # Route requests that share the rules prefix together so
                      # OpenAI's (best-effort) prompt cache actually hits.
                      "prompt_cache_key": _cache_key(system),
@@ -205,34 +207,44 @@ class OpenAIClient:
                      time.monotonic() - t0, cache_read_tokens=read, truncated=truncated, refused=refused)
 
 
+MOCK_ORDERS = {
+    "bramble": [["rampart_bash", "mortisar"], ["bulwark_slam", "mortisar"], ["rampart_strike", "mortisar"]],
+    "lumi": [["bloomward", "bramble"], ["mending_light", "bramble"]],
+    "grokka": [["throat_punch", "mortisar"], ["ravage", "mortisar"], ["savage_hew", "mortisar"]],
+    "nyx": [["quick_jab", "mortisar"], ["venom_burst", "mortisar"], ["twin_fang", "mortisar"]],
+    "bao": [["silencing_arrow", "mortisar"], ["wild_roar", "bao"], ["piercing_shot", "mortisar"],
+            ["steady_arrow", "mortisar"]],
+}
+
+
 @dataclass
 class MockClient:
-    """No API, no cost: a fixed, sensible plan. For checking the harness."""
+    """No API, no cost: a fixed, sensible plan per character. For checking the harness."""
     model: str = "basic"
     spec: str = ""
 
     def __post_init__(self) -> None:
         self.spec = f"mock:{self.model}"
 
-    def complete(self, system: str, user: str) -> Reply:
-        if "over repeated attempts" in system:  # a progression reflection call
-            pull = re.search(r"DEBRIEF OF PULL (\d+)", user)
-            notes = f"Mock notes after pull {pull.group(1) if pull else '?'}: interrupt Requiem of Bones; step out of pools."
-            return Reply(json.dumps({"notes": notes}), len(system + user) // 4, 40, 0.0)
-        orders = {
-            "bramble": {"priority": [["rampart_bash", "mortisar"], ["bulwark_slam", "mortisar"],
-                                     ["rampart_strike", "mortisar"]], "say": "Tanking and kicking."},
-            "lumi": {"priority": [["bloomward", "bramble"], ["mending_light", "bramble"]],
-                     "say": "Keeping the tank alive."},
-            "grokka": {"priority": [["throat_punch", "mortisar"], ["ravage", "mortisar"],
-                                    ["savage_hew", "mortisar"]], "say": "Hitting the boss."},
-            "nyx": {"priority": [["quick_jab", "mortisar"], ["venom_burst", "mortisar"],
-                                 ["twin_fang", "mortisar"]], "say": "Hitting the boss."},
-            "bao": {"priority": [["silencing_arrow", "mortisar"], ["wild_roar", "bao"],
-                                 ["piercing_shot", "mortisar"], ["steady_arrow", "mortisar"]],
-                    "say": "Shooting the boss."},
-        }
-        return Reply(json.dumps({"orders": orders}), len(system + user) // 4, 200, 0.0)
+    def complete(self, system: str, user: str, tag: str = "") -> Reply:
+        me = re.search(r"\((\w+)\), the ", system)
+        uid = me.group(1) if me else "bramble"
+        n = (len(system) + len(user)) // 4
+        if "WRITE YOUR NOTES" in user:
+            pull = re.search(r"THE PULL \(PULL (\d+)\)", user)
+            return Reply(json.dumps({"notes": f"Mock notes of {uid} after pull {pull.group(1) if pull else '?'}: "
+                                              "interrupt Requiem of Bones; step out of pools."}), n, 40, 0.0)
+        if "PARTY TALK" in user:
+            spoken = f"({uid}):" in user.split("PARTY TALK")[1]
+            return Reply(json.dumps({"message": "" if spoken else f"{uid} here: kick more, stand in less.",
+                                     "ready": spoken}), n, 20, 0.0)
+        fighting = re.search(r"ENEMIES FIGHTING YOU: (\w+) \(", user)
+        target = fighting.group(1) if fighting else "mortisar"
+        order = {"priority": [[ab, target if t == "mortisar" else t] for ab, t in MOCK_ORDERS.get(uid, [])],
+                 "say": ""}
+        if "Out of combat" in user:
+            order["move_to"] = "next"
+        return Reply(json.dumps(order), n, 60, 0.0)
 
 
 EFFORTS = ("none", "low", "medium", "high", "xhigh", "max")
@@ -287,11 +299,15 @@ class CachedClient:
                     rec = json.loads(line)
                     self._mem[rec["key"]] = rec
 
-    def key(self, system: str, user: str) -> str:
-        return hashlib.sha256(json.dumps([self.spec, system, user]).encode()).hexdigest()
+    def key(self, system: str, user: str, tag: str = "") -> str:
+        # ``tag`` says where the call was made (episode, pull, agent, call
+        # number). Without it, identical prompts in different episodes (the
+        # opening calls of every pull look the same) would replay one recorded
+        # reply instead of sampling the model again.
+        return hashlib.sha256(json.dumps([self.spec, system, user] + ([tag] if tag else [])).encode()).hexdigest()
 
-    def complete(self, system: str, user: str) -> Reply:
-        k = self.key(system, user)
+    def complete(self, system: str, user: str, tag: str = "") -> Reply:
+        k = self.key(system, user, tag)
         if k in self._mem:
             r = self._mem[k]
             return Reply(r["text"], r["input_tokens"], r["output_tokens"], 0.0, cached=True,
@@ -299,9 +315,11 @@ class CachedClient:
                          cache_write_tokens=r.get("cache_write_tokens", 0), refused=r.get("refused", False),
                          thinking=r.get("thinking", ""))
         if self.offline:
-            raise ClientError("cache miss in offline mode (prompt not in the recording)")
-        reply = self.inner.complete(system, user)
-        rec = {"key": k, "spec": self.spec, "text": reply.text,
+            # Fatal: playing on without this reply would silently play a
+            # different game from the one recorded.
+            raise ClientError("cache miss in offline mode (prompt not in the recording)", fatal=True)
+        reply = self.inner.complete(system, user, tag=tag)
+        rec = {"key": k, "spec": self.spec, "tag": tag, "text": reply.text,
                "input_tokens": reply.input_tokens, "output_tokens": reply.output_tokens,
                "cache_read_tokens": reply.cache_read_tokens, "cache_write_tokens": reply.cache_write_tokens,
                "truncated": reply.truncated, "refused": reply.refused, "thinking": reply.thinking}

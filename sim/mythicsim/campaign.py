@@ -24,8 +24,11 @@ from pathlib import Path
 from . import content as C
 from . import runs as runs_mod
 from . import spend
+from .engine import SIM_VERSION
 from .llm import HARNESS_VERSION
+from .llm.progress import ci95 as _ci, diff_ci95, t95
 
+BOT_EPISODES = 30
 REQUIRED = ("name", "mode", "knowledge", "tiers", "episodes", "max_pulls", "effort", "models")
 
 
@@ -41,7 +44,10 @@ class Combo:
         return f"mock:{mid}" if provider == "mock" else f"{provider}:{mid}@{self.model.get('effort')}"
 
     def key(self, proto: dict) -> str:
-        return f"{proto['name']}|{self.spec}|{self.tier}|memory-{'on' if self.memory else 'off'}"
+        # Versions are part of the key: episodes played by different code never
+        # count toward the same cell, and a resumed campaign replays them.
+        return (f"{proto['name']}|{self.spec}|{self.tier}|memory-{'on' if self.memory else 'off'}"
+                f"|h{HARNESS_VERSION}|s{SIM_VERSION}|c{C.CONTENT_VERSION}")
 
     @property
     def slug(self) -> str:
@@ -92,9 +98,25 @@ def finished_episodes(key: str, runs_dir: Path | None = None) -> dict[int, tuple
 # Playing
 # ---------------------------------------------------------------------------
 
+def dirty_files() -> list[str]:
+    """Uncommitted changes to code or protocol (a run must name the exact code it used)."""
+    import subprocess
+    try:
+        out = subprocess.run(["git", "status", "--porcelain", "--", "sim/mythicsim", "protocol"],
+                             cwd=runs_mod.REPO_ROOT, capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return [line[3:] for line in out.splitlines() if line.strip()]
+
+
 def run_campaign(proto: dict, *, only: str | None = None, dry_run: bool = False, workers: int = 1,
-                 budget_usd: float | None = None, offline: bool = False) -> None:
+                 budget_usd: float | None = None, offline: bool = False, allow_dirty: bool = False) -> None:
     from .__main__ import run_progress
+    paid = not offline and any(m["provider"] != "mock" for m in proto["models"])
+    dirty = dirty_files()
+    if paid and dirty and not dry_run and not allow_dirty:
+        raise SystemExit("refusing to run a paid campaign from uncommitted code (commit first, or pass "
+                         "--allow-dirty for a pilot):\n  " + "\n  ".join(dirty[:10]))
     todo = []
     for c in combos(proto, only):
         done = finished_episodes(c.key(proto))
@@ -128,6 +150,7 @@ def run_campaign(proto: dict, *, only: str | None = None, dry_run: bool = False,
             + ("" if c.memory else " (memory off)"), tag=[f"campaign:{proto['name']}"],
             budget_usd=left if left is not None else proto.get("run_budget_usd", spend.DEFAULT_RUN_BUDGET_USD),
             price_in=None, price_out=None, price_cached=None,
+            cache_dir=runs_mod.RUNS_DIR / "cache" / proto["name"],
             extra={"campaign": proto["name"], "campaign_key": c.key(proto)})
         try:
             m = run_progress(args)
@@ -144,13 +167,6 @@ def run_campaign(proto: dict, *, only: str | None = None, dry_run: bool = False,
 # ---------------------------------------------------------------------------
 # Results
 # ---------------------------------------------------------------------------
-
-def _ci(xs: list[float]) -> list[float] | None:
-    if len(xs) < 2:
-        return None
-    h = 1.96 * st.stdev(xs) / math.sqrt(len(xs))
-    return [round(st.mean(xs) - h, 1), round(st.mean(xs) + h, 1)]
-
 
 def _episode_scores(items: list[dict], max_pulls: int) -> float:
     """One episode's progression score: mean pull score, a clear carrying forward."""
@@ -175,15 +191,18 @@ def bot_reference(proto: dict) -> dict:
         out[tid] = {}
         for pol in ("expert", "competent", "sloppy"):
             eps = []
-            for e in range(proto["episodes"]):
+            # Bots are free, so they get more episodes than the models (the
+            # first ones share the models' seeds).
+            for e in range(max(proto["episodes"], BOT_EPISODES)):
                 items = []
                 for k in range(1, proto["max_pulls"] + 1):
                     s = score(simulate(pol, pull_seed(e, k), tid, proto["mode"]))
                     items.append({"pull": k, "score": s["score"], "outcome": s["outcome"]})
-                    if s["outcome"] == "victory":
+                    if s["outcome"] == "victory" and s.get("in_time"):
                         break
                 eps.append(_episode_scores(items, proto["max_pulls"]))
-            out[tid][pol] = {"progression_score_mean": round(st.mean(eps), 1), "progression_score_ci95": _ci(eps)}
+            out[tid][pol] = {"progression_score_mean": round(st.mean(eps), 1), "progression_score_ci95": _ci(eps),
+                             "episodes": len(eps)}
     return out
 
 
@@ -203,7 +222,9 @@ def build_results(proto: dict, out_dir: Path, runs_dir: Path | None = None, with
         done = finished_episodes(c.key(proto), runs_dir)
         if not done:
             continue
-        items, cost, pulls, tokens_in, tokens_out, refusals, bad = [], 0.0, 0, 0, 0, 0, 0
+        items, cost, pulls, tokens_in, tokens_out = [], 0.0, 0, 0, 0
+        errors = {"refusals": 0, "unusable_replies": 0, "truncated_replies": 0, "api_errors": 0,
+                  "pulls_out_of_calls": 0}
         harness = set()
         episodes_out = []
         for ep in sorted(done):
@@ -218,8 +239,9 @@ def build_results(proto: dict, out_dir: Path, runs_dir: Path | None = None, with
                 cost += stats.get("usd", 0.0)
                 tokens_in += stats.get("input_tokens", 0)
                 tokens_out += stats.get("output_tokens", 0)
-                refusals += stats.get("refusals", 0)
-                bad += stats.get("unusable_replies", 0)
+                for k in ("refusals", "unusable_replies", "truncated_replies", "api_errors"):
+                    errors[k] += stats.get(k, 0)
+                errors["pulls_out_of_calls"] += bool(stats.get("budget_exhausted"))
                 pulls += 1
                 rel = Path("replays") / c.slug / c.tier / ("memory-off" if not c.memory else "") / f"ep{ep}-pull{it['pull']}.json.gz"
                 dst = out_dir / rel
@@ -227,21 +249,23 @@ def build_results(proto: dict, out_dir: Path, runs_dir: Path | None = None, with
                 with gzip.GzipFile(dst, "wb", mtime=0) as f:  # mtime=0: byte-identical rebuilds
                     f.write(src.read_bytes())
                 ep_pulls.append({"pull": it["pull"], "seed": it["seed"], "score": it["score"],
-                                 "outcome": it["outcome"], "duration_s": it["duration_s"],
-                                 "file": rel.as_posix(), "usd": stats.get("usd")})
+                                 "outcome": it["outcome"], "in_time": it.get("in_time", it["outcome"] == "victory"),
+                                 "duration_s": it["duration_s"], "file": rel.as_posix(), "usd": stats.get("usd")})
             episodes_out.append({"episode": ep, "run_id": m["run_id"], "pulls": ep_pulls})
         summ = summarize_items(items, max_pulls)
         eps_scores = [_episode_scores([i for i in items if i["episode"] == e], max_pulls) for e in sorted(done)]
         cell = {
-            "episodes": len(done), "pulls": pulls,
+            # A cell is complete when every planned episode finished; incomplete
+            # cells are shown but never ranked.
+            "episodes": len(done), "complete": len(done) >= proto["episodes"], "pulls": pulls,
             "progression_score": round(st.mean(eps_scores), 1), "progression_score_ci95": _ci(eps_scores),
+            "episode_scores": [round(x, 2) for x in eps_scores],
             "clear_rate": summ["kill_rate"], "pulls_to_clear_mean": summ["pulls_to_kill_mean"],
-            "pulls_to_clear": summ["pulls_to_kill"], "learning_gain_mean": summ["learning_gain_mean"],
-            "learning_gain_ci95": summ["learning_gain_ci95"], "first_pull_score_mean": summ["first_pull_score_mean"],
+            "pulls_to_clear": summ["pulls_to_kill"], "first_pull_score_mean": summ["first_pull_score_mean"],
             "curve_mean": summ["curve_mean"], "cost_usd": round(cost, 4),
             "usd_per_pull": round(cost / pulls, 4) if pulls else None,
             "tokens_per_pull": [round(tokens_in / pulls), round(tokens_out / pulls)] if pulls else None,
-            "refusals": refusals, "unusable_replies": bad, "harness_versions": sorted(h for h in harness if h),
+            **errors, "harness_versions": sorted(h for h in harness if h),
             "episode_list": episodes_out,
         }
         if not c.memory:
@@ -251,24 +275,40 @@ def build_results(proto: dict, out_dir: Path, runs_dir: Path | None = None, with
                                               "name": c.model.get("name", c.model["id"]),
                                               "effort": c.model.get("effort"), "tiers": {}})
         row["tiers"][c.tier] = cell
+    # Learning effect: memory on minus memory off, same model, tier and seeds.
+    # (Within-episode gains alone are biased upward: a clear carries forward.)
+    for ctl in controls:
+        cell = rows.get(ctl["model"], {}).get("tiers", {}).get(ctl["tier"])
+        if cell:
+            cell["learning_effect"] = round(cell["progression_score"] - ctl["progression_score"], 1)
+            cell["learning_effect_ci95"] = diff_ci95(cell["episode_scores"], ctl["episode_scores"])
     tiers = [C.tier(t).id for t in proto["tiers"]]
     for row in rows.values():
         cells = [row["tiers"].get(t) for t in tiers]
+        row["complete"] = all(x and x["complete"] for x in cells)
         if all(cells):
-            # The headline: mean of the tier scores; its CI combines the tiers' standard errors.
+            # The headline: mean of the tier scores. Its interval combines the
+            # tiers' standard errors with the smaller sample's t multiplier.
             means = [x["progression_score"] for x in cells]
-            ses = [((x["progression_score_ci95"][1] - x["progression_score_ci95"][0]) / (2 * 1.96))
-                   if x["progression_score_ci95"] else 0.0 for x in cells]
-            half = 1.96 * math.sqrt(sum(s * s for s in ses)) / len(ses)
+            ns = [len(x["episode_scores"]) for x in cells]
+            if min(ns) >= 2:
+                ses = [st.stdev(x["episode_scores"]) / math.sqrt(n) for x, n in zip(cells, ns)]
+                half = t95(min(ns) - 1) * math.sqrt(sum(s * s for s in ses)) / len(ses)
+                row["mythicbench_score_ci95"] = [round(st.mean(means) - half, 1), round(st.mean(means) + half, 1)]
+            else:
+                row["mythicbench_score_ci95"] = None
             row["mythicbench_score"] = round(st.mean(means), 1)
-            row["mythicbench_score_ci95"] = [round(st.mean(means) - half, 1), round(st.mean(means) + half, 1)]
             row["cost_usd"] = round(sum(x["cost_usd"] for x in cells), 4)
         else:
             row["mythicbench_score"] = None
-    board = sorted(rows.values(), key=lambda r: (-(r["mythicbench_score"] or -1), r["model"]))
+    ranked = sorted((r for r in rows.values() if r["complete"] and r["mythicbench_score"] is not None),
+                    key=lambda r: (-r["mythicbench_score"], r["model"]))
+    board = ranked + sorted((r for r in rows.values() if r not in ranked), key=lambda r: r["model"])
+    for i, r in enumerate(board):
+        r["rank"] = i + 1 if r in ranked else None
     result = {
         "protocol": {k: proto[k] for k in proto if k != "models"} | {"models": [m["id"] for m in proto["models"]]},
-        "harness_version": HARNESS_VERSION, "content_version": C.CONTENT_VERSION,
+        "harness_version": HARNESS_VERSION, "content_version": C.CONTENT_VERSION, "sim_version": SIM_VERSION,
         "tiers": {t: {"name": C.tier(t).name, "affixes": [C.AFFIXES[a].name for a in C.tier(t).affixes]}
                   for t in tiers},
         "leaderboard": board, "controls": controls,

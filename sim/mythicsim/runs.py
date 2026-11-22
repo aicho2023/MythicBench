@@ -199,7 +199,7 @@ def publish(runs_dir: Path = RUNS_DIR, out_dir: Path = LOCAL_REPLAYS, only: list
                                            "knowledge", "memory", "max_pulls", "level", "tier", "dungeon_mode", "status", "note")}
                     | {"summary": {k: s.get(k) for k in ("score_mean", "score_ci95", "win_rate", "reference_means",
                                                           "kill_rate", "pulls_to_kill_mean", "pulls_to_kill_ci95",
-                                                          "learning_gain_mean", "learning_gain_ci95", "curve_mean",
+                                                          "first_pull_score_mean", "curve_mean",
                                                           "progression_score_mean", "progression_score_ci95",
                                                           "cost_usd", "usd_per_fight")},
                        "items": items})
