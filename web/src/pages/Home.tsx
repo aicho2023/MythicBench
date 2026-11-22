@@ -13,7 +13,7 @@ const Teaser = lazy(() => import('../site/Teaser'))
 
 export function HowToRead({ children }: { children: ReactNode }) {
   return (
-    <div className="mt-4 max-w-[720px] border-t border-line pt-4 text-[13px] leading-5 text-fg-muted">
+    <div className="mt-4 max-w-[720px] border-l-2 border-accent/40 pl-4 text-[13px] leading-5 text-fg-muted">
       <span className="text-fg">How to read this. </span>{children}
     </div>
   )
@@ -51,13 +51,13 @@ export function Home() {
             Can an AI lead a Mythic+ group through a dungeon it has never seen?
           </h1>
           <p className="mt-6 max-w-[520px] text-[17px] leading-7 text-fg-muted">
-            Five AI agents, one per character, run the Hollow Vault: two trash packs, then Oruth, on one
-            timer. They go in blind, with no guide to the boss. After each wipe they read the combat log, talk it over, each write their own
-            notes, and pull again, up to five times.
+            Five AI agents, one per character, run the Hollow Vault: two trash packs, then Oruth, on one timer.
+            They go in blind. After each wipe they read the combat log, talk it over, write their own notes, and
+            pull again, up to five times.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/watch" className="btn btn-primary h-11 px-5 text-[14px]">Watch a run</Link>
-            <Link to="/commentary" className="btn h-11 px-5 text-[14px]">Read the commentary</Link>
+            <Link to="/report" className="btn h-11 px-5 text-[14px]">Read the report</Link>
           </div>
         </div>
         <figure className="m-0">
@@ -104,13 +104,12 @@ function ResultsBody({ results }: { results: Results }) {
         </div>
         <div className="mt-6"><LeaderboardTable results={results} /></div>
         <HowToRead>
-          Each model plays as several <b>groups</b>: a group is a fresh party that gets up to {p.max_pulls} <b>pulls</b> at
-          the dungeon, talking it over and taking notes between pulls, and it's done once it clears in time. A
-          model's MythicBench score is its average group score on +10 (Normal is a sanity check, not ranked on).
-          A group's score averages its pulls on a 0 to 100 scale, where a clear within the timer scores 70 and up,
-          and a clear counts again for each pull it saved, so clearing sooner scores higher.{(results.baselines ?? []).length > 0 && " The scripted commander below gives fixed, obvious orders through the same interface. It's one fixed policy: a reference point for what obvious rules do, not a ceiling or a floor."} The bar is the 95% confidence interval
-          across groups, with a dot per group: where two bars overlap, the order of those two models isn't
-          settled. Cost is what one group on +10 costs at list prices, thinking included. Click a model to watch its pulls.
+          A <b>group</b> is a fresh party with up to {p.max_pulls} <b>pulls</b>. A pull scores 0 to 100 (a timed clear is 70
+          and up), and a group's score averages its pulls, with a clear counted again for each pull it saved. The score
+          is a model's average group on +10, with a dot per group and a 95% interval. The order is descriptive: one
+          model is called better than another only where their same-seed group scores differ clearly (see
+          the <Link to="/report#reading" className="underline decoration-white/30 underline-offset-4 hover:decoration-fg">report</Link>).{(results.baselines ?? []).length > 0 && " The scripted commander is a floor: fixed, obvious rules through the same interface."} Cost is
+          one +10 group at list prices, thinking included. Click a model to watch its pulls.
         </HowToRead>
       </section>
 
@@ -123,13 +122,10 @@ function ResultsBody({ results }: { results: Results }) {
         </div>
         <div className="lg:pt-14">
           <HowToRead>
-            Each dot is a model: its +10 score against what one +10 group costs, on a log scale. Up and to the
-            left is better value. Every model runs at the same named reasoning effort (medium), but that setting
-            buys different amounts of thinking from different providers, so cost is the fairer axis: where we
-            also ran a model at low and high effort, its dashed line shows how its score moves with spend, on
-            the same few groups at every effort (so its medium point sits apart from the six-group dot). A
-            model that clears early costs less, because it plays fewer pulls. Costs are list prices for the
-            tokens used, thinking included; every reply is recorded, so replaying a run is free.
+            Each dot is a model: its +10 score against what one +10 group costs, on a log scale. Up and to the left
+            is better value. "Medium" effort buys different amounts of thinking at different labs, so cost is the
+            fairer axis. A dashed line shows a model run at low and high effort too, on the same few groups. A model
+            that clears early plays fewer pulls, so it costs less.
           </HowToRead>
         </div>
       </section>
@@ -145,13 +141,11 @@ function ResultsBody({ results }: { results: Results }) {
           <LearningCurves results={results} tier={tier} />
         </div>
         <HowToRead>
-          Each solid line is one model's mean score at each pull, across its groups, with a group that cleared
-          carrying its clearing score forward. It shows observed progression, not proof that the notes helped:
-          that's what the memory-off control is for. A dashed line in a model's color is that control, which
-          plays the same seeds with no talk and no notes between pulls; for those models both lines
-          cover the same groups. The learning effect is the paired difference between the two, so it measures
-          the talk and the notes together. Each pull uses a new seed, so a party can't just memorize timings. The grey dashed line is the scripted commander, which doesn't learn, and the
-          dotted rule at 70 is the line between a wipe and a clear.
+          Each solid line is a model's mean score at each pull (a clear carries forward). A rising line is
+          progression, not proof of learning. The dashed line in the same color is the memory-off control: the same
+          seeds with no debrief, talk or notes between pulls. The learning effect is the paired difference between
+          the two. The grey dashed line is the scripted commander; the dotted rule at 70 separates a wipe from a
+          clear.
         </HowToRead>
       </section>
 

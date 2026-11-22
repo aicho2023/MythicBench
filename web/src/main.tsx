@@ -15,7 +15,7 @@ import './index.css'
 
 // The viewer (three.js) loads on demand.
 const Watch = lazy(() => import('./App'))
-const Commentary = lazy(() => import('./pages/Commentary').then((m) => ({ default: m.Commentary })))
+const Report = lazy(() => import('./pages/Report').then((m) => ({ default: m.Report })))
 const Compare = lazy(() => import('./pages/Compare').then((m) => ({ default: m.Compare })))
 const DevPortraits = lazy(() => import('./pages/DevPortraits'))
 
@@ -31,8 +31,8 @@ function Site() {
   let page
   if (path === '/') page = <Home />
   else if (path === '/watch' || path.startsWith('/watch/')) page = <div className="viewer h-full"><Watch path={path} /></div>
-  else if (path === '/commentary') page = <Commentary />
-  else if (path === '/paper') { history.replaceState(null, '', '/commentary'); page = <Commentary /> }  // the old name
+  else if (path === '/report') page = <Report />
+  else if (path === '/commentary' || path === '/paper') { history.replaceState(null, '', `/report${location.hash}`); page = <Report /> }  // its old names
   else if (path === '/party') page = <Party />
   else if (path === '/about') page = <About />
   else if (path === '/compare') page = <Compare />
