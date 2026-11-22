@@ -60,7 +60,7 @@ competent 72.3 (70.2–74.5), sloppy 14.9 (14.3–15.4). Win rates 99.5% / 68.5%
 Score (`metrics.run_score`, v2): wipe = 70 × share of boss removed; kill = 70 +
 30 × speed (full speed with ≥25% of the timer left).
 
-**Difficulty is two tiers (content 1.2.0):**
+**Difficulty is two tiers (content 1.3.0):**
 - Normal: 0.95× enemy health, 0.9× damage, no affixes.
 - +10: 0.85× health, 1.15× damage, plus three affixes:
   - Restless Graves;
@@ -75,8 +75,15 @@ Over 200 seeds:
 
 | Tier | Expert | Competent | Sloppy |
 | --- | --- | --- | --- |
-| +10 | 25% | 1% | 0% |
+| +10 | 8% | 0% | 0% |
 | Normal | 99% | 79% | 0% |
+
+Sim 0.4.0 (after the pre-run audit): a run ends at its timer (revive
+penalties included) and a clear needs Mortisar and every pack dead. Before,
+a kill up to 60 s late scored 70 and counted; most of the old +10 "clears"
+(25%) were late, so the timed rate is 8%. The scripted commander (same
+interface as the agents, fixed rules): 53.2 on +10, 62.2 on Normal over 16
+seeds, no timed clears.
 
 Sim 0.3.0 gave units bodies: a player never ends a move inside another unit
 (`Encounter.free_spot`). That cost melee some uptime, so Normal's enemy
@@ -239,7 +246,7 @@ Grokka → Nyx → Bao → Bramble. Full WoW-analogy table in `README.md`.
   character, all the same model, each with its own rules, notes and orders),
   `progress.py` (pulls; between pulls a party talk in turns until everyone is
   ready, then private notes per agent; no guidance on what to learn).
-- **Call cadence (harness 0.9.0), per agent:**
+- **Call cadence (harness 0.10.0), per agent:**
   - every 4 s of game time (`ROUTINE_MS`), plus triggers routed to who they
     concern: kickable casts to the four interrupters, other boss casts to
     everyone, a trash cast to its target and the healer, new pools to anyone

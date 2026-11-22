@@ -3,7 +3,7 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { modelName } from '../content/display'
 import {
-  BOT_NAMES, botHeadline, costPerRun, fmtScore, fmtUsd, modelColor, tierName, type CI, type Results,
+  BOT_NAMES, botHeadline, costPerRun, fmtScore, fmtUsd, headlineTier, modelColor, tierName, type CI, type Results,
 } from './results'
 
 const GRID = 'rgba(255,255,255,0.06)'
@@ -194,8 +194,20 @@ export function CostScatter({ results }: { results: Results }) {
   const [hover, setHover] = useState<string | null>(null)
   const pts = results.leaderboard
     .filter((r) => r.mythicbench_score != null)
-    .map((r) => ({ key: r.model, label: modelName(r.model), color: modelColor(results, r.model), cost: costPerRun(r) ?? 0, score: r.mythicbench_score! }))
-  const paid = pts.map((p) => p.cost).filter((c) => c > 0)
+    .map((r) => ({ key: r.model, label: modelName(r.model), color: modelColor(results, r.model), cost: costPerRun(r, results) ?? 0, score: r.mythicbench_score! }))
+  // Effort sweeps: the same model at other reasoning efforts, joined into a
+  // score-vs-cost curve through its official (medium) point.
+  const head = headlineTier(results)
+  const ORDER = ['none', 'low', 'medium', 'high', 'xhigh', 'max']
+  const curves = results.leaderboard.flatMap((r) => {
+    const extra = (results.configs ?? []).filter((c) => c.model === r.model && c.tiers[head]?.progression_score != null)
+    if (!extra.length || r.mythicbench_score == null) return []
+    const points = [{ effort: r.effort ?? 'medium', cost: costPerRun(r, results) ?? 0, score: r.mythicbench_score },
+      ...extra.map((c) => ({ effort: c.effort, cost: c.tiers[head].usd_per_episode ?? 0, score: c.tiers[head].progression_score }))]
+      .sort((a, b) => ORDER.indexOf(a.effort) - ORDER.indexOf(b.effort))
+    return [{ key: r.model, color: modelColor(results, r.model), points }]
+  })
+  const paid = [...pts.map((p) => p.cost), ...curves.flatMap((c) => c.points.map((p) => p.cost))].filter((c) => c > 0)
   const lo = paid.length ? Math.min(...paid) / 2 : 0.01
   const hi = paid.length ? Math.max(...paid) * 2 : 100
   const decades = []
@@ -233,6 +245,17 @@ export function CostScatter({ results }: { results: Results }) {
               <g key={k}>
                 <line x1={m.l} x2={m.l + iw} y1={y(h!.score)} y2={y(h!.score)} stroke={BOT} strokeDasharray="4 4" strokeWidth={1} />
                 <text x={m.l + iw} y={botY[i]} textAnchor="end" fill={AXIS} fontSize={11} {...HALO}>{BOT_NAMES[k]} {fmtScore(h!.score)}</text>
+              </g>
+            ))}
+            {curves.map((c) => (
+              <g key={`curve-${c.key}`} opacity={hover && hover !== c.key ? 0.2 : 0.8}>
+                <path d={c.points.map((p, k) => `${k ? 'L' : 'M'}${x(p.cost)},${y(p.score)}`).join('')} fill="none" stroke={c.color} strokeWidth={1.5} strokeDasharray="4 3" />
+                {c.points.filter((p) => p.effort !== 'medium').map((p) => (
+                  <g key={p.effort}>
+                    <circle cx={x(p.cost)} cy={y(p.score)} r={3.5} fill="#0a0a0c" stroke={c.color} strokeWidth={1.5} />
+                    <text x={x(p.cost)} y={y(p.score) + 14} textAnchor="middle" fill={AXIS} fontSize={10} fontFamily="IBM Plex Mono" {...HALO}>{p.effort}</text>
+                  </g>
+                ))}
               </g>
             ))}
             {pts.map((p, i) => (

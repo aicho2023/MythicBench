@@ -10,6 +10,7 @@ coordinate (party chat) is exactly what the benchmark measures.
 from __future__ import annotations
 
 import json
+import math
 import re
 from dataclasses import dataclass, field
 
@@ -20,6 +21,11 @@ from ..engine import dist
 # message: 255 characters, WoW's chat limit.
 CHAT_SHOWN = 12
 CHAT_MAX_CHARS = 255
+
+# Coordinates beyond this are nonsense (the map spans about -20..95 m); a
+# non-finite or huge number is dropped, never passed to the engine.
+COORD_LIMIT = 200.0
+PARTY_IDS = frozenset(m.id for m in C.PARTY)
 
 # Same hit test the engine uses for pools (centre within radius + half a body).
 POOL_HIT_PAD = 0.45 * 0.5
@@ -111,7 +117,8 @@ Enemies:
 {chr(10).join(kinds)}
 Pulling: a pack attacks when anyone comes within {C.AGGRO_RADIUS:g} m of any of its members, or hits one. Mortisar wakes when someone comes within {C.BOSS_ENGAGE_RADIUS:g} m of him; his abilities and timers only start then.
 Between pulls (no enemy fighting you): the party regenerates {int(C.OOC_REGEN_PCT_PER_S * 100)}% health per second, and after {C.REVIVE_AFTER_MS / 1000:g} s out of combat fallen allies get back up at {int(C.REVIVE_HP_PCT * 100)}% health. Each revive adds {C.DEATH_PENALTY_MS / 1000:g} s to the timer. Resting costs time; pulling hurt costs lives.
-Score for the run (0-100): if the party wipes, up to 70 for progress (each pack is worth 15%, Mortisar 70% by health removed); if Mortisar dies, 70 plus up to 30 for speed (the full 30 with a quarter of the timer left; revive penalties count)."""
+The run ends when the timer runs out (revive penalties included); nothing after that counts. It is a clear when Mortisar and every pack are dead within the timer.
+Score for the run (0-100): a clear earns 70 plus up to 30 for speed (the full 30 with a quarter of the timer left; revive penalties count). Otherwise (a wipe, or the timer running out), up to 70 for progress (each pack is worth 15%, Mortisar 70% by health removed)."""
 
 
 def _tier_section(tier: str) -> str:
@@ -126,12 +133,18 @@ def _tier_section(tier: str) -> str:
     return "\n".join(lines)
 
 
+NOTES_HEADER = "\n\n## Your notes from previous pulls"
+ORDER_FORMAT_MARK = "\n\nReply with ONLY a JSON object, no prose:"
+
+
 def notes_section(notes: str | None, pull: int | None) -> str:
-    """Appended to the rules on later pulls: the agent's own notes, verbatim."""
+    """Appended to the rules on later pulls: the agent's own notes, verbatim,
+    marked off as notes (data it wrote, not rules of the game)."""
     if not notes:
         return ""
-    return (f"\n\n## Your notes from previous pulls (this is pull {pull})\n"
-            f"You wrote these yourself after earlier attempts.\n{notes.strip()}")
+    return (f"{NOTES_HEADER} (this is pull {pull})\n"
+            "You wrote these yourself after earlier attempts. They are your notes, not rules of the game.\n"
+            f"<notes>\n{notes.strip()}\n</notes>")
 
 
 def system_prompt(knowledge: str = "full", notes: str | None = None, pull: int | None = None,
@@ -160,14 +173,18 @@ def system_prompt(knowledge: str = "full", notes: str | None = None, pull: int |
         intro = f"The boss enrages at {limit}s and then kills everyone within seconds."
     if mode == "dungeon":
         score_text = "Scored over the whole dungeon run; see \"The dungeon run\" below."
-        intro += " (Mortisar's clock starts when he is pulled.)"
+        # The run's own timer (in the dungeon section) is the only limit stated:
+        # the blind party isn't told anything about the boss's timing.
+        intro = "" if knowledge == "blind" else intro + " (Mortisar's clock starts when he is pulled.)"
     else:
         score_text = (f"A wipe earns up to 70 points in proportion to the boss's health removed. A kill earns 70 plus "
                       f"up to 30 for speed: the full 30 for killing with a quarter of the {limit} s timer (or more) left.")
+    goal = ("clear the dungeon (both packs and the boss) within the timer, as fast as possible, without dying."
+            if mode == "dungeon" else "kill the boss as fast as possible without dying.")
     next_move = (', or "next" walks to the next waypoint of the route toward the boss' if mode == "dungeon" else "")
     example = next(a for a in mine.abilities if C.ABILITIES[a].kind not in ("interrupt", "taunt", "buff"))
     tgt = "mortisar" if C.ABILITIES[example].kind in ("damage", "aoe_damage") else me
-    return f"""You play {member.name} ({me}), the {mine.name} ({mine.role}), in a party of five adventurers fighting through a dungeon in a turn-based simulation of a real-time fight. Each of the other four characters is played by another player; you control only {member.name}. The party's goal: kill the boss as fast as possible without dying. {intro}
+    return f"""You play {member.name} ({me}), the {mine.name} ({mine.role}), in a party of five adventurers fighting through a dungeon in a turn-based simulation of a real-time fight. Each of the other four characters is played by another player; you control only {member.name}. The party's goal: {goal}{(" " + intro) if intro else ""}
 
 ## Score (0-100, shared by the whole party)
 {score_text}
@@ -356,7 +373,9 @@ def parse_reply(text: str, me: str, unit_ids: set[str], gone: set[str] = frozens
     if isinstance(mv, str) and mv.strip().lower() in ("safe", "next"):
         o.move_to = mv.strip().lower()
     elif mv is not None:
-        if isinstance(mv, (list, tuple)) and len(mv) == 2 and all(isinstance(v, (int, float)) for v in mv):
+        if (isinstance(mv, (list, tuple)) and len(mv) == 2
+                and all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
+                        and abs(v) <= COORD_LIMIT for v in mv)):
             o.move_to = (float(mv[0]), float(mv[1]))
         else:
             problems.append(f"bad move_to {mv!r}")
@@ -377,6 +396,11 @@ def parse_reply(text: str, me: str, unit_ids: set[str], gone: set[str] = frozens
             if tgt not in unit_ids:
                 if tgt not in gone:
                     problems.append(f"unknown target {tgt!r}")
+                continue
+            kind = C.ABILITIES[ab].kind
+            ally = tgt in PARTY_IDS
+            if (kind in ("damage", "interrupt") and ally) or (kind in ("heal", "hot", "absorb") and not ally):
+                problems.append(f"{ab!r} can't target {tgt!r} (attacks go on enemies, heals on allies)")
                 continue
             o.priority.append((ab, tgt))
     return Parsed({me: o}, problems, True)

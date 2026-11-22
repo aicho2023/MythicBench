@@ -22,7 +22,7 @@ from typing import Callable, Protocol
 from . import content as C
 
 TICK_MS = 100
-SIM_VERSION = "0.3.0"  # 0.3.0: bodies collide where they stop
+SIM_VERSION = "0.4.0"  # 0.3.0: bodies collide where they stop; 0.4.0: a run ends at its timer
 
 
 # ---------------------------------------------------------------------------
@@ -419,6 +419,15 @@ class Encounter:
                 self.apply_aura(p, "marrow_shards", u)
 
     # ----- casting ---------------------------------------------------------
+    @staticmethod
+    def right_team(ab: C.Ability, u: Unit, tgt: Unit) -> bool:
+        """Attacks and kicks go on enemies; heals and shields on allies."""
+        if ab.kind in ("damage", "interrupt"):
+            return tgt.kind != "player"
+        if ab.kind in ("heal", "hot", "absorb"):
+            return tgt.kind == "player"
+        return True
+
     def can_cast(self, u: Unit, ab: C.Ability, tgt: Unit | None) -> bool:
         if not u.alive or u.cast:
             return False
@@ -430,6 +439,8 @@ class Encounter:
             return False
         if tgt is not None:
             if not tgt.alive:
+                return False
+            if u.kind == "player" and not self.right_team(ab, u, tgt):
                 return False
             if ab.kind not in ("taunt", "buff") and tgt is not u and self.edge_dist(u, tgt) > ab.range:
                 return False
@@ -807,11 +818,11 @@ class Encounter:
         self.intro()
         while self.outcome is None:
             self.step()
-            if not self.boss.alive:
+            if self.cleared():
                 self.outcome = "victory"
             elif not self.players():
                 self.outcome = "wipe"
-            elif self.t >= max_ms:
+            elif self.time_up(max_ms):
                 self.outcome = "timeout"
             else:
                 self.t += TICK_MS
@@ -824,6 +835,13 @@ class Encounter:
         self.emit("encounter_end", outcome=self.outcome,
                   final_hp={u.id: u.hp for u in self.units.values()})
         return self.to_replay()
+
+    def cleared(self) -> bool:
+        """What a win is: here, the boss dead."""
+        return not self.boss.alive
+
+    def time_up(self, max_ms: int) -> bool:
+        return self.t >= max_ms
 
     def intro(self) -> None:
         self.emit("encounter_start", encounter="gravecrown_crypt", boss=self.boss.id)

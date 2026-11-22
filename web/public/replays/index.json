@@ -35,7 +35,7 @@
     "blurb": "Same run, same seed. Missed kicks, tunnel vision, standing in the bad.",
     "file": "sloppy-wipe.json",
     "outcome": "timeout",
-    "duration_s": 315.0,
+    "duration_s": 255.0,
     "score": 6.2
   }
 ]

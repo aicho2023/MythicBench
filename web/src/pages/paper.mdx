@@ -55,7 +55,10 @@ and optionally a line in party chat. The simulation pauses while the agents thin
 Every model in the official run gets the same settings:
 
 - the same prompt and the same observation format, and no provider-specific JSON mode;
-- one shared reasoning effort (`medium`);
+- one shared reasoning effort (`medium`). That's a provider setting, not matched compute: the same
+  name buys different amounts of thinking from different labs, so every score is reported next to
+  what an episode cost, thinking included, and two models are also run at low and high effort to show
+  how their score moves with spend;
 - the same seeds, call interval and call budget per pull;
 - every reply recorded, so any run can be replayed exactly, for free.
 
@@ -64,12 +67,13 @@ Every model in the official run gets the same settings:
 ## 4. The protocol
 
 - **Blind.** The party knows its own abilities and the affixes, nothing about the enemies
-- **Episodes.** Three per model and tier, each up to five pulls, stopping at the first clear
+- **Models.** Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5; GPT-6 Luna and GPT-6.2 Sol, chosen before any official run
+- **Episodes.** Six per model on +10, each up to five pulls, stopping at the first timed clear, on a seed schedule fixed before the run and never used for tuning. Normal is a sanity check for the two cheapest models
 - **Combat log.** After a wipe every agent gets the same summary: who died to what, what hit hardest, every enemy cast seen and whether it was interrupted
 - **Party talk.** The agents speak in turn, tank first, until all five say they're ready (at most three rounds)
 - **Notes.** Each agent then rewrites its own private notes (at most 350 words), which go into its rules for the next pull. Nothing tells the agents what to learn or how
 - **New seed each pull.** The mechanics stay the same; the timings shuffle, so memorizing doesn't help
-- **Controls.** The two cheapest models also play with memory off: no talk and no notes between pulls
+- **Controls.** The two cheapest models play 12 paired episodes with memory on and off. The pair shares one recorded first pull and differs only from the first wipe: with memory off there's no talk and no notes between pulls. The learning effect is the mean within-pair difference, with its interval over the pairs
 
 An episode's progression score is the mean of its pull scores, with a clear carried forward for the
 pulls it saved. The MythicBench score is the +10 progression score; Normal is a sanity tier, shown but not
@@ -105,13 +109,13 @@ exactly the same interface as the agents, reading the same text and replying wit
 fixed, obvious rules: kick every caster, kill casters first, then adds, then the boss; step out of pools;
 the healer heals the lowest ally; walk on when the party is healthy. It never learns. With no orders at
 all the party never moves and scores near 0; the commander's rules are the real floor. Over 16 seeds it
-scores 55.9 on +10 and 67.6 on Normal, and never clears within the timer. A model has to beat it for its
+scores 53.2 on +10 and 62.2 on Normal, and never clears within the timer. A model has to beat it for its
 own decisions to count.
 
 Before any model plays, three hand-written bots check that the benchmark can tell good play from bad:
 **expert** (clean pulls, casters first, every kick), **competent** (a few missed kicks and slow dodges)
-and **sloppy**. Over 200 seeds on +10 they score 66.1, 49.7 and 7.0, with non-overlapping 95%
-intervals, and clear 25%, 1% and 0% of the time. On Normal they clear 99%, 79% and 0%.
+and **sloppy**. Over 200 seeds on +10 they score 63.8, 48.8 and 7.0, with non-overlapping 95%
+intervals, and clear within the timer 8%, 0% and 0% of the time. On Normal they clear 99%, 79% and 0%.
 The bots also appear on the leaderboard, scored on the same seeds as the models.
 
 ## 8. Limitations

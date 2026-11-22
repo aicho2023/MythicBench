@@ -245,8 +245,17 @@ class DungeonRun(Encounter):
         self.emit("emote", unit=self.boss.id, style="warning",
                   text="The Gravecrown Crypt: clear the way to the Hollow King.")
 
+    def cleared(self) -> bool:
+        """A Mythic+-style clear: Mortisar dead and every pack dead."""
+        return not self.boss.alive and all(s == "dead" for s in self.pack_state.values())
+
+    def time_up(self, max_ms: int) -> bool:
+        # The run ends when the key's timer runs out, revive penalties included:
+        # nothing after 4:15 counts toward the score, the combat log, or the replay.
+        return self.t >= max_ms or self.t + self.penalty_ms >= self.tier.limit_ms
+
     def run(self, max_ms: int | None = None) -> dict:
-        return super().run(max_ms if max_ms is not None else self.tier.limit_ms + 60_000)
+        return super().run(max_ms if max_ms is not None else self.tier.limit_ms)
 
     def to_replay(self) -> dict:
         rep = super().to_replay()

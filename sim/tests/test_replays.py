@@ -267,3 +267,56 @@ def test_game_guide_lists_every_ability_and_matches_the_committed_file():
     assert {t["id"] for t in g["tiers"]} == set(C.TIERS)
     committed = json.loads((Path(__file__).parents[2] / "web" / "public" / "replays" / "game.json").read_text())
     assert committed == json.loads(json.dumps(g)), "run: python -m mythicsim generate --out ../web/public/replays"
+
+
+class _Idle:
+    def act(self, obs):
+        return []
+
+
+def _dungeon(tier="normal"):
+    from mythicsim.dungeon import DungeonRun
+    return DungeonRun(1, {m.id: _Idle() for m in C.PARTY}, "test", tier)
+
+
+def test_a_run_ends_at_the_timer():
+    rep = _dungeon().run()
+    assert rep["meta"]["outcome"] == "timeout"
+    assert rep["meta"]["duration_ms"] == C.tier("normal").limit_ms  # not a second longer
+    assert all(e["t"] <= C.tier("normal").limit_ms for e in rep["events"])
+
+
+def test_revive_penalties_count_against_the_timer():
+    enc = _dungeon()
+    enc.penalty_ms = 30_000
+    rep = enc.run()
+    assert rep["meta"]["duration_ms"] == C.tier("normal").limit_ms - 30_000
+
+
+def _kill_at(enc, ms, packs=True):
+    """Fast-forward: everything dies at ``ms`` (packs optional)."""
+    orig = enc.step
+
+    def step():
+        orig()
+        if enc.t == ms:
+            for u in list(enc.units.values()):
+                if u.kind != "player" and u.alive and (packs or not u.pack):
+                    enc.kill(u, enc.units["bramble"], "test")
+    enc.step = step
+
+
+def test_a_kill_counts_just_before_and_at_the_deadline_but_not_after():
+    limit = C.tier("normal").limit_ms
+    for at, want in ((limit - 100, "victory"), (limit, "victory"), (limit + 100, "timeout")):
+        enc = _dungeon()
+        _kill_at(enc, at)
+        assert enc.run()["meta"]["outcome"] == want, at
+
+
+def test_a_clear_needs_every_pack_dead_too():
+    enc = _dungeon()
+    _kill_at(enc, 10_000, packs=False)
+    rep = enc.run()
+    assert rep["meta"]["outcome"] == "timeout"
+    assert score(rep)["score"] < 70

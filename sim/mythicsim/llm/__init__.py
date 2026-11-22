@@ -30,7 +30,12 @@ Pieces:
 #          learn; only timed clears end an episode; no OpenAI JSON mode
 #          (same reply contract for both providers); recorded replies tagged
 #          by episode/pull/agent/call
-HARNESS_VERSION = "0.9.0"
+#   0.10.0 audit fixes: a run ends at the timer and a clear needs every pack;
+#          no boss timing in the blind rules; talk and notes get their own
+#          instructions and reply format; strict reply checks (finite
+#          coordinates, friend/foe targets, "ready" must be true); notes
+#          marked off as notes; party chat capped at 255 characters
+HARNESS_VERSION = "0.10.0"
 
 
 def prompt_hash(knowledge: str = "full", tier: str = "plus10", mode: str = "boss") -> str:

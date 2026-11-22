@@ -279,32 +279,95 @@ def make_client(spec: str, effort: str | None = None) -> ChatClient:
 # Replay cache
 # ---------------------------------------------------------------------------
 
+class NoNetwork:
+    """Stands in for a real client in offline mode: reaching it is a bug, so it's fatal."""
+
+    def __init__(self, spec: str):
+        self.spec = spec
+
+    def complete(self, system: str, user: str, tag: str = "") -> Reply:
+        raise ClientError("offline mode tried to call the provider", fatal=True)
+
+
+class _Recording:
+    """One recording file, shared by every CachedClient in the process that
+    points at it: one in-memory table, one lock, and each key recorded once.
+    A second process can't write the same file (an OS file lock), and a file
+    that holds two different replies for one key is refused."""
+
+    def __init__(self, path: Path):
+        self.path = path
+        self.lock = threading.Lock()
+        self.mem: dict[str, dict] = {}
+        self.inflight: dict[str, threading.Event] = {}
+        self._lockfile = None
+        gz = path.with_name(path.name + ".gz")  # a published dataset ships recordings gzipped
+        text = path.read_text() if path.exists() else gzip.decompress(gz.read_bytes()).decode() if gz.exists() else ""
+        for line in text.splitlines():
+            if not line.strip():
+                continue
+            rec = json.loads(line)
+            old = self.mem.get(rec["key"])
+            if old is not None and old["text"] != rec["text"]:
+                raise ClientError(f"{path}: two different recorded replies for one call (key {rec['key'][:12]}); "
+                                  "the recording is ambiguous and can't be replayed exactly", fatal=True)
+            self.mem[rec["key"]] = rec
+
+    def claim_writer(self) -> None:
+        """Only one process may record into a file."""
+        if self._lockfile is not None:
+            return
+        import fcntl
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        f = open(self.path.with_name(self.path.name + ".lock"), "w")
+        try:
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            f.close()
+            raise ClientError(f"another process is recording into {self.path}; run one campaign at a time",
+                              fatal=True) from None
+        self._lockfile = f
+
+    def append(self, rec: dict) -> None:
+        self.mem[rec["key"]] = rec
+        with self.path.open("a") as f:
+            f.write(json.dumps(rec) + "\n")
+
+
+_RECORDINGS: dict[Path, _Recording] = {}
+_RECORDINGS_LOCK = threading.Lock()
+
+
+def _recording(path: Path) -> _Recording:
+    with _RECORDINGS_LOCK:
+        key = Path(path).resolve()
+        if key not in _RECORDINGS:
+            _RECORDINGS[key] = _Recording(Path(path))
+        return _RECORDINGS[key]
+
+
 @dataclass
 class CachedClient:
     """Wraps a client; identical prompts return the recorded reply.
 
     Models are random, so a fresh run is not reproducible on its own. Every
-    (model, prompt) -> reply pair is appended to a JSONL file; re-running the
-    same seed with the cache replays the exact same game for free, and anyone
-    with the file can verify a published result.
+    (model, prompt, call tag) -> reply pair is appended to a JSONL file;
+    re-running with the recording replays the exact same game for free, and
+    anyone with the file can verify a published result.
+
+    Every call is recorded exactly once. Clients in one process share the
+    file's table, and a call already in flight is waited for, not repeated:
+    so a memory-off control and its memory-on twin, whose first pulls ask
+    exactly the same things, play one shared, recorded pull 1.
     """
     inner: ChatClient
     path: Path
-    offline: bool = False  # True: never call the API; a cache miss is an error
+    offline: bool = False  # True: never call the API; a missing reply is a fatal error
     spec: str = ""
-    _mem: dict = field(default_factory=dict)
-    _lock: threading.Lock = field(default_factory=threading.Lock)  # seeds may run in parallel
 
     def __post_init__(self) -> None:
         self.spec = self.inner.spec
-        # A published dataset ships recordings gzipped (<spec>.jsonl.gz); read either.
-        gz = self.path.with_name(self.path.name + ".gz")
-        text = (self.path.read_text() if self.path.exists()
-                else gzip.decompress(gz.read_bytes()).decode() if gz.exists() else "")
-        for line in text.splitlines():
-            if line.strip():
-                rec = json.loads(line)
-                self._mem[rec["key"]] = rec
+        self.rec = _recording(self.path)
 
     def key(self, system: str, user: str, tag: str = "") -> str:
         # ``tag`` says where the call was made (episode, pull, agent, call
@@ -313,26 +376,39 @@ class CachedClient:
         # reply instead of sampling the model again.
         return hashlib.sha256(json.dumps([self.spec, system, user] + ([tag] if tag else [])).encode()).hexdigest()
 
+    @staticmethod
+    def _reply(r: dict) -> Reply:
+        return Reply(r["text"], r["input_tokens"], r["output_tokens"], 0.0, cached=True,
+                     cache_read_tokens=r.get("cache_read_tokens", 0), truncated=r.get("truncated", False),
+                     cache_write_tokens=r.get("cache_write_tokens", 0), refused=r.get("refused", False),
+                     thinking=r.get("thinking", ""))
+
     def complete(self, system: str, user: str, tag: str = "") -> Reply:
         k = self.key(system, user, tag)
-        if k in self._mem:
-            r = self._mem[k]
-            return Reply(r["text"], r["input_tokens"], r["output_tokens"], 0.0, cached=True,
-                         cache_read_tokens=r.get("cache_read_tokens", 0), truncated=r.get("truncated", False),
-                         cache_write_tokens=r.get("cache_write_tokens", 0), refused=r.get("refused", False),
-                         thinking=r.get("thinking", ""))
-        if self.offline:
-            # Fatal: playing on without this reply would silently play a
-            # different game from the one recorded.
-            raise ClientError("cache miss in offline mode (prompt not in the recording)", fatal=True)
-        reply = self.inner.complete(system, user, tag=tag)
-        rec = {"key": k, "spec": self.spec, "tag": tag, "text": reply.text,
-               "input_tokens": reply.input_tokens, "output_tokens": reply.output_tokens,
-               "cache_read_tokens": reply.cache_read_tokens, "cache_write_tokens": reply.cache_write_tokens,
-               "truncated": reply.truncated, "refused": reply.refused, "thinking": reply.thinking}
-        with self._lock:
-            self._mem[k] = rec
-            self.path.parent.mkdir(parents=True, exist_ok=True)
-            with self.path.open("a") as f:
-                f.write(json.dumps(rec) + "\n")
-        return reply
+        rec = self.rec
+        while True:
+            with rec.lock:
+                if k in rec.mem:
+                    return self._reply(rec.mem[k])
+                if self.offline:
+                    # Fatal: playing on without this reply would silently play
+                    # a different game from the one recorded.
+                    raise ClientError("cache miss in offline mode (prompt not in the recording)", fatal=True)
+                waiting = rec.inflight.get(k)
+                if waiting is None:
+                    rec.claim_writer()
+                    rec.inflight[k] = threading.Event()
+                    break
+            waiting.wait()  # the same call is being made right now: use its reply
+        try:
+            reply = self.inner.complete(system, user, tag=tag)
+            with rec.lock:
+                rec.append({"key": k, "spec": self.spec, "tag": tag, "text": reply.text,
+                            "input_tokens": reply.input_tokens, "output_tokens": reply.output_tokens,
+                            "cache_read_tokens": reply.cache_read_tokens,
+                            "cache_write_tokens": reply.cache_write_tokens,
+                            "truncated": reply.truncated, "refused": reply.refused, "thinking": reply.thinking})
+            return reply
+        finally:
+            with rec.lock:
+                rec.inflight.pop(k).set()

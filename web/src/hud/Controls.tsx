@@ -163,7 +163,7 @@ export function EndBanner() {
     <div className="card pointer-events-auto w-[480px] max-w-[calc(100vw-32px)] animate-[fadein_400ms_cubic-bezier(0.22,1,0.36,1)] p-5">
       <div className="label">Result</div>
       <div className="mt-1 flex items-baseline gap-3">
-        <span className={`text-[28px] font-medium leading-tight ${win ? 'text-good' : 'text-bad'}`}>{win ? (dungeonRun ? 'Crypt cleared' : 'Boss defeated') : 'Party wiped'}</span>
+        <span className={`text-[28px] font-medium leading-tight ${win ? 'text-good' : 'text-bad'}`}>{win ? (dungeonRun ? 'Crypt cleared' : 'Boss defeated') : h.s.ended.outcome === 'timeout' ? 'Time ran out' : 'Party wiped'}</span>
       </div>
       <div className="mt-2 text-[13px] text-fg-muted">
         {dungeonRun
@@ -177,7 +177,7 @@ export function EndBanner() {
           <Stat label="Time" value={fmtTime(m.duration_s * 1000)} />
           <Stat label="Deaths" value={`${m.deaths.length}`} bad={m.deaths.length > 0} />
           <Stat label="Kicks" value={`${m.interrupts.interrupted}/${m.interrupts.interruptible_casts}`} bad={m.interrupts.interrupted < m.interrupts.interruptible_casts} />
-          <Stat label="Avoidable" value={fmtNum(avoidable)} bad={avoidable > 0} />
+          <Stat label="Pool damage" value={fmtNum(avoidable)} bad={avoidable > 0} />
         </div>
       )}
       {top && (
@@ -242,11 +242,11 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
           internals, so a scripted bot and a language model compete on equal terms.
         </Section>
         <Section n="3" title="The score">
-          One number per pull, from <b>0 to 100</b>. A wipe earns up to <b>70</b> for the boss health removed; a kill
-          earns <b>70 plus up to 30 for speed</b> (the full 30 with a quarter of the timer left). Win/loss alone would
-          tie every team that wins, so the score keeps separating them. Interrupts, deaths, and avoidable damage
-          explain where points went. Difficulty comes in <b>key levels</b>: each level above +12 multiplies enemy
-          health and damage by 1.08. Everything is computed from the replay's event log alone, so anyone can
+          One number per pull, from <b>0 to 100</b>. A clear (Mortisar and every pack dead within the timer) earns
+          <b>70 plus up to 30 for speed</b>; otherwise, a wipe or the timer running out, up to <b>70</b> for
+          progress. The run ends at the timer. Win/loss alone would tie every team that wins, so the score keeps
+          separating them. Interrupts, deaths, and pool damage explain where points went. Difficulty comes in two
+          tiers, <b>Normal</b> and <b>+10</b>, which adds three affixes. Everything is computed from the replay's event log alone, so anyone can
           recompute it from the published file.
         </Section>
         <Section n="4" title="Controlled comparison">

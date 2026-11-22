@@ -74,7 +74,7 @@ function Side({ entry, engine, t }: { entry: ReplayIndexEntry; engine: ReplayEng
       <div className="mt-2"><TacticalMap engine={engine} s={s} t={t} /></div>
       <dl className="mt-3 grid grid-cols-5 gap-2 text-[12px]">
         {[['Score', score.toFixed(1)], ['Progress', `${progress.toFixed(0)}%`], ['Deaths', `${s.deaths}`],
-          ['Interrupts', `${s.kicks.interrupted}/${s.kicks.casts}`], ['Avoidable', fmtNum(avoidable)]].map(([k, v]) => (
+          ['Interrupts', `${s.kicks.interrupted}/${s.kicks.casts}`], ['Pool damage', fmtNum(avoidable)]].map(([k, v]) => (
           <div key={k} className="rounded-lg border border-line px-2 py-1.5">
             <dt className="text-fg-faint">{k}</dt>
             <dd className="num font-mono text-[14px] text-fg">{v}</dd>
@@ -82,7 +82,12 @@ function Side({ entry, engine, t }: { entry: ReplayIndexEntry; engine: ReplayEng
         ))}
       </dl>
       <div className="mt-3 min-h-[120px] text-[12px] leading-[18px]">
-        {s.ended && <p className={s.ended.outcome === 'victory' ? 'text-good' : 'text-bad'}>{s.ended.outcome === 'victory' ? 'Cleared' : 'Wiped'} at {fmtTime(s.ended.t)}</p>}
+        {s.ended && (() => {
+          // A clear is a timed clear (older replays could record a kill after the timer).
+          const clear = s.ended.outcome === 'victory' && m.metrics?.in_time !== false
+          const text = clear ? 'Cleared' : s.ended.outcome === 'victory' ? 'Killed after the timer' : s.ended.outcome === 'timeout' ? 'Time ran out' : 'Wiped'
+          return <p className={clear ? 'text-good' : 'text-bad'}>{text} at {fmtTime(s.ended.t)}</p>
+        })()}
         {said.map(({ e, i }) => e.type === 'decision' && (
           <p key={i} className="mt-1 text-fg-muted">
             <span className="num font-mono text-fg-faint">{fmtTime(e.t)}</span>{' '}

@@ -92,9 +92,12 @@ They don't learn; they show what good and bad play look like. Over 200 seeds:
 | | Expert | Competent | Sloppy |
 | --- | --- | --- | --- |
 | Normal clear rate | 99% (96 to 100%) | 79% (72 to 84%) | 0% |
-| Normal score | 83.8 (83.1 to 84.5) | 76.0 (75.0 to 77.0) | 31.6 (31.1 to 32.1) |
-| +10 clear rate | 25% (20 to 31%) | 1% (0 to 3%) | 0% |
-| +10 score | 66.1 (65.4 to 66.8) | 49.7 (48.3 to 51.1) | 7.0 (6.5 to 7.5) |
+| Normal score | 83.8 (83.1 to 84.5) | 75.9 (75.0 to 76.9) | 31.6 (31.1 to 32.1) |
+| +10 clear rate | 8% (5 to 13%) | 0% (0 to 2%) | 0% |
+| +10 score | 63.8 (63.2 to 64.5) | 48.8 (47.5 to 50.1) | 7.0 (6.5 to 7.5) |
+
+A clear is timed: Mortisar and both packs dead before the 4:15 timer, revive
+penalties included. The run ends at the timer, so nothing after it counts.
 
 Ranges are 95% confidence intervals. The three bots come out in the right
 order with no overlap, which is the first check that the benchmark tells
