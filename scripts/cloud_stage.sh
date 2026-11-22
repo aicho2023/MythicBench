@@ -6,8 +6,9 @@
 #                                          #   for --hold minutes to prove a long job survives
 #   scripts/cloud_stage.sh 1               # stage 1 of protocol v1 (paid; each cell's first group)
 #   scripts/cloud_stage.sh 2               # stage 2 (paid; the rest)
+#   scripts/cloud_stage.sh check           # only the checks before spending (free), then stop
 #
-# Options: --protocol NAME (v1; v1-restart after a stage-1 fault), --budget USD (100),
+# Options: --protocol NAME (v1; v1-restart after a stage-1 fault), --budget USD (120),
 #          --cells N (8 groups at once), --hold MIN (test only, 40), --every MIN (checkpoint, 10).
 #
 # What it does:
@@ -21,15 +22,16 @@
 #      (run-data/cloud-test for the test) and pushes it.
 #   4. Prints a summary without scores (stage 1 is read for harness faults only).
 #
-# Keys are read from the environment (ANTHROPIC_API_KEY, OPENAI_API_KEY); nothing
-# here prints them. See docs/CLOUD_RUN.md for setting up the cloud environment.
+# Keys are read from the environment: MYTHICBENCH_ANTHROPIC_API_KEY (a cloud
+# environment doesn't pass ANTHROPIC_API_KEY to commands; that name works locally)
+# and OPENAI_API_KEY. Nothing here prints them. See docs/CLOUD_RUN.md for setting up the cloud environment.
 
 set -euo pipefail
 
 MODE="${1:-}"
 shift || true
 PROTOCOL="v1"
-BUDGET="100"
+BUDGET="120"
 CELLS="8"
 HOLD="40"
 EVERY="10"
@@ -45,7 +47,7 @@ while [ $# -gt 0 ]; do
 done
 case "$MODE" in
   test) PROTOCOL="sample"; DATA_BRANCH="run-data/cloud-test" ;;
-  1|2) DATA_BRANCH="run-data/$PROTOCOL" ;;
+  1|2|check) DATA_BRANCH="run-data/$PROTOCOL" ;;
   *) sed -n '2,12p' "$0"; exit 2 ;;
 esac
 
@@ -68,17 +70,41 @@ if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
 fi
 log "code: $(git rev-parse --short HEAD) on $(git rev-parse --abbrev-ref HEAD) ($(git describe --tags --always))"
 if [ "$MODE" != test ]; then
-  for k in ANTHROPIC_API_KEY OPENAI_API_KEY MYTHICBENCH_TOTAL_BUDGET_USD; do
-    [ -n "${!k:-}" ] || { echo "$k is not set in the environment" >&2; exit 1; }
-  done
-  for url in https://api.anthropic.com/v1/models https://api.openai.com/v1/models; do
-    code=$(curl -s -o /dev/null -m 20 -w '%{http_code}' "$url" || true)
-    # An unauthenticated request is refused (401/403) but proves the host is reachable, for free.
+  # A cloud environment reserves ANTHROPIC_API_KEY (sessions sign in through your
+  # account) and doesn't pass it to commands: set MYTHICBENCH_ANTHROPIC_API_KEY there.
+  # The run itself reads the usual names, so they're filled in for it here.
+  export ANTHROPIC_API_KEY="${MYTHICBENCH_ANTHROPIC_API_KEY:-${ANTHROPIC_API_KEY:-}}"
+  export OPENAI_API_KEY="${MYTHICBENCH_OPENAI_API_KEY:-${OPENAI_API_KEY:-}}"
+  [ -n "$ANTHROPIC_API_KEY" ] || { echo "no Anthropic key: set MYTHICBENCH_ANTHROPIC_API_KEY in the environment (a cloud session doesn't pass ANTHROPIC_API_KEY to commands)" >&2; exit 1; }
+  [ -n "$OPENAI_API_KEY" ] || { echo "no OpenAI key: set OPENAI_API_KEY (or MYTHICBENCH_OPENAI_API_KEY) in the environment" >&2; exit 1; }
+  [ -n "${MYTHICBENCH_TOTAL_BUDGET_USD:-}" ] || { echo "MYTHICBENCH_TOTAL_BUDGET_USD is not set in the environment" >&2; exit 1; }
+  # Does each key work from here? Listing models costs nothing. The keys go to curl
+  # on stdin, never on its command line, and nothing prints them.
+  check_key() {  # name, then curl config lines on stdin
+    local name="$1" code
+    code=$(curl -s -o /dev/null -m 20 -w '%{http_code}' -K - || true)
     case "$code" in
-      401|403|200) log "reachable: $url ($code)" ;;
-      *) echo "can't reach $url (HTTP $code): add its host to the environment's allowed domains" >&2; exit 1 ;;
+      200) log "$name: the key works from here" ;;
+      401|403) echo "$name refused the key (HTTP $code): check the key in the environment" >&2; exit 1 ;;
+      000) echo "can't reach $name: add its host to the environment's allowed domains" >&2; exit 1 ;;
+      *) echo "$name answered HTTP $code to a free key check; not starting" >&2; exit 1 ;;
     esac
-  done
+  }
+  check_key "api.anthropic.com" <<EOF
+url = "https://api.anthropic.com/v1/models"
+header = "x-api-key: $ANTHROPIC_API_KEY"
+header = "anthropic-version: 2023-06-01"
+EOF
+  check_key "api.openai.com" <<EOF
+url = "https://api.openai.com/v1/models"
+header = "Authorization: Bearer $OPENAI_API_KEY"
+EOF
+  log "project cap here: \$$MYTHICBENCH_TOTAL_BUDGET_USD; bash timeouts: ${BASH_DEFAULT_TIMEOUT_MS:-unset} / ${BASH_MAX_TIMEOUT_MS:-unset} ms"
+  if [ "$MODE" = check ]; then
+    (cd sim && "$PY" -m mythicsim campaign "../protocol/$PROTOCOL.json" --first 1 --dry-run | sed -n '1p;$p')
+    log "all checks passed; nothing was played or spent"
+    exit 0
+  fi
 fi
 
 # ---------------------------------------------------------------------------
