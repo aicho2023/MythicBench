@@ -50,7 +50,7 @@ Also played, none of them ranked:
 - **Normal** (sanity check): Haiku, Luna and the commander, 3 groups each.
 - **Effort sweeps**: Haiku and Luna at low and high effort, 3 groups each.
 
-Code versions: harness 1.0.0 (1.0.0-rc.7 until the review is done), sim 0.11.0, content 1.8.0. Every replay records
+Code versions: harness 1.0.0, sim 0.11.0, content 1.8.0. Every replay records
 them, and the campaign refuses to mix results from different versions.
 
 ## Metrics

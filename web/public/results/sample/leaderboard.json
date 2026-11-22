@@ -35,7 +35,7 @@
    "basic"
   ]
  },
- "harness_version": "1.0.0-rc.7",
+ "harness_version": "1.0.0",
  "content_version": "1.8.0",
  "sim_version": "0.11.0",
  "tiers": {
@@ -105,12 +105,12 @@
      "pulls_out_of_calls": 0,
      "calls": 489,
      "harness_versions": [
-      "1.0.0-rc.7"
+      "1.0.0"
      ],
      "episode_list": [
       {
        "episode": 0,
-       "run_id": "2026-11-22T2157_basic_14062a84",
+       "run_id": "2026-11-22T2207_basic_6a82c2a7",
        "pulls": [
         {
          "pull": 1,
@@ -284,7 +284,7 @@
       },
       {
        "episode": 1,
-       "run_id": "2026-11-22T2157_basic_14062a84",
+       "run_id": "2026-11-22T2207_basic_6a82c2a7",
        "pulls": [
         {
          "pull": 1,
@@ -503,12 +503,12 @@
      "pulls_out_of_calls": 0,
      "calls": 435,
      "harness_versions": [
-      "1.0.0-rc.7"
+      "1.0.0"
      ],
      "episode_list": [
       {
        "episode": 0,
-       "run_id": "2026-11-22T2157_basic_54a940f0",
+       "run_id": "2026-11-22T2207_basic_b8a4f0f6",
        "pulls": [
         {
          "pull": 1,
@@ -682,7 +682,7 @@
       },
       {
        "episode": 1,
-       "run_id": "2026-11-22T2157_basic_54a940f0",
+       "run_id": "2026-11-22T2207_basic_b8a4f0f6",
        "pulls": [
         {
          "pull": 1,
@@ -936,12 +936,12 @@
      "pulls_out_of_calls": 0,
      "calls": 2838,
      "harness_versions": [
-      "1.0.0-rc.7"
+      "1.0.0"
      ],
      "episode_list": [
       {
        "episode": 0,
-       "run_id": "2026-11-22T2157_commander_e17b02fd",
+       "run_id": "2026-11-22T2207_commander_cc6eea86",
        "pulls": [
         {
          "pull": 1,
@@ -1115,7 +1115,7 @@
       },
       {
        "episode": 1,
-       "run_id": "2026-11-22T2157_commander_e17b02fd",
+       "run_id": "2026-11-22T2207_commander_cc6eea86",
        "pulls": [
         {
          "pull": 1,
@@ -1334,12 +1334,12 @@
      "pulls_out_of_calls": 0,
      "calls": 1872,
      "harness_versions": [
-      "1.0.0-rc.7"
+      "1.0.0"
      ],
      "episode_list": [
       {
        "episode": 0,
-       "run_id": "2026-11-22T2157_commander_919288f2",
+       "run_id": "2026-11-22T2207_commander_d74e1088",
        "pulls": [
         {
          "pull": 1,
@@ -1513,7 +1513,7 @@
       },
       {
        "episode": 1,
-       "run_id": "2026-11-22T2157_commander_919288f2",
+       "run_id": "2026-11-22T2207_commander_d74e1088",
        "pulls": [
         {
          "pull": 1,
@@ -1746,12 +1746,12 @@
    "pulls_out_of_calls": 0,
    "calls": 375,
    "harness_versions": [
-    "1.0.0-rc.7"
+    "1.0.0"
    ],
    "episode_list": [
     {
      "episode": 0,
-     "run_id": "2026-11-22T2157_basic_b14a54e3",
+     "run_id": "2026-11-22T2207_basic_82a306be",
      "pulls": [
       {
        "pull": 1,
@@ -1925,7 +1925,7 @@
     },
     {
      "episode": 1,
-     "run_id": "2026-11-22T2157_basic_b14a54e3",
+     "run_id": "2026-11-22T2207_basic_82a306be",
      "pulls": [
       {
        "pull": 1,

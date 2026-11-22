@@ -70,7 +70,10 @@ Pieces:
 #          (route, pools, reach); "safe" hands the sim ranked candidates and it takes
 #          the first whose real move (wall, taken spot, obstacles) ends clear; "stop"
 #          is a real halt; the rules and affix texts state mechanics, not tactics
-HARNESS_VERSION = "1.0.0-rc.7"
+#          (sixth and seventh reviews changed only the sim, 0.11.0)
+#   1.0.0  frozen for the v1 protocol: 1.0.0-rc.7 as reviewed, renamed. Any
+#          change from here is a new version and new runs.
+HARNESS_VERSION = "1.0.0"
 
 
 def prompt_hash(knowledge: str = "full", tier: str = "plus10", mode: str = "boss") -> str:
