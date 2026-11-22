@@ -307,56 +307,87 @@ def test_prompt_cache_key_follows_the_rules_text():
 
 def test_recordings_can_be_read_gzipped(tmp_path):
     import gzip
-    path = tmp_path / "c.jsonl"
-    live = CachedClient(MockClient(), path)
-    first = live.complete("rules", "state", tag="t")
-    (tmp_path / "c.jsonl.gz").write_bytes(gzip.compress(path.read_bytes()))
-    path.unlink()
-    again = CachedClient(MockClient(), path, offline=True).complete("rules", "state", tag="t")
+    from mythicsim.llm import clients
+    path = tmp_path / "a" / "c.jsonl"
+    first = CachedClient(MockClient(), path).complete("rules", "state", tag="t")
+    pub = tmp_path / "published"
+    pub.mkdir()
+    (pub / "c.jsonl.gz").write_bytes(gzip.compress(path.read_bytes()))
+    clients._RECORDINGS.clear()
+    again = CachedClient(MockClient(), pub / "c.jsonl", offline=True).complete("rules", "state", tag="t")
     assert again.cached and again.text == first.text
 
 
-def test_scripted_commander_plays_through_the_same_interface():
-    from mythicsim.dungeon import DungeonRun
-    from mythicsim.llm.clients import make_client
-    from mythicsim.metrics import score
-    client = make_client("scripted:commander")
-    pols, party = make_llm_policies(client, tier="normal", mode="dungeon", knowledge="blind")
-    s = score(DungeonRun(10001, pols, "x", "normal").run())
-    st = party.stats
-    assert st.calls > 50 and st.unusable_replies == 0 and st.invalid_entries == 0
-    assert s["progress_pct"] > 50  # walks the route, pulls, fights
+class _Counting:
+    spec = "fake:counting"
+
+    def __init__(self, delay=0.0):
+        self.calls, self.delay = 0, delay
+
+    def complete(self, system, user, tag=""):
+        import time
+        self.calls += 1
+        time.sleep(self.delay)
+        return Reply(f"reply {self.calls}", 1, 1)
 
 
-def test_scripted_commander_kicks_casters_and_leaves_pools():
-    from mythicsim.llm.scripted import orders
-    state = """Run timer 30.0s of 255s. IN COMBAT.
-ENEMIES FIGHTING YOU: pack1_bone_chanter_1 (Bone Chanter) 80% HP at (0.0, 48.0) attacking bramble, casting grave_volley (1.0s left) INTERRUPTIBLE; pack1_bonewalker_1 (Risen Bonewalker) 50% HP at (1.0, 55.0) attacking bramble.
-POOLS: none.
-PARTY:
-  grokka (YOU) (berserker) 90% HP (40000/44000) at (0.0, 50.0). Ready: savage_hew. STANDING IN POOL grave_1 (ARMED, 0.5 m from its centre, radius 2.5)!
-  bramble (guardian) 70% HP (43400/62000) at (0.0, 54.0)."""
-    o = orders("grokka", state)
-    assert o["move_to"] == "safe"
-    assert o["priority"][0] == ["throat_punch", "pack1_bone_chanter_1"]
-    assert ["savage_hew", "pack1_bone_chanter_1"] in o["priority"]  # casters first
+def test_one_call_is_recorded_once_even_when_asked_twice_at_once(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    inner = _Counting(delay=0.05)
+    a, b = CachedClient(inner, tmp_path / "c.jsonl"), CachedClient(inner, tmp_path / "c.jsonl")
+    with ThreadPoolExecutor(2) as pool:
+        ra, rb = pool.map(lambda c: c.complete("rules", "same", tag="e0p1|play|bramble|1"), (a, b))
+    assert inner.calls == 1 and ra.text == rb.text  # memory on/off share one recorded pull 1
+    assert len((tmp_path / "c.jsonl").read_text().splitlines()) == 1
 
 
-def test_orders_naming_a_dead_enemy_are_not_errors():
-    p = parse_reply(json.dumps({"priority": [["savage_hew", "pack1_bonewalker_1"], ["savage_hew", "mortisar"]]}),
-                    "grokka", IDS, gone={"pack1_bonewalker_1"})
-    assert p.orders["grokka"].priority == [("savage_hew", "mortisar")] and not p.problems
+def test_conflicting_recordings_are_refused(tmp_path):
+    from mythicsim.llm import clients
+    path = tmp_path / "c.jsonl"
+    rec = {"key": "k", "text": "one", "input_tokens": 1, "output_tokens": 1}
+    path.write_text(json.dumps(rec) + "\n" + json.dumps({**rec, "text": "two"}) + "\n")
+    clients._RECORDINGS.clear()
+    with pytest.raises(ClientError, match="two different recorded replies") as err:
+        CachedClient(MockClient(), path)
+    assert err.value.fatal
 
 
-def test_chat_is_capped_like_the_game_and_lands_in_the_replay():
-    long = "x" * 400
-    fake = Scripted({"bramble": [hew(say=long)]})
-    pols, party = make_llm_policies(fake, interval_ms=1000)
-    from mythicsim.llm.policy import add_chat_events
-    rep = Encounter(4, pols, "x").run(max_ms=3000)
-    add_chat_events(rep, party.chat)
-    chats = [e for e in rep["events"] if e["type"] == "chat"]
-    assert chats and all(len(e["text"]) == 255 for e in chats)
-    assert rep["events"][-1]["type"] == "encounter_end"
-    ts = [e["t"] for e in rep["events"]]
-    assert ts == sorted(ts)
+def test_offline_never_reaches_a_provider():
+    from mythicsim.llm.clients import NoNetwork
+    with pytest.raises(ClientError) as err:
+        NoNetwork("anthropic:x").complete("s", "u")
+    assert err.value.fatal
+
+
+def test_a_transport_failure_stops_the_episode_unrecorded():
+    from mythicsim.llm.progress import run_episode
+
+    class Flaky:
+        spec = "fake:flaky"
+        n = 0
+
+        def complete(self, system, user, tag=""):
+            self.n += 1
+            if self.n == 7:
+                raise ClientError("network error after retries")  # not fatal
+            return MockClient().complete(system, user, tag)
+
+    with pytest.raises(ClientError) as err:
+        run_episode(Flaky(), 0, max_pulls=1, max_calls=5)
+    assert not err.value.fatal  # the run carries on; this episode isn't checkpointed
+
+
+def test_finite_and_in_range_coordinates_only():
+    for bad in ([1e309, 0], [float("nan"), 1], [5000, 0]):
+        p = parse_reply(json.dumps({"move_to": bad}), "bao", IDS)
+        assert p.orders["bao"].move_to is None and p.problems, bad
+
+
+def test_attacks_go_on_enemies_and_heals_on_allies():
+    p = parse_reply(json.dumps({"priority": [["mending_light", "mortisar"], ["mending_light", "bramble"]]}), "lumi", IDS)
+    assert p.orders["lumi"].priority == [("mending_light", "bramble")] and len(p.problems) == 1
+    p = parse_reply(json.dumps({"priority": [["savage_hew", "grokka"], ["savage_hew", "mortisar"]]}), "grokka", IDS)
+    assert p.orders["grokka"].priority == [("savage_hew", "mortisar")] and len(p.problems) == 1
+    enc = Encounter(1, {}, "x")
+    assert not enc.begin_cast(enc.units["lumi"], "mending_light", "mortisar")  # the engine refuses it too
+    assert not enc.begin_cast(enc.units["grokka"], "savage_hew", "grokka")

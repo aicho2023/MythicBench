@@ -112,6 +112,25 @@ function ResultsBody({ results }: { results: Results }) {
         </HowToRead>
       </section>
 
+      <section className="grid gap-8 pt-20 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-12">
+        <div>
+          <h2 className="text-[20px] font-medium text-fg">What a score costs</h2>
+          <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
+            <CostScatter results={results} />
+          </div>
+        </div>
+        <div className="lg:pt-14">
+          <HowToRead>
+            Each dot is a model: its +10 score against what one +10 episode costs, on a log scale. Up and to the
+            left is better value. Every model runs at the same named reasoning effort (medium), but that setting
+            buys different amounts of thinking from different providers, so cost is the fairer axis: where we
+            also ran a model at low and high effort, its dashed line shows how its score moves with spend. A
+            model that clears early costs less, because it plays fewer pulls. Costs are list prices for the
+            tokens used, thinking included; every reply is recorded, so replaying a run is free.
+          </HowToRead>
+        </div>
+      </section>
+
       <section className="pt-20">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h2 className="text-[20px] font-medium text-fg">Does it learn between wipes?</h2>
@@ -123,29 +142,16 @@ function ResultsBody({ results }: { results: Results }) {
           <LearningCurves results={results} tier={tier} />
         </div>
         <HowToRead>
-          Each solid line is one model's mean score at each pull, across episodes. A line that climbs means the
-          notes it wrote after a wipe helped on the next pull; each pull uses a new seed, so it can't just
-          memorize timings. A dashed line in a model's color is its memory-off control, which plays the same
-          pulls with its notes wiped. The grey dashed rules are the scripted bots, which don't learn, and the
+          Each solid line is one model's mean score at each pull, across episodes, with an episode that cleared
+          carrying its clearing score forward. It shows observed progression, not proof that the notes helped:
+          that's what the memory-off control is for. A dashed line in a model's color is that control, which
+          plays the same seeds with no talk and no notes between pulls; the learning effect is the paired
+          difference between the two. Each pull uses a new seed, so a party can't just memorize timings. The grey dashed rules are the scripted bots, which don't learn, and the
           dotted rule at 70 is the line between a wipe and a clear.
         </HowToRead>
       </section>
 
-      <section className="grid gap-8 pt-20 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-12">
-        <div>
-          <h2 className="text-[20px] font-medium text-fg">What a score costs</h2>
-          <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
-            <CostScatter results={results} />
-          </div>
-        </div>
-        <div className="lg:pt-14">
-          <HowToRead>
-            Each dot is a model: its MythicBench score against what one run costs, on a log scale. Up and to the left is better value. A model that clears early also
-            costs less, because it plays fewer pulls. Costs are list prices for the tokens each run used, with
-            every reply recorded, so replaying a run is free.
-          </HowToRead>
-        </div>
-      </section>
+
     </>
   )
 }

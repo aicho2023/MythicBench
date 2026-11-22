@@ -226,9 +226,36 @@ def test_debrief_covers_the_dungeon():
     assert "DUNGEON:" in text and "Chapel pack" in text and "Grave Volley" in text
 
 
-def test_debrief_says_when_a_kill_was_over_time():
-    rep = json.loads((REPLAYS / "expert-clear.json").read_text())
-    rep["meta"]["time_limit_ms"] = rep["meta"]["duration_ms"] - 1000
-    assert "does not count as a clear" in debrief_text(rep)
-    rep["meta"]["time_limit_ms"] = rep["meta"]["duration_ms"] + 60_000
-    assert "does not count" not in debrief_text(rep)
+def test_debrief_reports_a_timeout_as_a_timeout():
+    rep = json.loads((REPLAYS / "competent-run.json").read_text())
+    rep["meta"]["outcome"] = "timeout"
+    text = debrief_text(rep)
+    assert text.startswith("RESULT: time ran out") and "wiped" not in text.split("\n")[0]
+
+
+def test_talk_and_notes_have_their_own_reply_format():
+    rec = Recorder()
+    run_episode(rec, 0, max_pulls=2, memory=True, max_calls=3)
+    review = [(sy, u) for sy, u in rec.calls if "THE PULL (PULL" in u]
+    assert review
+    for system, _ in review:
+        assert "Reply with ONLY a JSON object, no prose" not in system  # no combat order format
+        assert '"message"' in system or '"notes"' in system
+
+
+def test_ready_must_be_json_true_and_notes_are_capped_exactly():
+    from mythicsim.llm.policy import Agent
+    from mythicsim.llm.progress import NOTES_WORD_CAP, team_talk
+
+    class Says:
+        spec = "fake:says"
+        def complete(self, system, user, tag=""):
+            if "WRITE YOUR NOTES" in user:
+                return Reply(json.dumps({"notes": "word " * 415}), 1, 1)
+            return Reply(json.dumps({"message": "hi", "ready": "false"}), 1, 1)
+
+    agents = {m.id: Agent(m.id, system_prompt(me=m.id)) for m in C.PARTY}
+    talk = team_talk(Says(), agents, {}, "log", 1, "t", [])
+    assert not any(x["ready"] for x in talk) and len(talk) == 15  # "false" is not ready: all three rounds
+    notes, _ = write_notes(Says(), agents["lumi"], "", "log", talk, 1, "t")
+    assert len(notes.split()) == NOTES_WORD_CAP + 1  # 350 words and the trailing ellipsis

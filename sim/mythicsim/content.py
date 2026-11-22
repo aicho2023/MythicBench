@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-CONTENT_VERSION = "1.2.0"
+CONTENT_VERSION = "1.3.0"
 
 GCD_MS = 1000
 MELEE_RANGE = 3.0

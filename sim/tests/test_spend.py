@@ -115,8 +115,8 @@ def test_budget_stops_a_run_and_keeps_finished_fights(sandbox, capsys):
     m = manifest(sandbox)
     assert m["status"] == "stopped" and "budget" in m["note"]
     assert [i["seed"] for i in m["items"]] == [0]
-    # The five agents call in parallel, so the meter can overshoot by up to one call each.
-    assert budget <= m["summary"]["spent_usd"] <= budget + 5 * 0.01 + 1e-9
+    # Each call reserves its worst case first, so the run stops at or under its budget, never over.
+    assert budget - 0.5 <= m["summary"]["spent_usd"] <= budget
     assert spend.total_spent() == pytest.approx(m["summary"]["spent_usd"])
     assert "STOPPED EARLY" in capsys.readouterr().out
     cat = json.loads((sandbox.parent / "local" / "catalog.json").read_text())

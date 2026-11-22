@@ -101,7 +101,7 @@ export function LearningPanel({ onShowMeter }: { onShowMeter: () => void }) {
         <Strip label="Score" pulls={pulls} value={(p) => p.score} fmt={(v) => v.toFixed(0)} max={100} current={prog.pull} onPick={pick} height={40} killLine={70} />
         <Strip label="Deaths" pulls={pulls} value={(p) => p.deaths ?? null} fmt={(v) => `${v}`} max={Math.max(5, ...pulls.map((p) => p.deaths ?? 0))} current={prog.pull} onPick={pick} />
         <Strip label="Interrupts landed" pulls={pulls} value={(p) => (p.kicks && p.kicks[1] ? (100 * p.kicks[0]) / p.kicks[1] : null)} fmt={(v) => `${v.toFixed(0)}%`} max={100} current={prog.pull} onPick={pick} />
-        <Strip label="Avoidable damage" pulls={pulls} value={(p) => p.avoidable ?? null} fmt={fmtNum} max={Math.max(1, ...pulls.map((p) => p.avoidable ?? 0))} current={prog.pull} onPick={pick} />
+        <Strip label="Pool damage taken" pulls={pulls} value={(p) => p.avoidable ?? null} fmt={fmtNum} max={Math.max(1, ...pulls.map((p) => p.avoidable ?? 0))} current={prog.pull} onPick={pick} />
         {first && here && (
           <Link to={`/compare?a=${encodeURIComponent(first.id)}&b=${encodeURIComponent(here.id)}`}
             className="mx-3 mt-2 block text-meta text-fg-faint transition-colors hover:text-fg">Compare with pull 1 side by side</Link>

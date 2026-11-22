@@ -43,7 +43,7 @@ describe('the sample dataset', () => {
     expect(b.rank).toBeNull()
   })
   it('costs a run as one episode per tier', () => {
-    expect(costPerRun(sample.leaderboard[0])).toBe(0)
+    expect(costPerRun(sample.leaderboard[0], sample)).toBe(0)
   })
 })
 

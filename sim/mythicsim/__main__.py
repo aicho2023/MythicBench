@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import math
 import statistics
 from pathlib import Path
@@ -18,7 +19,7 @@ from . import runs as runs_mod
 from . import spend
 from .engine import SIM_VERSION, Encounter
 from .llm import HARNESS_VERSION, prompt_hash
-from .llm.clients import EFFORTS, CachedClient, ClientError, make_client
+from .llm.clients import EFFORTS, CachedClient, ClientError, NoNetwork, make_client
 from .llm.policy import add_chat_events, make_llm_policies
 from .metrics import score
 from .policies import PROFILES, make_policies
@@ -111,8 +112,12 @@ def build_client(args, n_fights: int):
     """The model client wrapped for recording and money: ``tally`` (outside
     the recording) measures the run's cost from scratch; ``meter`` (inside it)
     charges only real API calls against the run budget and the project cap."""
+    if args.offline and args.no_cache:
+        raise SystemExit("--offline replays recorded replies; it can't be combined with --no-cache")
     client = make_client(args.model, args.effort)
     label = client.spec  # includes @effort when set
+    if args.offline:
+        client = NoNetwork(label)  # offline can never reach a provider
     price = spend.price_for(label, args.price_in, args.price_out, args.price_cached)
     paid = not args.offline and not label.startswith(("mock:", "scripted:"))
     if price is None:
@@ -264,13 +269,15 @@ def run_progress(args) -> dict:
     """Learning over pulls: episodes of repeated attempts with notes between pulls.
     Returns the run's manifest."""
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    from .llm.progress import run_episode, summarize
+    from .llm.progress import DEFAULT_SEED_BASE, run_episode, summarize
     episodes = parse_seeds(args.episodes)
     memory = args.memory == "on"
+    seed_base = getattr(args, "seed_base", None) or DEFAULT_SEED_BASE
     client, label, price, meter = build_client(args, len(episodes) * args.max_pulls)
     run = runs_mod.new_run(label, mode="progression", name=args.name, tags=args.tag, config={
         "episodes": episodes, "max_pulls": args.max_pulls, "memory": memory, "knowledge": args.knowledge,
         "interval_ms": args.interval_ms, "max_calls": args.max_calls, "tier": args.tier, "dungeon_mode": args.mode,
+        "seed_base": seed_base,
         "harness_version": HARNESS_VERSION, "prompt_hash": prompt_hash(args.knowledge, args.tier, args.mode),
         "sim_version": SIM_VERSION, "content_version": C.CONTENT_VERSION,
         "offline": args.offline, "cache": not args.no_cache,
@@ -300,19 +307,25 @@ def run_progress(args) -> dict:
 
     results = []
     stopped = None
+    unfinished: list[str] = []
     with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
         futures = {pool.submit(run_episode, client, e, max_pulls=args.max_pulls, memory=memory,
                                knowledge=args.knowledge, interval_ms=args.interval_ms,
                                max_calls=args.max_calls, tier=args.tier, mode=args.mode,
-                               on_pull=on_pull): e for e in episodes}
+                               on_pull=on_pull, seed_base=seed_base): e for e in episodes}
         for fut in as_completed(futures):
             try:
                 ep = fut.result()
                 results.append(ep)
-                # Marks the episode complete (the campaign resumes from these).
-                (run.dir / "episodes" / str(ep.episode) / "episode.json").write_text(json.dumps({
-                    "episode": ep.episode, "pulls": len(ep.pulls), "complete": True,
-                    "cleared_on": ep.killed_on}))
+                # Marks the episode complete, with its own pull list (the
+                # campaign resumes from these even if a later episode fails).
+                # Written to a temp file and renamed: never half-written.
+                ep_dir = run.dir / "episodes" / str(ep.episode)
+                tmp = ep_dir / "episode.json.tmp"
+                tmp.write_text(json.dumps({
+                    "episode": ep.episode, "pulls": len(ep.pulls), "complete": True, "seed_base": seed_base,
+                    "cleared_on": ep.killed_on, "items": episode_items(ep)}))
+                os.replace(tmp, ep_dir / "episode.json")
             except spend.BudgetExceeded as err:
                 # The interrupted episode's finished pulls are on disk but not
                 # counted: a cut-short episode would bias pulls-to-kill.
@@ -320,22 +333,28 @@ def run_progress(args) -> dict:
                     f.cancel()
                 stopped = stopped or str(err)
             except ClientError as err:
+                if not err.fatal:
+                    # Retries used up: this episode stops unfinished (not
+                    # checkpointed). Rerunning replays its recorded calls for
+                    # free and asks the failed one again. Others carry on.
+                    unfinished.append(f"episode {futures[fut]}: {str(err)[:200]}")
+                    print(f"episode {futures[fut]} left unfinished (rerun to resume): {err}", flush=True)
+                    continue
                 for f in futures:
                     f.cancel()
                 run.manifest.update(status="failed", error=str(err)[:500], **money_summary(client, meter, 0))
                 run.save_manifest()
                 raise SystemExit(f"episode {futures[fut]}: {err}")
     results.sort(key=lambda e: e.episode)
+    if unfinished:
+        stopped = stopped or "; ".join(unfinished)
     if stopped and not results:
         run.manifest.update(status="stopped", error=stopped, **money_summary(client, meter, 0))
         run.save_manifest()
         raise SystemExit(f"stopped before any episode finished: {stopped}")
     summary = summarize(results, args.max_pulls)
     summary.update(money_summary(client, meter, sum(len(e.pulls) for e in results)))
-    items = [{"episode": e.episode, "pull": p.pull, "seed": p.seed, "file": f"episodes/{e.episode}/pull-{p.pull}.json",
-              "outcome": p.metrics["outcome"], "in_time": p.metrics.get("in_time", False),
-              "score": p.metrics["score"], "duration_s": p.metrics["duration_s"], **pull_facts(p.metrics)}
-             for e in results for p in e.pulls]
+    items = [it for e in results for it in episode_items(e)]
     runs_mod.finish_run(run, summary, items, status="stopped" if stopped else "done", note=stopped)
     runs_mod.publish(only=[run.run_id])
     print(json.dumps({k: v for k, v in summary.items() if k not in ("score_mean", "win_rate")}, indent=2))
@@ -343,6 +362,14 @@ def run_progress(args) -> dict:
     if stopped:
         print(f"STOPPED EARLY: {stopped}. Kept {len(results)} of {len(episodes)} complete episodes.")
     return run.manifest
+
+
+def episode_items(e) -> list[dict]:
+    """The manifest items (one per pull) of a finished episode."""
+    return [{"episode": e.episode, "pull": p.pull, "seed": p.seed, "file": f"episodes/{e.episode}/pull-{p.pull}.json",
+             "outcome": p.metrics["outcome"], "in_time": p.metrics.get("in_time", False),
+             "score": p.metrics["score"], "duration_s": p.metrics["duration_s"], **pull_facts(p.metrics)}
+            for p in e.pulls]
 
 
 def pull_facts(m: dict) -> dict:
@@ -469,6 +496,7 @@ def main() -> None:
     pg.add_argument("--workers", type=int, default=1, help="episodes to play in parallel")
     pg.add_argument("--offline", action="store_true")
     pg.add_argument("--no-cache", action="store_true")
+    pg.add_argument("--seed-base", type=int, help="first seed of the pull schedule (default 10000; a protocol sets its own)")
     pg.add_argument("--cache-dir", type=Path, help="where recorded replies live (a campaign records into runs/cache/<protocol name>)")
     pg.add_argument("--name")
     pg.add_argument("--tag", action="append", default=[])
@@ -497,6 +525,9 @@ def main() -> None:
     cp.add_argument("--workers", type=int, default=3, help="episodes to play in parallel per model and tier")
     cp.add_argument("--budget-usd", type=float, help="stop the campaign after spending this much this time")
     cp.add_argument("--offline", action="store_true", help="only use recorded replies (rebuild from recordings)")
+    cp.add_argument("--verify", action="store_true",
+                    help="release check: replay every counted episode from the recordings alone and compare; "
+                         "exits nonzero on any difference")
     cp.add_argument("--allow-dirty", action="store_true", help="allow a paid campaign from uncommitted code (pilots only)")
     cp.add_argument("--cells", type=int, default=1,
                     help="model x tier cells to play at once (each plays --workers episodes at once); default 1")
@@ -523,7 +554,9 @@ def main() -> None:
     elif args.cmd == "runs":
         run_runs(args)
     elif args.cmd == "campaign":
-        from .campaign import load_protocol, run_campaign
+        from .campaign import load_protocol, run_campaign, verify_campaign
+        if args.verify:
+            raise SystemExit(verify_campaign(load_protocol(args.protocol)))
         run_campaign(load_protocol(args.protocol), only=args.only, dry_run=args.dry_run, workers=args.workers,
                      budget_usd=args.budget_usd, offline=args.offline, allow_dirty=args.allow_dirty, cells=args.cells)
     elif args.cmd == "results":

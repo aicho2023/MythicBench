@@ -5,6 +5,8 @@ from __future__ import annotations
 import functools
 import hashlib
 import json
+import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -120,7 +122,7 @@ def test_incomplete_cells_are_not_ranked(sandbox):
 
 def test_paid_campaign_refuses_uncommitted_code(sandbox, monkeypatch):
     tmp, proto = sandbox
-    paid = dict(proto, models=[{"provider": "anthropic", "id": "claude-haiku-5-5", "effort": "medium"}])
+    paid = dict(proto, models=[{"provider": "anthropic", "id": "claude-haiku-5-5", "effort": "medium"}], controls=[])
     monkeypatch.setattr(K, "dirty_files", lambda: ["sim/mythicsim/engine.py"])
     with pytest.raises(SystemExit, match="uncommitted"):
         K.run_campaign(paid)
@@ -154,11 +156,111 @@ def test_cells_in_parallel_give_the_same_results(sandbox):
     assert a["leaderboard"][0]["complete"]
 
 
-def test_project_cap_holds_across_parallel_runs(monkeypatch):
-    g = spend.ProjectGuard()
+def test_a_shared_cap_is_never_overshot_by_parallel_calls():
+    from concurrent.futures import ThreadPoolExecutor
+    from mythicsim.llm.clients import Reply
+
+    class Paid:
+        spec = "fake:paid"
+        def complete(self, system, user, tag=""):
+            import time
+            time.sleep(0.01)
+            return Reply("ok", 1000, 1000)
+
+    price = spend.Price(input=100.0, output=100.0, cached=100.0)  # $0.20 per call actual, worst case far more
+    g = spend.CAMPAIGN
+    g.disarm()
+    g.arm(5.0)
+    try:
+        meter = spend.CostMeter(Paid(), price, ledger=None, limit_usd=None)
+        meter.ledger = Path(tempfile.mkdtemp()) / "spend.jsonl"
+        def go(_):
+            try:
+                meter.complete("s" * 100, "u" * 100)
+            except spend.BudgetExceeded:
+                pass
+        with ThreadPoolExecutor(8) as pool:
+            list(pool.map(go, range(100)))
+        assert g.spent <= 5.0 and abs(g.reserved) < 1e-9
+    finally:
+        g.disarm()
+
+
+def test_a_second_arm_doesnt_reset_the_guard():
+    g = spend.Guard("test")
     g.arm(cap=1.0, already_spent=0.9)
-    g.arm(cap=99.0, already_spent=0.0)  # a second run arming again doesn't reset it
-    g.check()
-    g.add(0.1)
+    g.arm(cap=99.0, already_spent=0.0)
     with pytest.raises(spend.BudgetExceeded):
-        g.check()
+        g.reserve(0.2)
+
+
+def test_changing_the_rules_retires_old_episodes(sandbox):
+    """GPT's repro: one-pull episodes must not count once the protocol says three."""
+    tmp, proto = sandbox
+    short = dict(proto, max_pulls=1, controls=[])
+    K.run_campaign(short)
+    longer = dict(short, max_pulls=3)
+    res = K.build_results(longer, tmp / "res", tmp / "runs", with_bots=False)
+    assert res["leaderboard"] == []  # nothing played under the 3-pull rules yet
+    assert all(not K.finished_episodes(c.key(longer), tmp / "runs") for c in K.combos(longer))
+
+
+def test_only_contiguous_episodes_that_end_properly_count():
+    v = K.valid_episode
+    wipe = lambda k: {"pull": k, "outcome": "wipe", "score": 40}  # noqa: E731
+    clear = lambda k: {"pull": k, "outcome": "victory", "in_time": True, "score": 80}  # noqa: E731
+    assert v([wipe(1), wipe(2), wipe(3)], 3)
+    assert v([wipe(1), clear(2)], 3)
+    assert not v([wipe(1), wipe(2)], 3)  # stopped early without a clear
+    assert not v([wipe(1), wipe(3)], 3)  # a gap
+    assert not v([clear(1), wipe(2)], 3)  # played on after a clear
+
+
+def test_finished_episodes_survive_a_failed_run(sandbox):
+    tmp, proto = sandbox
+    small = dict(proto, controls=[], tiers=["plus10"], episodes=1)
+    K.run_campaign(small)
+    (c,) = K.combos(small)
+    run_id = K.finished_episodes(c.key(small), tmp / "runs")[0][0]["run_id"]
+    man = tmp / "runs" / run_id / "manifest.json"
+    m = json.loads(man.read_text())
+    m["items"], m["status"] = [], "failed"  # the run died later: its manifest never got items
+    man.write_text(json.dumps(m))
+    assert 0 in K.finished_episodes(c.key(small), tmp / "runs", small["max_pulls"])  # the checkpoint still counts
+
+
+def test_learning_effect_is_paired_by_episode(sandbox):
+    tmp, proto = sandbox
+    proto = dict(proto, tiers=["plus10"], episodes=1, controls=[{"model": "basic", "memory": False, "episodes": 2}])
+    K.run_campaign(proto)
+    res = K.build_results(proto, tmp / "res", tmp / "runs", with_bots=False)
+    cell = res["leaderboard"][0]["tiers"]["plus10"]
+    assert cell["episodes"] == 1  # ranked on the protocol's episode count
+    pairs = cell["learning_pairs"]
+    assert [p["episode"] for p in pairs] == [0, 1]
+    assert cell["learning_effect"] == round(sum(p["on"] - p["off"] for p in pairs) / 2, 1)
+
+
+def test_protocol_roles_merge_into_cells():
+    proto = {**PROTO, "tiers": ["plus10"], "episodes": 6,
+             "controls": [{"model": "basic", "episodes": 12}],
+             "sanity": [{"model": "basic", "tiers": ["normal"], "episodes": 3}],
+             "efforts": [{"model": "basic", "efforts": ["low"], "episodes": 3}]}
+    cs = {(c.spec, c.tier, c.memory): c for c in K.combos(proto)}
+    assert cs[("mock:basic", "plus10", True)].episodes == tuple(range(12))  # ranked side extended for pairing
+    assert cs[("mock:basic", "plus10", False)].role == "control"
+    assert cs[("mock:basic", "normal", True)].role == "sanity"
+
+
+def test_verify_replays_the_campaign_from_recordings(sandbox, capsys):
+    tmp, proto = sandbox
+    proto = dict(proto, tiers=["plus10"], episodes=1, controls=[])
+    K.run_campaign(proto)
+    assert K.verify_campaign(proto, tmp / "runs") == 0
+    rec = next((tmp / "runs" / "cache" / proto["name"]).glob("*.jsonl"))
+    lines = rec.read_text().splitlines()
+    rec.write_text("\n".join(lines[: len(lines) // 2]) + "\n")  # lose half the recording
+    from mythicsim.llm import clients
+    clients._RECORDINGS.clear()
+    assert K.verify_campaign(proto, tmp / "runs") == 1
+    assert "FAIL" in capsys.readouterr().out

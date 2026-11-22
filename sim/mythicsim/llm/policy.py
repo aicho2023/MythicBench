@@ -282,12 +282,12 @@ class Party:
 
         def call(job):
             a, _, user, tag = job
-            try:
-                return self.client.complete(a.system, user, tag=tag)
-            except ClientError as err:
-                if err.fatal:
-                    raise
-                return err
+            # Any ClientError propagates: a fatal one stops the run; a transport
+            # failure (retries used up) stops this episode unrecorded, so a
+            # resumed campaign replays it from the recorded calls and asks the
+            # failed one again. Playing on without the reply would make an
+            # episode that can't be replayed.
+            return self.client.complete(a.system, user, tag=tag)
 
         if self.parallel and len(jobs) > 1:
             with ThreadPoolExecutor(max_workers=len(jobs)) as pool:

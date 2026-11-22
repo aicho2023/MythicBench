@@ -93,7 +93,7 @@ def price_for(label: str, price_in: float | None = None, price_out: float | None
     """Price for ``provider:model[@effort]``; explicit ``--price-*`` flags win."""
     provider, _, rest = label.partition(":")
     model = rest.partition("@")[0]
-    if provider == "mock":
+    if provider in ("mock", "scripted"):
         return FREE
     if price_in is not None and price_out is not None:
         return Price(price_in, price_out, price_in if price_cached is None else price_cached)
@@ -147,34 +147,55 @@ class BudgetExceeded(ClientError):
         super().__init__(msg, fatal=True)
 
 
-class ProjectGuard:
-    """The project cap, enforced live across every run in this process.
+class Guard:
+    """A spending cap shared by every metered call in this process.
 
-    Each run checks the cap when it starts, but runs played in parallel (a
-    campaign's cells) would each see the same money left. This adds up what
-    all metered runs in the process have spent since the guard was armed."""
+    Before each real API call, its worst-case cost (its input plus the full
+    output cap) is reserved; the call is refused if the reservation would
+    cross the cap. Afterwards the reservation becomes the actual cost. So
+    calls running in parallel (a campaign's cells, its episodes, the five
+    agents) can stop a little early, but never overshoot."""
 
-    def __init__(self) -> None:
+    def __init__(self, name: str) -> None:
+        self.name = name
         self._lock = threading.Lock()
         self.cap: float | None = None
-        self.base = 0.0
+        self.base = 0.0  # spent before this process armed the guard
         self.spent = 0.0
+        self.reserved = 0.0
 
-    def arm(self, cap: float, already_spent: float) -> None:
+    def arm(self, cap: float, already_spent: float = 0.0) -> None:
         with self._lock:
             if self.cap is None:
-                self.cap, self.base, self.spent = cap, already_spent, 0.0
+                self.cap, self.base, self.spent, self.reserved = cap, already_spent, 0.0, 0.0
 
-    def check(self) -> None:
-        if self.cap is not None and self.base + self.spent >= self.cap:
-            raise BudgetExceeded(f"project budget of ${self.cap:.2f} reached (spent ${self.base + self.spent:.2f})")
-
-    def add(self, usd: float) -> None:
+    def disarm(self) -> None:
         with self._lock:
-            self.spent += usd
+            self.cap = None
+
+    def reserve(self, usd: float) -> None:
+        with self._lock:
+            if self.cap is not None and self.base + self.spent + self.reserved + usd > self.cap:
+                raise BudgetExceeded(f"{self.name} budget of ${self.cap:.2f} reached "
+                                     f"(spent ${self.base + self.spent:.2f}, ${self.reserved:.2f} in flight)")
+            self.reserved += usd
+
+    def settle(self, reserved: float, cost: float) -> None:
+        with self._lock:
+            self.reserved -= reserved
+            self.spent += cost
 
 
-PROJECT = ProjectGuard()
+PROJECT = Guard("project")  # MYTHICBENCH_TOTAL_BUDGET_USD, across everything ever spent
+CAMPAIGN = Guard("campaign")  # campaign --budget-usd, across all of a campaign's cells
+ProjectGuard = Guard  # older name
+
+
+def worst_case_usd(price: Price, system: str, user: str) -> float:
+    """An upper bound for one call: every input token uncached (about 3
+    characters a token, generous) and the full output cap used."""
+    from .llm.clients import MAX_OUTPUT_TOKENS
+    return price.cost((len(system) + len(user)) // 3 + 1, MAX_OUTPUT_TOKENS)
 
 
 @dataclass
@@ -182,10 +203,11 @@ class CostMeter:
     """Wraps a client and adds up what its calls cost.
 
     Placed *inside* the replay cache it sees only real API calls: with
-    ``limit_usd`` it refuses calls once the limit is reached, and with
-    ``ledger`` it appends each call to the project spend log. Placed *outside*
-    the cache (no limit, no ledger) it measures what the run would cost from
-    scratch, which is the number to report next to a score.
+    ``limit_usd`` (the run's budget) and ``ledger`` it reserves each call's
+    worst case against the run budget, the campaign budget and the project
+    cap before sending it, and logs what it cost. Placed *outside* the cache
+    (no limit, no ledger) it measures what the run would cost from scratch,
+    which is the number to report next to a score.
     """
     inner: ChatClient
     price: Price
@@ -195,24 +217,44 @@ class CostMeter:
     spec: str = ""
     usd: float = 0.0
     calls: int = 0
+    reserved: float = 0.0
     _lock: threading.Lock = field(default_factory=threading.Lock)
 
     def __post_init__(self) -> None:
         self.spec = self.inner.spec
 
     def complete(self, system: str, user: str, tag: str = "") -> Reply:
-        # Calls already in flight on other threads may finish after the limit
-        # is reached, so a run can overshoot by about one call per worker.
-        if self.limit_usd is not None and self.usd >= self.limit_usd:
-            raise BudgetExceeded(f"budget of ${self.limit_usd:.2f} reached (spent ${self.usd:.2f})")
-        if self.ledger is not None:
-            PROJECT.check()
-        reply = self.inner.complete(system, user, tag=tag)
-        cost = self.price.reply_cost(reply)
-        if self.ledger is not None:
-            PROJECT.add(cost)
+        metered = self.ledger is not None or self.limit_usd is not None
+        est = worst_case_usd(self.price, system, user) if metered else 0.0
+        if metered:
+            with self._lock:
+                if self.limit_usd is not None and self.usd + self.reserved + est > self.limit_usd:
+                    raise BudgetExceeded(f"budget of ${self.limit_usd:.2f} reached (spent ${self.usd:.2f})")
+                self.reserved += est
+            held = []
+            try:
+                for g in (PROJECT, CAMPAIGN) if self.ledger is not None else ():
+                    g.reserve(est)
+                    held.append(g)
+            except BudgetExceeded:
+                for g in held:
+                    g.settle(est, 0.0)
+                with self._lock:
+                    self.reserved -= est
+                raise
+        else:
+            held = []
+        cost = 0.0
+        try:
+            reply = self.inner.complete(system, user, tag=tag)
+            cost = self.price.reply_cost(reply)
+        finally:
+            for g in held:
+                g.settle(est, cost)
+            with self._lock:
+                self.reserved -= est
+                self.usd += cost
         with self._lock:
-            self.usd += cost
             self.calls += 1
             if self.ledger is not None:
                 self.ledger.parent.mkdir(parents=True, exist_ok=True)
@@ -229,17 +271,19 @@ class CostMeter:
 # Up-front estimate
 # ---------------------------------------------------------------------------
 
-# Measured on the boss fight with Haiku (Nov 2026): ~3,900 input tokens per call,
-# ~70% of them read from the prompt cache, and ~550 output tokens without
-# thinking. A dungeon run makes about 1.5x the calls of the boss fight.
-CALLS_PER_FIGHT = {"boss": 100, "dungeon": 150}
-EST_INPUT, EST_CACHED_SHARE, EST_OUTPUT = 3900, 0.7, 550
+# Measured in the five-agent pilot (Haiku and GPT-6 Luna, +10, Nov 2026): about
+# 500 calls per dungeon pull plus ~20 between pulls (talk and notes), ~5,600
+# input tokens per call with ~69% read from the prompt cache, and ~600 output
+# tokens per call for Haiku. Thinking models write more: the fallback assumes
+# 1,000 output tokens per call, so it errs high for them.
+CALLS_PER_FIGHT = {"boss": 300, "dungeon": 520}
+EST_INPUT, EST_CACHED_SHARE, EST_OUTPUT = 5600, 0.69, 1000
 
 
 def estimate_fight_usd(price: Price, mode: str, label: str, path: Path | None = None) -> tuple[float, str]:
-    """Rough cost of one fight: from this model's own past calls when there are
-    some, else from the measured Haiku profile (which knows nothing about how
-    much a thinking model writes, so treat it as a floor for those)."""
+    """Rough cost of one pull (talk and notes included): this model's own past
+    calls when there are some, else the measured five-agent profile with a
+    generous output allowance (so it errs high)."""
     past = [r for r in read_ledger(path) if r["spec"] == label]
     calls = CALLS_PER_FIGHT.get(mode, 150)
     if len(past) >= 20:

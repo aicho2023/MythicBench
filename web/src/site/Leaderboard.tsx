@@ -50,7 +50,7 @@ export function LeaderboardTable({ results }: { results: Results }) {
             <th className={`${TH} hidden text-right lg:table-cell`}>{tierName(results, hard)} clear rate</th>
             <th className={`${TH} hidden text-right lg:table-cell`}>Pulls to clear {tierName(results, hard)}</th>
             {hasEffect && <th className={`${TH} hidden text-right xl:table-cell`} title="Progression score with memory on minus memory off, same seeds">Learning effect {tierName(results, hard)}</th>}
-            <th className={`${TH} hidden pr-0 text-right sm:table-cell`}>Cost per run</th>
+            <th className={`${TH} hidden pr-0 text-right sm:table-cell`}>Cost per {tierName(results, hard)} episode</th>
             <th className="w-6" aria-hidden />
           </tr>
         </thead>
@@ -81,7 +81,7 @@ export function LeaderboardTable({ results }: { results: Results }) {
                 <td className={`${TD} ${NUM} hidden text-fg-muted lg:table-cell`}>{fmtPct(row.tiers[hard]?.clear_rate)}</td>
                 <td className={`${TD} ${NUM} hidden text-fg-muted lg:table-cell`} title={p.title}>{p.text}</td>
                 {hasEffect && <td className={`${TD} ${NUM} hidden text-fg-muted xl:table-cell`} title={effectTitle(row.tiers[hard])}>{effectText(row.tiers[hard]?.learning_effect)}</td>}
-                <td className={`${TD} ${NUM} hidden pr-0 text-fg-muted sm:table-cell`}>{fmtUsd(costPerRun(row))}</td>
+                <td className={`${TD} ${NUM} hidden pr-0 text-fg-muted sm:table-cell`}>{fmtUsd(costPerRun(row, results))}</td>
                 <td className="w-6 text-fg-faint transition-colors group-hover:text-fg"><ChevronRight size={16} /></td>
               </tr>
             )

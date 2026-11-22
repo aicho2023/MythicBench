@@ -40,20 +40,26 @@ from ..metrics import score
 from .clients import ChatClient, ClientError
 from .debrief import debrief_text
 from .policy import PARTY_IDS, Agent, BrainStats, add_chat_events, make_llm_policies
+from .prompt import NOTES_HEADER, ORDER_FORMAT_MARK
 
 NOTES_WORD_CAP = 350
 MESSAGE_WORD_CAP = 150
 TALK_ROUNDS = 3
 
 
-def pull_seed(episode: int, pull: int) -> int:
-    """Seed of a pull. Disjoint from the 0..9999 single-fight seeds."""
-    return 10_000 + episode * 100 + pull
+DEFAULT_SEED_BASE = 10_000
+
+
+def pull_seed(episode: int, pull: int, base: int = DEFAULT_SEED_BASE) -> int:
+    """Seed of a pull. Disjoint from the 0..9999 single-fight seeds. A protocol
+    sets its own ``seed_base``, so an official run plays seeds nobody tuned on."""
+    return base + episode * 100 + pull
 
 
 def _cap(text: str, words: int) -> str:
+    """At most ``words`` words: the stated limit, exactly."""
     w = text.split()
-    return text.strip() if len(w) <= words * 1.2 else " ".join(w[:words]) + " …"
+    return text.strip() if len(w) <= words else " ".join(w[:words]) + " …"
 
 
 def _json(text: str) -> dict | None:
@@ -69,6 +75,34 @@ def _talk_lines(talk: list[dict]) -> str:
     names = {m.id: m.name for m in C.PARTY}
     said = [f"  {names[x['agent']]} ({x['agent']}): {x['message']}" for x in talk if x["message"]]
     return "\n".join(said) if said else "  (nobody has spoken yet)"
+
+
+# Between pulls each phase has its own instructions and reply format (the
+# combat rules are attached for reference, without their order format).
+# They say what is happening and what to reply with: nothing about what to learn.
+TALK_SYSTEM = """You are {name} ({uid}), the {cls} ({role}), in a party of five adventurers. Each of the other four characters is played by another player. The last pull is over, and the party is talking before the next one: everyone takes turns speaking, and the talk ends when everyone says they're ready (or after {rounds} rounds).
+
+Reply with ONLY a JSON object: {{"message": "<what you say to the party; an empty string to say nothing>", "ready": <true when you have nothing more to discuss, else false>}}"""
+
+NOTES_SYSTEM = """You are {name} ({uid}), the {cls} ({role}), in a party of five adventurers. The last pull is over. Write your notes for the next pull: they replace your current notes, and they are the only thing you will have from this pull and this talk when the next pull starts. At most {cap} words.
+
+Reply with ONLY a JSON object: {{"notes": "<your notes>"}}"""
+
+RULES_MARK = "\n\n## The game's rules, for reference\n"
+
+
+def _who(uid: str) -> dict:
+    m = next(x for x in C.PARTY if x.id == uid)
+    cd = C.CLASSES[m.cls]
+    return {"name": m.name, "uid": uid, "cls": cd.name, "role": cd.role, "rounds": TALK_ROUNDS, "cap": NOTES_WORD_CAP}
+
+
+def _rules_of(agent: Agent) -> str:
+    """The agent's combat rules without their order format and without its
+    notes (the review passes the notes in, marked as notes)."""
+    rules = agent.system.split(NOTES_HEADER)[0]
+    rules = rules.split(ORDER_FORMAT_MARK)[0]
+    return RULES_MARK + rules
 
 
 def _review(pull: int, notes: str, debrief: str) -> str:
@@ -100,18 +134,9 @@ def team_talk(client: ChatClient, agents: dict[str, Agent], notes: dict[str, str
         for uid in PARTY_IDS:
             user = (_review(pull, notes.get(uid, ""), debrief)
                     + f"PARTY TALK (before pull {pull + 1}, round {rnd} of at most {TALK_ROUNDS}):\n{_talk_lines(talk)}\n\n"
-                    + "It's your turn to speak. The talk ends when everyone is ready.\n"
-                    + 'Reply with ONLY a JSON object: {"message": "<what you say to the party, or \\"\\" to say nothing>", '
-                    + '"ready": <true if you have nothing more to discuss>}')
-            try:
-                reply = client.complete(agents[uid].system, user, tag=f"{scope}|talk|{rnd}|{uid}")
-            except ClientError as err:
-                if err.fatal:
-                    raise
-                problems.append(f"talk {uid} round {rnd}: {err}")
-                if acc is not None:
-                    acc.api_errors += 1
-                continue
+                    + "It's your turn to speak.")
+            reply = client.complete(TALK_SYSTEM.format(**_who(uid)) + _rules_of(agents[uid]), user,
+                                    tag=f"{scope}|talk|{rnd}|{uid}")
             _count(acc, reply)
             d = _json(reply.text)
             if d is None:
@@ -119,11 +144,13 @@ def team_talk(client: ChatClient, agents: dict[str, Agent], notes: dict[str, str
                 if acc is not None:
                     acc.unusable_replies += 1
                 continue
-            msg = _cap(str(d.get("message") or ""), MESSAGE_WORD_CAP)
-            talk.append({"round": rnd, "agent": uid, "message": msg, "ready": bool(d.get("ready")),
+            raw_msg = d.get("message")
+            msg = _cap(raw_msg, MESSAGE_WORD_CAP) if isinstance(raw_msg, str) else ""
+            is_ready = d.get("ready") is True  # JSON true only: "false" or "yes" don't count
+            talk.append({"round": rnd, "agent": uid, "message": msg, "ready": is_ready,
                          "thinking": reply.thinking, "input_tokens": reply.input_tokens,
                          "output_tokens": reply.output_tokens})
-            if d.get("ready"):
+            if is_ready:
                 ready.add(uid)
             else:
                 ready.discard(uid)
@@ -137,17 +164,9 @@ def write_notes(client: ChatClient, agent: Agent, notes: str, debrief: str, talk
     """One agent's own notes for the next pull. On any failure the old notes are kept."""
     user = (_review(pull, notes, debrief)
             + f"WHAT THE PARTY SAID:\n{_talk_lines(talk)}\n\n"
-            + f"WRITE YOUR NOTES for pull {pull + 1}. They replace your current notes and are the only thing you "
-            + f"will have from this pull and this talk when the next pull starts. At most {NOTES_WORD_CAP} words.\n"
-            + 'Reply with ONLY a JSON object: {"notes": "<your notes>"}')
-    try:
-        reply = client.complete(agent.system, user, tag=f"{scope}|notes|{agent.uid}")
-    except ClientError as err:
-        if err.fatal:
-            raise
-        if acc is not None:
-            acc.api_errors += 1
-        return notes, f"notes {agent.uid}: {err}"
+            + f"WRITE YOUR NOTES for pull {pull + 1}.")
+    reply = client.complete(NOTES_SYSTEM.format(**_who(agent.uid)) + _rules_of(agent), user,
+                            tag=f"{scope}|notes|{agent.uid}")
     _count(acc, reply)
     d = _json(reply.text)
     new = d.get("notes") if d else None
@@ -197,11 +216,11 @@ class EpisodeResult:
 def run_episode(client: ChatClient, episode: int, *, max_pulls: int = 5, memory: bool = True,
                 knowledge: str = "blind", interval_ms: int = 4000, max_calls: int = 300,
                 tier: str = C.DEFAULT_TIER, mode: str = "boss", on_pull=None, parallel: bool = True,
-                scope: str = "") -> EpisodeResult:
+                scope: str = "", seed_base: int = DEFAULT_SEED_BASE) -> EpisodeResult:
     result = EpisodeResult(episode)
     notes: dict[str, str] = {uid: "" for uid in PARTY_IDS}
     for k in range(1, max_pulls + 1):
-        seed = pull_seed(episode, k)
+        seed = pull_seed(episode, k, seed_base)
         tag = f"{scope}e{episode}p{k}"
         notes_in = dict(notes) if memory else {uid: "" for uid in PARTY_IDS}
         policies, party = make_llm_policies(client, interval_ms=interval_ms, max_calls=max_calls,

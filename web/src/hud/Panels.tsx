@@ -26,7 +26,8 @@ export function Scorecard() {
     : runScore(s.ended?.outcome ?? null, s.ended?.t ?? 0, bossPct, limit)
   const packs = engine.replay.arena.packs ?? []
   const outcome = !s.ended ? { text: 'In progress', cls: 'text-fg-muted' }
-    : s.ended.outcome === 'victory' ? { text: 'Kill', cls: 'text-good' } : { text: 'Wipe', cls: 'text-bad' }
+    : s.ended.outcome === 'victory' ? { text: 'Clear', cls: 'text-good' }
+      : s.ended.outcome === 'timeout' ? { text: 'Out of time', cls: 'text-bad' } : { text: 'Wipe', cls: 'text-bad' }
   return (
     <div className="card w-[272px]">
       <div className="flex items-center justify-between px-3 pb-2 pt-2">
@@ -67,7 +68,7 @@ export function Scorecard() {
         <Metric label="Interrupts" value={`${s.kicks.interrupted} / ${s.kicks.casts}`}
           tone={s.kicks.casts === 0 ? 'plain' : s.kicks.interrupted === s.kicks.casts ? 'good' : 'bad'} />
         <Metric label={dungeon ? 'Party deaths (revives)' : 'Party deaths'} value={`${s.deaths}`} tone={s.deaths === 0 ? 'good' : 'bad'} />
-        <Metric label="Avoidable damage" value={fmtNum(avoidable)} tone={avoidable === 0 ? 'good' : 'bad'} />
+        <Metric label="Pool damage taken" value={fmtNum(avoidable)} tone={avoidable === 0 ? 'good' : 'bad'} />
       </dl>
       <Reproduce />
     </div>

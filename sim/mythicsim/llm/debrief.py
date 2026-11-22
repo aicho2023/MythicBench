@@ -12,8 +12,9 @@ from __future__ import annotations
 from collections import defaultdict
 
 
-# Seconds of standing in a pool that each damage tick represents.
-POOL_TICK_S = {"desecrate": 0.5, "restless_grave": 1.0}
+# Ground effects that hurt players standing in them (reported by source).
+POOL_ABILITIES = ("desecrate", "restless_grave")
+POOL_TICK_S = {"desecrate": 0.5, "restless_grave": 1.0}  # kept for older callers
 
 def _name(replay: dict, ability: str) -> str:
     a = replay["abilities"].get(ability) or replay["auras"].get(ability)
@@ -36,7 +37,7 @@ def debrief_data(replay: dict) -> dict:
     deaths, casts, adds = [], [], {}
     interrupts_used = defaultdict(int)
     open_casts: dict[str, dict] = {}
-    pool_secs = defaultdict(float)
+    pool_hits = defaultdict(lambda: defaultdict(lambda: [0, 0]))  # ability -> player -> [hits, damage]
     enraged_at = None
     for e in ev:
         t = e["type"]
@@ -51,8 +52,10 @@ def debrief_data(replay: dict) -> dict:
                 amt = e["amount"] + e.get("absorbed", 0)
                 taken[e["target"]][e["ability"]] += amt
                 recent[e["target"]].append((e["t"], e["ability"], amt))
-                if e["ability"] in POOL_TICK_S:
-                    pool_secs[e["target"]] += POOL_TICK_S[e["ability"]]
+                if e["ability"] in POOL_ABILITIES:
+                    h = pool_hits[e["ability"]][e["target"]]
+                    h[0] += 1
+                    h[1] += amt
                 if e["source"] in adds:
                     adds[e["source"]]["dealt"] += amt
                     adds[e["source"]]["targets"].add(e["target"])
@@ -96,7 +99,7 @@ def debrief_data(replay: dict) -> dict:
         "outcome": meta["outcome"], "duration_ms": meta["duration_ms"],
         "boss_hp_pct_left": round(100 * boss_hp / boss["max_hp"], 1),
         "deaths": deaths, "taken": {p: dict(v) for p, v in taken.items()}, "casts": casts,
-        "adds": adds, "pool_seconds": dict(pool_secs),
+        "adds": adds, "pool_hits": {a: {p: list(v) for p, v in per.items()} for a, per in pool_hits.items()},
         "interrupts_used": dict(interrupts_used), "interrupts_landed": dict(kicks_landed),
         "enraged_at": enraged_at, "names": {k: u["name"] for k, u in units.items()},
     }
@@ -107,13 +110,14 @@ def debrief_text(replay: dict) -> str:
     nm = d["names"]
     who = lambda uid: nm.get(uid, uid)  # noqa: E731
     out = []
+    meta = replay["meta"]
     if d["outcome"] == "victory":
-        out.append(f"RESULT: Mortisar defeated at {_t(d['duration_ms'])}.")
-        meta = replay["meta"]
+        out.append(f"RESULT: cleared at {_t(d['duration_ms'])}: Mortisar and every pack dead within the timer."
+                   if meta.get("mode") == "dungeon" else f"RESULT: Mortisar defeated at {_t(d['duration_ms'])}.")
+    elif d["outcome"] == "timeout":
         timer = meta["duration_ms"] + meta.get("penalty_ms", 0)
-        if timer > meta["time_limit_ms"]:
-            out.append(f"The run timer read {_t(timer)}, past the {_t(meta['time_limit_ms'])} limit: the run was not "
-                       "completed in time, so it does not count as a clear.")
+        out.append(f"RESULT: time ran out (the run timer reached {_t(timer)}, the limit, revive penalties included) "
+                   f"with Mortisar at {d['boss_hp_pct_left']}% health. The run ends there.")
     else:
         out.append(f"RESULT: party wiped at {_t(d['duration_ms'])} with Mortisar at {d['boss_hp_pct_left']}% health.")
     if d["enraged_at"] is not None:
@@ -165,9 +169,11 @@ def debrief_text(replay: dict) -> str:
     if meta_mode(replay) == "dungeon":
         out.append("\n" + dungeon_lines(replay))
 
-    if d["pool_seconds"]:
-        out.append("\nTIME STANDING IN DESECRATE POOLS: " + ", ".join(
-            f"{who(p)} {s:g} s" for p, s in sorted(d["pool_seconds"].items(), key=lambda kv: -kv[1])) + ".")
+    if d["pool_hits"]:
+        out.append("\nDAMAGE TAKEN FROM GROUND EFFECTS (by source):")
+        for a, per in sorted(d["pool_hits"].items()):
+            out.append(f"  {_name(replay, a)}: " + ", ".join(
+                f"{who(p)} {dmg:,} in {hits} hits" for p, (hits, dmg) in sorted(per.items(), key=lambda kv: -kv[1][1])) + ".")
     return "\n".join(out)
 
 

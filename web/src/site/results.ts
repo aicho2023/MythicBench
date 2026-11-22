@@ -34,7 +34,15 @@ export interface TierCell {
   refusals: number; unusable_replies: number; truncated_replies?: number; api_errors?: number; pulls_out_of_calls?: number
   harness_versions: string[]
   episode_list: EpisodeResult[]
+  usd_per_episode?: number | null
+  clears?: number
+  episode_ids?: number[]
+  sanity?: boolean
+  learning_pairs?: { episode: number; on: number; off: number }[]
 }
+
+/** The same model at another reasoning effort (for score-vs-cost curves). */
+export interface ConfigRow { model: string; provider: string; effort: string; tiers: Record<string, TierCell> }
 
 export interface LeaderboardRow {
   model: string; provider: string; name: string; effort: string | null
@@ -62,6 +70,8 @@ export interface Results {
   leaderboard: LeaderboardRow[]
   /** reference players through the same interface (the scripted commander): shown, never ranked */
   baselines?: LeaderboardRow[]
+  /** effort sweeps: other reasoning efforts of some models, unranked */
+  configs?: ConfigRow[]
   controls: ControlRow[]
   bots?: Record<string, Record<string, BotScore>>
 }
@@ -91,6 +101,7 @@ export function modelsOnly(r: Results): Results {
     controls: r.controls.filter((c) => models.has(c.model)),
     baselines: [],
     bots: undefined,
+    configs: (r.configs ?? []).filter((c) => models.has(c.model)),
   }
 }
 
@@ -154,10 +165,11 @@ export const tierIds = (r: Results) => Object.keys(r.tiers)
 export const tierName = (r: Results, tier: string) => r.tiers[tier]?.name ?? tier
 
 /** What one blind episode on every tier costs at list prices (one "run" of the benchmark). */
-export function costPerRun(row: LeaderboardRow): number | null {
-  const cells = Object.values(row.tiers)
-  if (!cells.length) return null
-  return cells.reduce((s, c) => s + c.cost_usd / Math.max(1, c.episodes), 0)
+/** What one episode on the headline tier (+10) costs at list prices: the cost next to the score. */
+export function costPerRun(row: LeaderboardRow, r?: Results): number | null {
+  const cell = r ? row.tiers[headlineTier(r)] : Object.values(row.tiers)[0]
+  if (!cell) return null
+  return cell.usd_per_episode ?? cell.cost_usd / Math.max(1, cell.episodes)
 }
 
 /** The bots' headline score, combined across tiers the same way as a model's. */
