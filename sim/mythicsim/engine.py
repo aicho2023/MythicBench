@@ -22,9 +22,17 @@ from typing import Callable, Protocol
 from . import content as C
 
 TICK_MS = 100
-SIM_VERSION = "0.6.0"  # 0.3.0: bodies collide where they stop; 0.4.0: a run ends at its timer;
+SIM_VERSION = "0.11.0"  # 0.3.0: bodies collide where they stop; 0.4.0: a run ends at its timer;
 # 0.5.0: enemies keep their space too, and the boss walks after his target;
-# 0.6.0: Bone Pyre, a soak
+# 0.6.0: Bone Pyre, a soak; 0.7.0: a due boss mechanic waits until it can happen (never skipped),
+# and walls block a move (it stops at the wall); 0.8.0: two summon thresholds crossed
+# together are two summons; 0.9.0: a melee spot that's taken shifts to a free spot
+# still in reach of the foe it was asked for (melee reach is now 1.5 m, content 1.7.0)
+# 0.10.0: solid obstacles (the throne, the rooms' pillars): moves route around them
+# 0.11.0: a chase checks its whole route (another spot in reach if an obstacle blocks it),
+# and Oruth's final spot and route stay in his room; if he can't reach his target from
+# inside it, he fights the nearest player he can reach until he can; guarded moves,
+# ranked-candidate moves ("safe", judged as the move really goes) and a real stop
 
 
 # ---------------------------------------------------------------------------
@@ -67,6 +75,8 @@ BODY_GAP = 0.2
 # Enemies swing when their target is this close, edge to edge (m).
 ENEMY_REACH = 1.2
 SPOT_RINGS = (0.5, 1.0, 1.5, 2.0, 2.5, 3.0)
+# How deep into melee reach a shifted spot may be (shares of MELEE_RANGE, edge to edge).
+REACH_DEPTHS = (0.2, 0.5, 0.8)
 SPOT_DIRS = ((1.0, 0.0), (0.7071067811865476, 0.7071067811865476), (0.0, 1.0),
              (-0.7071067811865476, 0.7071067811865476), (-1.0, 0.0),
              (-0.7071067811865476, -0.7071067811865476), (0.0, -1.0),
@@ -134,6 +144,8 @@ class Unit:
     auras: dict[str, Aura] = field(default_factory=dict)
     pack: str | None = None  # dungeon trash: which pack this enemy belongs to
     asked_to: Vec | None = None  # last destination asked for, before free_spot moved it
+    path: list = field(default_factory=list)  # the legs after the current move (around obstacles)
+    victim: str | None = None  # Oruth: who he's fighting right now (his target if he can reach it)
     engaged: bool = True  # dungeon trash/boss: has it been pulled yet?
 
     def __post_init__(self) -> None:
@@ -151,11 +163,87 @@ class Unit:
 
 @dataclass
 class Action:
-    type: str  # "cast" | "move"
+    type: str  # "cast" | "move" | "stop"
     ability: str | None = None
     target: str | None = None
     to: Vec | None = None
     reason: str | None = None  # optional; logged as a ``decision`` event
+    # A guarded move (the harness's stay-in-reach step): only if, as resolved,
+    # it's one straight leg, clear of pools, ending in melee reach of this unit.
+    keep_reach: str | None = None
+    # A move with ranked candidates (the harness's "safe"): the sim takes the
+    # first whose real move (wall, a taken spot, obstacles) ends clear of every
+    # pool; {"to", "clean": its route must also stay clear of the pools it isn't
+    # escaping, "reach": (target id, range) it must end in}.
+    options: list | None = None
+
+
+def route_path(a: Vec, b: Vec, radius: float, walk_ok) -> list[Vec]:
+    """The legs of a walk from a to b around the obstacles: [b] when the
+    straight line is clear, else the shortest way through waypoints around
+    them (never through a wall). With no way round, it stops short of the
+    obstacle, as a move stops at a wall."""
+    # An obstacle it already overlaps (it was pushed there) doesn't hold it in.
+    live = [o for o in C.OBSTACLES if o.gap(a) >= radius]
+
+    def blocked(p: Vec, q: Vec, walls: bool) -> bool:
+        n = max(1, int(dist(p, q) / 0.2))
+        for i in range(1, n + 1):
+            f = i / n
+            x = (p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f)
+            if any(o.gap(x) < radius for o in live) or (walls and not walk_ok(x)):
+                return True
+        return False
+
+    if not blocked(a, b, walls=False):
+        return [b]
+    nodes: list[Vec] = []
+    for o in live:
+        if o.half is not None:
+            m = radius + 0.25
+            pts = [(o.center[0] + sx * (o.half[0] + m), o.center[1] + sz * (o.half[1] + m))
+                   for sx in (-1, 1) for sz in (-1, 1)]
+        else:
+            ring = (o.radius + radius) / 0.92 + 0.1  # an octagon whose sides clear the circle
+            pts = [(o.center[0] + dx * ring, o.center[1] + dz * ring) for dx, dz in COMPASS16[::2]]
+        nodes += [(r2(p[0]), r2(p[1])) for p in pts
+                  if walk_ok(p) and C.in_obstacle(p, radius) is None]
+    # Dijkstra over start, waypoints and goal (index 0 = start, 1 = goal).
+    pts = [a, b] + nodes
+    best = {0: 0.0}
+    prev: dict[int, int] = {}
+    done: set[int] = set()
+    while True:
+        open_ = [(d, i) for i, d in best.items() if i not in done]
+        if not open_:
+            break
+        d, i = min(open_)
+        if i == 1:
+            break
+        done.add(i)
+        for j in range(1, len(pts)):
+            if j in done or j == i:
+                continue
+            nd = d + dist(pts[i], pts[j])
+            if nd < best.get(j, float("inf")) - 1e-9 and not blocked(pts[i], pts[j], walls=i != 0 or j != 1):
+                best[j] = nd
+                prev[j] = i
+    if 1 not in prev:
+        # No way round: walk up to the obstacle and stop, as at a wall.
+        n = max(1, int(dist(a, b) / 0.2))
+        last = a
+        for k in range(1, n + 1):
+            f = k / n
+            x = (a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f)
+            if any(o.gap(x) < radius for o in live):
+                break
+            last = x
+        return [(r2(last[0]), r2(last[1]))]
+    legs, j = [], 1
+    while j != 0:
+        legs.append(pts[j])
+        j = prev[j]
+    return legs[::-1]
 
 
 class Policy(Protocol):
@@ -197,7 +285,7 @@ class Encounter:
             self.boss_next["grave_mark"] = self.jitter("grave_mark", C.GRAVE_MARK_FIRST_MS, C.BOSS.first_jitter_ms)
         self.tyrant = "hollow_tyrant" in self.affixes
         self.raise_dead_left = list(C.TYRANT_RAISE_AT if self.tyrant else C.BOSS.raise_dead_at)
-        self.raise_queued = False
+        self.raise_pending = 0  # summons due and not yet started (one per health threshold crossed)
         self.add_count = 0
         self.ground_count = 0
         self.enraged = False
@@ -252,26 +340,38 @@ class Encounter:
         return dist(a.pos, b.pos) - a.radius - b.radius
 
     # ----- movement --------------------------------------------------------
-    def start_move(self, u: Unit, to: Vec, *, exact: bool = False) -> None:
-        to = self.clamp(to)
+    @staticmethod
+    def dest(u: Unit) -> Vec:
+        """Where a unit is headed in the end (its last leg), or where it stands."""
+        return u.path[-1] if u.path else u.move.to if u.move else u.pos
+
+    def start_move(self, u: Unit, to: Vec, *, exact: bool = False, foe: Unit | None = None) -> None:
+        to = self.clamp(to, u.radius)
         to = (r2(to[0]), r2(to[1]))
         if u.kind == "player" and not exact:
             # Asking again for the spot it was already sent to (and shifted
             # away from) is not a new order, as long as where it was shifted
             # to is still free and no worse for pools.
             if u.asked_to is not None and dist(u.asked_to, to) < 0.05:
-                here = u.move.to if u.move else u.pos
+                here = self.dest(u)
                 if not self.taken(u, here) and (self.in_pool(u, to) or not self.in_pool(u, here)):
                     return
             u.asked_to = to
             to = self.free_spot(u, to)
         elif not exact:
             u.asked_to = to
-            to = self.free_spot(u, to)
-        if u.move and dist(u.move.to, to) < 0.05:
+            to = self.free_spot(u, to, foe)
+        if u.move and dist(self.dest(u), to) < 0.05:
             return
         if not u.move and dist(u.pos, to) < 0.05:
             return
+        frm = (r2(u.pos[0]), r2(u.pos[1]))
+        legs = [to] if exact else self.route(frm, to, u.radius)
+        u.path = legs[1:]
+        self.leg(u, legs[0])
+
+    def leg(self, u: Unit, to: Vec) -> None:
+        """Walk one straight leg of a move."""
         frm = (r2(u.pos[0]), r2(u.pos[1]))
         dur = int(round(dist(frm, to) / u.speed * 1000))
         u.pos = frm
@@ -282,18 +382,99 @@ class Encounter:
             u.cast = None
         self.emit("move", unit=u.id, **{"from": list(frm)}, to=list(to), duration_ms=dur)
 
-    def clamp(self, to: Vec) -> Vec:
-        """Keep a destination inside the playable area (here: the arena circle)."""
+    def guarded_step_ok(self, u: Unit, to: Vec, target_id: str) -> bool:
+        """Would a move to ``to``, as it would really resolve (spot, route), be one
+        straight leg that never comes near a pool and ends in melee reach of
+        the target? (The harness's automatic follow takes no other step.)"""
+        tgt = self.units.get(target_id)
+        if tgt is None or not tgt.alive:
+            return False
+        spot = self.resolve_spot(u, to)
+        frm = (r2(u.pos[0]), r2(u.pos[1]))
+        if self.route(frm, spot, u.radius) != [spot]:
+            return False
+        n = max(1, int(dist(frm, spot) / 0.2))
+        for k in range(n + 1):
+            x = (frm[0] + (spot[0] - frm[0]) * k / n, frm[1] + (spot[1] - frm[1]) * k / n)
+            if self.in_pool(u, x):
+                return False
+        return dist(spot, tgt.pos) - u.radius - tgt.radius <= C.MELEE_RANGE
+
+    def plan_move(self, u: Unit, to: Vec) -> list[Vec]:
+        """The legs a move to ``to`` would really walk (wall, taken spot, obstacles)."""
+        spot = self.resolve_spot(u, to)
+        return self.route((r2(u.pos[0]), r2(u.pos[1])), spot, u.radius)
+
+    def pool_hits(self, u: Unit, spot: Vec, g: dict) -> bool:
+        return g["kind"] in C.HAZARD_POOLS and dist(spot, g["pos"]) <= g["radius"] + u.radius * 0.5 + 0.2
+
+    def pick_option(self, u: Unit, options: list[dict]) -> list[Vec] | None:
+        """The first candidate whose real move ends clear of every pool (and,
+        when asked, in reach, by a route clear of the pools it isn't escaping)."""
+        frm = (r2(u.pos[0]), r2(u.pos[1]))
+        escaping = [g for g in self.ground.values() if self.pool_hits(u, frm, g)]
+        others = [g for g in self.ground.values() if g["kind"] in C.HAZARD_POOLS and g not in escaping]
+        for opt in options:
+            legs = self.plan_move(u, tuple(opt["to"]))
+            end = legs[-1]
+            if dist(frm, end) < 0.05 or self.in_pool(u, end):
+                continue
+            if opt.get("reach"):
+                tid, rng = opt["reach"]
+                tgt = self.units.get(tid)
+                if tgt is None or not tgt.alive or dist(end, tgt.pos) - u.radius - tgt.radius > rng:
+                    continue
+            if opt.get("clean"):
+                pts = [frm, *legs]
+                hit = False
+                for a, b in zip(pts, pts[1:]):
+                    n = max(1, int(dist(a, b) / 0.2))
+                    for k in range(n + 1):
+                        x = (a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n)
+                        if any(self.pool_hits(u, x, g) for g in others):
+                            hit = True
+                            break
+                    if hit:
+                        break
+                if hit:
+                    continue
+            return legs
+        return None
+
+    def walk_ok(self, p: Vec) -> bool:
+        """Is p on the floor (here: inside the arena circle)?"""
+        return dist(p, (0.0, 0.0)) <= C.ARENA_RADIUS - 1.0 + 1e-9
+
+    def clamp(self, to: Vec, radius: float = C.PLAYER_RADIUS) -> Vec:
+        """Keep a destination inside the playable area (here: the arena circle),
+        and clear of the obstacles for a body of this radius."""
         d = dist(to, (0.0, 0.0))
         lim = C.ARENA_RADIUS - 1.0
         if d > lim:
             to = (to[0] * lim / d, to[1] * lim / d)
-        return to
+        return self.clear_of_obstacles(to, radius)
+
+    def clear_of_obstacles(self, p: Vec, radius: float) -> Vec:
+        """p, or the nearest spot on the floor where the body overlaps no obstacle."""
+        if C.in_obstacle(p, radius) is None:
+            return p
+        for k in range(1, 25):
+            ring = 0.25 * k
+            for dx, dz in COMPASS16:
+                c = (r2(p[0] + dx * ring), r2(p[1] + dz * ring))
+                if self.walk_ok(c) and C.in_obstacle(c, radius) is None:
+                    return c
+        return p
+
+    def route(self, a: Vec, b: Vec, radius: float) -> list[Vec]:
+        """The legs of a walk from a to b around the obstacles (see route_path)."""
+        return route_path(a, b, radius, self.walk_ok)
 
     def stop_move(self, u: Unit) -> None:
         if u.move:
             self.start_move(u, u.pos, exact=True)
             u.move = None
+        u.path = []
         u.asked_to = None
 
     def taken(self, u: Unit, spot: Vec) -> bool:
@@ -301,7 +482,7 @@ class Encounter:
         for o in self.units.values():
             if o is u or not o.alive:
                 continue
-            there = o.move.to if o.move else o.pos
+            there = self.dest(o)
             if dist(spot, there) < u.radius + o.radius + BODY_GAP:
                 return True
         return False
@@ -311,9 +492,11 @@ class Encounter:
         return any(dist(spot, g["pos"]) <= g["radius"] + u.radius * 0.5 + 0.2 for g in self.ground.values()
                    if g["kind"] in C.HAZARD_POOLS)
 
-    def free_spot(self, u: Unit, to: Vec) -> Vec:
+    def free_spot(self, u: Unit, to: Vec, foe: Unit | None = None) -> Vec:
         """Nearest spot to ``to`` where u's body fits: walkable, not inside
-        another unit, and not in a pool unless ``to`` itself was."""
+        another unit, and not in a pool unless ``to`` itself was. ``foe``: the
+        unit it's walking up to fight (an enemy's chase target); a player's is
+        the nearest foe in melee reach of ``to``."""
         if not self.taken(u, to):
             return to
         pool_ok = self.in_pool(u, to)
@@ -321,11 +504,30 @@ class Encounter:
         # fight it: shift around that foe, not away from it.
         foes = [o for o in self.units.values() if (o.kind == "player") != (u.kind == "player") and o.alive
                 and dist(to, o.pos) - o.radius - u.radius <= C.MELEE_RANGE]
+        if foe is None and foes:
+            foe = min(foes, key=lambda o: dist(to, o.pos) - o.radius)
+        if foe is not None:
+            # The foe it came to fight: the free spot in its reach of it that's
+            # nearest the one asked for (16 directions, three depths).
+            reach = C.MELEE_RANGE if u.kind in ("player", "boss") else ENEMY_REACH
+            best = None
+            for depth in REACH_DEPTHS:
+                ring = foe.radius + u.radius + depth * reach
+                for dx, dz in COMPASS16:
+                    c = (r2(foe.pos[0] + dx * ring), r2(foe.pos[1] + dz * ring))
+                    w = self.clamp(c, u.radius)
+                    if dist(w, c) > 0.01 or self.taken(u, c) or (not pool_ok and self.in_pool(u, c)):
+                        continue
+                    key = dist(c, to)
+                    if best is None or key < best[0]:
+                        best = (key, c)
+            if best:
+                return best[1]
         for ring in SPOT_RINGS:
             best = None
             for dx, dz in SPOT_DIRS:
                 c = (r2(to[0] + dx * ring), r2(to[1] + dz * ring))
-                w = self.clamp(c)
+                w = self.clamp(c, u.radius)
                 if dist(w, c) > 0.01 or self.taken(u, c) or (not pool_ok and self.in_pool(u, c)):
                     continue
                 # Same ring: prefer staying close to the enemy it came to
@@ -410,6 +612,7 @@ class Encounter:
         if u.move:
             u.pos = u.move.pos_at(self.t)
             u.move = None
+        u.path = []
         u.asked_to = None
         self.emit("death", unit=u.id, killer=killer.id, ability=ability)
         for aid in list(u.auras):
@@ -576,9 +779,9 @@ class Encounter:
             self.emit("cast_success", unit=b.id, ability="hollow_fury", target=None)
             for p in self.players():
                 self.damage(b, p, "hollow_fury", amount, crit_ok=False)
-        if self.raise_dead_left and b.hp / b.max_hp <= self.raise_dead_left[0]:
+        while self.raise_dead_left and b.hp / b.max_hp <= self.raise_dead_left[0]:
             self.raise_dead_left.pop(0)
-            self.raise_queued = True
+            self.raise_pending += 1  # each threshold is its own summon, even two crossed at once
         tank = self.units.get(b.target)
         if not tank or not tank.alive:
             alive = self.players()
@@ -588,30 +791,37 @@ class Encounter:
             b.target = tank.id
         if b.cast:
             return
-        # Priority: Summon the Restless > Soul Rend > Requiem > Desecrate
-        if self.raise_queued:
-            self.raise_queued = False
-            self.emit("emote", unit=b.id, style="warning", text="Oruth begins to Summon the Restless!")
-            self.begin_cast(b, "raise_dead", None)
-            return
+        if self.t - self.boss_engaged_t >= C.BOSS.rise_ms:
+            tank = self.reachable_victim(b, tank)
+        b.victim = tank.id  # who he's fighting now (b.target stays the one he'll go back to)
+        # Priority: Summon the Restless > Soul Rend > Requiem > Grave Mark > Desecrate > Bone Pyre.
+        # A mechanic that is due stays due until it actually happens: Oruth
+        # stops walking to cast, and a cast he can't start yet (Soul Rend on a
+        # target out of reach) waits while he closes in. Nothing is ever skipped.
+        if self.raise_pending:
+            if self.boss_cast(b, "raise_dead", None):
+                self.raise_pending -= 1
+                self.emit("emote", unit=b.id, style="warning", text="Oruth begins to Summon the Restless!")
+                return
         for key in ("soul_rend", "requiem_of_bones", "grave_mark", "desecrate", "bone_pyre"):
             if key not in self.boss_next or self.t < self.boss_next[key]:
                 continue
-            if self.t >= self.boss_next[key]:
-                every = C.GRAVE_MARK_EVERY_MS if key == "grave_mark" else C.BOSS.timers[key][1]
-                self.boss_next[key] = self.t + self.jitter(key, every, every * C.BOSS.timer_jitter)
-                if key == "grave_mark":
-                    if not self.cast_grave_mark(b):
-                        continue
-                elif key == "soul_rend":
-                    self.begin_cast(b, key, tank.id)
-                elif key == "requiem_of_bones":
-                    self.begin_cast(b, key, None)
-                elif key == "bone_pyre":
-                    self.cast_bone_pyre(b)
-                else:
-                    self.cast_desecrate(b)
-                return
+            if key == "grave_mark":
+                if not self.cast_grave_mark(b):
+                    continue  # nobody to brand: try again next tick
+            elif key == "soul_rend":
+                if not self.boss_cast(b, key, tank.id):
+                    continue
+            elif key == "requiem_of_bones":
+                if not self.boss_cast(b, key, None):
+                    continue
+            elif key == "bone_pyre":
+                self.cast_bone_pyre(b)
+            else:
+                self.cast_desecrate(b)
+            every = C.GRAVE_MARK_EVERY_MS if key == "grave_mark" else C.BOSS.timers[key][1]
+            self.boss_next[key] = self.t + self.jitter(key, every, every * C.BOSS.timer_jitter)
+            return
         if self.edge_dist(b, tank) > C.MELEE_RANGE:
             if self.t - self.boss_engaged_t >= C.BOSS.rise_ms:
                 self.chase(b, tank)
@@ -620,6 +830,17 @@ class Encounter:
             b.swing_at = self.t + C.BOSS.melee[1]
             self.emit("cast_success", unit=b.id, ability="hollow_strike", target=tank.id)
             self.damage(b, tank, "hollow_strike", C.BOSS.melee[0])
+
+    def boss_cast(self, b: Unit, ability_id: str, target_id: str | None) -> bool:
+        """Start one of Oruth's cast-time abilities if he can: in reach of its
+        target, he stops walking and casts. False (and nothing changes) if not."""
+        ab = C.ABILITIES[ability_id]
+        tgt = self.units.get(target_id) if target_id else None
+        if tgt is not None and (not tgt.alive or self.edge_dist(b, tgt) > ab.range):
+            return False
+        if b.move:
+            self.stop_move(b)
+        return self.begin_cast(b, ability_id, target_id)
 
     def cast_grave_mark(self, b: Unit) -> bool:
         """Hollow Tyrant: brand a random non-tank player; it detonates in 6 s."""
@@ -667,7 +888,7 @@ class Encounter:
             dx, dz = self.pyre_rng.choice(COMPASS16)
             r = self.pyre_rng.uniform(C.PYRE_MIN_DIST, C.PYRE_MAX_DIST)
             c = (r2(b.pos[0] + r * dx), r2(b.pos[1] + r * dz))
-            if dist(c, (0.0, 0.0)) > lim:
+            if dist(c, (0.0, 0.0)) > lim or C.in_obstacle(c, 1.2):
                 continue
             pos = c
             if not any(dist(c, g["pos"]) < g["radius"] + C.PYRE_RADIUS for g in self.ground.values()):
@@ -724,18 +945,93 @@ class Encounter:
         """Enemies that chase their target and claw it (the dungeon filters these)."""
         return [u for u in self.units.values() if u.kind == "add" and u.alive]
 
-    def chase(self, e: Unit, tgt: Unit) -> None:
-        """Walk an enemy up to its target, to a free spot beside it."""
+    def chase_dest(self, e: Unit, tgt: Unit) -> Vec:
+        """Where an enemy heads to fight its target: beside it (Oruth: within his room)."""
         d = dist(e.pos, tgt.pos)
         stop = e.radius + tgt.radius + 0.4
         f = max(0.0, (d - stop) / d) if d else 0
         dest = lerp(e.pos, tgt.pos, f)
-        if e.kind == "boss":
-            dest = self.leash(dest)
+        return self.leash(dest) if e.kind == "boss" else dest
+
+    def reachable_victim(self, b: Unit, tank: Unit) -> Unit:
+        """Who Oruth fights this tick: his target, unless he can't reach it
+        without leaving his room (crowded doorway, target out in a corridor);
+        then the nearest player he can reach, until his target is reachable."""
+        if self.edge_dist(b, tank) <= C.MELEE_RANGE or self.reachable_route(b, self.chase_dest(b, tank), tank):
+            return tank
+        others = sorted((p for p in self.players() if p is not tank), key=lambda p: (dist(p.pos, b.pos), p.id))
+        for p in others:
+            if self.edge_dist(b, p) <= C.MELEE_RANGE or self.reachable_route(b, self.chase_dest(b, p), p):
+                return p
+        return tank
+
+    def chase(self, e: Unit, tgt: Unit) -> None:
+        """Walk an enemy up to its target, to a free spot beside it."""
+        dest = self.chase_dest(e, tgt)
         # Re-plan only when the target has moved on (re-planning every tick = jitter).
         if e.move and e.asked_to is not None and dist(e.asked_to, dest) <= 1.0:
             return
-        self.start_move(e, dest)
+        legs = self.reachable_route(e, dest, tgt)
+        if legs is None:
+            return  # no way to it from here (yet): stay put rather than walk into a dead end
+        self.walk_route(e, legs)  # exactly the route checked: nothing re-resolves it out of reach or room
+        e.asked_to = dest  # what it was after, so a target that hasn't moved isn't re-planned
+
+    def resolve_spot(self, u: Unit, to: Vec, foe: Unit | None = None) -> Vec:
+        """Where a move to ``to`` would really end: on the floor, clear of
+        obstacles, at a free spot (as start_move resolves it)."""
+        to = self.clamp(to, u.radius)
+        to = (r2(to[0]), r2(to[1]))
+        return self.free_spot(u, to, foe)
+
+    def reachable_route(self, e: Unit, dest: Vec, tgt: Unit) -> list[Vec] | None:
+        """The route (its legs) to a spot in reach of ``tgt`` that ``e`` can
+        really walk: the straightforward spot if its route gets there, else the
+        nearest other free spot in reach whose route does. Oruth's final spot
+        and every point of his route stay inside his room (the leash). None:
+        no such route from here."""
+        reach = C.MELEE_RANGE if e.kind == "boss" else ENEMY_REACH
+        frm = (r2(e.pos[0]), r2(e.pos[1]))
+
+        def walkable_route(spot: Vec) -> list[Vec] | None:
+            legs = self.route(frm, spot, e.radius)
+            if legs[-1] != spot:
+                return None
+            if dist(spot, tgt.pos) - e.radius - tgt.radius > reach + 1e-6:
+                return None  # a legal spot that leaves the target out of reach is no way to fight it
+            if e.kind == "boss" and not all(self.in_leash(q) for q in legs):
+                return None  # a straight leg between two points in his (round) room stays in it
+            return legs
+
+        first = walkable_route(self.resolve_spot(e, dest, tgt))
+        if first is not None:
+            return first
+        cands = []
+        for depth in REACH_DEPTHS:
+            ring = tgt.radius + e.radius + depth * reach
+            for dx, dz in COMPASS16:
+                c = (r2(tgt.pos[0] + dx * ring), r2(tgt.pos[1] + dz * ring))
+                if e.kind == "boss" and not self.in_leash(c):
+                    continue
+                if self.clamp(c, e.radius) != c or self.taken(e, c):
+                    continue
+                cands.append(c)
+        for c in sorted(cands, key=lambda c: (dist(frm, c), c)):
+            legs = walkable_route(c)
+            if legs is not None:
+                return legs
+        return None
+
+    @staticmethod
+    def in_leash(spot: Vec) -> bool:
+        return dist(spot, (0.0, 0.0)) <= C.ARENA_RADIUS - 2.5 + 1e-6
+
+    def walk_route(self, u: Unit, legs: list[Vec]) -> None:
+        """Walk a route already planned and checked (no re-resolving)."""
+        if (u.move and dist(self.dest(u), legs[-1]) < 0.05) or (not u.move and dist(u.pos, legs[-1]) < 0.05):
+            return
+        u.path = list(legs[1:])
+        self.leg(u, legs[0])
 
     def leash(self, spot: Vec) -> Vec:
         """Oruth never leaves his throne room (the arena circle)."""
@@ -802,7 +1098,7 @@ class Encounter:
             "id": u.id, "name": u.name, "role": u.role, "class": u.cls, "alive": u.alive,
             "hp": u.hp, "max_hp": u.max_hp, "hp_pct": round(100 * u.hp / u.max_hp, 1),
             "absorb": u.absorb, "pos": [r2(u.pos[0]), r2(u.pos[1])], "moving": u.move is not None,
-            "target": u.target,
+            "target": u.victim or u.target,  # Oruth: who he's fighting right now
             "auras": {aid: au.t0 + au.dur - self.t for aid, au in u.auras.items()},
             "casting": None,
         }
@@ -847,15 +1143,27 @@ class Encounter:
                 continue
             for act in pol.act(self.observe(p)):
                 ok = False
-                if act.type == "move" and act.to is not None:
+                if act.type == "move" and act.options:
+                    legs = self.pick_option(p, act.options)
+                    if legs is None:
+                        continue  # nowhere clear it can really get to: stay
+                    p.asked_to = legs[-1]
+                    self.walk_route(p, legs)
+                    ok = True
+                elif act.type == "move" and act.to is not None:
+                    if act.keep_reach and not self.guarded_step_ok(p, act.to, act.keep_reach):
+                        continue
                     self.start_move(p, act.to)
+                    ok = True
+                elif act.type == "stop":
+                    self.stop_move(p)  # halt where it is: no new destination, no queued legs
                     ok = True
                 elif act.type == "cast" and act.ability:
                     if act.ability not in C.CLASSES[p.cls].abilities:
                         continue  # illegal action: silently ignored (and countable later)
                     ok = self.begin_cast(p, act.ability, act.target)
                 if ok and act.reason:
-                    label = act.ability and C.ABILITIES[act.ability].name or "Move"
+                    label = act.ability and C.ABILITIES[act.ability].name or ("Stop" if act.type == "stop" else "Move")
                     tname = self.units[act.target].name if act.target in self.units else None
                     self.emit("decision", unit=p.id,
                               action=f"{label} → {tname}" if tname else label, reason=act.reason)
@@ -869,6 +1177,8 @@ class Encounter:
                 if self.t >= u.move.t0 + u.move.dur:
                     u.pos = u.move.to
                     u.move = None
+                    if u.path:  # on round an obstacle: the next leg
+                        self.leg(u, u.path.pop(0))
         # 2. delayed effects (projectiles landing)
         due = sorted([p for p in self.pending if p[0] <= self.t], key=lambda p: (p[0], p[1]))
         self.pending = [p for p in self.pending if p[0] > self.t]
@@ -948,7 +1258,10 @@ class Encounter:
                 "affixes": list(self.tier.affixes),
                 "time_limit_ms": C.TIME_LIMIT_MS,
             },
-            "arena": {"radius": C.ARENA_RADIUS, "doors": [list(d) for d in C.CRYPT_DOORS]},
+            "arena": {"radius": C.ARENA_RADIUS, "doors": [list(d) for d in C.CRYPT_DOORS],
+                      "obstacles": [{"id": o.id, "name": o.name, "center": list(o.center),
+                                     **({"half": list(o.half)} if o.half else {"radius": o.radius})}
+                                    for o in C.OBSTACLES]},
             "classes": {k: {"name": c.name, "role": c.role, "interrupt": c.interrupt,
                             "abilities": list(c.abilities)} for k, c in C.CLASSES.items()},
             "abilities": abilities,

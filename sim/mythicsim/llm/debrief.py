@@ -117,7 +117,9 @@ def debrief_text(replay: dict) -> str:
     out = []
     meta = replay["meta"]
     if d["outcome"] == "victory":
-        out.append(f"RESULT: cleared at {_t(d['duration_ms'])}: Oruth and every pack dead within the timer."
+        timer = meta["duration_ms"] + meta.get("penalty_ms", 0)
+        pen = f" (run timer {_t(timer)} with revive penalties)" if meta.get("penalty_ms") else ""
+        out.append(f"RESULT: cleared at {_t(d['duration_ms'])}{pen}: Oruth and every pack dead within the timer."
                    if meta.get("mode") == "dungeon" else f"RESULT: Oruth defeated at {_t(d['duration_ms'])}.")
     elif d["outcome"] == "timeout":
         timer = meta["duration_ms"] + meta.get("penalty_ms", 0)
@@ -162,8 +164,7 @@ def debrief_text(replay: dict) -> str:
         for x in d["pyres"]:
             inside = ", ".join(who(p) for p in x["inside"]) or "nobody"
             hit = x["hits"]
-            dealt = (f"it hit {len(hit)} player{'s' if len(hit) != 1 else ''} for {sum(a for _, a in hit) // len(hit):,} each"
-                     if hit else "it hit nobody")
+            dealt = ("it hit " + ", ".join(f"{who(p)} {a:,}" for p, a in hit) if hit else "it hit nobody")
             out.append(f"  {_t(x['t'])}: {len(x['inside'])} inside ({inside}); {dealt}.")
 
     if d["interrupts_used"]:

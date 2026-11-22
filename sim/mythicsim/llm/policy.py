@@ -28,10 +28,10 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
 from .. import content as C
-from ..engine import Action, dist
-from ..dodge import find_safe_spot, hazards, unsafe, walk_check
+from ..engine import Action, dist, route_path
+from ..dodge import crosses_pool, find_safe_spots, hazards, unsafe, walk_check
 from .clients import ChatClient, ClientError
-from .prompt import CHAT_COOLDOWN_MS, POOL_HIT_PAD, Order, parse_reply, render_state, system_prompt
+from .prompt import CHAT_COOLDOWN_MS, POOL_HIT_PAD, Order, Parsed, parse_reply, render_state, system_prompt
 
 PLAYER_RADIUS = C.PLAYER_RADIUS
 LOW_HP_PCT = 40.0
@@ -331,7 +331,10 @@ class Party:
             s.truncated_replies += 1
             a.note(f"t={obs['t']}: reply cut off at the output-token limit")
             rec["truncated"] = True
-        parsed = parse_reply(reply.text, a.uid, ids, gone)
+        try:
+            parsed = parse_reply(reply.text, a.uid, ids, gone)
+        except Exception as err:  # noqa: BLE001 - nothing a model writes may crash a run
+            parsed = Parsed({}, [f"unreadable reply ({type(err).__name__})"], False)
         if not parsed.ok:
             s.unusable_replies += 1
         s.invalid_entries += len(parsed.problems)
@@ -362,6 +365,10 @@ class Party:
         a.orders = Standing(order, obs["t"])
 
 
+# How many candidates of each kind "safe" hands the sim to choose from.
+SAFE_OPTIONS = 32
+
+
 class LLMPolicy:
     """Per-character adapter: follows its agent's standing orders each tick."""
 
@@ -369,6 +376,10 @@ class LLMPolicy:
         self.uid = unit_id
         self.party = party
         self.name = f"llm:{party.client.spec}"
+        # The enemy it has been in melee reach of since its last ordered move
+        # (and since it last picked a target): that one it follows a little
+        # if it drifts (see keep_in_reach).
+        self.contact: str | None = None
 
     def act(self, obs: dict) -> list[Action]:
         me = obs["self"]
@@ -384,21 +395,88 @@ class LLMPolicy:
         moving = me["moving"]
         if st.order.move_to and not st.move_done:
             st.move_done = True
-            dest = (self.safe_destination(obs, st) if st.order.move_to == "safe"
-                    else self.next_waypoint(obs) if st.order.move_to == "next" else st.order.move_to)
+            if st.order.move_to == "stop":
+                if me["moving"]:  # halt where it is now: no new destination, no queued legs
+                    out.append(Action("stop", reason=self.say(st)))
+                moving = False
+                dest = None
+            elif st.order.move_to == "safe":
+                dest = None
+                options = self.safe_destination(obs, st)  # None: already safe and in range
+                if options:
+                    out.append(Action("move", to=options[0]["to"], options=options, reason=self.say(st)))
+                    moving = True
+            else:
+                dest = self.next_waypoint(obs) if st.order.move_to == "next" else st.order.move_to
             # Ordering a character to the spot it already stands on is a no-op:
             # don't send it, so it doesn't show up as a "Move" decision.
             if dest is not None and dist(me["pos"], dest) > 0.3:
                 out.append(Action("move", to=dest, reason=self.say(st)))
                 moving = True
+            self.contact = None  # an ordered move (stop included) is the agent placing itself
         if me["casting"]:
             return out
         units = {u["id"]: u for u in obs["party"] + obs["enemies"]}
+        if not moving:
+            step = self.keep_in_reach(obs, st, units)
+            if step is not None:
+                # Guarded: the sim takes it only if, as it really resolves, it's one
+                # straight leg clear of pools ending in reach (else it stays put).
+                out.append(Action("move", to=step[0], keep_reach=step[1]))
+                moving = True
         for ab_id, tgt_id in st.order.priority or []:
             if self.usable(ab_id, tgt_id, me, units, moving):
                 out.append(Action("cast", ab_id, tgt_id, reason=self.say(st)))
                 break
         return out
+
+    def keep_in_reach(self, obs: dict, st: Standing, units: dict):
+        """A melee character fighting its target follows it when it drifts a
+        little, as any player would: if the first melee entry's target is out
+        of melee reach but within C.FOLLOW_M, step back into reach. Only for
+        the target it has been in reach of since its last ordered move and
+        since it picked that target (so a deliberate step away is never undone,
+        and a new target is the agent's to reach), only straight (never round
+        an obstacle), and never into or through a pool; the sim re-checks the
+        step as it really resolves. Returns (where to step, target id) or None."""
+        me = obs["self"]
+        enemies = {u["id"] for u in obs["enemies"]}
+        melee = [(a, t) for a, t in st.order.priority or []
+                 if C.ABILITIES[a].kind in ("damage", "interrupt") and C.ABILITIES[a].range <= C.KICK_RANGE and t in enemies]
+        melee.sort(key=lambda e: C.ABILITIES[e[0]].kind == "interrupt")  # the target it's hitting, else kicking
+        if not melee:
+            return None
+        tgt_id = melee[0][1]
+        tgt = units[tgt_id]
+        if not tgt["alive"]:
+            return None
+        if self.contact is not None and self.contact != tgt_id:
+            self.contact = None  # a new target: it has to reach this one first
+        radius = C.BOSS.radius if tgt["role"] == "boss" else C.ADD.radius
+        pos, tp = tuple(me["pos"]), tuple(tgt["pos"])
+        d = dist(pos, tp)
+        gap = d - PLAYER_RADIUS - radius
+        if gap <= C.MELEE_RANGE:
+            self.contact = tgt_id
+            return None
+        if self.contact != tgt_id or gap > C.FOLLOW_M or d < 1e-6:
+            return None
+        c = radius + PLAYER_RADIUS + C.MELEE_RANGE * 0.5
+        dest = (round(tp[0] + (pos[0] - tp[0]) / d * c, 2), round(tp[1] + (pos[1] - tp[1]) / d * c, 2))
+        g = obs["ground"]
+        if unsafe(dest, g, 0.3) or crosses_pool(pos, dest, g):
+            return None
+        if route_path(pos, dest, PLAYER_RADIUS, self.walk_fn(obs)) != [dest]:
+            return None  # round an obstacle: that's a choice for the agent
+        return dest, tgt_id
+
+    @staticmethod
+    def walk_fn(obs: dict):
+        """The floor, as the sim walks it (for planning routes round obstacles)."""
+        if obs.get("dungeon"):
+            return C.walkable
+        lim = C.ARENA_RADIUS - 1.0 + 1e-9
+        return lambda p: dist(p, (0.0, 0.0)) <= lim
 
     def next_waypoint(self, obs: dict):
         """'next': the next route waypoint toward the boss (a walking shortcut, like 'safe')."""
@@ -415,21 +493,40 @@ class LLMPolicy:
         me = obs["self"]
         pos = tuple(me["pos"])
         units = {u["id"]: u for u in obs["party"] + obs["enemies"]}
-        reach = None
-        for ab_id, tgt_id in st.order.priority or []:
+        reach, reach_id, reach_range = None, None, None
+        # The range to keep: the first entry that attacks or heals, an interrupt
+        # only if there's nothing else (a standing kick reaches farther than a
+        # melee swing, and would park a melee character out of its swing's reach).
+        entries = [(ab_id, tgt_id) for ab_id, tgt_id in st.order.priority or []
+                   if C.ABILITIES[ab_id].kind not in ("taunt", "buff", "raid_heal", "aoe_damage")]
+        entries.sort(key=lambda e: C.ABILITIES[e[0]].kind == "interrupt")  # stable: list order otherwise
+        for ab_id, tgt_id in entries:
             tgt, ab = units.get(tgt_id), C.ABILITIES[ab_id]
-            if tgt and tgt["alive"] and tgt_id != self.uid and ab.kind not in ("taunt", "buff", "raid_heal", "aoe_damage"):
+            if tgt and tgt["alive"] and tgt_id != self.uid:
                 radius = C.BOSS.radius if tgt["role"] == "boss" else C.ADD.radius if tgt["role"] == "add" else PLAYER_RADIUS
                 reach = (tuple(tgt["pos"]), radius, ab.range - 0.2)
+                reach_id, reach_range = tgt_id, ab.range
                 break
         in_reach = reach is None or dist(pos, reach[0]) - PLAYER_RADIUS - reach[1] <= reach[2]
         if not unsafe(pos, obs["ground"], 0.3) and in_reach:
             return None
         g, r, inside = obs["ground"], obs["arena_radius"], walk_check(obs)
-        # Prefer: in range and a clean path; then a clean path; then just clear of pools.
-        return (find_safe_spot(g, r, pos, pos, reach, avoid_paths=True, inside=inside)
-                or find_safe_spot(g, r, pos, pos, avoid_paths=True, inside=inside)
-                or find_safe_spot(g, r, pos, pos, inside=inside))
+        walk = self.walk_fn(obs)
+
+        def path(a, b):  # the route the sim will really walk (round obstacles)
+            return route_path(a, b, PLAYER_RADIUS, walk)
+        # Candidates in order of preference: in range by a clean path; then by a
+        # clean path; then just clear of pools. The sim takes the first whose
+        # real move (wall, a taken spot, obstacles) ends clear of every pool and
+        # keeps its promise (in range, clean route): see Encounter.pick_option.
+        options = [{"to": c, "clean": True, "reach": (reach_id, reach_range)} for c in
+                   find_safe_spots(g, r, pos, pos, reach, avoid_paths=True, inside=inside, path=path)[:SAFE_OPTIONS]]
+        options += [{"to": c, "clean": True} for c in
+                    find_safe_spots(g, r, pos, pos, avoid_paths=True, inside=inside, path=path)[:SAFE_OPTIONS]]
+        options += [{"to": c} for c in find_safe_spots(g, r, pos, pos, inside=inside)[:SAFE_OPTIONS]]
+        if reach_id is None:
+            options = [o for o in options if "reach" not in o]
+        return options or None
 
     def say(self, st: Standing) -> str | None:
         if st.said or not st.order.say:

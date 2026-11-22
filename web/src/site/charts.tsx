@@ -100,9 +100,14 @@ export function LearningCurves({ results, tier }: { results: Results; tier: stri
   const pulls = results.protocol.max_pulls
   const series: Series[] = useMemo(() => {
     const out: Series[] = []
+    // A model with a memory-off control is drawn over the control's own groups,
+    // memory on and off alike, so the two lines compare the same seeds.
+    const paired = new Map(results.controls.filter((c) => c.tier === tier && c.paired_on_curve_mean?.length).map((c) => [c.model, c]))
     for (const row of results.leaderboard) {
-      const c = row.tiers[tier]?.curve_mean
-      if (c?.length) out.push({ key: row.model, label: modelName(row.model), color: modelColor(results, row.model), values: c })
+      const ctl = paired.get(row.model)
+      const c = ctl ? ctl.paired_on_curve_mean! : row.tiers[tier]?.curve_mean
+      const label = ctl ? `${modelName(row.model)} (${ctl.episodes} groups)` : modelName(row.model)
+      if (c?.length) out.push({ key: row.model, label, color: modelColor(results, row.model), values: c })
     }
     for (const b of results.baselines ?? []) {
       const c = b.tiers[tier]?.curve_mean
@@ -194,7 +199,11 @@ export function CostScatter({ results }: { results: Results }) {
   const curves = results.leaderboard.flatMap((r) => {
     const extra = (results.configs ?? []).filter((c) => c.model === r.model && c.tiers[head]?.progression_score != null)
     if (!extra.length || r.mythicbench_score == null) return []
-    const points = [{ effort: r.effort ?? 'medium', cost: costPerRun(r, results) ?? 0, score: r.mythicbench_score },
+    // The default-effort point on a sweep is that effort on the sweep's own groups,
+    // so the line compares like with like; the model's six-group dot stays separate.
+    const same = extra.map((c) => c.tiers[head].default_effort_same_groups).find(Boolean)
+    if (!same) return []
+    const points = [{ effort: same.effort, cost: same.usd_per_episode, score: same.progression_score },
       ...extra.map((c) => ({ effort: c.effort, cost: c.tiers[head].usd_per_episode ?? 0, score: c.tiers[head].progression_score }))]
       .sort((a, b) => ORDER.indexOf(a.effort) - ORDER.indexOf(b.effort))
     return [{ key: r.model, color: modelColor(results, r.model), points }]

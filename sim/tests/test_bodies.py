@@ -77,6 +77,88 @@ def test_oruth_walks_after_a_target_out_of_reach():
     enc = Encounter(3, {m.id: Stand() for m in C.PARTY}, "test", "normal")
     tank = enc.units["rook"]
     tank.pos = (0.0, 10.0)  # far out of his reach
-    settle(enc, 6000)
+    settle(enc, 9000)  # rise, walk, and any cast he stops for on the way
     assert enc.edge_dist(enc.boss, tank) <= C.MELEE_RANGE
     assert dist(enc.boss.pos, C.BOSS_POS) > 3.0
+
+
+def _walking_oruth(tier="plus10"):
+    class Stand:
+        def act(self, obs):
+            return []
+    enc = Encounter(3, {m.id: Stand() for m in C.PARTY}, "test", tier)
+    enc.roster = [enc.unit_json(u) for u in enc.units.values()]
+    enc.boss_next = {}  # only what the test arms
+    enc.t = C.BOSS.rise_ms
+    return enc
+
+
+def test_a_summon_is_never_lost_while_oruth_walks():
+    enc = _walking_oruth()
+    b = enc.boss
+    enc.start_move(b, (0.0, 8.0))  # walking when he crosses the threshold
+    b.hp = int(b.max_hp * 0.79)
+    for _ in range(5):
+        enc.step()
+        enc.t += 100
+    casts = [e for e in enc.events if e["type"] == "cast_start" and e["ability"] == "raise_dead"]
+    assert len(casts) == 1 and b.move is None
+
+
+def test_soul_rend_waits_for_its_target_instead_of_being_skipped():
+    enc = _walking_oruth()
+    tank = enc.units["rook"]
+    tank.pos = (0.0, 12.0)  # out of his reach when it comes due
+    enc.boss_next = {"soul_rend": enc.t}
+    enc.step()
+    assert "soul_rend" in enc.boss_next and enc.boss_next["soul_rend"] <= enc.t  # still due
+    assert not any(e["type"] == "cast_start" for e in enc.events)
+    for _ in range(80):  # he walks over, then casts it
+        enc.t += 100
+        enc.step()
+    assert any(e["type"] == "cast_start" and e["ability"] == "soul_rend" for e in enc.events)
+
+
+def test_a_move_stops_at_the_wall_instead_of_walking_through_it():
+    room = C.ROOMS[0]
+    inside = (room.center[0], room.center[1])
+    beyond = (room.center[0] + room.radius + 20.0, room.center[1])  # straight through the room's wall
+    stop = DungeonRun.straight_line_reach(inside, beyond)
+    assert C.walkable(stop) and dist(stop, inside) < room.radius
+
+
+def test_two_thresholds_crossed_at_once_are_two_summons():
+    from mythicsim.engine import Cast
+    enc = _walking_oruth()
+    b = enc.boss
+    b.cast = Cast("requiem_of_bones", None, enc.t, 3000)  # busy casting while the thresholds go by
+    b.hp = int(b.max_hp * 0.79)
+    enc.step()
+    enc.t += 100
+    b.hp = int(b.max_hp * 0.45)  # and the next one, still mid-cast
+    enc.step()
+    enc.t += 100
+    b.cast = None
+    for _ in range(200):
+        enc.step()
+        enc.t += 100
+        if b.cast and b.cast.ability == "raise_dead":
+            b.cast = None  # finish the cast at once
+    casts = [e for e in enc.events if e["type"] == "cast_start" and e["ability"] == "raise_dead"]
+    assert len(casts) == 2
+
+
+def test_every_corridor_joins_its_rooms_across_its_width():
+    """Walls stop a move: so every corridor must open onto its rooms across its
+    whole width. (The entrance corridor once met its room only near the centre
+    line, and a character walking straight down it off-centre stopped dead.)"""
+    for c in C.CORRIDORS:
+        mid = (c.z_min + c.z_max) / 2
+        for r in C.ROOMS:
+            ends = (c.z_min, c.z_max)
+            if not any(abs(abs(r.center[1] - e) - r.radius) <= 1.5 for e in ends):
+                continue
+            x_max = c.x_half - C.PLAYER_RADIUS
+            for x in (-x_max, -x_max / 2, 0.0, x_max / 2, x_max):
+                assert DungeonRun.straight_line_reach((x, r.center[1]), (x, mid)) == (x, mid), (r.id, c, x)
+                assert DungeonRun.straight_line_reach((x, mid), (x, r.center[1])) == (x, r.center[1]), (r.id, c, x)

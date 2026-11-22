@@ -35,9 +35,9 @@
    "basic"
   ]
  },
- "harness_version": "0.13.0",
- "content_version": "1.6.0",
- "sim_version": "0.6.0",
+ "harness_version": "1.0.0",
+ "content_version": "1.8.0",
+ "sim_version": "0.11.0",
  "tiers": {
   "normal": {
    "name": "Normal",
@@ -68,14 +68,14 @@
      ],
      "complete": true,
      "pulls": 6,
-     "progression_score": 3.3,
+     "progression_score": 3.2,
      "progression_score_ci95": [
-      2.8,
-      3.7
+      3.2,
+      3.2
      ],
      "episode_scores": [
-      3.3,
-      3.23
+      3.2,
+      3.2
      ],
      "clear_rate": 0.0,
      "clears": 0,
@@ -88,37 +88,79 @@
      "curve_mean": [
       3.1,
       3.4,
-      3.3
+      3.0
      ],
      "cost_usd": 0.0,
      "usd_per_episode": 0.0,
      "usd_per_pull": 0.0,
      "tokens_per_pull": [
-      209627,
-      4367
+      233081,
+      4557
      ],
      "refusals": 0,
      "unusable_replies": 0,
      "truncated_replies": 0,
+     "invalid_entries": 0,
      "api_errors": 0,
      "pulls_out_of_calls": 0,
+     "calls": 489,
      "harness_versions": [
-      "0.13.0"
+      "1.0.0"
      ],
      "episode_list": [
       {
        "episode": 0,
-       "run_id": "2026-11-22T0711_basic_4ed9",
+       "run_id": "2026-11-22T2207_basic_6a82c2a7",
        "pulls": [
         {
          "pull": 1,
          "seed": 10001,
-         "score": 3.1,
+         "score": 2.9,
          "outcome": "wipe",
          "in_time": false,
-         "duration_s": 36.2,
+         "duration_s": 36.7,
          "file": "replays/basic/normal/ep0-pull1.json.gz",
          "usd": 0.0,
+         "stats": {
+          "usd": 0.0,
+          "calls": 83,
+          "input_tokens": 234831,
+          "output_tokens": 4480,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 68,
+           "input_tokens": 191252,
+           "output_tokens": 4080,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 43579,
+           "output_tokens": 400,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
          "deaths": 5,
          "kicks": [
           0,
@@ -132,9 +174,49 @@
          "score": 3.4,
          "outcome": "wipe",
          "in_time": false,
-         "duration_s": 36.3,
+         "duration_s": 36.6,
          "file": "replays/basic/normal/ep0-pull2.json.gz",
          "usd": 0.0,
+         "stats": {
+          "usd": 0.0,
+          "calls": 93,
+          "input_tokens": 267575,
+          "output_tokens": 5080,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 78,
+           "input_tokens": 223924,
+           "output_tokens": 4680,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 43651,
+           "output_tokens": 400,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
          "deaths": 5,
          "kicks": [
           0,
@@ -145,12 +227,52 @@
         {
          "pull": 3,
          "seed": 10003,
-         "score": 3.4,
+         "score": 3.3,
          "outcome": "wipe",
          "in_time": false,
-         "duration_s": 37.7,
+         "duration_s": 36.6,
          "file": "replays/basic/normal/ep0-pull3.json.gz",
          "usd": 0.0,
+         "stats": {
+          "usd": 0.0,
+          "calls": 78,
+          "input_tokens": 223857,
+          "output_tokens": 4680,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 78,
+           "input_tokens": 223857,
+           "output_tokens": 4680,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 0,
+           "input_tokens": 0,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
          "deaths": 5,
          "kicks": [
           0,
@@ -162,17 +284,57 @@
       },
       {
        "episode": 1,
-       "run_id": "2026-11-22T0711_basic_4ed9",
+       "run_id": "2026-11-22T2207_basic_6a82c2a7",
        "pulls": [
         {
          "pull": 1,
          "seed": 10101,
-         "score": 3.1,
+         "score": 3.4,
          "outcome": "wipe",
          "in_time": false,
-         "duration_s": 36.2,
+         "duration_s": 36.7,
          "file": "replays/basic/normal/ep1-pull1.json.gz",
          "usd": 0.0,
+         "stats": {
+          "usd": 0.0,
+          "calls": 84,
+          "input_tokens": 237582,
+          "output_tokens": 4540,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 69,
+           "input_tokens": 194000,
+           "output_tokens": 4140,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 43582,
+           "output_tokens": 400,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
          "deaths": 5,
          "kicks": [
           0,
@@ -186,9 +348,49 @@
          "score": 3.4,
          "outcome": "wipe",
          "in_time": false,
-         "duration_s": 36.3,
+         "duration_s": 36.6,
          "file": "replays/basic/normal/ep1-pull2.json.gz",
          "usd": 0.0,
+         "stats": {
+          "usd": 0.0,
+          "calls": 83,
+          "input_tokens": 239205,
+          "output_tokens": 4480,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 68,
+           "input_tokens": 195348,
+           "output_tokens": 4080,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 43857,
+           "output_tokens": 400,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
          "deaths": 5,
          "kicks": [
           0,
@@ -199,12 +401,52 @@
         {
          "pull": 3,
          "seed": 10103,
-         "score": 3.2,
+         "score": 2.8,
          "outcome": "wipe",
          "in_time": false,
-         "duration_s": 36.3,
+         "duration_s": 36.7,
          "file": "replays/basic/normal/ep1-pull3.json.gz",
          "usd": 0.0,
+         "stats": {
+          "usd": 0.0,
+          "calls": 68,
+          "input_tokens": 195437,
+          "output_tokens": 4080,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 68,
+           "input_tokens": 195437,
+           "output_tokens": 4080,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 0,
+           "input_tokens": 0,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
          "deaths": 5,
          "kicks": [
           0,
@@ -224,14 +466,14 @@
      ],
      "complete": true,
      "pulls": 6,
-     "progression_score": 2.5,
+     "progression_score": 2.0,
      "progression_score_ci95": [
-      2.1,
-      2.9
+      1.4,
+      2.7
      ],
      "episode_scores": [
-      2.53,
-      2.47
+      2.1,
+      2.0
      ],
      "clear_rate": 0.0,
      "clears": 0,
@@ -240,57 +482,83 @@
       null,
       null
      ],
-     "first_pull_score_mean": 2.4,
+     "first_pull_score_mean": 2.0,
      "curve_mean": [
-      2.4,
-      2.5,
-      2.6
+      2.0,
+      2.1,
+      2.0
      ],
      "cost_usd": 0.0,
      "usd_per_episode": 0.0,
      "usd_per_pull": 0.0,
      "tokens_per_pull": [
-      210880,
-      4067
+      220298,
+      4017
      ],
      "refusals": 0,
      "unusable_replies": 0,
      "truncated_replies": 0,
+     "invalid_entries": 0,
      "api_errors": 0,
      "pulls_out_of_calls": 0,
+     "calls": 435,
      "harness_versions": [
-      "0.13.0"
+      "1.0.0"
      ],
      "episode_list": [
       {
        "episode": 0,
-       "run_id": "2026-11-22T0711_basic_e527",
+       "run_id": "2026-11-22T2207_basic_b8a4f0f6",
        "pulls": [
         {
          "pull": 1,
          "seed": 10001,
-         "score": 2.4,
+         "score": 2.0,
          "outcome": "wipe",
          "in_time": false,
          "duration_s": 31.7,
          "file": "replays/basic/plus10/ep0-pull1.json.gz",
          "usd": 0.0,
-         "deaths": 5,
-         "kicks": [
-          0,
-          3
-         ],
-         "avoidable": 1496
-        },
-        {
-         "pull": 2,
-         "seed": 10002,
-         "score": 2.5,
-         "outcome": "wipe",
-         "in_time": false,
-         "duration_s": 31.7,
-         "file": "replays/basic/plus10/ep0-pull2.json.gz",
-         "usd": 0.0,
+         "stats": {
+          "usd": 0.0,
+          "calls": 75,
+          "input_tokens": 225397,
+          "output_tokens": 4000,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 60,
+           "input_tokens": 179225,
+           "output_tokens": 3600,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 46172,
+           "output_tokens": 400,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
          "deaths": 5,
          "kicks": [
           0,
@@ -299,36 +567,172 @@
          "avoidable": 0
         },
         {
-         "pull": 3,
-         "seed": 10003,
-         "score": 2.7,
+         "pull": 2,
+         "seed": 10002,
+         "score": 2.2,
          "outcome": "wipe",
          "in_time": false,
          "duration_s": 31.7,
-         "file": "replays/basic/plus10/ep0-pull3.json.gz",
+         "file": "replays/basic/plus10/ep0-pull2.json.gz",
          "usd": 0.0,
+         "stats": {
+          "usd": 0.0,
+          "calls": 79,
+          "input_tokens": 242296,
+          "output_tokens": 4240,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 64,
+           "input_tokens": 195255,
+           "output_tokens": 3840,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 47041,
+           "output_tokens": 400,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
          "deaths": 5,
          "kicks": [
           0,
           3
          ],
-         "avoidable": 3807
+         "avoidable": 2578
+        },
+        {
+         "pull": 3,
+         "seed": 10003,
+         "score": 2.1,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 31.7,
+         "file": "replays/basic/plus10/ep0-pull3.json.gz",
+         "usd": 0.0,
+         "stats": {
+          "usd": 0.0,
+          "calls": 66,
+          "input_tokens": 201271,
+          "output_tokens": 3960,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 66,
+           "input_tokens": 201271,
+           "output_tokens": 3960,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 0,
+           "input_tokens": 0,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          0,
+          3
+         ],
+         "avoidable": 2672
         }
        ]
       },
       {
        "episode": 1,
-       "run_id": "2026-11-22T0711_basic_e527",
+       "run_id": "2026-11-22T2207_basic_b8a4f0f6",
        "pulls": [
         {
          "pull": 1,
          "seed": 10101,
-         "score": 2.4,
+         "score": 2.0,
          "outcome": "wipe",
          "in_time": false,
          "duration_s": 31.7,
          "file": "replays/basic/plus10/ep1-pull1.json.gz",
          "usd": 0.0,
+         "stats": {
+          "usd": 0.0,
+          "calls": 75,
+          "input_tokens": 225398,
+          "output_tokens": 4000,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 60,
+           "input_tokens": 179226,
+           "output_tokens": 3600,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 46172,
+           "output_tokens": 400,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
          "deaths": 5,
          "kicks": [
           0,
@@ -339,12 +743,52 @@
         {
          "pull": 2,
          "seed": 10102,
-         "score": 2.5,
+         "score": 2.0,
          "outcome": "wipe",
          "in_time": false,
          "duration_s": 31.7,
          "file": "replays/basic/plus10/ep1-pull2.json.gz",
          "usd": 0.0,
+         "stats": {
+          "usd": 0.0,
+          "calls": 77,
+          "input_tokens": 235467,
+          "output_tokens": 4120,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 62,
+           "input_tokens": 189025,
+           "output_tokens": 3720,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 46442,
+           "output_tokens": 400,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
          "deaths": 5,
          "kicks": [
           0,
@@ -355,18 +799,58 @@
         {
          "pull": 3,
          "seed": 10103,
-         "score": 2.5,
+         "score": 2.0,
          "outcome": "wipe",
          "in_time": false,
          "duration_s": 31.7,
          "file": "replays/basic/plus10/ep1-pull3.json.gz",
          "usd": 0.0,
+         "stats": {
+          "usd": 0.0,
+          "calls": 63,
+          "input_tokens": 191962,
+          "output_tokens": 3780,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 63,
+           "input_tokens": 191962,
+           "output_tokens": 3780,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 0,
+           "input_tokens": 0,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
          "deaths": 5,
          "kicks": [
           0,
           3
          ],
-         "avoidable": 0
+         "avoidable": 3746
         }
        ]
       }
@@ -379,22 +863,22 @@
      "learning_pairs": [
       {
        "episode": 0,
-       "on": 2.53,
-       "off": 2.53
+       "on": 2.1,
+       "off": 2.1
       },
       {
        "episode": 1,
-       "on": 2.47,
-       "off": 2.47
+       "on": 2.0,
+       "off": 2.0
       }
      ]
     }
    },
    "complete": true,
-   "mythicbench_score": 2.5,
+   "mythicbench_score": 2.0,
    "mythicbench_score_ci95": [
-    2.1,
-    2.9
+    1.4,
+    2.7
    ],
    "cost_usd": 0.0,
    "rank": 1
@@ -415,14 +899,14 @@
      ],
      "complete": true,
      "pulls": 6,
-     "progression_score": 55.7,
+     "progression_score": 55.8,
      "progression_score_ci95": [
-      29.4,
-      82.0
+      53.4,
+      58.1
      ],
      "episode_scores": [
-      57.77,
-      53.63
+      55.57,
+      55.93
      ],
      "clear_rate": 0.0,
      "clears": 0,
@@ -431,133 +915,375 @@
       null,
       null
      ],
-     "first_pull_score_mean": 63.4,
+     "first_pull_score_mean": 53.8,
      "curve_mean": [
-      63.4,
-      52.1,
-      51.6
+      53.8,
+      56.0,
+      57.4
      ],
      "cost_usd": 0.0,
      "usd_per_episode": 0.0,
      "usd_per_pull": 0.0,
      "tokens_per_pull": [
-      1134400,
+      1325484,
       0
      ],
      "refusals": 0,
      "unusable_replies": 0,
      "truncated_replies": 0,
+     "invalid_entries": 0,
      "api_errors": 0,
      "pulls_out_of_calls": 0,
+     "calls": 2838,
      "harness_versions": [
-      "0.13.0"
+      "1.0.0"
      ],
      "episode_list": [
       {
        "episode": 0,
-       "run_id": "2026-11-22T0711_commander_00e9",
+       "run_id": "2026-11-22T2207_commander_cc6eea86",
        "pulls": [
         {
          "pull": 1,
          "seed": 10001,
-         "score": 68.2,
+         "score": 53.9,
          "outcome": "timeout",
          "in_time": false,
          "duration_s": 255.0,
          "file": "replays/commander/normal/ep0-pull1.json.gz",
          "usd": 0.0,
-         "deaths": 0,
-         "kicks": [
-          20,
-          23
-         ],
-         "avoidable": 74388
-        },
-        {
-         "pull": 2,
-         "seed": 10002,
-         "score": 55.2,
-         "outcome": "timeout",
-         "in_time": false,
-         "duration_s": 255.0,
-         "file": "replays/commander/normal/ep0-pull2.json.gz",
-         "usd": 0.0,
+         "stats": {
+          "usd": 0.0,
+          "calls": 471,
+          "input_tokens": 1303392,
+          "output_tokens": 0,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 461,
+           "input_tokens": 1271573,
+           "output_tokens": 0,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 10,
+           "input_tokens": 31819,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
          "deaths": 1,
          "kicks": [
           19,
           22
          ],
-         "avoidable": 80925
+         "avoidable": 106226
+        },
+        {
+         "pull": 2,
+         "seed": 10002,
+         "score": 59.0,
+         "outcome": "timeout",
+         "in_time": false,
+         "duration_s": 255.0,
+         "file": "replays/commander/normal/ep0-pull2.json.gz",
+         "usd": 0.0,
+         "stats": {
+          "usd": 0.0,
+          "calls": 507,
+          "input_tokens": 1431271,
+          "output_tokens": 0,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 497,
+           "input_tokens": 1399568,
+           "output_tokens": 0,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 10,
+           "input_tokens": 31703,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 1,
+         "kicks": [
+          21,
+          26
+         ],
+         "avoidable": 32316
         },
         {
          "pull": 3,
          "seed": 10003,
-         "score": 49.9,
-         "outcome": "timeout",
+         "score": 53.8,
+         "outcome": "wipe",
          "in_time": false,
-         "duration_s": 255.0,
+         "duration_s": 245.2,
          "file": "replays/commander/normal/ep0-pull3.json.gz",
          "usd": 0.0,
-         "deaths": 2,
+         "stats": {
+          "usd": 0.0,
+          "calls": 429,
+          "input_tokens": 1206272,
+          "output_tokens": 0,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 429,
+           "input_tokens": 1206272,
+           "output_tokens": 0,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 0,
+           "input_tokens": 0,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
          "kicks": [
-          18,
-          21
+          17,
+          20
          ],
-         "avoidable": 95343
+         "avoidable": 118031
         }
        ]
       },
       {
        "episode": 1,
-       "run_id": "2026-11-22T0711_commander_00e9",
+       "run_id": "2026-11-22T2207_commander_cc6eea86",
        "pulls": [
         {
          "pull": 1,
          "seed": 10101,
-         "score": 58.5,
+         "score": 53.8,
          "outcome": "timeout",
          "in_time": false,
          "duration_s": 255.0,
          "file": "replays/commander/normal/ep1-pull1.json.gz",
          "usd": 0.0,
-         "deaths": 2,
+         "stats": {
+          "usd": 0.0,
+          "calls": 494,
+          "input_tokens": 1370540,
+          "output_tokens": 0,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 484,
+           "input_tokens": 1338911,
+           "output_tokens": 0,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 10,
+           "input_tokens": 31629,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 1,
          "kicks": [
-          18,
-          21
+          21,
+          26
          ],
-         "avoidable": 69088
+         "avoidable": 23457
         },
         {
          "pull": 2,
          "seed": 10102,
-         "score": 49.0,
-         "outcome": "wipe",
+         "score": 53.0,
+         "outcome": "timeout",
          "in_time": false,
-         "duration_s": 191.4,
+         "duration_s": 255.0,
          "file": "replays/commander/normal/ep1-pull2.json.gz",
          "usd": 0.0,
-         "deaths": 5,
+         "stats": {
+          "usd": 0.0,
+          "calls": 452,
+          "input_tokens": 1275559,
+          "output_tokens": 0,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 442,
+           "input_tokens": 1242890,
+           "output_tokens": 0,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 10,
+           "input_tokens": 32669,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 3,
          "kicks": [
-          15,
-          19
+          18,
+          21
          ],
-         "avoidable": 81312
+         "avoidable": 128652
         },
         {
          "pull": 3,
          "seed": 10103,
-         "score": 53.4,
+         "score": 61.0,
          "outcome": "timeout",
          "in_time": false,
          "duration_s": 255.0,
          "file": "replays/commander/normal/ep1-pull3.json.gz",
          "usd": 0.0,
-         "deaths": 2,
+         "stats": {
+          "usd": 0.0,
+          "calls": 485,
+          "input_tokens": 1365871,
+          "output_tokens": 0,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 485,
+           "input_tokens": 1365871,
+           "output_tokens": 0,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 0,
+           "input_tokens": 0,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 1,
          "kicks": [
-          18,
-          22
+          17,
+          20
          ],
-         "avoidable": 84023
+         "avoidable": 98614
         }
        ]
       }
@@ -571,14 +1297,14 @@
      ],
      "complete": true,
      "pulls": 6,
-     "progression_score": 32.6,
+     "progression_score": 30.6,
      "progression_score_ci95": [
-      25.8,
-      39.4
+      14.9,
+      46.3
      ],
      "episode_scores": [
-      33.13,
-      32.07
+      29.37,
+      31.83
      ],
      "clear_rate": 0.0,
      "clears": 0,
@@ -587,143 +1313,385 @@
       null,
       null
      ],
-     "first_pull_score_mean": 34.0,
+     "first_pull_score_mean": 31.0,
      "curve_mean": [
-      34.0,
-      32.3,
-      31.5
+      31.0,
+      32.8,
+      28.0
      ],
      "cost_usd": 0.0,
      "usd_per_episode": 0.0,
      "usd_per_pull": 0.0,
      "tokens_per_pull": [
-      936300,
+      932844,
       0
      ],
      "refusals": 0,
      "unusable_replies": 0,
      "truncated_replies": 0,
+     "invalid_entries": 0,
      "api_errors": 0,
      "pulls_out_of_calls": 0,
+     "calls": 1872,
      "harness_versions": [
-      "0.13.0"
+      "1.0.0"
      ],
      "episode_list": [
       {
        "episode": 0,
-       "run_id": "2026-11-22T0711_commander_77e8",
+       "run_id": "2026-11-22T2207_commander_d74e1088",
        "pulls": [
         {
          "pull": 1,
          "seed": 10001,
-         "score": 34.8,
+         "score": 29.5,
          "outcome": "wipe",
          "in_time": false,
-         "duration_s": 196.7,
+         "duration_s": 170.5,
          "file": "replays/commander/plus10/ep0-pull1.json.gz",
          "usd": 0.0,
+         "stats": {
+          "usd": 0.0,
+          "calls": 310,
+          "input_tokens": 915761,
+          "output_tokens": 0,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 300,
+           "input_tokens": 882718,
+           "output_tokens": 0,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 10,
+           "input_tokens": 33043,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
          "deaths": 5,
          "kicks": [
-          15,
-          18
+          10,
+          14
          ],
-         "avoidable": 101637
+         "avoidable": 19527
         },
         {
          "pull": 2,
          "seed": 10002,
-         "score": 32.5,
+         "score": 33.7,
          "outcome": "wipe",
          "in_time": false,
-         "duration_s": 168.3,
+         "duration_s": 163.7,
          "file": "replays/commander/plus10/ep0-pull2.json.gz",
          "usd": 0.0,
-         "deaths": 5,
-         "kicks": [
-          12,
-          16
-         ],
-         "avoidable": 71756
-        },
-        {
-         "pull": 3,
-         "seed": 10003,
-         "score": 32.1,
-         "outcome": "wipe",
-         "in_time": false,
-         "duration_s": 154.5,
-         "file": "replays/commander/plus10/ep0-pull3.json.gz",
-         "usd": 0.0,
-         "deaths": 5,
-         "kicks": [
-          11,
-          16
-         ],
-         "avoidable": 70268
-        }
-       ]
-      },
-      {
-       "episode": 1,
-       "run_id": "2026-11-22T0711_commander_77e8",
-       "pulls": [
-        {
-         "pull": 1,
-         "seed": 10101,
-         "score": 33.2,
-         "outcome": "wipe",
-         "in_time": false,
-         "duration_s": 191.3,
-         "file": "replays/commander/plus10/ep1-pull1.json.gz",
-         "usd": 0.0,
-         "deaths": 5,
-         "kicks": [
-          13,
-          16
-         ],
-         "avoidable": 69178
-        },
-        {
-         "pull": 2,
-         "seed": 10102,
-         "score": 32.1,
-         "outcome": "wipe",
-         "in_time": false,
-         "duration_s": 151.8,
-         "file": "replays/commander/plus10/ep1-pull2.json.gz",
-         "usd": 0.0,
-         "deaths": 5,
-         "kicks": [
-          12,
-          15
-         ],
-         "avoidable": 69270
-        },
-        {
-         "pull": 3,
-         "seed": 10103,
-         "score": 30.9,
-         "outcome": "wipe",
-         "in_time": false,
-         "duration_s": 151.1,
-         "file": "replays/commander/plus10/ep1-pull3.json.gz",
-         "usd": 0.0,
+         "stats": {
+          "usd": 0.0,
+          "calls": 333,
+          "input_tokens": 1004468,
+          "output_tokens": 0,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 323,
+           "input_tokens": 970905,
+           "output_tokens": 0,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 10,
+           "input_tokens": 33563,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
          "deaths": 5,
          "kicks": [
           10,
           13
          ],
-         "avoidable": 48105
+         "avoidable": 23963
+        },
+        {
+         "pull": 3,
+         "seed": 10003,
+         "score": 24.9,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 131.2,
+         "file": "replays/commander/plus10/ep0-pull3.json.gz",
+         "usd": 0.0,
+         "stats": {
+          "usd": 0.0,
+          "calls": 258,
+          "input_tokens": 771573,
+          "output_tokens": 0,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 258,
+           "input_tokens": 771573,
+           "output_tokens": 0,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 0,
+           "input_tokens": 0,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          9,
+          13
+         ],
+         "avoidable": 40733
+        }
+       ]
+      },
+      {
+       "episode": 1,
+       "run_id": "2026-11-22T2207_commander_d74e1088",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 10101,
+         "score": 32.5,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 157.6,
+         "file": "replays/commander/plus10/ep1-pull1.json.gz",
+         "usd": 0.0,
+         "stats": {
+          "usd": 0.0,
+          "calls": 348,
+          "input_tokens": 1032374,
+          "output_tokens": 0,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 338,
+           "input_tokens": 998788,
+           "output_tokens": 0,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 10,
+           "input_tokens": 33586,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          10,
+          12
+         ],
+         "avoidable": 125622
+        },
+        {
+         "pull": 2,
+         "seed": 10102,
+         "score": 31.9,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 170.0,
+         "file": "replays/commander/plus10/ep1-pull2.json.gz",
+         "usd": 0.0,
+         "stats": {
+          "usd": 0.0,
+          "calls": 336,
+          "input_tokens": 1013956,
+          "output_tokens": 0,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 326,
+           "input_tokens": 980180,
+           "output_tokens": 0,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 10,
+           "input_tokens": 33776,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          12,
+          15
+         ],
+         "avoidable": 110718
+        },
+        {
+         "pull": 3,
+         "seed": 10103,
+         "score": 31.1,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 163.1,
+         "file": "replays/commander/plus10/ep1-pull3.json.gz",
+         "usd": 0.0,
+         "stats": {
+          "usd": 0.0,
+          "calls": 287,
+          "input_tokens": 858935,
+          "output_tokens": 0,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 287,
+           "input_tokens": 858935,
+           "output_tokens": 0,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 0,
+           "input_tokens": 0,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          10,
+          13
+         ],
+         "avoidable": 29827
         }
        ]
       }
      ]
     }
    },
-   "mythicbench_score": 32.6,
+   "mythicbench_score": 30.6,
    "mythicbench_score_ci95": [
-    25.8,
-    39.4
+    14.9,
+    46.3
    ],
    "rank": null,
    "baseline": true
@@ -741,14 +1709,14 @@
    ],
    "complete": true,
    "pulls": 6,
-   "progression_score": 2.5,
+   "progression_score": 2.0,
    "progression_score_ci95": [
-    2.1,
-    2.9
+    1.4,
+    2.7
    ],
    "episode_scores": [
-    2.53,
-    2.47
+    2.1,
+    2.0
    ],
    "clear_rate": 0.0,
    "clears": 0,
@@ -757,57 +1725,83 @@
     null,
     null
    ],
-   "first_pull_score_mean": 2.4,
+   "first_pull_score_mean": 2.0,
    "curve_mean": [
-    2.4,
-    2.5,
-    2.6
+    2.0,
+    2.1,
+    2.0
    ],
    "cost_usd": 0.0,
    "usd_per_episode": 0.0,
    "usd_per_pull": 0.0,
    "tokens_per_pull": [
-    178984,
-    3800
+    186755,
+    3750
    ],
    "refusals": 0,
    "unusable_replies": 0,
    "truncated_replies": 0,
+   "invalid_entries": 0,
    "api_errors": 0,
    "pulls_out_of_calls": 0,
+   "calls": 375,
    "harness_versions": [
-    "0.13.0"
+    "1.0.0"
    ],
    "episode_list": [
     {
      "episode": 0,
-     "run_id": "2026-11-22T0711_basic_ad58",
+     "run_id": "2026-11-22T2207_basic_82a306be",
      "pulls": [
       {
        "pull": 1,
        "seed": 10001,
-       "score": 2.4,
+       "score": 2.0,
        "outcome": "wipe",
        "in_time": false,
        "duration_s": 31.7,
        "file": "replays/basic/plus10/memory-off/ep0-pull1.json.gz",
        "usd": 0.0,
-       "deaths": 5,
-       "kicks": [
-        0,
-        3
-       ],
-       "avoidable": 1496
-      },
-      {
-       "pull": 2,
-       "seed": 10002,
-       "score": 2.5,
-       "outcome": "wipe",
-       "in_time": false,
-       "duration_s": 31.7,
-       "file": "replays/basic/plus10/memory-off/ep0-pull2.json.gz",
-       "usd": 0.0,
+       "stats": {
+        "usd": 0.0,
+        "calls": 60,
+        "input_tokens": 179225,
+        "output_tokens": 3600,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "refusals": 0,
+        "unusable_replies": 0,
+        "truncated_replies": 0,
+        "invalid_entries": 0,
+        "api_errors": 0,
+        "budget_exhausted": false,
+        "in_pull": {
+         "calls": 60,
+         "input_tokens": 179225,
+         "output_tokens": 3600,
+         "refusals": 0,
+         "unusable_replies": 0,
+         "truncated_replies": 0,
+         "invalid_entries": 0,
+         "api_errors": 0
+        },
+        "between_pulls": {
+         "calls": 0,
+         "input_tokens": 0,
+         "output_tokens": 0,
+         "cache_read_tokens": 0,
+         "cache_write_tokens": 0,
+         "latency_s": 0.0,
+         "cached_calls": 0,
+         "unusable_replies": 0,
+         "truncated_replies": 0,
+         "invalid_entries": 0,
+         "api_errors": 0,
+         "refusals": 0,
+         "chat_dropped": 0,
+         "budget_exhausted": false
+        }
+       },
        "deaths": 5,
        "kicks": [
         0,
@@ -816,36 +1810,172 @@
        "avoidable": 0
       },
       {
-       "pull": 3,
-       "seed": 10003,
-       "score": 2.7,
+       "pull": 2,
+       "seed": 10002,
+       "score": 2.2,
        "outcome": "wipe",
        "in_time": false,
        "duration_s": 31.7,
-       "file": "replays/basic/plus10/memory-off/ep0-pull3.json.gz",
+       "file": "replays/basic/plus10/memory-off/ep0-pull2.json.gz",
        "usd": 0.0,
+       "stats": {
+        "usd": 0.0,
+        "calls": 64,
+        "input_tokens": 191380,
+        "output_tokens": 3840,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "refusals": 0,
+        "unusable_replies": 0,
+        "truncated_replies": 0,
+        "invalid_entries": 0,
+        "api_errors": 0,
+        "budget_exhausted": false,
+        "in_pull": {
+         "calls": 64,
+         "input_tokens": 191380,
+         "output_tokens": 3840,
+         "refusals": 0,
+         "unusable_replies": 0,
+         "truncated_replies": 0,
+         "invalid_entries": 0,
+         "api_errors": 0
+        },
+        "between_pulls": {
+         "calls": 0,
+         "input_tokens": 0,
+         "output_tokens": 0,
+         "cache_read_tokens": 0,
+         "cache_write_tokens": 0,
+         "latency_s": 0.0,
+         "cached_calls": 0,
+         "unusable_replies": 0,
+         "truncated_replies": 0,
+         "invalid_entries": 0,
+         "api_errors": 0,
+         "refusals": 0,
+         "chat_dropped": 0,
+         "budget_exhausted": false
+        }
+       },
        "deaths": 5,
        "kicks": [
         0,
         3
        ],
-       "avoidable": 3807
+       "avoidable": 2578
+      },
+      {
+       "pull": 3,
+       "seed": 10003,
+       "score": 2.1,
+       "outcome": "wipe",
+       "in_time": false,
+       "duration_s": 31.7,
+       "file": "replays/basic/plus10/memory-off/ep0-pull3.json.gz",
+       "usd": 0.0,
+       "stats": {
+        "usd": 0.0,
+        "calls": 66,
+        "input_tokens": 197276,
+        "output_tokens": 3960,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "refusals": 0,
+        "unusable_replies": 0,
+        "truncated_replies": 0,
+        "invalid_entries": 0,
+        "api_errors": 0,
+        "budget_exhausted": false,
+        "in_pull": {
+         "calls": 66,
+         "input_tokens": 197276,
+         "output_tokens": 3960,
+         "refusals": 0,
+         "unusable_replies": 0,
+         "truncated_replies": 0,
+         "invalid_entries": 0,
+         "api_errors": 0
+        },
+        "between_pulls": {
+         "calls": 0,
+         "input_tokens": 0,
+         "output_tokens": 0,
+         "cache_read_tokens": 0,
+         "cache_write_tokens": 0,
+         "latency_s": 0.0,
+         "cached_calls": 0,
+         "unusable_replies": 0,
+         "truncated_replies": 0,
+         "invalid_entries": 0,
+         "api_errors": 0,
+         "refusals": 0,
+         "chat_dropped": 0,
+         "budget_exhausted": false
+        }
+       },
+       "deaths": 5,
+       "kicks": [
+        0,
+        3
+       ],
+       "avoidable": 2672
       }
      ]
     },
     {
      "episode": 1,
-     "run_id": "2026-11-22T0711_basic_ad58",
+     "run_id": "2026-11-22T2207_basic_82a306be",
      "pulls": [
       {
        "pull": 1,
        "seed": 10101,
-       "score": 2.4,
+       "score": 2.0,
        "outcome": "wipe",
        "in_time": false,
        "duration_s": 31.7,
        "file": "replays/basic/plus10/memory-off/ep1-pull1.json.gz",
        "usd": 0.0,
+       "stats": {
+        "usd": 0.0,
+        "calls": 60,
+        "input_tokens": 179226,
+        "output_tokens": 3600,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "refusals": 0,
+        "unusable_replies": 0,
+        "truncated_replies": 0,
+        "invalid_entries": 0,
+        "api_errors": 0,
+        "budget_exhausted": false,
+        "in_pull": {
+         "calls": 60,
+         "input_tokens": 179226,
+         "output_tokens": 3600,
+         "refusals": 0,
+         "unusable_replies": 0,
+         "truncated_replies": 0,
+         "invalid_entries": 0,
+         "api_errors": 0
+        },
+        "between_pulls": {
+         "calls": 0,
+         "input_tokens": 0,
+         "output_tokens": 0,
+         "cache_read_tokens": 0,
+         "cache_write_tokens": 0,
+         "latency_s": 0.0,
+         "cached_calls": 0,
+         "unusable_replies": 0,
+         "truncated_replies": 0,
+         "invalid_entries": 0,
+         "api_errors": 0,
+         "refusals": 0,
+         "chat_dropped": 0,
+         "budget_exhausted": false
+        }
+       },
        "deaths": 5,
        "kicks": [
         0,
@@ -856,12 +1986,52 @@
       {
        "pull": 2,
        "seed": 10102,
-       "score": 2.5,
+       "score": 2.0,
        "outcome": "wipe",
        "in_time": false,
        "duration_s": 31.7,
        "file": "replays/basic/plus10/memory-off/ep1-pull2.json.gz",
        "usd": 0.0,
+       "stats": {
+        "usd": 0.0,
+        "calls": 62,
+        "input_tokens": 185273,
+        "output_tokens": 3720,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "refusals": 0,
+        "unusable_replies": 0,
+        "truncated_replies": 0,
+        "invalid_entries": 0,
+        "api_errors": 0,
+        "budget_exhausted": false,
+        "in_pull": {
+         "calls": 62,
+         "input_tokens": 185273,
+         "output_tokens": 3720,
+         "refusals": 0,
+         "unusable_replies": 0,
+         "truncated_replies": 0,
+         "invalid_entries": 0,
+         "api_errors": 0
+        },
+        "between_pulls": {
+         "calls": 0,
+         "input_tokens": 0,
+         "output_tokens": 0,
+         "cache_read_tokens": 0,
+         "cache_write_tokens": 0,
+         "latency_s": 0.0,
+         "cached_calls": 0,
+         "unusable_replies": 0,
+         "truncated_replies": 0,
+         "invalid_entries": 0,
+         "api_errors": 0,
+         "refusals": 0,
+         "chat_dropped": 0,
+         "budget_exhausted": false
+        }
+       },
        "deaths": 5,
        "kicks": [
         0,
@@ -872,21 +2042,66 @@
       {
        "pull": 3,
        "seed": 10103,
-       "score": 2.5,
+       "score": 2.0,
        "outcome": "wipe",
        "in_time": false,
        "duration_s": 31.7,
        "file": "replays/basic/plus10/memory-off/ep1-pull3.json.gz",
        "usd": 0.0,
+       "stats": {
+        "usd": 0.0,
+        "calls": 63,
+        "input_tokens": 188148,
+        "output_tokens": 3780,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "refusals": 0,
+        "unusable_replies": 0,
+        "truncated_replies": 0,
+        "invalid_entries": 0,
+        "api_errors": 0,
+        "budget_exhausted": false,
+        "in_pull": {
+         "calls": 63,
+         "input_tokens": 188148,
+         "output_tokens": 3780,
+         "refusals": 0,
+         "unusable_replies": 0,
+         "truncated_replies": 0,
+         "invalid_entries": 0,
+         "api_errors": 0
+        },
+        "between_pulls": {
+         "calls": 0,
+         "input_tokens": 0,
+         "output_tokens": 0,
+         "cache_read_tokens": 0,
+         "cache_write_tokens": 0,
+         "latency_s": 0.0,
+         "cached_calls": 0,
+         "unusable_replies": 0,
+         "truncated_replies": 0,
+         "invalid_entries": 0,
+         "api_errors": 0,
+         "refusals": 0,
+         "chat_dropped": 0,
+         "budget_exhausted": false
+        }
+       },
        "deaths": 5,
        "kicks": [
         0,
         3
        ],
-       "avoidable": 0
+       "avoidable": 3746
       }
      ]
     }
+   ],
+   "paired_on_curve_mean": [
+    2.0,
+    2.1,
+    2.0
    ]
   }
  ],

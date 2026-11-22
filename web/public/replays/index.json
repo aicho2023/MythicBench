@@ -8,7 +8,7 @@
     "blurb": "Fixed, obvious rules through the agents' own interface: kick every cast, step out of every pool. It never learns.",
     "file": "commander-plus10.json",
     "outcome": "wipe",
-    "duration_s": 166.0,
+    "duration_s": 182.9,
     "score": 31.1
   },
   {
@@ -21,6 +21,6 @@
     "file": "commander-normal.json",
     "outcome": "timeout",
     "duration_s": 255.0,
-    "score": 53.2
+    "score": 58.3
   }
 ]

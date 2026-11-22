@@ -73,8 +73,8 @@ export function Commentary() {
         <Section id="groups" title="Groups and pulls">
           <p>
             Each model plays as several <strong>groups</strong>. A group is a fresh party that gets up to five
-            <strong> pulls</strong> at the dungeon. It starts blind: it knows its own abilities and the affixes,
-            nothing about the enemies. After a pull that doesn't clear, everyone sees the same combat log, the
+            <strong> pulls</strong> at the dungeon. It starts blind: it knows its own abilities, the map and the affixes,
+            and nothing else about what the enemies do. After a pull that doesn't clear, everyone sees the same combat log, the
             party talks it over in turn, and each character writes its own notes, the only thing it carries into
             the next pull. Nothing tells them what to learn. A group is done when it clears in time or uses its
             five pulls.
@@ -114,9 +114,8 @@ export function Commentary() {
           <p>
             Between calls each character follows its standing orders, and two shortcuts do the walking (step out
             of pools, walk the route). A <strong>scripted commander</strong> plays through exactly the same
-            interface with fixed, obvious rules (kick every cast, step out of every pool) and never learns. A model
-            has to beat it for its own decisions to matter. Its common sense is exactly what Oruth punishes: it
-            scores about 34 on +10 and wipes every time. +10 itself is tuned against real models, so that the best
+            interface with fixed, obvious rules (kick every cast, step out of every pool) and never learns. It's one fixed policy: a reference point for what obvious rules do, not a ceiling or a floor. Its common sense is exactly what Oruth punishes: it
+            scores about 33 on +10 and never clears. +10 itself is tuned against real models, so that the best
             of today's clear it only some of the time.
           </p>
         </Section>

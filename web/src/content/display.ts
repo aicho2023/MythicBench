@@ -93,7 +93,7 @@ export function dungeonProgress(units: Record<string, { hp: number; info: { max_
       const p = (packs[u.info.pack] ??= [0, 0])
       p[0] += u.info.max_hp - u.hp
       p[1] += u.info.max_hp
-    } else if (u.info.kind === 'boss') boss = (100 - round1((100 * u.hp) / u.info.max_hp)) / 100 // as metrics.score rounds it
+    } else if (u.info.kind === 'boss') boss = (100 - (100 * u.hp) / u.info.max_hp) / 100 // unrounded, as metrics.score passes it
   }
   let total = PROGRESS_WEIGHTS.boss * boss
   for (const [k, [done, all]] of Object.entries(packs)) total += (PROGRESS_WEIGHTS[k] ?? 0) * (done / all)

@@ -67,8 +67,38 @@ class DungeonRun(Encounter):
         self.revives = 0
 
     # ----- map ---------------------------------------------------------------
-    def clamp(self, to):
-        return clamp_to_walkable(to)
+    def clamp(self, to, radius=C.PLAYER_RADIUS):
+        return self.clear_of_obstacles(clamp_to_walkable(to), radius)
+
+    def walk_ok(self, p):
+        return C.walkable(p)
+
+    def resolve_spot(self, u, to, foe=None):
+        if u.kind == "player":  # as start_move: a player's move stops at a wall
+            to = self.straight_line_reach(u.pos, self.clamp(to, u.radius))
+        return super().resolve_spot(u, to, foe)
+
+    def start_move(self, u, to, *, exact=False, foe=None):
+        # Walls are solid: a player's move goes in a straight line and stops at
+        # the last walkable point before a wall (the "next" route never needs to).
+        if u.kind == "player" and not exact:
+            to = self.straight_line_reach(u.pos, self.clamp(to, u.radius))
+        super().start_move(u, to, exact=exact, foe=foe)
+
+    @staticmethod
+    def straight_line_reach(frm, to):
+        steps = max(1, int(dist(frm, to) / 0.25))
+        inside = C.walkable(frm)
+        last = frm
+        for i in range(1, steps + 1):
+            f = i / steps
+            p = (frm[0] + (to[0] - frm[0]) * f, frm[1] + (to[1] - frm[1]) * f)
+            if C.walkable(p):
+                inside = True
+            elif inside:
+                return (r2(last[0]), r2(last[1]))
+            last = p
+        return to
 
     # ----- pulling -------------------------------------------------------------
     def in_combat(self) -> bool:

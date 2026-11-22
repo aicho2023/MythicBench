@@ -9,6 +9,7 @@
   "max_pulls": 5,
   "effort": "medium",
   "seed_base": 70000,
+  "restart_seed_base": 80000,
   "interval_ms": 4000,
   "max_calls": 300,
   "run_budget_usd": 500,

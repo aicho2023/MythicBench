@@ -12,6 +12,8 @@ export interface PullResult {
   /** path inside the dataset, e.g. replays/<model>/<tier>/ep0-pull1.json.gz */
   file: string
   usd: number | null
+  /** the pull's call counts, tokens and reply problems */
+  stats?: Record<string, unknown>
 }
 
 export interface EpisodeResult { episode: number; run_id: string; pulls: PullResult[] }
@@ -30,8 +32,12 @@ export interface TierCell {
   learning_effect?: number; learning_effect_ci95?: CI
   first_pull_score_mean: number | null
   curve_mean: number[] | null
+  /** effort sweeps: the default effort on this sweep's own groups (a like-for-like comparison) */
+  default_effort_same_groups?: { effort: string; episodes: number[]; progression_score: number; progression_score_ci95: CI; usd_per_episode: number }
   cost_usd: number; usd_per_pull: number | null; tokens_per_pull: [number, number] | null
   refusals: number; unusable_replies: number; truncated_replies?: number; api_errors?: number; pulls_out_of_calls?: number
+  /** model calls made (the denominator for the reply-problem counts), and entries dropped from usable replies */
+  calls?: number; invalid_entries?: number
   harness_versions: string[]
   episode_list: EpisodeResult[]
   usd_per_episode?: number | null
@@ -53,7 +59,11 @@ export interface LeaderboardRow {
   rank?: number | null; complete?: boolean
 }
 
-export interface ControlRow extends TierCell { model: string; tier: string; memory: false }
+export interface ControlRow extends TierCell {
+  model: string; tier: string; memory: false
+  /** the memory-on curve over the control's own (paired) groups */
+  paired_on_curve_mean?: number[] | null
+}
 
 export interface Results {
   protocol: {
@@ -208,4 +218,17 @@ export function parseWatchPath(path: string): (Partial<PullAddress> & { model: s
 /** A model's per-episode headline scores: its episodes on the headline tier. */
 export function episodeHeadlines(r: Results, row: LeaderboardRow): number[] {
   return row.tiers[headlineTier(r)]?.episode_scores ?? []
+}
+
+/** Calls that gave no usable answer (refused, or nothing readable), as a share of calls. Replies cut off at
+ * the token limit are shown separately: their complete orders, if any, were still used. */
+export function replyProblems(cell: TierCell | undefined): { text: string; title: string } {
+  if (!cell?.calls) return { text: '–', title: 'Not recorded' }
+  const none = (cell.refusals ?? 0) + (cell.unusable_replies ?? 0)
+  return {
+    text: `${((100 * none) / cell.calls).toFixed(1)}%`,
+    title: `${cell.calls.toLocaleString()} calls: ${none} gave no usable answer (${cell.refusals ?? 0} refused, `
+      + `${cell.unusable_replies ?? 0} unreadable). Separately, ${cell.truncated_replies ?? 0} were cut off at the token limit, `
+      + `and ${cell.invalid_entries ?? 0} entries were dropped from usable replies`,
+  }
 }

@@ -36,6 +36,14 @@ class Reply:
     cache_write_tokens: int = 0  # input tokens written to the provider's prompt cache (Anthropic bills these higher)
     refused: bool = False  # the provider's safety system declined to answer (no orders this call)
     thinking: str = ""  # the provider's summary of the model's reasoning, when it gives one
+    # For auditing (recorded with the reply): the model the provider actually
+    # served (an alias can move), why it stopped, its request id, and how many
+    # output tokens were reasoning, when the provider says.
+    model: str = ""
+    stop_reason: str = ""
+    request_id: str = ""
+    reasoning_tokens: int | None = None
+    service_tier: str = ""  # OpenAI: the tier that served the request (priced as Standard)
 
 
 class ChatClient(Protocol):
@@ -76,13 +84,29 @@ def _key(name: str) -> str:
     load_env()
     key = os.environ.get(name, "").strip()
     if not key:
-        raise ClientError(f"{name} is not set. Copy .env.example to .env and add your key.", fatal=True)
+        err = ClientError(f"{name} is not set. Copy .env.example to .env and add your key.", fatal=True)
+        err.not_billed = True  # nothing was sent
+        raise err
     return key
 
 
 # ---------------------------------------------------------------------------
 # HTTP
 # ---------------------------------------------------------------------------
+
+# A request that timed out or lost its connection may still have been billed.
+# Before such a request is sent again, the spend meter (spend.CostMeter) is
+# told through this per-thread hook, so it holds money for the extra attempt
+# and counts the lost one as spent. Rate limits and server errors (429, 5xx)
+# are refused before any work, so they're not billed and need no hook.
+_RESEND = threading.local()
+
+
+def _before_resend() -> None:
+    hook = getattr(_RESEND, "hook", None)
+    if hook is not None:
+        hook()
+
 
 def _post(url: str, headers: dict, body: dict, timeout: float = 180.0, retries: int = 6) -> dict:
     data = json.dumps(body).encode()
@@ -92,26 +116,145 @@ def _post(url: str, headers: dict, body: dict, timeout: float = 180.0, retries: 
                                      headers={"content-type": "application/json", **headers})
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
-                return json.loads(resp.read())
+                body = resp.read()
         except urllib.error.HTTPError as err:
             detail = err.read().decode(errors="replace")[:500]
             out_of_credit = "insufficient_quota" in detail or "credit" in detail.lower()
+            # Refused before any work (a 4xx, a rate limit, overload): not
+            # billed. A server error may have come after the model ran: treat
+            # it as possibly billed (the meter holds money for the resend).
+            refused = err.code < 500 or err.code == 529
             # Rate limits and server hiccups are worth retrying; billing, auth,
             # and malformed requests are not.
             if err.code in (429, 500, 502, 503, 504, 529) and not out_of_credit and attempt < retries:
+                if not refused:
+                    _before_resend()
                 time.sleep(delay)
                 delay *= 2
                 continue
             fatal = out_of_credit or err.code in (400, 401, 403, 404)
-            raise ClientError(f"HTTP {err.code} from {url}: {detail}", fatal=fatal) from None
+            out = ClientError(f"HTTP {err.code} from {url}: {detail}", fatal=fatal)
+            out.not_billed = refused
+            raise out from None
         except (urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError, OSError) as err:
-            # Dropped connections, resets, and timeouts: transient, so retry.
+            # Dropped connections, resets, and timeouts: transient, so retry,
+            # but the lost attempt may have been billed (see _before_resend).
             if attempt < retries:
+                _before_resend()
                 time.sleep(delay)
                 delay *= 2
                 continue
-            raise ClientError(f"network error calling {url}: {err}") from None
+            raise ClientError(f"network error calling {url}: {err}") from None  # may have been billed
+        try:
+            return json.loads(body)
+        except ValueError:
+            # A 200 whose body we can't read was answered (and billed): the
+            # meter counts it at its worst case. Not retried: that would pay twice.
+            raise ClientError(f"unreadable response from {url}: {body[:200]!r}") from None
     raise ClientError("unreachable")
+
+
+def _malformed(why: str) -> ClientError:
+    # The request was answered (and may have been billed), but not in a shape
+    # we can trust: the meter counts it at its bound, the group is left
+    # unfinished (a rerun asks again), and it's never scored as a model reply.
+    return ClientError(f"malformed response from the provider: {why}")
+
+
+def _strict(read, out, t0: float) -> "Reply":
+    """Read a provider's answer strictly: any shape we don't expect is a
+    malformed (possibly billed) response, never a crash or a $0 reply."""
+    try:
+        return read(out, t0)
+    except ClientError:
+        raise
+    except Exception as err:  # noqa: BLE001 - an unexpected shape, whatever it is
+        raise _malformed(f"{type(err).__name__}: {err}") from None
+
+
+def _obj(x, what: str) -> dict:
+    if not isinstance(x, dict):
+        raise _malformed(f"{what} is {type(x).__name__}, not an object")
+    return x
+
+
+def _text(x, what: str) -> str:
+    if x is None:
+        return ""
+    if not isinstance(x, str):
+        raise _malformed(f"{what} is {type(x).__name__}, not text")
+    return x
+
+
+def _tokens(d: dict, key: str, what: str, required: bool = True) -> int:
+    """A token count used for billing: a whole number >= 0 (absent or null = 0 when optional)."""
+    v = d.get(key)
+    if v is None and not required:
+        return 0
+    if isinstance(v, bool) or not isinstance(v, int) or v < 0:
+        raise _malformed(f"{what}.{key} is {v!r}")
+    return v
+
+
+def _read_anthropic(out, t0: float) -> "Reply":
+    out = _obj(out, "the response")
+    content = out.get("content")
+    if not isinstance(content, list):
+        raise _malformed("no 'content' list")
+    text, thinking = [], []
+    for i, b in enumerate(content):
+        b = _obj(b, f"content[{i}]")
+        kind = _text(b.get("type"), f"content[{i}].type")
+        if kind == "text":
+            text.append(_text(b.get("text"), f"content[{i}].text"))
+        elif kind == "thinking":
+            thinking.append(_text(b.get("thinking"), f"content[{i}].thinking"))
+    u = _obj(out.get("usage"), "usage")
+    fresh = _tokens(u, "input_tokens", "usage")
+    read = _tokens(u, "cache_read_input_tokens", "usage", required=False)
+    write = _tokens(u, "cache_creation_input_tokens", "usage", required=False)
+    total_in = fresh + read + write
+    if total_in <= 0:
+        raise _malformed("no input tokens counted for a request that had a prompt")
+    stop = _text(out.get("stop_reason"), "stop_reason")
+    return Reply("".join(text), total_in, _tokens(u, "output_tokens", "usage"), time.monotonic() - t0,
+                 cache_read_tokens=read, truncated=stop == "max_tokens", cache_write_tokens=write,
+                 refused=stop == "refusal", thinking="".join(thinking)[:4000],
+                 model=_text(out.get("model"), "model"), stop_reason=stop, request_id=_text(out.get("id"), "id"))
+
+
+def _read_openai(out, t0: float) -> "Reply":
+    out = _obj(out, "the response")
+    choices = out.get("choices")
+    if not isinstance(choices, list) or not choices:
+        raise _malformed("no 'choices'")
+    c0 = _obj(choices[0], "choices[0]")
+    msg = _obj(c0.get("message"), "choices[0].message")
+    text = _text(msg.get("content"), "message.content")
+    refusal = _text(msg.get("refusal"), "message.refusal")
+    finish = _text(c0.get("finish_reason"), "finish_reason")
+    usage = _obj(out.get("usage"), "usage")
+    prompt = _tokens(usage, "prompt_tokens", "usage")
+    completion = _tokens(usage, "completion_tokens", "usage")
+    if prompt <= 0:
+        raise _malformed("no input tokens counted for a request that had a prompt")
+    pdet = usage.get("prompt_tokens_details")
+    read = _tokens(_obj(pdet, "prompt_tokens_details"), "cached_tokens", "prompt_tokens_details", required=False) \
+        if pdet is not None else 0
+    if read > prompt:
+        raise _malformed(f"{read} cached tokens out of {prompt} input tokens")
+    cdet = usage.get("completion_tokens_details")
+    reasoning = None
+    if cdet is not None:
+        cdet = _obj(cdet, "completion_tokens_details")
+        if cdet.get("reasoning_tokens") is not None:
+            reasoning = _tokens(cdet, "reasoning_tokens", "completion_tokens_details")
+            if reasoning > completion:
+                raise _malformed(f"{reasoning} reasoning tokens out of {completion} output tokens")
+    return Reply(text, prompt, completion, time.monotonic() - t0, cache_read_tokens=read,
+                 truncated=finish == "length", refused=bool(refusal) or finish == "content_filter",
+                 model=_text(out.get("model"), "model"), stop_reason=finish, request_id=_text(out.get("id"), "id"),
+                 reasoning_tokens=reasoning, service_tier=_text(out.get("service_tier"), "service_tier"))
 
 
 # Per-call output cap (thinking + answer), the same for every model.
@@ -152,15 +295,7 @@ class AnthropicClient:
                      # The rules never change between calls: let Anthropic cache them.
                      "system": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
                      "messages": [{"role": "user", "content": user}], **self.effort_params()})
-        text = "".join(b.get("text", "") for b in out.get("content", []) if b.get("type") == "text")
-        thinking = "".join(b.get("thinking", "") for b in out.get("content", []) if b.get("type") == "thinking")
-        u = out.get("usage", {})
-        read = u.get("cache_read_input_tokens", 0) or 0
-        write = u.get("cache_creation_input_tokens", 0) or 0
-        total_in = (u.get("input_tokens", 0) or 0) + write + read
-        return Reply(text, total_in, u.get("output_tokens", 0), time.monotonic() - t0, cache_read_tokens=read,
-                     truncated=out.get("stop_reason") == "max_tokens", cache_write_tokens=write,
-                     refused=out.get("stop_reason") == "refusal", thinking=thinking[:4000])
+        return _strict(_read_anthropic, out, t0)
 
     def effort_params(self) -> dict:
         if self.effort == "none":
@@ -194,18 +329,13 @@ class OpenAIClient:
                      # Route requests that share the rules prefix together so
                      # OpenAI's (best-effort) prompt cache actually hits.
                      "prompt_cache_key": _cache_key(system),
+                     # The Standard tier, as priced in spend.PRICES (not whatever
+                     # tier the project defaults to); the served tier is recorded.
+                     "service_tier": "default",
                      **({"reasoning_effort": self.effort} if self.effort else {}),
                      "messages": [{"role": "system", "content": system},
                                   {"role": "user", "content": user}]})
-        choices = out.get("choices") or [{}]
-        msg = choices[0].get("message") or {}
-        text = msg.get("content") or ""
-        truncated = choices[0].get("finish_reason") == "length"
-        refused = bool(msg.get("refusal")) or choices[0].get("finish_reason") == "content_filter"
-        usage = out.get("usage", {})
-        read = (usage.get("prompt_tokens_details") or {}).get("cached_tokens", 0) or 0
-        return Reply(text, usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0),
-                     time.monotonic() - t0, cache_read_tokens=read, truncated=truncated, refused=refused)
+        return _strict(_read_openai, out, t0)
 
 
 MOCK_ORDERS = {
@@ -301,6 +431,12 @@ class _Recording:
         self.mem: dict[str, dict] = {}
         self.inflight: dict[str, threading.Event] = {}
         self._lockfile = None
+        self._load()
+
+    def _load(self) -> None:
+        """Read the file into memory (again, after taking the writer lock: another
+        process may have recorded more since this one first read it)."""
+        path = self.path
         gz = path.with_name(path.name + ".gz")  # a published dataset ships recordings gzipped
         text = path.read_text() if path.exists() else gzip.decompress(gz.read_bytes()).decode() if gz.exists() else ""
         for line in text.splitlines():
@@ -327,6 +463,7 @@ class _Recording:
             raise ClientError(f"another process is recording into {self.path}; run one campaign at a time",
                               fatal=True) from None
         self._lockfile = f
+        self._load()  # now nobody else can write it: catch up on anything recorded before we got here
 
     def append(self, rec: dict) -> None:
         self.mem[rec["key"]] = rec
@@ -381,7 +518,9 @@ class CachedClient:
         return Reply(r["text"], r["input_tokens"], r["output_tokens"], 0.0, cached=True,
                      cache_read_tokens=r.get("cache_read_tokens", 0), truncated=r.get("truncated", False),
                      cache_write_tokens=r.get("cache_write_tokens", 0), refused=r.get("refused", False),
-                     thinking=r.get("thinking", ""))
+                     thinking=r.get("thinking", ""), model=r.get("model", ""), stop_reason=r.get("stop_reason", ""),
+                     request_id=r.get("request_id", ""), reasoning_tokens=r.get("reasoning_tokens"),
+                     service_tier=r.get("service_tier", ""))
 
     def complete(self, system: str, user: str, tag: str = "") -> Reply:
         k = self.key(system, user, tag)
@@ -397,6 +536,8 @@ class CachedClient:
                 waiting = rec.inflight.get(k)
                 if waiting is None:
                     rec.claim_writer()
+                    if k in rec.mem:  # recorded by another process before we held the lock
+                        return self._reply(rec.mem[k])
                     rec.inflight[k] = threading.Event()
                     break
             waiting.wait()  # the same call is being made right now: use its reply
@@ -407,7 +548,9 @@ class CachedClient:
                             "input_tokens": reply.input_tokens, "output_tokens": reply.output_tokens,
                             "cache_read_tokens": reply.cache_read_tokens,
                             "cache_write_tokens": reply.cache_write_tokens,
-                            "truncated": reply.truncated, "refused": reply.refused, "thinking": reply.thinking})
+                            "truncated": reply.truncated, "refused": reply.refused, "thinking": reply.thinking,
+                            "model": reply.model, "stop_reason": reply.stop_reason, "request_id": reply.request_id,
+                            "reasoning_tokens": reply.reasoning_tokens, "service_tier": reply.service_tier})
             return reply
         finally:
             with rec.lock:

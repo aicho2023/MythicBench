@@ -6,7 +6,8 @@ seen, and does it get better with each attempt?
 
 Five agents, one per character and all the same model, play the party: a
 tank, a healer and three damage dealers, with a party chat between them. They
-start blind. After each wipe they read the same combat log, talk it over, each
+start blind: no guide to the boss or the trash, only what the affixes say.
+After each wipe they read the same combat log, talk it over, each
 rewrite their own notes, and try again, up to five times. Nothing tells them
 what to learn. Every fight is a
 deterministic simulation that saves a full event log, so you can watch any
@@ -89,9 +90,7 @@ Normal and +10 progression scores.
 The scripted commander plays through exactly the agents' interface (it reads
 the same state text and replies with the same orders) using fixed, obvious
 rules: kick every cast, kill casters first, heal the lowest ally, step out of
-every pool. It never learns. A model has to beat it for its own decisions to
-matter. Over 60 seeds it scores 34.1 on +10 (it wipes every time) and 56.2 on
-Normal.
+every pool. It never learns. It's one fixed policy: a reference point for what obvious rules do, not a ceiling or a floor. Over 60 seeds it scores 32.7 on +10 (no clears) and 54.5 on Normal.
 
 That gap is by design. Oruth's Bone Pyre is a circle on the floor that two
 players must stand in, or it hits the whole party. Every generic instinct
@@ -132,8 +131,9 @@ without calling the model again.
 ### Learning over pulls
 
 In a progression run the party starts blind. It knows its own abilities and
-the affixes, but nothing about Oruth: no tooltips, no timers, no warning
-about the enrage. After each wipe it gets a factual debrief built from the
+the affixes (as the game shows them: Hollow Tyrant names Oruth's summon
+thresholds and Grave Mark's cadence), but nothing else about Oruth or the
+trash casters: no tooltips, no timers, no warning about the enrage. After each wipe it gets a factual debrief built from the
 event log: who died to what, what hit hardest, every boss cast and whether it
 was interrupted, the adds, and the time spent in pools. It then rewrites its
 team notes (up to about 350 words), which go into the rules for the next
@@ -166,11 +166,14 @@ they are independent, so this only saves time.
 Sonnet and Opus 5.5; GPT-6 Luna and GPT-6.2 Sol) at one shared effort, six
 blind groups each on +10 (a group is a fresh party with up to five pulls),
 paired memory-off controls on the two cheapest models, Normal as a sanity
-check, and low/high effort sweeps for cost curves.
+check, and low/high effort sweeps for cost curves. The questions, metrics,
+analysis and stopping rules were fixed before the run, in
+[docs/PREREGISTRATION.md](docs/PREREGISTRATION.md).
 
 ```bash
 python -m mythicsim campaign ../protocol/v1.json --dry-run     # what's left and the worst-case cost
-python -m mythicsim campaign ../protocol/v1.json --workers 3   # play it; safe to stop and rerun
+python -m mythicsim campaign ../protocol/v1.json --first 1     # stage 1: each cell's first group
+python -m mythicsim campaign ../protocol/v1.json --workers 3   # the rest; safe to stop and rerun
 python -m mythicsim results ../protocol/v1.json --out ../results/v1
 ```
 
@@ -209,6 +212,36 @@ python -m mythicsim runs publish --all    # refresh the viewer's run list
 In the viewer, the button in the top bar opens the run list, with search,
 filters and a score for each attempt. Runs from an older harness version are
 hidden by default because their scores aren't comparable.
+
+### Analysing results
+
+`export` turns runs or a results folder into flat files for spreadsheets,
+pandas or an LLM:
+- `overview.md`, every cell plus averages by pull number;
+- CSVs of pulls, groups, deaths, mechanics (each kick, Bone Pyre and Grave
+  Mark) and damage taken;
+- every model call as JSONL;
+- one readable story per group, with the timeline, debrief, talk and notes
+  for each pull.
+
+It only reads, so it never changes a run or a score.
+
+```bash
+python -m mythicsim export ../web/public/results/v1 --zip   # a results dataset
+python -m mythicsim export --tag soak-check                 # local runs (or --run <id>)
+```
+
+It writes to `runs/analysis/<name>/`. Add `--prompts` to include every call's
+full prompt, which makes the export much bigger.
+
+The website does the same in the browser and downloads a zip. In the run list,
+**Export this run** exports one run, and **Export N runs** exports every run
+the search and filters show. The files are byte-identical to the command's,
+and both test suites check this against one shared fingerprint
+(`sim/tests/export_sample_digest.json`). The website exports what its run
+list shows: the leaderboard's groups and the memory-off controls. For the
+effort sweeps and the extra memory-on groups behind the learning effect,
+export the full results folder with the command.
 
 ## Simulator commands
 

@@ -75,7 +75,7 @@ export interface ReplayMeta {
   /** Model runs: which run produced this replay. */
   run?: {
     run_id: string; name: string | null; label: string; model: string; effort: string | null; harness_version: string; prompt_hash: string
-    git_commit?: string | null; knowledge?: string | null; tier?: string | null; dungeon_mode?: string | null; max_pulls?: number | null; campaign?: string | null
+    git_commit?: string | null; knowledge?: string | null; tier?: string | null; dungeon_mode?: string | null; max_pulls?: number | null; campaign?: string | null; seed_base?: number | null
   }
   /** Progression runs: this pull's place in its episode and what the agents knew. */
   progress?: {
@@ -191,6 +191,11 @@ export interface CatalogItem {
   deaths?: number
   kicks?: [number, number]
   avoidable?: number
+  /** list-price cost, call counts, tokens and reply problems (for the analysis export) */
+  usd?: number | null
+  stats?: Record<string, unknown>
+  /** results dataset: the run that played this group */
+  run_id?: string
 }
 
 /** A model run (one `mythicsim llm` invocation), from replays/local/catalog.json. */
@@ -214,6 +219,8 @@ export interface CatalogRun {
   /** "dungeon" for the full run; missing on runs made before the dungeon existed (boss fight only) */
   dungeon_mode?: string | null
   max_pulls?: number | null
+  /** results dataset: which part of the protocol (ranked, sanity, control, baseline) */
+  role?: string
   /** "stopped": the run hit its spend budget part-way */
   status?: string | null
   note?: string | null

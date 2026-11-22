@@ -432,3 +432,63 @@ def test_chat_is_cut_to_a_short_line_at_a_word_or_sentence():
     words = "word " * 60
     cut = fit_chat(words)
     assert len(cut) <= CHAT_MAX_CHARS and cut.endswith("word")
+
+
+@pytest.mark.parametrize("number", ["1" + "0" * 310, "9" * 4401, "1e999", "NaN"])
+def test_absurd_numbers_are_invalid_not_fatal(number):
+    """Huge or non-finite coordinates are dropped as invalid; the rest of the order still counts."""
+    reply = '{"move_to": [' + number + ', 1], "priority": [["savage_hew", "oruth"]], "say": "hi"}'
+    p = parse_reply(reply, "brask", {"brask", "oruth"})
+    o = p.orders["brask"]
+    assert p.ok and o.move_to is None and any("move_to" in x for x in p.problems)
+    assert o.priority == [("savage_hew", "oruth")] and o.say == "hi"
+
+
+def test_deep_nesting_is_unusable_not_fatal():
+    p = parse_reply("[" * 3000 + "]" * 3000 + ' {"say": "ok"}', "brask", {"brask"})
+    assert p.ok and p.orders["brask"].say == "ok"
+    assert not parse_reply('{"a":' * 3000 + "1" + "}" * 3000, "brask", {"brask"}).ok
+
+
+def test_a_final_empty_object_means_no_change_even_after_a_draft():
+    p = parse_reply('Draft: {"move_to": [1, 2], "say": "go"} ... on second thought: {}', "brask", {"brask"})
+    o = p.orders["brask"]
+    assert p.ok and o.move_to is None and o.priority is None and o.say == ""
+
+
+def test_a_reply_recorded_by_another_process_is_reused_not_asked_again(tmp_path):
+    """This process read the recording before another one appended to it: once it
+    holds the writer lock it re-reads, and replays that reply instead of paying again."""
+    from mythicsim.llm import clients as cl
+
+    class Counting:
+        spec = "fake:count"
+        calls = 0
+
+        def complete(self, system, user, tag=""):
+            Counting.calls += 1
+            return cl.Reply('{"say": "new"}', 1, 1)
+
+    path = tmp_path / "rec.jsonl"
+    path.write_text("")
+    client = cl.CachedClient(Counting(), path)  # reads the (empty) file now
+    k = client.key("sys", "user", "t")
+    with path.open("a") as f:  # meanwhile, another process records that very call
+        f.write(json.dumps({"key": k, "spec": "fake:count", "text": '{"say": "theirs"}',
+                            "input_tokens": 1, "output_tokens": 1}) + "\n")
+    assert client.complete("sys", "user", "t").text == '{"say": "theirs"}' and Counting.calls == 0
+    cl._RECORDINGS.clear()
+
+
+def test_stop_is_a_move_order():
+    assert parse_reply('{"move_to": "stop"}', "brask", {"brask"}).orders["brask"].move_to == "stop"
+
+
+def test_a_lone_surrogate_in_chat_cannot_break_the_next_prompt():
+    from mythicsim.llm.prompt import clean_text
+    p = parse_reply('{"say": "kick \\ud800 now"}', "brask", {"brask"})
+    said = p.orders["brask"].say
+    said.encode("utf-8")  # would raise on a lone surrogate
+    assert "�" in said and clean_text("ok") == "ok"
+    from mythicsim import spend
+    assert spend.worst_case_usd(spend.Price(1, 1, 1), "s", "\ud800") > 0  # the bound never crashes either

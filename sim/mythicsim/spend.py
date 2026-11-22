@@ -108,9 +108,18 @@ def project_cap() -> float:
     load_env()
     raw = os.environ.get("MYTHICBENCH_TOTAL_BUDGET_USD", "").strip()
     try:
-        return float(raw) if raw else DEFAULT_PROJECT_CAP_USD
+        cap = float(raw) if raw else DEFAULT_PROJECT_CAP_USD
     except ValueError:
-        raise SystemExit(f"MYTHICBENCH_TOTAL_BUDGET_USD must be a number of dollars, got {raw!r}")
+        raise SystemExit(f"MYTHICBENCH_TOTAL_BUDGET_USD must be a number of dollars, got {raw!r}") from None
+    return finite_usd(cap, "MYTHICBENCH_TOTAL_BUDGET_USD")
+
+
+def finite_usd(x: float, what: str = "a budget") -> float:
+    """A spending limit must be a real, finite, non-negative amount (inf or NaN would disable it)."""
+    import math
+    if not math.isfinite(x) or x < 0:
+        raise SystemExit(f"{what} must be a finite number of dollars >= 0, got {x!r}")
+    return x
 
 
 def read_ledger(path: Path | None = None) -> list[dict]:
@@ -120,12 +129,21 @@ def read_ledger(path: Path | None = None) -> list[dict]:
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
 
 
+def counted(rows: list[dict]) -> list[dict]:
+    """The ledger rows that count as money spent. A ``hold`` is written before
+    a request is sent and settled by the call's record afterwards; a hold that
+    was never settled (the process died mid-request) counts as spent at its
+    worst case, since the request may have been billed."""
+    settled = {h for r in rows for h in r.get("settles") or ()}
+    return [r for r in rows if r.get("kind") != "hold" or r["hold"] not in settled]
+
+
 def total_spent(path: Path | None = None) -> float:
-    return sum(r["usd"] for r in read_ledger(path))
+    return sum(r["usd"] for r in counted(read_ledger(path)))
 
 
 def summarize_ledger(path: Path | None = None) -> dict:
-    rows = read_ledger(path)
+    rows = counted(read_ledger(path))
     by_model: dict[str, float] = {}
     by_run: dict[str, float] = {}
     for r in rows:
@@ -134,7 +152,8 @@ def summarize_ledger(path: Path | None = None) -> dict:
     spent = sum(by_model.values())
     cap = project_cap()
     return {"cap_usd": cap, "spent_usd": round(spent, 4), "remaining_usd": round(cap - spent, 4),
-            "calls": sum(1 for r in rows if not r.get("estimated")),
+            "calls": sum(1 for r in rows if not r.get("estimated") and r.get("kind") != "hold"),
+            "unsettled_holds": sum(1 for r in rows if r.get("kind") == "hold"),
             "estimated_runs": sum(1 for r in rows if r.get("estimated")),
             "by_model": {k: round(v, 4) for k, v in sorted(by_model.items(), key=lambda kv: -kv[1])},
             "by_run": {k: round(v, 4) for k, v in sorted(by_run.items(), key=lambda kv: -kv[1])}}
@@ -165,6 +184,7 @@ class Guard:
         self.reserved = 0.0
 
     def arm(self, cap: float, already_spent: float = 0.0) -> None:
+        finite_usd(cap, f"the {self.name} budget")
         with self._lock:
             if self.cap is None:
                 self.cap, self.base, self.spent, self.reserved = cap, already_spent, 0.0, 0.0
@@ -186,16 +206,68 @@ class Guard:
             self.spent += cost
 
 
+_PAID_LOCK = None
+_PAID_LOCK_GUARD = threading.Lock()
+
+
+def claim_paid_lock(runs_dir: Path | None = None) -> None:
+    """One process at a time may spend money on this project: two at once
+    would each check the cap without seeing the other's calls in flight.
+    (Threads in one process share the guards below, so a campaign's parallel
+    cells are fine.) Held until the process exits."""
+    global _PAID_LOCK
+    with _PAID_LOCK_GUARD:  # threads of this process share one claim
+        _claim(runs_dir)
+
+
+def _claim(runs_dir: Path | None) -> None:
+    global _PAID_LOCK
+    if _PAID_LOCK is not None:
+        return
+    import fcntl
+    d = runs_dir or RUNS_DIR
+    d.mkdir(parents=True, exist_ok=True)
+    f = open(d / ".paid-run.lock", "w")
+    try:
+        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        f.close()
+        raise SystemExit("another paid run is in progress on this machine (runs/.paid-run.lock): "
+                         "run one at a time; a campaign plays its cells in parallel itself") from None
+    _PAID_LOCK = f
+
+
 PROJECT = Guard("project")  # MYTHICBENCH_TOTAL_BUDGET_USD, across everything ever spent
 CAMPAIGN = Guard("campaign")  # campaign --budget-usd, across all of a campaign's cells
 ProjectGuard = Guard  # older name
 
 
+# Tokens a request adds beyond its text (roles, message framing, the system
+# block): a generous allowance.
+MESSAGE_OVERHEAD_TOKENS = 512
+# PRICES are short-context rates; some models charge more above a prompt size
+# (Haiku, for one, above 100,000 input tokens). Our prompts are a few thousand
+# tokens; a request whose upper bound passes this is refused, never sent.
+MAX_PRICED_INPUT_TOKENS = 100_000
+
+
+def input_token_bound(system: str, user: str) -> int:
+    """At most one token per UTF-8 byte, plus message overhead (surrogatepass:
+    never fails on odd text; a lone surrogate counts its 3 bytes)."""
+    return (len(system.encode("utf-8", "surrogatepass")) + len(user.encode("utf-8", "surrogatepass"))
+            + MESSAGE_OVERHEAD_TOKENS)
+
+
 def worst_case_usd(price: Price, system: str, user: str) -> float:
-    """An upper bound for one call: every input token uncached (about 3
-    characters a token, generous) and the full output cap used."""
+    """An upper bound for one call, not an estimate: a token is never shorter
+    than one byte, so the input is at most its UTF-8 bytes plus message
+    overhead, all priced at the dearest input rate (Anthropic bills prompt-cache
+    writes above the plain input rate); the output is the full cap, thinking
+    included (the request sets it as the maximum)."""
     from .llm.clients import MAX_OUTPUT_TOKENS
-    return price.cost((len(system) + len(user)) // 3 + 1, MAX_OUTPUT_TOKENS)
+    tokens_in = input_token_bound(system, user)
+    rate_in = max(price.input, price.write if price.write is not None else price.input)
+    return (tokens_in * rate_in + MAX_OUTPUT_TOKENS * price.output) / 1e6
 
 
 @dataclass
@@ -223,47 +295,109 @@ class CostMeter:
     def __post_init__(self) -> None:
         self.spec = self.inner.spec
 
+    def _hold(self, est: float, held: list) -> str | None:
+        """Hold ``est`` against the run budget and every cap, and write the hold
+        to the ledger (on disk) before the request goes out. Raises
+        BudgetExceeded, holding nothing, if it doesn't fit."""
+        if getattr(self, "_over", False):
+            raise BudgetExceeded("a call cost more than its worst-case hold, so the caps can't be guaranteed: "
+                                 "stopping (check the price table and token counts)")
+        with self._lock:
+            if self.limit_usd is not None and self.usd + self.reserved + est > self.limit_usd:
+                raise BudgetExceeded(f"budget of ${self.limit_usd:.2f} reached (spent ${self.usd:.2f})")
+            self.reserved += est
+        got = []
+        try:
+            for g in (PROJECT, CAMPAIGN) if self.ledger is not None else ():
+                g.reserve(est)
+                got.append(g)
+        except BudgetExceeded:
+            for g in got:
+                g.settle(est, 0.0)
+            with self._lock:
+                self.reserved -= est
+            raise
+        held.append(est)
+        if self.ledger is None:
+            return None
+        import uuid
+        hid = uuid.uuid4().hex
+        self._write({"kind": "hold", "hold": hid, "usd": round(est, 6), "spec": self.spec, "run_id": self.run_id})
+        return hid
+
+    def _write(self, rec: dict) -> None:
+        rec = {"t": datetime.now(timezone.utc).isoformat(timespec="seconds"), **rec}
+        with self._lock:
+            self.ledger.parent.mkdir(parents=True, exist_ok=True)
+            with self.ledger.open("a") as f:
+                f.write(json.dumps(rec) + "\n")
+                f.flush()
+                os.fsync(f.fileno())  # on disk before the request is sent
+
     def complete(self, system: str, user: str, tag: str = "") -> Reply:
         metered = self.ledger is not None or self.limit_usd is not None
+        if metered and input_token_bound(system, user) > MAX_PRICED_INPUT_TOKENS:
+            err = ClientError(f"prompt of up to {input_token_bound(system, user):,} tokens is past the "
+                              f"{MAX_PRICED_INPUT_TOKENS:,}-token short-context pricing the price table assumes; "
+                              "not sent", fatal=True)
+            err.not_billed = True
+            raise err
         est = worst_case_usd(self.price, system, user) if metered else 0.0
+        held: list[float] = []  # one hold per attempt that went out
+        holds: list[str] = []  # their ids in the ledger
+        maybe_billed = 0  # earlier attempts that failed in a way that may have been billed
         if metered:
-            with self._lock:
-                if self.limit_usd is not None and self.usd + self.reserved + est > self.limit_usd:
-                    raise BudgetExceeded(f"budget of ${self.limit_usd:.2f} reached (spent ${self.usd:.2f})")
-                self.reserved += est
-            held = []
-            try:
-                for g in (PROJECT, CAMPAIGN) if self.ledger is not None else ():
-                    g.reserve(est)
-                    held.append(g)
-            except BudgetExceeded:
-                for g in held:
-                    g.settle(est, 0.0)
-                with self._lock:
-                    self.reserved -= est
-                raise
-        else:
-            held = []
+            hid = self._hold(est, held)
+            if hid:
+                holds.append(hid)
+
+        def before_resend() -> None:
+            # The last attempt failed after it may have reached the model
+            # (a timeout, a dropped connection, a server error): it counts as
+            # spent at its worst case, and the resend needs a hold of its own.
+            nonlocal maybe_billed
+            maybe_billed += 1
+            if metered:
+                h = self._hold(est, held)
+                if h:
+                    holds.append(h)
+
+        from .llm import clients as _clients
+        _clients._RESEND.hook = before_resend
         cost = 0.0
+        reply = None
         try:
             reply = self.inner.complete(system, user, tag=tag)
             cost = self.price.reply_cost(reply)
+        except BaseException as err:
+            # Anything after the request went out may have been billed, unless
+            # it's known not to be (a refused request: 4xx, rate limit, overload)
+            # or it was our own budget stopping a resend.
+            if not getattr(err, "not_billed", False) and not isinstance(err, BudgetExceeded):
+                maybe_billed += 1
+            raise
         finally:
-            for g in held:
-                g.settle(est, cost)
+            _clients._RESEND.hook = None
+            assumed = est * maybe_billed if metered else 0.0
+            spent = cost + assumed
+            for g in (PROJECT, CAMPAIGN) if metered and self.ledger is not None else ():
+                g.settle(sum(held), spent)
             with self._lock:
-                self.reserved -= est
-                self.usd += cost
-        with self._lock:
-            self.calls += 1
+                self.reserved -= sum(held)
+                self.usd += spent
+                self.calls += 1
             if self.ledger is not None:
-                self.ledger.parent.mkdir(parents=True, exist_ok=True)
-                with self.ledger.open("a") as f:
-                    f.write(json.dumps({
-                        "t": datetime.now(timezone.utc).isoformat(timespec="seconds"), "run_id": self.run_id,
-                        "spec": self.spec, "usd": round(cost, 6), "in": reply.input_tokens,
-                        "out": reply.output_tokens, "cache_read": reply.cache_read_tokens,
-                        "cache_write": reply.cache_write_tokens}) + "\n")
+                rec = {"run_id": self.run_id, "spec": self.spec, "usd": round(spent, 6),
+                       "in": reply.input_tokens if reply else 0, "out": reply.output_tokens if reply else 0,
+                       "cache_read": reply.cache_read_tokens if reply else 0,
+                       "cache_write": reply.cache_write_tokens if reply else 0, "settles": holds}
+                if maybe_billed:
+                    rec["assumed"] = f"{maybe_billed} attempt(s) that may have been billed, counted at worst case"
+                if spent > sum(held) + 1e-9:
+                    rec["over_hold"] = True  # can't happen with a true upper bound; if it does, stop spending
+                self._write(rec)
+            if metered and spent > sum(held) + 1e-9:
+                self._over = True
         return reply
 
 
@@ -284,7 +418,8 @@ def estimate_fight_usd(price: Price, mode: str, label: str, path: Path | None = 
     """Rough cost of one pull (talk and notes included): this model's own past
     calls when there are some, else the measured five-agent profile with a
     generous output allowance (so it errs high)."""
-    past = [r for r in read_ledger(path) if r["spec"] == label]
+    past = [r for r in read_ledger(path) if r.get("spec") == label and r.get("kind") != "hold"
+            and not r.get("estimated")]
     calls = CALLS_PER_FIGHT.get(mode, 150)
     if len(past) >= 20:
         per_call = sum(r["usd"] for r in past) / len(past)

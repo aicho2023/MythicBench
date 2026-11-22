@@ -15,12 +15,21 @@ recognise what is going on.
 
 from __future__ import annotations
 
+import math
+
 from dataclasses import dataclass, field
 
-CONTENT_VERSION = "1.6.0"
+CONTENT_VERSION = "1.8.0"  # 1.8.0: affix texts state mechanics only (no "stagger kills", "spread out")
+# 1.7.0: melee reach 1.5 m and kicks 2.5 m (were 3 m and 4 m);
+# the entrance corridor joins its room across its full width (it was blocked off-centre);
+# the throne and the rooms' pillars are solid (moves route around them)
 
 GCD_MS = 1000
-MELEE_RANGE = 3.0
+MELEE_RANGE = 1.5  # from the target's edge: close enough to look like a hit
+KICK_RANGE = 2.5
+# How far a melee target may drift (edge to edge) before a character in melee
+# with it stops following it on its own: past this, it's the agent's call.
+FOLLOW_M = 3.0
 RANGED_RANGE = 30.0
 ARENA_RADIUS = 15.0
 
@@ -126,7 +135,7 @@ _ABILITIES = [
     Ability("ironhide", "Ironhide", "buff", "shield_star", cooldown_ms=25000, on_gcd=False,
             aura="ironhide", description="Reduce damage taken by 60% for 8 sec."),
     Ability("rampart_bash", "Rampart Bash", "interrupt", "shield_bash", cooldown_ms=15000,
-            on_gcd=False, range=4.0, description="Interrupt the target's spellcasting."),
+            on_gcd=False, range=KICK_RANGE, description="Interrupt the target's spellcasting."),
     Ability("challenging_roar", "Challenging Roar", "taunt", "roar", cooldown_ms=20000,
             range=40.0, radius=40.0,
             description="Force all nearby enemies to attack you."),
@@ -152,7 +161,7 @@ _ABILITIES = [
     Ability("cleaving_storm", "Cleaving Storm", "aoe_damage", "whirl", cooldown_ms=8000,
             radius=8.0, amount=2600, description="Spin, striking all nearby enemies."),
     Ability("throat_punch", "Throat Punch", "interrupt", "fist", cooldown_ms=15000,
-            on_gcd=False, range=4.0, description="Interrupt the target's spellcasting."),
+            on_gcd=False, range=KICK_RANGE, description="Interrupt the target's spellcasting."),
     # --- Shadowblade (melee dps) ------------------------------------------
     Ability("twin_fang", "Twin Fang", "damage", "daggers", amount=1600,
             description="Strike twice with your daggers."),
@@ -161,7 +170,7 @@ _ABILITIES = [
     Ability("fan_of_blades", "Scatterblades", "aoe_damage", "fan", cooldown_ms=6000,
             radius=8.0, amount=1700, description="Throw blades at all nearby enemies."),
     Ability("quick_jab", "Quick Jab", "interrupt", "jab", cooldown_ms=15000, on_gcd=False,
-            range=4.0, description="Interrupt the target's spellcasting."),
+            range=KICK_RANGE, description="Interrupt the target's spellcasting."),
     # --- Ranger (ranged dps) ----------------------------------------------
     Ability("steady_arrow", "Steady Arrow", "damage", "arrow", cast_ms=1500,
             range=RANGED_RANGE, amount=2100, projectile_ms=400,
@@ -258,7 +267,7 @@ class PartyMember:
     id: str
     name: str
     cls: str
-    home: tuple[float, float]  # default standing spot (x, z)
+    home: tuple[float, float]  # where it starts a boss-only fight (x, z); never shown to the agents
 
 
 # The boss starts on a dais at (0, -2) facing +z, toward the party.
@@ -352,14 +361,14 @@ AFFIXES: dict[str, Affix] = {a.id: a for a in (
     Affix("restless_graves", "Restless Graves",
           "When an undead enemy other than Oruth dies, it leaves a Restless Grave on the ground for 12 sec. "
           "The grave heals other undead standing in it by 5% of their health every second, and hurts players "
-          "standing in it. Fight enemies away from graves."),
+          "standing in it."),
     Affix("marrowburst", "Marrowburst",
           "When an undead enemy other than Oruth dies, every player gains a stack of Marrow Shards: shadow "
-          "damage every second for 4 sec, for each stack. Many kills at once stack it high: stagger kills."),
+          "damage every second for 4 sec, for each stack."),
     Affix("hollow_tyrant", "Hollow Tyrant",
           "Oruth Summons the Restless three times (at 80%, 50% and 25% health), Desecrates four players "
           "instead of three, and every ~24 sec brands a player with a Grave Mark: after 6 sec it detonates, "
-          "hitting the marked player and, much harder, every ally within 6 m of them. Spread out."),
+          "hitting the marked player and, much harder, every ally within 6 m of them."),
 )}
 
 
@@ -518,9 +527,86 @@ OOC_REGEN_PCT_PER_S = 0.04  # out-of-combat health regeneration
 PROGRESS_WEIGHTS = {"pack1": 0.15, "pack2": 0.15, "boss": 0.70}
 
 
+CORRIDOR_LIP = 1.0
+
+
+# ---------------------------------------------------------------------------
+# Solid obstacles on the floor (the viewer draws them in the same places):
+# nobody walks through them; moves route around them (engine.route).
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class Obstacle:
+    id: str
+    name: str
+    center: tuple[float, float]
+    half: tuple[float, float] | None = None  # a box: half its width (x) and depth (z)
+    radius: float = 0.0  # else a circle
+
+    def gap(self, p: tuple[float, float]) -> float:
+        """Distance from p to the obstacle's edge (negative inside)."""
+        dx, dz = p[0] - self.center[0], p[1] - self.center[1]
+        if self.half is None:
+            return math.sqrt(dx * dx + dz * dz) - self.radius
+        ox, oz = abs(dx) - self.half[0], abs(dz) - self.half[1]
+        if ox <= 0 and oz <= 0:
+            return max(ox, oz)
+        return math.sqrt(max(ox, 0.0) ** 2 + max(oz, 0.0) ** 2)
+
+
+OBSTACLES = (
+    # Oruth's throne against the back wall of his room, steps included, and
+    # the space behind it to the wall (too narrow for Oruth: nobody hides there).
+    Obstacle("throne", "Oruth's throne", (0.0, -12.2), half=(3.0, 2.8)),
+    # Two pillars in each of the other rooms, near their side walls.
+    Obstacle("ossuary_pillar_w", "pillar", (-7.8, 30.0), radius=0.7),
+    Obstacle("ossuary_pillar_e", "pillar", (7.8, 30.0), radius=0.7),
+    Obstacle("chapel_pillar_w", "pillar", (-7.8, 54.0), radius=0.7),
+    Obstacle("chapel_pillar_e", "pillar", (7.8, 54.0), radius=0.7),
+    Obstacle("entrance_pillar_w", "pillar", (-3.8, 84.0), radius=0.7),
+    Obstacle("entrance_pillar_e", "pillar", (3.8, 84.0), radius=0.7),
+)
+
+
+def in_obstacle(p: tuple[float, float], margin: float = 0.0) -> Obstacle | None:
+    """The obstacle a body of radius ``margin`` at p would overlap, if any."""
+    return next((o for o in OBSTACLES if o.gap(p) < margin), None)
+
+
+def push_out(p: tuple[float, float], margin: float) -> tuple[float, float]:
+    """Nearest spot to p where a body of radius ``margin`` overlaps no obstacle."""
+    for _ in range(4):
+        o = in_obstacle(p, margin)
+        if o is None:
+            return p
+        m = margin + 0.05
+        dx, dz = p[0] - o.center[0], p[1] - o.center[1]
+        if o.half is None:
+            d = math.sqrt(dx * dx + dz * dz)
+            ux, uz = (dx / d, dz / d) if d > 1e-9 else (0.0, 1.0)
+            p = (round(o.center[0] + ux * (o.radius + m), 2), round(o.center[1] + uz * (o.radius + m), 2))
+        else:
+            # Out through the nearest side (outside a corner: away from it).
+            ox, oz = abs(dx) - o.half[0], abs(dz) - o.half[1]
+            sx, sz = (1.0 if dx >= 0 else -1.0), (1.0 if dz >= 0 else -1.0)
+            if ox > 0 and oz > 0:
+                d = math.sqrt(ox * ox + oz * oz)
+                p = (round(p[0] + sx * ox / d * (m - d), 2), round(p[1] + sz * oz / d * (m - d), 2))
+            elif ox >= oz:
+                p = (round(o.center[0] + sx * (o.half[0] + m), 2), p[1])
+            else:
+                p = (p[0], round(o.center[1] + sz * (o.half[1] + m), 2))
+    return p
+
+
 def walkable(p: tuple[float, float], margin: float = 0.0) -> bool:
     for r in ROOMS:
         dx, dz = p[0] - r.center[0], p[1] - r.center[1]
         if dx * dx + dz * dz <= (r.radius - 1.0 - margin) ** 2:
             return True
-    return any(abs(p[0]) <= c.x_half - margin and c.z_min <= p[1] <= c.z_max for c in CORRIDORS)
+    # A corridor's floor runs CORRIDOR_LIP into the rooms at its ends (still
+    # inside their walls), so it joins a room's walkable floor across its full
+    # width: the rooms' floor stops 1 m short of their walls, and without the
+    # lip the entrance room met its corridor only near the centre line.
+    return any(abs(p[0]) <= c.x_half - margin and c.z_min - CORRIDOR_LIP <= p[1] <= c.z_max + CORRIDOR_LIP
+               for c in CORRIDORS)

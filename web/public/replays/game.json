@@ -1,7 +1,7 @@
 {
- "content_version": "1.6.0",
+ "content_version": "1.8.0",
  "gcd_s": 1.0,
- "melee_range_m": 3.0,
+ "melee_range_m": 1.5,
  "party": [
   {
    "id": "rook",
@@ -28,7 +28,7 @@
      "on_gcd": true,
      "interruptible": false,
      "amount": 2200,
-     "range_m": 3.0
+     "range_m": 1.5
     },
     {
      "id": "rampart_strike",
@@ -43,7 +43,7 @@
      "on_gcd": true,
      "interruptible": false,
      "amount": 1100,
-     "range_m": 3.0
+     "range_m": 1.5
     },
     {
      "id": "ironhide",
@@ -70,7 +70,7 @@
      "cooldown_s": 15.0,
      "on_gcd": false,
      "interruptible": false,
-     "range_m": 4.0
+     "range_m": 2.5
     },
     {
      "id": "challenging_roar",
@@ -197,7 +197,7 @@
      "on_gcd": true,
      "interruptible": false,
      "amount": 3200,
-     "range_m": 3.0
+     "range_m": 1.5
     },
     {
      "id": "savage_hew",
@@ -212,7 +212,7 @@
      "on_gcd": true,
      "interruptible": false,
      "amount": 1500,
-     "range_m": 3.0
+     "range_m": 1.5
     },
     {
      "id": "cleaving_storm",
@@ -241,7 +241,7 @@
      "cooldown_s": 15.0,
      "on_gcd": false,
      "interruptible": false,
-     "range_m": 4.0
+     "range_m": 2.5
     }
    ]
   },
@@ -270,7 +270,7 @@
      "on_gcd": true,
      "interruptible": false,
      "amount": 1600,
-     "range_m": 3.0
+     "range_m": 1.5
     },
     {
      "id": "venom_burst",
@@ -285,7 +285,7 @@
      "on_gcd": true,
      "interruptible": false,
      "amount": 4200,
-     "range_m": 3.0
+     "range_m": 1.5
     },
     {
      "id": "fan_of_blades",
@@ -314,7 +314,7 @@
      "cooldown_s": 15.0,
      "on_gcd": false,
      "interruptible": false,
-     "range_m": 4.0
+     "range_m": 2.5
     }
    ]
   },
@@ -607,17 +607,17 @@
     {
      "id": "restless_graves",
      "name": "Restless Graves",
-     "description": "When an undead enemy other than Oruth dies, it leaves a Restless Grave on the ground for 12 sec. The grave heals other undead standing in it by 5% of their health every second, and hurts players standing in it. Fight enemies away from graves."
+     "description": "When an undead enemy other than Oruth dies, it leaves a Restless Grave on the ground for 12 sec. The grave heals other undead standing in it by 5% of their health every second, and hurts players standing in it."
     },
     {
      "id": "marrowburst",
      "name": "Marrowburst",
-     "description": "When an undead enemy other than Oruth dies, every player gains a stack of Marrow Shards: shadow damage every second for 4 sec, for each stack. Many kills at once stack it high: stagger kills."
+     "description": "When an undead enemy other than Oruth dies, every player gains a stack of Marrow Shards: shadow damage every second for 4 sec, for each stack."
     },
     {
      "id": "hollow_tyrant",
      "name": "Hollow Tyrant",
-     "description": "Oruth Summons the Restless three times (at 80%, 50% and 25% health), Desecrates four players instead of three, and every ~24 sec brands a player with a Grave Mark: after 6 sec it detonates, hitting the marked player and, much harder, every ally within 6 m of them. Spread out."
+     "description": "Oruth Summons the Restless three times (at 80%, 50% and 25% health), Desecrates four players instead of three, and every ~24 sec brands a player with a Grave Mark: after 6 sec it detonates, hitting the marked player and, much harder, every ally within 6 m of them."
     }
    ]
   }

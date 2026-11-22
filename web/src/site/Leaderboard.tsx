@@ -2,7 +2,7 @@ import { ChevronRight } from 'lucide-react'
 import { modelName } from '../content/display'
 import { CIBar } from './charts'
 import {
-  costPerRun, episodeHeadlines, fmtPct, fmtScore, fmtUsd, headlineTier, labName, modelColor, tierName,
+  costPerRun, replyProblems, episodeHeadlines, fmtPct, fmtScore, fmtUsd, headlineTier, labName, modelColor, tierName,
   type LeaderboardRow, type Results,
 } from './results'
 import { navigate } from './router'
@@ -49,6 +49,7 @@ export function LeaderboardTable({ results }: { results: Results }) {
             <th className={`${TH} hidden text-right lg:table-cell`}>{tierName(results, hard)} clear rate</th>
             <th className={`${TH} hidden text-right lg:table-cell`}>Pulls to clear {tierName(results, hard)}</th>
             {hasEffect && <th className={`${TH} hidden text-right xl:table-cell`} title="Progression score with memory on minus memory off, same seeds">Learning effect {tierName(results, hard)}</th>}
+            <th className={`${TH} hidden text-right xl:table-cell`} title="Calls that gave no usable answer: refused, or nothing readable (hover a value for cut-off replies and dropped entries)">No usable reply</th>
             <th className={`${TH} hidden pr-0 text-right sm:table-cell`}>Cost per {tierName(results, hard)} group</th>
             <th className="w-6" aria-hidden />
           </tr>
@@ -80,6 +81,7 @@ export function LeaderboardTable({ results }: { results: Results }) {
                 <td className={`${TD} ${NUM} hidden text-fg-muted lg:table-cell`}>{fmtPct(row.tiers[hard]?.clear_rate)}</td>
                 <td className={`${TD} ${NUM} hidden text-fg-muted lg:table-cell`} title={p.title}>{p.text}</td>
                 {hasEffect && <td className={`${TD} ${NUM} hidden text-fg-muted xl:table-cell`} title={effectTitle(row.tiers[hard])}>{effectText(row.tiers[hard]?.learning_effect)}</td>}
+                <td className={`${TD} ${NUM} hidden text-fg-muted xl:table-cell`} title={replyProblems(row.tiers[hard]).title}>{replyProblems(row.tiers[hard]).text}</td>
                 <td className={`${TD} ${NUM} hidden pr-0 text-fg-muted sm:table-cell`}>{fmtUsd(costPerRun(row, results))}</td>
                 <td className="w-6 text-fg-faint transition-colors group-hover:text-fg"><ChevronRight size={16} /></td>
               </tr>
@@ -88,7 +90,7 @@ export function LeaderboardTable({ results }: { results: Results }) {
           {baselines.length > 0 && (
             <tr>
               <td colSpan={10} className="px-0 pb-2 pt-6 text-[12px] text-fg-faint">
-                A reference on the same seeds, not ranked. The scripted commander gives fixed, obvious orders through the agents' own interface and never learns: a model has to beat it for its decisions to matter
+                A reference on the same seeds, not ranked. The scripted commander gives fixed, obvious orders through the agents' own interface and never learns. It's one fixed policy: a reference point for what obvious rules do, not a ceiling or a floor
               </td>
             </tr>
           )}
@@ -111,6 +113,7 @@ export function LeaderboardTable({ results }: { results: Results }) {
               <td className={`${TD} ${NUM} hidden text-fg-faint lg:table-cell`}>{fmtPct(row.tiers[hard]?.clear_rate)}</td>
               <td className={`${TD} ${NUM} hidden text-fg-faint lg:table-cell`}>{pullsToClear(results, row, hard).text}</td>
               {hasEffect && <td className={`${TD} ${NUM} hidden text-fg-faint xl:table-cell`} title="Fixed rules don't learn">0</td>}
+              <td className={`${TD} ${NUM} hidden text-fg-faint xl:table-cell`}>–</td>
               <td className={`${TD} ${NUM} hidden pr-0 text-fg-faint sm:table-cell`}>$0</td>
               <td />
             </tr>

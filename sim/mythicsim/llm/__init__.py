@@ -46,7 +46,34 @@ Pieces:
 #   0.14.0 Bone Pyre: a circle on the floor wakes every agent and shows when
 #          it goes off; "safe" and the in-pool alarm ignore it; the debrief
 #          lists each detonation and who stood inside
-HARNESS_VERSION = "0.14.0"
+#   1.0.0-rc.1 the freeze candidate for the v1 run (docs/PREREGISTRATION.md);
+#          becomes 1.0.0, unchanged otherwise, once the review is done
+#   1.0.0-rc.2 after review: rules text says "safe" handles only the pools known to
+#          hurt, adds "stop" and says what null does; replies can't crash the
+#          reader; refusals ignored in talk and notes too; a final {} is no change;
+#          calls keyed by seed and memory; recordings per freeze
+#   1.0.0-rc.3 second review: spend holds on disk before each request and
+#          counted for every maybe-billed attempt; byte bound on input tokens
+#   1.0.0-rc.4 third review: malformed provider answers are billable errors, not
+#          free replies; model text is cleaned before it enters a prompt; OpenAI
+#          pinned to the Standard tier; oversized prompts refused; v1 pin checked at launch
+#   1.0.0-rc.5 fourth review: every nested field and billing count in a provider's
+#          answer is checked; anything off is a possibly billed malformed answer
+#   1.0.0-rc.6 shorter melee reach (content 1.7.0): a melee character in reach
+#          of its target follows it a little on its own (never into a pool), and
+#          "safe" keeps the reach of the first attack, not of a standing kick;
+#          the rules describe the solid throne and pillars (sim 0.10.0); and they
+#          no longer give each character a "usual spot" (a leftover from the
+#          boss-only mode that every party copied as its boss-fight layout)
+#   1.0.0-rc.7 fifth review: stay-in-reach follows only the target it's in contact
+#          with, only straight, and the sim re-checks the step as it really resolves
+#          (route, pools, reach); "safe" hands the sim ranked candidates and it takes
+#          the first whose real move (wall, taken spot, obstacles) ends clear; "stop"
+#          is a real halt; the rules and affix texts state mechanics, not tactics
+#          (sixth and seventh reviews changed only the sim, 0.11.0)
+#   1.0.0  frozen for the v1 protocol: 1.0.0-rc.7 as reviewed, renamed. Any
+#          change from here is a new version and new runs.
+HARNESS_VERSION = "1.0.0"
 
 
 def prompt_hash(knowledge: str = "full", tier: str = "plus10", mode: str = "boss") -> str:

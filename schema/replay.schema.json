@@ -138,6 +138,34 @@
               "members"
             ]
           }
+        },
+        "obstacles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "center"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "center": {
+                "$ref": "#/$defs/vec2"
+              },
+              "half": {
+                "$ref": "#/$defs/vec2"
+              },
+              "radius": {
+                "type": "number"
+              }
+            }
+          }
         }
       }
     },

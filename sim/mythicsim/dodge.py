@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-import math
-
 from . import content as C
 from .engine import COMPASS16 as _DIRS, dist
 
@@ -38,7 +36,14 @@ def walk_check(obs: dict):
 
 
 def find_safe_spot(ground: list[dict], arena_radius: float, near: tuple, anchor: tuple,
-                   reach=None, avoid_paths: bool = False, inside=None) -> tuple | None:
+                   reach=None, avoid_paths: bool = False, inside=None, path=None) -> tuple | None:
+    """The best spot of find_safe_spots, or None."""
+    spots = find_safe_spots(ground, arena_radius, near, anchor, reach, avoid_paths, inside, path)
+    return spots[0] if spots else None
+
+
+def find_safe_spots(ground: list[dict], arena_radius: float, near: tuple, anchor: tuple,
+                    reach=None, avoid_paths: bool = False, inside=None, path=None) -> list[tuple]:
     """Nearest spot clear of harmful pools (the "safe" move's planner).
 
     ``reach`` = (target_pos, target_radius, range): only consider spots from
@@ -46,26 +51,34 @@ def find_safe_spot(ground: list[dict], arena_radius: float, near: tuple, anchor:
     ``avoid_paths``: also reject spots whose straight path from ``near`` crosses
     another armed pool (the pool being escaped from is ignored).
     ``inside``: where a spot may be (default: within the boss arena).
+    ``path(a, b)``: the legs the walk there really takes (round obstacles);
+    with ``avoid_paths``, every leg must stay clear, and it must get there.
     """
     ground = hazards(ground)
     escaping = [g for g in ground if dist(near, g["pos"]) <= g["radius"] + 0.6]
     others = [g for g in ground if g not in escaping]
-    best, best_score = None, math.inf
+    scored = []
     lim = arena_radius - 1.5
     for ring in (1.5, 2.5, 3.5, 4.5, 6.0, 8.0):
         for cx, cz in _DIRS:
             cand = (near[0] + ring * cx, near[1] + ring * cz)
-            if not (inside(cand) if inside else dist(cand, (0.0, 0.0)) <= lim) or unsafe(cand, ground, 0.9):
+            if not (inside(cand) if inside else dist(cand, (0.0, 0.0)) <= lim) or unsafe(cand, ground, 0.9) \
+                    or C.in_obstacle(cand, C.PLAYER_RADIUS):
                 continue
             if reach and dist(cand, reach[0]) - C.PLAYER_RADIUS - reach[1] > reach[2]:
                 continue
-            if avoid_paths and crosses_pool(near, cand, others):
-                continue
+            if avoid_paths:
+                legs = path(near, cand) if path else [cand]
+                if dist(legs[-1], cand) > 0.05:
+                    continue  # it wouldn't get there
+                pts = [near, *legs]
+                if any(crosses_pool(a, b, others) for a, b in zip(pts, pts[1:])):
+                    continue
             # Shortest escape, near where we want to be; among equally good
             # spots, prefer the middle of the room (stay with the group,
             # never get pinned against the wall). Without this tie-break the
             # choice between equal spots fell to floating-point noise.
             score = dist(cand, near) + 0.5 * dist(cand, anchor) + 0.05 * dist(cand, (0.0, 0.0))
-            if score < best_score:
-                best, best_score = cand, score
-    return best
+            scored.append((score, cand))
+    # Best first; ties keep the search order (rings, then compass directions).
+    return [c for _, c in sorted(scored, key=lambda sc: sc[0])]

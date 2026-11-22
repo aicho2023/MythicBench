@@ -31,10 +31,17 @@ PARTY_IDS = frozenset(m.id for m in C.PARTY)
 # Same hit test the engine uses for pools (centre within radius + half a body).
 POOL_HIT_PAD = C.PLAYER_RADIUS * 0.5
 
+def clean_text(text: str) -> str:
+    """Model text made safe to put in another prompt: valid Unicode only (a
+    lone surrogate, which a reply's JSON can spell as \\ud800, becomes U+FFFD).
+    Applied the same way live and when replaying a recording."""
+    return text.encode("utf-8", "surrogatepass").decode("utf-8", "replace")
+
+
 def fit_chat(text: str) -> str:
     """A chat message cut to CHAT_MAX_CHARS: at the last whole sentence that
     fits, else the last whole word (never mid-word)."""
-    text = " ".join(text.split())
+    text = " ".join(clean_text(text).split())
     if len(text) <= CHAT_MAX_CHARS:
         return text
     cut = text[:CHAT_MAX_CHARS + 1]
@@ -102,12 +109,17 @@ def _trash_line(aid: str, blind: bool) -> str:
     return f"      - {a.name} ({aid}): {', '.join(bits)}. {a.description}"
 
 
+_THRONE = next(o for o in C.OBSTACLES if o.id == "throne")
+_PILLAR_R = next(o.radius for o in C.OBSTACLES if o.half is None)
+
+
 def _dungeon_section(knowledge: str, tier: str = C.DEFAULT_TIER) -> str:
     """The run before the boss: map, packs, pulling, resting, the timer."""
     blind = knowledge == "blind"
     rooms = "\n".join(f"  - {r.name} ({r.id}): circle centred ({r.center[0]:g}, {r.center[1]:g}), radius {r.radius:g} m"
                        for r in C.ROOMS)
     cors = "; ".join(f"|x| <= {c.x_half:g} for z {c.z_min:g}..{c.z_max:g}" for c in C.CORRIDORS)
+    pillars = ", ".join(f"({o.center[0]:g}, {o.center[1]:g})" for o in C.OBSTACLES if o.half is None)
     packs = []
     for p in C.PACKS:
         comp: dict[str, int] = {}
@@ -125,13 +137,14 @@ This is a full Mythic+-style run, not just the boss: walk from the entrance, cle
 Map (positions are (x, z); the entrance is at large z, Oruth's room at the origin):
 {rooms}
   - Corridors join them: {cors}. You can only walk inside rooms and corridors.
+  - Solid pillars (radius {_PILLAR_R:g} m; moves go around them): {pillars}.
 Route, entrance to boss: {', '.join(f'({w[0]:g}, {w[1]:g})' for w in C.ROUTE)}.
 Packs:
 {chr(10).join(packs)}
 Enemies:
 {chr(10).join(kinds)}
 Pulling: a pack attacks when anyone comes within {C.AGGRO_RADIUS:g} m of any of its members, or hits one. Oruth wakes when someone comes within {C.BOSS_ENGAGE_RADIUS:g} m of him; his abilities and timers only start then.
-Between pulls (no enemy fighting you): the party regenerates {int(C.OOC_REGEN_PCT_PER_S * 100)}% health per second, and after {C.REVIVE_AFTER_MS / 1000:g} s out of combat fallen allies get back up at {int(C.REVIVE_HP_PCT * 100)}% health. Each revive adds {C.DEATH_PENALTY_MS / 1000:g} s to the timer. Resting costs time; pulling hurt costs lives.
+Between pulls (no enemy fighting you): the party regenerates {int(C.OOC_REGEN_PCT_PER_S * 100)}% health per second, and after {C.REVIVE_AFTER_MS / 1000:g} s out of combat fallen allies get back up at {int(C.REVIVE_HP_PCT * 100)}% health. Each revive adds {C.DEATH_PENALTY_MS / 1000:g} s to the timer.
 The run ends when the timer runs out (revive penalties included); nothing after that counts. It is a clear when Oruth and every pack are dead within the timer.
 Score for the run (0-100): a clear earns 70 plus up to 30 for speed (the full 30 with a quarter of the timer left; revive penalties count). Otherwise (a wipe, or the timer running out), up to 70 for progress (each pack is worth 15%, Oruth 70% by health removed)."""
 
@@ -175,8 +188,9 @@ def system_prompt(knowledge: str = "full", notes: str | None = None, pull: int |
     party = []
     for m in C.PARTY:
         cd = C.CLASSES[m.cls]
-        party.append(f"  {m.id} - {m.name}, {cd.name} ({cd.role}){' (YOU)' if m.id == me else ''}, {cd.max_hp} HP, "
-                     f"usual spot ({m.home[0]:g}, {m.home[1]:g})"
+        # No standing spot here: where to stand is the agents' call (each
+        # character's position is in the state they get on every call).
+        party.append(f"  {m.id} - {m.name}, {cd.name} ({cd.role}){' (YOU)' if m.id == me else ''}, {cd.max_hp} HP"
                      + (f", melee auto-attacks" if cd.auto_attack else "") + ":")
         party.extend(_ability_line(a) for a in cd.abilities)
     b = C.BOSS
@@ -207,7 +221,7 @@ def system_prompt(knowledge: str = "full", notes: str | None = None, pull: int |
 {_tier_section(tier)}
 
 ## Arena
-Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) in metres. Oruth starts on his throne at ({C.BOSS_POS[0]:g}, {C.BOSS_POS[1]:g}), with a body radius of {b.radius:g} m. Once pulled, he takes {b.rise_ms / 1000:g} s to rise from it; after that he walks after whoever he is attacking ({b.speed:g} m/s) whenever they're out of his melee reach, but never leaves this room. Characters move at 5 m/s, have a body radius of {C.PLAYER_RADIUS:g} m, and can't stand inside one another. Moving cancels a cast in progress, and spells with a cast time cannot be started while moving. Melee range is {C.MELEE_RANGE:g} m from the target's edge. Global cooldown (GCD): {C.GCD_MS / 1000:g}s after most abilities.
+Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) in metres. Oruth starts on his dais at ({C.BOSS_POS[0]:g}, {C.BOSS_POS[1]:g}), with a body radius of {b.radius:g} m. His throne stands behind it against the back wall: solid, a box from x {-_THRONE.half[0]:g} to {_THRONE.half[0]:g} and z {_THRONE.center[1] - _THRONE.half[1]:g} to {_THRONE.center[1] + _THRONE.half[1]:g}. Nobody walks through solid things; a move goes around them on its own. Once pulled, he takes {b.rise_ms / 1000:g} s to rise from his dais; after that he walks after whoever he is attacking ({b.speed:g} m/s) whenever they're out of his melee reach, but never leaves this room; if he can't reach whoever he's attacking from inside it, he turns on the nearest player he can reach until he can. Characters move at 5 m/s, have a body radius of {C.PLAYER_RADIUS:g} m, and can't stand inside one another. Moving cancels a cast in progress, and spells with a cast time cannot be started while moving. Melee range is {C.MELEE_RANGE:g} m from the target's edge (interrupts {C.KICK_RANGE:g} m). While you're in melee reach of the enemy your first melee ability targets, you follow it if it drifts away (up to {C.FOLLOW_M:g} m), unless that step would take you into or through a pool; a move you order ends this until you're back in reach. Global cooldown (GCD): {C.GCD_MS / 1000:g}s after most abilities.
 
 ## The party
 {chr(10).join(party)}
@@ -216,10 +230,10 @@ Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) i
 {(chr(10) + _dungeon_section(knowledge, tier) + chr(10)) if mode == "dungeon" else ""}
 ## How you play
 You are asked for {member.name}'s orders every 4 seconds of game time, and immediately when something that concerns you happens. The game is paused while everyone thinks; the other players are asked at the same moments you are. {member.name} keeps following your latest orders until you change them:
-  - "move_to": [x, z] walks there once, or "safe" steps to the nearest spot clear of all pools, reachable without walking through another pool, from which your first priority target is still in range when possible (the scripted bots' movement logic){next_move}. Omit or null to stay put. A move is carried out each time you send it.
-  - "priority": an ordered list of [ability_id, target_id]. Every tick, {member.name} uses the FIRST entry that is ready (off cooldown, in range, GCD free, not casting or moving for cast-time spells). Off-GCD abilities in the list fire even during the GCD. Interrupts only fire while their target is casting something interruptible (reacting {reaction} s after the cast starts), so they can stay in the list; if someone else interrupts first, yours sees nothing to stop and stays ready. Put a reliable filler ability last so you never idle. Leave "priority" out to keep your current one.
+  - "move_to": [x, z] walks there once, in a straight line (a move that would cross a wall stops at the wall). "safe" steps to the nearest spot clear of the ground effects known to hurt, keeping the target of your first attack or heal in range when possible and avoiding paths through other pools (when no clean route exists it takes the nearest clear spot anyway){next_move}. "stop" stops where you are. Omit it or send null for no new move (a move under way carries on). A move is carried out each time you send it.
+  - "priority": an ordered list of [ability_id, target_id]. Every tick, {member.name} uses the FIRST entry that is ready (off cooldown, in range, GCD free, not casting or moving for cast-time spells). Off-GCD abilities in the list fire even during the GCD. Interrupts only fire while their target is casting something interruptible (reacting {reaction} s after the cast starts), so they can stay in the list; if someone else interrupts first, yours sees nothing to stop and stays ready. Leave "priority" out to keep your current one.
   - "say": one short line in party chat (at most {CHAT_MAX_CHARS} characters; anything longer is cut off), which every player sees from then on. Typing takes time: you can send one message every {CHAT_COOLDOWN_MS // 1000} s, and one sent sooner isn't delivered. Leave it out to say nothing.
-Ground effects ("pools") in the state are dangerous to stand in: "desecrate" pools come from Oruth, "grave" pools from the Restless Graves affix. "safe" avoids both.
+Ground effects ("pools") appear in the state with their kind and size. The kinds known to hurt anyone standing in them are "desecrate" and "grave" (the Restless Graves affix): "safe" steps out of those, and doesn't treat any other kind as dangerous.
 Targets are unit ids from the state (e.g. "oruth", "bonewalker_1", "ivy"). For self-buffs and party-wide abilities use your own id ("self" and "party" also work).
 You can only use {member.name}'s abilities: {', '.join(mine.abilities)}.
 
@@ -293,7 +307,7 @@ def render_state(obs: dict, me: str, gcd_ms: int, orders_age_s: float | None, kn
             lines.append(f"PACK {p['name']} ({p['room']}): {p['state'].upper()}"
                          + (f", {len(p['alive'])} left" if p["state"] != "dead" else ""))
         if not dg["boss_engaged"]:
-            lines.append("BOSS oruth is asleep on his throne at (0.0, -2.0); he wakes when someone comes within "
+            lines.append("BOSS oruth is asleep on his dais at (0.0, -2.0); he wakes when someone comes within "
                          f"{C.BOSS_ENGAGE_RADIUS:g} m.")
     else:
         lines = [f"Time {obs['t'] / 1000:.1f}s ({'time limit' if blind else 'enrage at'} {limit})."]
@@ -369,16 +383,33 @@ class Parsed:
 ORDER_KEYS = ("move_to", "priority", "say")
 
 
+# Numbers in a reply are bounded before Python converts them: an integer with
+# hundreds of digits would overflow a float, and thousands would trip the
+# decoder's own limit. Either way it's an invalid value, never a crash.
+MAX_NUMBER_CHARS = 32
+
+
+def _bounded_int(s: str) -> float | int:
+    return int(s) if len(s) <= MAX_NUMBER_CHARS else math.inf
+
+
+def _bounded_float(s: str) -> float:
+    return float(s) if len(s) <= MAX_NUMBER_CHARS else math.inf
+
+
+_DECODER = json.JSONDecoder(parse_int=_bounded_int, parse_float=_bounded_float)
+
+
 def json_objects(text: str) -> list[dict]:
     """Every complete JSON object in a reply, in order. A model that thinks out
     loud before answering (braces in its prose and all) still gets its final,
-    well-formed answer read; nothing malformed is ever repaired or guessed."""
-    dec = json.JSONDecoder()
+    well-formed answer read; nothing malformed is ever repaired or guessed, and
+    nothing in a reply (huge numbers, deep nesting) can crash the reader."""
     out, i = [], text.find("{")
     while i != -1:
         try:
-            obj, end = dec.raw_decode(text, i)
-        except json.JSONDecodeError:
+            obj, end = _DECODER.raw_decode(text, i)
+        except (ValueError, RecursionError):  # malformed, or nested too deep
             i = text.find("{", i + 1)
             continue
         if isinstance(obj, dict):
@@ -405,15 +436,17 @@ def parse_reply(text: str, me: str, unit_ids: set[str], gone: set[str] = frozens
     objs = json_objects(text)
     if not objs:
         return Parsed({}, ["no complete JSON object in reply"], False)
-    # The last object that carries orders is the answer. An empty object {}
-    # means "no change" (every field left out keeps its value, as the rules
-    # say); an object of some other shape is a wrong reply.
-    cands = [d for d in (_orders_in(o, me) for o in objs) if any(k in d for k in ORDER_KEYS)]
-    if cands:
-        data = cands[-1]
-    elif any(o == {} for o in objs):
-        data = {}
-    else:
+    # The answer is the last object that is either orders or an empty {} ("no
+    # change": every field left out keeps its value, as the rules say). Drafts
+    # before it don't count, and neither do objects of some other shape. A
+    # reply cut off at the token limit is read the same way: any complete
+    # object in it counts.
+    data = None
+    for o in objs:
+        d = _orders_in(o, me)
+        if d == {} or any(k in d for k in ORDER_KEYS):
+            data = d
+    if data is None:
         return Parsed({}, ["reply has none of move_to, priority, say"], False)
     member = next(x for x in C.PARTY if x.id == me)
     problems: list[str] = []
@@ -423,12 +456,12 @@ def parse_reply(text: str, me: str, unit_ids: set[str], gone: set[str] = frozens
         mv = [mv["x"], mv["z"]]  # {"x": .., "z": ..} is unambiguous; accept it
     if isinstance(mv, list) and len(mv) == 1 and isinstance(mv[0], str):
         mv = mv[0]  # ["safe"] means "safe"
-    if isinstance(mv, str) and mv.strip().lower() in ("safe", "next"):
+    if isinstance(mv, str) and mv.strip().lower() in ("safe", "next", "stop"):
         o.move_to = mv.strip().lower()
     elif mv is not None:
         if (isinstance(mv, (list, tuple)) and len(mv) == 2
-                and all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
-                        and abs(v) <= COORD_LIMIT for v in mv)):
+                and all(isinstance(v, (int, float)) and not isinstance(v, bool)
+                        and abs(v) <= COORD_LIMIT and math.isfinite(v) for v in mv)):
             o.move_to = (float(mv[0]), float(mv[1]))
         else:
             problems.append(f"bad move_to {mv!r}")

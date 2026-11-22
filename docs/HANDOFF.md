@@ -96,7 +96,53 @@ damage applies). Generic MMO sense says step out of glowing circles, so it
 has to be learned from the combat log; that's the point. The "safe" move and
 the in-pool alarm ignore it, every agent is woken when one appears, and the
 debrief lists each detonation with who stood inside. The scripted commander
-never soaks: 34.1 on +10 (wipes every time), 56.2 on Normal, over 60 seeds.
+never soaks: 32.5 on +10 (no clears), 55.4 on Normal, over 60 seeds (sim 0.7.0).
+
+Content 1.7.0 / sim 0.9.0 / harness 1.0.0-rc.6: melee reach 1.5 m and kicks
+2.5 m (were 3 m and 4 m), so a hit looks like one in the viewer. At 3 m,
+melee hit from a median 1.3 m between bodies. Three reflexes keep it
+playable at a call every few seconds:
+- a melee character in reach of its target follows it if it drifts (up to
+  3 m, `C.FOLLOW_M`), never into or through a pool; any ordered move ends
+  this until it's back in reach;
+- "safe" keeps the reach of the first attack, not of a standing kick;
+- a taken melee spot shifts to a free spot still in reach of that foe, and
+  Oruth's chase does the same for his target.
+Commander: 32.4 on +10 and 54.9 on Normal over 60 seeds, against 32.5 and
+55.4 before. At 1 m reach, Normal fell to about 50.
+
+Sim 0.10.0: solid obstacles (`C.OBSTACLES`): Oruth's throne (with the strip
+behind it, too narrow for him, so nobody hides there) and two pillars in each
+side room, where the viewer draws them. A move routes around them through
+corner waypoints (`Encounter.route`, multi-leg moves in `Unit.path`), for
+players and enemies alike; a destination inside one is pushed out; Bone Pyre
+never lands on the throne. The entrance corridor also now joins its room
+across its full width (it was a wall off-centre, and Sol's melee got stuck
+there in every pull of the first reach check).
+
+Fifth review (harness 1.0.0-rc.7, sim 0.11.0, content 1.8.0): a chase checks
+its whole route before committing (`reachable_spot`: another spot in reach if
+an obstacle blocks the first; Oruth had stalled behind his throne with Soul
+Rend pending); stay-in-reach follows only the target it's in contact with
+(`LLMPolicy.contact`), only straight, and the sim re-checks the step as it
+really resolves (`Action.keep_reach`, `guarded_step_ok`); "safe" judges the
+route it will really walk (`route_path`, shared by the engine and the
+policy); "stop" is a real halt (`Action("stop")`); rules and affix texts
+state mechanics, not tactics. Commander: 32.4 on +10, 55.0 on Normal.
+
+Sixth review (same versions; nothing was recorded on them in between):
+Oruth's final spot and every point of his route stay inside his room
+(`reachable_route`, executed as checked by `walk_route`); if he can't reach
+his target from inside it, he fights the nearest player he can reach until he
+can (`reachable_victim`); "safe" hands the sim ranked candidates
+(`Action.options`) and it takes the first whose real move (wall clip, taken
+spot, obstacles) ends clear of every pool, keeping reach and a clean route
+where promised (`pick_option`). Commander: 32.4 on +10, 54.6 on Normal.
+Seventh review: a chase endpoint must be in attack reach of the target (a
+legal spot at the room's edge out of reach of a tank in the corridor isn't a
+way to fight it), so Oruth turns on someone he can reach; the state shows who
+he's fighting (`Unit.victim`) while `target` stays the tank he goes back to.
+Commander: 32.7 on +10, 54.5 on Normal.
 
 The scripted bots (expert, competent, sloppy) are gone. Their dodge planner
 lives on in `dodge.py` (the "safe" move); tests and the viewer's reference

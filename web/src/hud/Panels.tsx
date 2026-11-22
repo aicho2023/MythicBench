@@ -92,7 +92,8 @@ export function reproduceCommand(m: ReplayMeta): string {
   }
   const p = m.progress
   lines.push(`cd sim && python -m mythicsim progress --model ${r.label} --episodes ${p.episode} --max-pulls ${r.max_pulls ?? p.pull}`
-    + ` --tier ${tier} --mode ${mode} --knowledge ${p.knowledge} --memory ${p.memory ? 'on' : 'off'} --offline`
+    + ` --tier ${tier} --mode ${mode} --knowledge ${p.knowledge} --memory ${p.memory ? 'on' : 'off'}`
+    + (r.seed_base != null ? ` --seed-base ${r.seed_base}` : '') + ' --offline'
     + (r.campaign ? ` --cache-dir ../web/public/results/${r.campaign}/recordings` : ''))
   return lines.join('\n')
 }

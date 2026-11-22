@@ -47,8 +47,8 @@ def test_notes_are_appended_only_when_present():
     assert with_notes.startswith(system_prompt("blind")) and "this is pull 3" in with_notes and "Kick the Requiem." in with_notes
 
 
-def _boss_replay(seed: int = 2, tier: str = "normal") -> dict:
-    """The scripted commander's boss fight (seed 2 on Normal is a clean kill)."""
+def _boss_replay(seed: int = 11, tier: str = "normal") -> dict:
+    """The scripted commander's boss fight."""
     from mythicsim.__main__ import simulate
     from mythicsim.metrics import score
     rep = simulate(seed, tier, "boss")
@@ -70,7 +70,9 @@ def test_debrief_matches_the_metrics():
 
 
 def test_debrief_of_a_clean_kill():
-    rep = _boss_replay()
+    # The commander's first clean kill on Normal (which seed it is moves with the sim).
+    rep = next(r for r in (_boss_replay(s) for s in range(1, 80))
+               if r["meta"]["metrics"]["outcome"] == "victory" and not r["meta"]["metrics"]["deaths"])
     text = debrief_text(rep)
     assert text.startswith("RESULT: Oruth defeated") and "DEATHS: none." in text
 
@@ -260,3 +262,22 @@ def test_ready_must_be_json_true_and_notes_are_capped_exactly():
     assert not any(x["ready"] for x in talk) and len(talk) == 15  # "false" is not ready: all three rounds
     notes, _ = write_notes(Says(), agents["ivy"], "", "log", talk, 1, "t")
     assert len(notes.split()) == NOTES_WORD_CAP + 1  # 350 words and the trailing ellipsis
+
+
+def test_a_refusal_between_pulls_changes_nothing():
+    """As in combat: a refused talk or notes reply is counted and ignored, even if it holds JSON."""
+    from mythicsim.llm.policy import BrainStats
+    from mythicsim.llm.progress import team_talk, write_notes
+
+    class Refuser:
+        spec = "fake:refuser"
+
+        def complete(self, system, user, tag=""):
+            return Reply('{"notes": "SNEAKY", "message": "SNEAKY", "ready": true}', 10, 10, refused=True)
+
+    _, party = make_llm_policies(MockClient())
+    acc, problems = BrainStats(), []
+    talk = team_talk(Refuser(), party.agents, {}, "debrief", 1, "t", problems, acc)
+    assert talk == [] and acc.refusals > 0 and all("refused" in p for p in problems)
+    notes, problem = write_notes(Refuser(), party.agents["rook"], "old notes", "debrief", [], 1, "t", acc)
+    assert notes == "old notes" and "refused" in problem
