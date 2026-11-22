@@ -104,6 +104,8 @@ export type ReplayEvent =
   | (Base & { type: 'aura_remove'; unit: string; aura: string; reason: string })
   | (Base & { type: 'ground_spawn'; id: string; kind: string; source: string; pos: Vec2; radius: number; arm_ms: number; duration_ms: number; target?: string })
   | (Base & { type: 'ground_expire'; id: string })
+  /** Bone Pyre goes off: who stood inside, and whether that was enough (sim 0.6.0+) */
+  | (Base & { type: 'pyre_detonate'; id: string; pos: Vec2; inside: string[]; soaked: boolean })
   | (Base & { type: 'projectile'; source: string; target: string; ability: string; travel_ms: number })
   | (Base & { type: 'death'; unit: string; killer: string; ability: string })
   | (Base & { type: 'pull'; pack: string; by: string | null })
@@ -216,7 +218,7 @@ export interface CatalogRun {
   status?: string | null
   note?: string | null
   summary: {
-    score_mean: number | null; score_ci95: [number, number] | null; win_rate: number | null; reference_means: Record<string, number> | null
+    score_mean: number | null; score_ci95: [number, number] | null; win_rate: number | null
     kill_rate?: number | null; pulls_to_kill_mean?: number | null; pulls_to_kill_ci95?: [number, number] | null
     learning_gain_mean?: number | null; learning_gain_ci95?: [number, number] | null; curve_mean?: number[] | null
     progression_score_mean?: number | null; progression_score_ci95?: [number, number] | null

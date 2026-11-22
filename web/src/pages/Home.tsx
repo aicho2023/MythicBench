@@ -32,7 +32,7 @@ export function SampleNotice({ results }: { results: Results }) {
   return (
     <p className="rounded-xl border border-line bg-surface px-4 py-3 text-[13px] leading-5 text-fg-muted">
       <span className="text-fg">Sample data.</span> These numbers come from the <span className="font-mono text-[12px]">{results.protocol.name}</span> protocol:
-      a mock model that makes no API calls, and the scripted bots. They exist so the site can be built and checked.
+      a mock model that makes no API calls, and the scripted commander. They exist so the site can be built and checked.
       The official run of five models replaces them on launch.
     </p>
   )
@@ -148,7 +148,7 @@ function ResultsBody({ results }: { results: Results }) {
           carrying its clearing score forward. It shows observed progression, not proof that the notes helped:
           that's what the memory-off control is for. A dashed line in a model's color is that control, which
           plays the same seeds with no talk and no notes between pulls; the learning effect is the paired
-          difference between the two. Each pull uses a new seed, so a party can't just memorize timings. The grey dashed rules are the scripted bots, which don't learn, and the
+          difference between the two. Each pull uses a new seed, so a party can't just memorize timings. The grey dashed line is the scripted commander, which doesn't learn, and the
           dotted rule at 70 is the line between a wipe and a clear.
         </HowToRead>
       </section>

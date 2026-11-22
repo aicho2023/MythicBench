@@ -9,7 +9,7 @@ const SPEEDS = [0.5, 1, 2, 4]
 // Each hue is one kind of event. Adds spawn in the bone-walker class color.
 const MARKER_COLOR: Record<string, string> = {
   death: '#f87171', missed: '#fbbf24', raise: CLASS_COLORS.bonewalker, kick: '#7dd3fc', end: '#ededef', pull: '#a1a1aa',
-  pool: '#c084fc', mark: '#fb923c',
+  pool: '#c084fc', mark: '#fb923c', soak: '#facc15',
 }
 
 // ---------------------------------------------------------------------------
@@ -39,7 +39,7 @@ export function TopBar({ onAbout, onRuns }: { onAbout: () => void; onRuns: () =>
         </span>
       }
       center={
-        // What's on screen; opens the run list. Scripted bots live in that list as a reference, not up here.
+        // What's on screen; opens the run list. The scripted commander lives in that list as a reference, not up here.
         <button onClick={onRuns} className="btn min-w-0 max-w-[420px] shrink" title="Choose a run">
           <ListTree size={16} className="shrink-0 text-fg-muted" />
           <span className="truncate">{watching ? watching.label : 'Choose a run'}</span>
@@ -130,7 +130,8 @@ export function ReplayControls() {
 export function TimelineLegend() {
   const dungeon = usePlayback((p) => p.engine?.replay.meta.mode === 'dungeon')
   const hasMarks = usePlayback((p) => (p.engine?.replay.meta.affixes ?? []).includes('hollow_tyrant'))
-  const items = [['death', 'Death'], ['missed', 'Missed interrupt'], ['pool', 'Stood in a pool'], ...(hasMarks ? [['mark', 'Mark hit allies'] as const] : []), ['raise', 'Adds spawn'], ...(dungeon ? [['pull', 'Pull'] as const] : []), ['end', 'End']] as const
+  const hasPyre = usePlayback((p) => !!p.engine?.replay.abilities.bone_pyre)
+  const items = [['death', 'Death'], ['missed', 'Missed interrupt'], ['pool', 'Stood in a pool'], ...(hasPyre ? [['soak', 'Missed soak'] as const] : []), ...(hasMarks ? [['mark', 'Mark hit allies'] as const] : []), ['raise', 'Adds spawn'], ...(dungeon ? [['pull', 'Pull'] as const] : []), ['end', 'End']] as const
   return (
     <div className="pointer-events-auto flex w-fit flex-wrap justify-center gap-x-4 gap-y-1 rounded-lg bg-[rgba(17,17,19,0.8)] px-3 py-1 text-meta text-fg-muted">
       {items.map(([k, label]) => (
@@ -256,13 +257,13 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
 
         <Section n="1" title="The task">
           Clear the crypt like a Mythic+ key: two trash packs (a caster to <b>kick</b>, a healer to <b>kill first</b>), then
-          Oruth, on one 4:30 timer; resting and reviving between pulls costs time. Each boss ability tests one skill: an <b>interruptible cast</b> (react in time),
-          a <b>tank buster</b> (use defensives), <b>pools on the ground</b> (move out), and <b>adds</b> (switch targets).
+          Oruth, on one 4:15 timer; resting and reviving between pulls costs time. Each boss ability tests one skill: an <b>interruptible cast</b> (react in time),
+          a <b>tank buster</b> (use defensives), <b>pools on the ground</b> (move out), a <b>circle two players must stand in</b> (the one rule that has to be learned), and <b>adds</b> (switch targets).
         </Section>
         <Section n="2" title="The agent under test">
           Each of the five characters is driven by the policy. Every 100 ms it receives a JSON observation from that
           character's point of view (health, positions, casts, boss timers) and returns actions. It never gets engine
-          internals, so a scripted bot and a language model compete on equal terms.
+          internals, so the scripted commander and a language model compete on equal terms.
         </Section>
         <Section n="3" title="The score">
           One number per pull, from <b>0 to 100</b>. A clear (Oruth and every pack dead within the timer) earns
@@ -275,17 +276,13 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
         <Section n="4" title="Controlled comparison">
           Each seed shuffles the boss's timers, so mechanics sometimes overlap. The timers come from their own seeded
           stream, so every policy on a seed faces the same boss script, and a difference in the result comes from
-          decisions. Results are averaged over hundreds of seeds and reported with 95% confidence intervals.
+          decisions. Results are averaged over groups and reported with 95% confidence intervals.
         </Section>
 
         <div className="mt-6 rounded-lg border border-line bg-surface-raised p-4">
-          <div className="label !text-fg">Status: phase 1</div>
+          <div className="label !text-fg">Status</div>
           <p className="mt-2 text-[13px] leading-5 text-fg-muted">
-            Only hand-written baseline bots exist so far. Over 200 seeds they score{' '}
-            <span className="text-fg">expert 89.0</span>, <span className="text-fg">competent 74.6</span>, and{' '}
-            <span className="text-fg">sloppy 30.8</span>, with non-overlapping 95% intervals. Ranking three known skill
-            levels correctly is the check that the benchmark can tell good play from bad. Language-model runs (including
-            learning over repeated pulls) are under Model runs; a public leaderboard comes next.
+            The official run of five models is next. Until then, the run list has pilot pulls by real models.
           </p>
         </div>
 

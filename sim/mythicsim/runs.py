@@ -206,7 +206,7 @@ def _publish(runs_dir: Path, out_dir: Path, only: list[str] | None) -> int:
         runs.append({k: m.get(k) for k in ("run_id", "name", "tags", "mode", "label", "provider", "model", "effort",
                                            "created", "harness_version", "prompt_hash", "git_commit",
                                            "knowledge", "memory", "max_pulls", "level", "tier", "dungeon_mode", "status", "note")}
-                    | {"summary": {k: s.get(k) for k in ("score_mean", "score_ci95", "win_rate", "reference_means",
+                    | {"summary": {k: s.get(k) for k in ("score_mean", "score_ci95", "win_rate",
                                                           "kill_rate", "pulls_to_kill_mean", "pulls_to_kill_ci95",
                                                           "first_pull_score_mean", "curve_mean",
                                                           "progression_score_mean", "progression_score_ci95",
@@ -241,8 +241,6 @@ def rescore(runs_dir: Path = RUNS_DIR) -> int:
     each run's items and summary. Returns the number of replays rescored."""
     import math
     import statistics as st
-    from . import content as C
-    from .__main__ import simulate
     from .llm.progress import summarize_items
     from .metrics import score as score_fn
     n = 0
@@ -267,14 +265,9 @@ def rescore(runs_dir: Path = RUNS_DIR) -> int:
         elif items:
             vals = [i["score"] for i in items]
             h = 1.96 * st.stdev(vals) / math.sqrt(len(vals)) if len(vals) > 1 else None
-            tier = m.get("tier") or C.DEFAULT_TIER
-            mode = m.get("dungeon_mode") or "boss"
-            refs = {p: [score_fn(simulate(p, i["seed"], tier, mode))["score"] for i in items]
-                    for p in ("expert", "competent", "sloppy")}
             summ.update(score_mean=round(st.mean(vals), 1),
                         score_ci95=[round(st.mean(vals) - h, 1), round(st.mean(vals) + h, 1)] if h is not None else None,
-                        win_rate=round(sum(i["outcome"] == "victory" for i in items) / len(items), 3),
-                        reference_means={k: round(st.mean(v), 1) for k, v in refs.items()})
+                        win_rate=round(sum(i["outcome"] == "victory" for i in items) / len(items), 3))
         summ["score_version"] = 2
         m["summary"] = summ
         (runs_dir / rid / "manifest.json").write_text(json.dumps(m, indent=2))

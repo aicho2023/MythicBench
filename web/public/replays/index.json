@@ -1,41 +1,26 @@
 [
   {
-    "id": "expert-clear",
-    "policy": "expert",
-    "seed": 68,
+    "id": "commander-plus10",
+    "seed": 7,
     "mode": "dungeon",
     "tier": "plus10",
-    "label": "Expert bots",
-    "blurb": "Clean pulls, casters first, every kick lands, nobody dies, and Oruth still outlasts the timer.",
-    "file": "expert-clear.json",
+    "label": "Scripted commander, +10",
+    "blurb": "Fixed, obvious rules through the agents' own interface: kick every cast, step out of every pool. It never learns.",
+    "file": "commander-plus10.json",
+    "outcome": "wipe",
+    "duration_s": 166.0,
+    "score": 31.1
+  },
+  {
+    "id": "commander-normal",
+    "seed": 7,
+    "mode": "dungeon",
+    "tier": "normal",
+    "label": "Scripted commander, Normal",
+    "blurb": "Fixed, obvious rules through the agents' own interface: kick every cast, step out of every pool. It never learns.",
+    "file": "commander-normal.json",
     "outcome": "timeout",
     "duration_s": 255.0,
-    "score": 64.9
-  },
-  {
-    "id": "competent-run",
-    "policy": "competent",
-    "seed": 68,
-    "mode": "dungeon",
-    "tier": "plus10",
-    "label": "Competent bots",
-    "blurb": "Same run, same seed. A few missed kicks and slow dodges, and the party wipes.",
-    "file": "competent-run.json",
-    "outcome": "wipe",
-    "duration_s": 230.1,
-    "score": 45.6
-  },
-  {
-    "id": "sloppy-wipe",
-    "policy": "sloppy",
-    "seed": 68,
-    "mode": "dungeon",
-    "tier": "plus10",
-    "label": "Sloppy bots",
-    "blurb": "Same run, same seed. Missed kicks, tunnel vision, standing in the bad.",
-    "file": "sloppy-wipe.json",
-    "outcome": "wipe",
-    "duration_s": 39.7,
-    "score": 8.3
+    "score": 53.2
   }
 ]

@@ -27,7 +27,6 @@ from .engine import SIM_VERSION
 from .llm import HARNESS_VERSION
 from .llm.progress import ci95 as _ci
 
-BOT_EPISODES = 30
 FREE_PROVIDERS = ("mock", "scripted")  # no API: nothing to pay, nothing to record
 REQUIRED = ("name", "mode", "knowledge", "tiers", "episodes", "max_pulls", "effort", "models")
 
@@ -389,34 +388,7 @@ def _cell(c: Combo, done: dict, planned: set, out_dir: Path, runs_dir: Path, max
     }
 
 
-def bot_reference(proto: dict) -> dict:
-    """The scripted bots on the same seeds, scored the same way (they don't
-    learn, so this is what fixed skill looks like over an episode)."""
-    from .__main__ import simulate
-    from .llm.progress import pull_seed
-    from .metrics import score
-    out = {}
-    for t in proto["tiers"]:
-        tid = C.tier(t).id
-        out[tid] = {}
-        for pol in ("expert", "competent", "sloppy"):
-            eps = []
-            # Bots are free, so they get more episodes than the models (the
-            # first ones share the models' seeds).
-            for e in range(max(proto["episodes"], BOT_EPISODES)):
-                items = []
-                for k in range(1, proto["max_pulls"] + 1):
-                    s = score(simulate(pol, pull_seed(e, k, proto.get("seed_base", DEFAULTS["seed_base"])), tid, proto["mode"]))
-                    items.append({"pull": k, "score": s["score"], "outcome": s["outcome"]})
-                    if s["outcome"] == "victory" and s.get("in_time"):
-                        break
-                eps.append(_episode_scores(items, proto["max_pulls"]))
-            out[tid][pol] = {"progression_score_mean": round(st.mean(eps), 1), "progression_score_ci95": _ci(eps),
-                             "episodes": len(eps)}
-    return out
-
-
-def build_results(proto: dict, out_dir: Path, runs_dir: Path | None = None, with_bots: bool = True) -> dict:
+def build_results(proto: dict, out_dir: Path, runs_dir: Path | None = None) -> dict:
     """Collect every finished episode into ``out_dir`` (leaderboard.json, per-pull
     replays gzipped, notes). Deterministic: the same runs give the same files."""
     from .llm.progress import summarize_items
@@ -514,8 +486,6 @@ def build_results(proto: dict, out_dir: Path, runs_dir: Path | None = None, with
         "headline_tier": head, "leaderboard": board, "baselines": baseline_rows, "controls": controls,
         "configs": configs,
     }
-    if with_bots:
-        result["bots"] = bot_reference(proto)
     # The model-reply recordings: with them anyone can replay every pull
     # offline, for free (python -m mythicsim progress ... --offline --cache-dir <this folder>).
     rec_dir = runs_dir / "cache" / proto["name"]

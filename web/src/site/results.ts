@@ -55,8 +55,6 @@ export interface LeaderboardRow {
 
 export interface ControlRow extends TierCell { model: string; tier: string; memory: false }
 
-export interface BotScore { progression_score_mean: number; progression_score_ci95: CI; episodes?: number }
-
 export interface Results {
   protocol: {
     name: string; description?: string; mode: string; knowledge: string; tiers: string[]
@@ -73,7 +71,6 @@ export interface Results {
   /** effort sweeps: other reasoning efforts of some models, unranked */
   configs?: ConfigRow[]
   controls: ControlRow[]
-  bots?: Record<string, Record<string, BotScore>>
 }
 
 let cached: Promise<Results> | null = null
@@ -91,7 +88,7 @@ export function fetchResults(): Promise<Results> {
   return cached
 }
 
-/** The dataset as visitors see it: real models only (no mock model, scripted commander or bots). */
+/** The dataset as visitors see it: real models only (no mock model or scripted commander). */
 export function modelsOnly(r: Results): Results {
   const real = (provider: string) => !REFERENCE_PROVIDERS.includes(provider)
   const models = new Set(r.leaderboard.filter((row) => real(row.provider)).map((row) => row.model))
@@ -100,7 +97,6 @@ export function modelsOnly(r: Results): Results {
     leaderboard: r.leaderboard.filter((row) => models.has(row.model)),
     controls: r.controls.filter((c) => models.has(c.model)),
     baselines: [],
-    bots: undefined,
     configs: (r.configs ?? []).filter((c) => models.has(c.model)),
   }
 }
@@ -158,8 +154,6 @@ export function modelColor(r: Results, model: string): string {
   return SERIES[(i < 0 ? r.protocol.models.length : i) % SERIES.length]
 }
 
-export const BOT_NAMES: Record<string, string> = { expert: 'Expert bots', competent: 'Competent bots', sloppy: 'Sloppy bots' }
-
 /** Tier ids in protocol order, e.g. ['normal', 'plus10']. */
 export const tierIds = (r: Results) => Object.keys(r.tiers)
 export const tierName = (r: Results, tier: string) => r.tiers[tier]?.name ?? tier
@@ -172,17 +166,8 @@ export function costPerRun(row: LeaderboardRow, r?: Results): number | null {
   return cell.usd_per_episode ?? cell.cost_usd / Math.max(1, cell.episodes)
 }
 
-/** The bots' headline score, combined across tiers the same way as a model's. */
 /** The tier the headline score is (older datasets: the last tier). */
 export const headlineTier = (r: Results) => r.headline_tier ?? (tierIds(r).includes('plus10') ? 'plus10' : tierIds(r)[tierIds(r).length - 1])
-
-/** A bot's headline: its progression score on the headline tier. */
-export function botHeadline(r: Results, bot: string): { score: number; ci: CI } | null {
-  const cell = r.bots?.[headlineTier(r)]?.[bot]
-  return cell ? { score: round1(cell.progression_score_mean), ci: cell.progression_score_ci95 } : null
-}
-
-const round1 = (x: number) => Math.round(x * 10) / 10
 
 export function fmtUsd(x: number | null | undefined): string {
   if (x == null) return '–'

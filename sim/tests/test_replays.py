@@ -12,15 +12,15 @@ import pytest
 
 from mythicsim import content as C
 
-from mythicsim.__main__ import SHOWCASE_SEED, bench, simulate
+from mythicsim.__main__ import SHOWCASE_SEED, simulate
 from mythicsim.metrics import run_score, score
 
 SCHEMA = json.loads((Path(__file__).parents[2] / "schema" / "replay.schema.json").read_text())
 
 
-@pytest.fixture(scope="module", params=["expert", "competent", "sloppy"])
+@pytest.fixture(scope="module", params=["plus10", "normal"])
 def replay(request):
-    return simulate(request.param, SHOWCASE_SEED)
+    return simulate(SHOWCASE_SEED, request.param, "boss")
 
 
 def digest(rep: dict) -> str:
@@ -29,11 +29,11 @@ def digest(rep: dict) -> str:
 
 def test_deterministic_same_seed():
     """Same seed + same policy must give a byte-identical replay."""
-    assert digest(simulate("sloppy", 5)) == digest(simulate("sloppy", 5))
+    assert digest(simulate(5, "plus10", "boss")) == digest(simulate(5, "plus10", "boss"))
 
 
 def test_different_seeds_differ():
-    assert digest(simulate("sloppy", 5)) != digest(simulate("sloppy", 6))
+    assert digest(simulate(5, "plus10", "boss")) != digest(simulate(6, "plus10", "boss"))
 
 
 def test_matches_schema(replay):
@@ -76,32 +76,35 @@ def test_no_actions_after_death(replay):
             raise AssertionError(f"dead unit acted: {e}")
 
 
-def test_showcase_outcomes():
-    # The showcase as shipped: the full dungeon run on +10, which is tuned so
-    # that even the expert bots run out of time (without a single death).
-    scores = {p: score(simulate(p, SHOWCASE_SEED, "plus10", "dungeon")) for p in ("expert", "competent", "sloppy")}
-    assert scores["expert"]["outcome"] == "timeout" and not scores["expert"]["deaths"]
-    assert scores["competent"]["outcome"] == "wipe"
-    assert scores["sloppy"]["outcome"] == "wipe"
-    assert scores["expert"]["score"] > scores["competent"]["score"] > scores["sloppy"]["score"]
+def test_common_sense_does_not_time_plus10():
+    """The scripted commander plays by obvious rules (step out of every pool),
+    so it never soaks a Bone Pyre: +10 is beyond it, Normal less so."""
+    plus10, normal = (score(simulate(SHOWCASE_SEED, t, "dungeon")) for t in ("plus10", "normal"))
+    assert not (plus10["outcome"] == "victory" and plus10["in_time"])
+    assert normal["score"] > plus10["score"]
 
 
 def test_boss_script_is_the_same_for_every_policy():
     """A seed fixes the boss's timers: the first cast of each timed ability
     lands at the same moment whoever is playing (policies can't shift it)."""
-    def first_casts(policy):
+    from mythicsim.engine import Encounter
+
+    def first_casts(rep):
         seen = {}
-        for e in simulate(policy, 21)["events"]:
+        for e in rep["events"]:
             if e["type"] in ("cast_start", "cast_success") and e["unit"] == "oruth" \
-                    and e["ability"] in ("requiem_of_bones", "soul_rend", "desecrate"):
+                    and e["ability"] in ("requiem_of_bones", "soul_rend", "desecrate", "bone_pyre"):
                 seen.setdefault(e["ability"], e["t"])
         return seen
-    assert first_casts("expert") == first_casts("sloppy")
+    idle = first_casts(Encounter(21, {m.id: _Idle() for m in C.PARTY}, "idle", "plus10").run())
+    played = first_casts(simulate(21, "plus10", "boss"))
+    both = idle.keys() & played.keys()  # a party that stands still dies early
+    assert len(both) >= 3 and all(idle[k] == played[k] for k in both)
 
 
 def test_seeds_vary_the_boss_script():
     def first_requiem(seed):
-        return next(e["t"] for e in simulate("expert", seed)["events"]
+        return next(e["t"] for e in simulate(seed, "plus10", "boss")["events"]
                     if e["type"] == "cast_start" and e["ability"] == "requiem_of_bones")
     assert len({first_requiem(s) for s in range(8)}) > 1
 
@@ -113,7 +116,7 @@ def test_no_platform_dependent_math():
     import re
     src = Path(__file__).parents[1] / "mythicsim"
     banned = re.compile(r"math\.(hypot|cos|sin|tan|atan2?|exp|log|pow)\b|\*\* *0?\.5")
-    for f in ("engine.py", "policies.py", "content.py"):
+    for f in ("engine.py", "dodge.py", "content.py"):
         hits = banned.findall((src / f).read_text())
         assert not hits, f"{f} uses platform-dependent math: {hits}"
 
@@ -127,17 +130,17 @@ def test_run_score():
     assert run_score("victory", 175.5, 0.0, 195.0) == 82.0  # 19.5 s left = 40% of par
 
 
-def test_reference_bots_rank_in_order():
-    """The benchmark's own sanity check: three known skill levels must come out
-    in the right order, with non-overlapping 95% confidence intervals."""
-    e, c, s = (bench(p, 40) for p in ("expert", "competent", "sloppy"))
-    assert e["score_ci95"][0] > c["score_ci95"][1]
-    assert c["score_ci95"][0] > s["score_ci95"][1]
+def test_playing_beats_standing_still():
+    """The score tells play from no play: the commander beats a party that does nothing."""
+    from mythicsim.engine import Encounter
+    for seed in range(3):
+        idle = score(Encounter(seed, {m.id: _Idle() for m in C.PARTY}, "idle", "plus10").run())
+        assert score(simulate(seed, "plus10", "boss"))["score"] > idle["score"]
 
 
 def test_tiers_scale_enemies_and_add_affixes():
     from mythicsim import content as C
-    normal, plus10 = simulate("expert", 7, "normal"), simulate("expert", 7, "+10")
+    normal, plus10 = simulate(7, "normal", "boss"), simulate(7, "+10", "boss")
     boss = lambda rep: next(u for u in rep["units"] if u["kind"] == "boss")  # noqa: E731
     assert boss(normal)["max_hp"] == round(C.BOSS.max_hp * C.TIERS["normal"].enemy_hp)
     assert boss(plus10)["max_hp"] == round(round(C.BOSS.max_hp * C.TIERS["plus10"].enemy_hp) * C.TYRANT_HP)
@@ -149,40 +152,40 @@ def test_tiers_scale_enemies_and_add_affixes():
 
 def test_plus10_affixes_fire_on_undead_deaths():
     """Every undead death (not Oruth) leaves a grave and stacks Marrow Shards."""
-    rep = simulate("expert", 3, "plus10", "dungeon")
+    rep = simulate(3, "plus10", "dungeon")
     ev = rep["events"]
     undead_deaths = [e for e in ev if e["type"] == "death" and e["unit"] not in
                      {u["id"] for u in rep["units"] if u["kind"] in ("player", "boss")}]
     graves = [e for e in ev if e["type"] == "ground_spawn" and e["kind"] == "grave"]
     assert undead_deaths and len(graves) == len(undead_deaths)
     stacks = [e["stacks"] for e in ev if e["type"] == "aura_apply" and e["aura"] == "marrow_shards"]
-    assert max(stacks) >= 2  # a pack dying close together stacks it
+    assert len(stacks) >= len(undead_deaths)  # every undead death puts it on the party
     assert any(e["type"] == "heal" and e["ability"] == "restless_grave" for e in ev) or \
         any(e["type"] == "damage" and e["ability"] == "restless_grave" for e in ev)
     raises = [e for e in ev if e["type"] == "cast_start" and e["ability"] == "raise_dead"]
     assert len(raises) <= 3
-    normal = simulate("expert", 3, "normal", "dungeon")["events"]
+    normal = simulate(3, "normal", "dungeon")["events"]
     assert not any(e["type"] == "ground_spawn" and e["kind"] == "grave" for e in normal)
 
 
 def test_harder_tier_is_harder():
-    """Over a few seeds, the expert bot scores lower on +10 than on Normal."""
+    """Over a few seeds, the commander scores lower on +10 than on Normal."""
     from mythicsim.metrics import score as sc
-    mean = lambda t: sum(sc(simulate("expert", s, t, "dungeon"))["score"] for s in range(6)) / 6  # noqa: E731
+    mean = lambda t: sum(sc(simulate(s, t, "dungeon"))["score"] for s in range(6)) / 6  # noqa: E731
     assert mean("normal") > mean("plus10")
 
 
 def test_dungeon_unit_ids_are_unique_across_the_run():
     """Trash and the boss's summoned adds must never share an id (a reused id
     would overwrite a dead trash unit and corrupt progress)."""
-    rep = simulate("sloppy", 42, "plus10", "dungeon")
+    rep = simulate(42, "plus10", "dungeon")
     ids = [u["id"] for u in rep["units"]] + [e["unit"]["id"] for e in rep["events"] if e["type"] == "spawn"]
     assert len(ids) == len(set(ids))
 
 
-@pytest.fixture(scope="module", params=["expert", "competent", "sloppy"])
+@pytest.fixture(scope="module", params=["plus10", "normal"])
 def dungeon_replay(request):
-    return simulate(request.param, SHOWCASE_SEED, "plus10", "dungeon")
+    return simulate(SHOWCASE_SEED, request.param, "dungeon")
 
 
 def test_dungeon_matches_schema_and_is_consistent(dungeon_replay):
@@ -201,7 +204,7 @@ def test_dungeon_matches_schema_and_is_consistent(dungeon_replay):
 
 
 def test_dungeon_is_deterministic_and_pulls_in_order():
-    a, b = simulate("expert", 9, "plus10", "dungeon"), simulate("expert", 9, "plus10", "dungeon")
+    a, b = simulate(9, "plus10", "dungeon"), simulate(9, "plus10", "dungeon")
     assert digest(a) == digest(b)
     pulls = [e["pack"] for e in a["events"] if e["type"] == "pull"]
     assert pulls == ["pack1", "pack2", "boss"]
@@ -209,7 +212,7 @@ def test_dungeon_is_deterministic_and_pulls_in_order():
 
 
 def test_dungeon_bosses_sleep_until_pulled():
-    rep = simulate("expert", 9, "plus10", "dungeon")
+    rep = simulate(9, "plus10", "dungeon")
     pull = next(e["t"] for e in rep["events"] if e["type"] == "pull" and e["pack"] == "boss")
     first = next(e["t"] for e in rep["events"] if e.get("unit") == "oruth" and e["type"] in ("cast_start", "cast_success"))
     assert first >= pull
@@ -218,8 +221,7 @@ def test_dungeon_bosses_sleep_until_pulled():
 def test_dungeon_revives_cost_time():
     """A dead party member gets back up out of combat, and the timer is charged."""
     from mythicsim.dungeon import DungeonRun
-    from mythicsim.policies import make_dungeon_policies
-    run = DungeonRun(3, make_dungeon_policies("expert", 3), "x")
+    run = DungeonRun(3, {m.id: _Idle() for m in C.PARTY}, "x")
     kit = run.units["kit"]
     run.kill(kit, run.units["rook"], "test")
     for _ in range(40):
@@ -228,18 +230,12 @@ def test_dungeon_revives_cost_time():
     assert kit.alive and run.penalty_ms == 10_000 and run.revives == 1
 
 
-def test_dungeon_reference_bots_rank_in_order():
-    e, c, s = (bench(p, 24, "plus10", "dungeon") for p in ("expert", "competent", "sloppy"))
-    assert e["score_mean"] > c["score_mean"] > s["score_mean"]
-    assert c["score_ci95"][0] > s["score_ci95"][1]
-
-
 def test_grave_mark_detonates_on_nearby_allies():
     """+10's Hollow Tyrant brands a player; when it expires, allies within 6 m take the splash."""
     from mythicsim import content as C
     found = False
     for seed in range(6):
-        ev = simulate("expert", seed, "plus10", "boss")["events"]
+        ev = simulate(seed, "plus10", "boss")["events"]
         marks = [e for e in ev if e["type"] == "aura_apply" and e["aura"] == "grave_mark"]
         assert marks, "the boss should brand someone during the fight"
         for m in marks:
@@ -250,14 +246,14 @@ def test_grave_mark_detonates_on_nearby_allies():
                 assert boom[0]["target"] == m["unit"]  # the marked player is hit first
                 assert all(e["source"] == "oruth" for e in boom)
     assert found
-    assert not any(e["aura"] == "grave_mark" for e in simulate("expert", 3, "normal", "boss")["events"]
+    assert not any(e["aura"] == "grave_mark" for e in simulate(3, "normal", "boss")["events"]
                    if e["type"] == "aura_apply")
 
 
 def test_tiers_have_their_own_timers():
     from mythicsim import content as C
     for t in ("normal", "plus10"):
-        rep = simulate("expert", 2, t, "dungeon")
+        rep = simulate(2, t, "dungeon")
         assert rep["meta"]["time_limit_ms"] == C.TIERS[t].limit_ms
 
 
@@ -323,3 +319,51 @@ def test_a_clear_needs_every_pack_dead_too():
     rep = enc.run()
     assert rep["meta"]["outcome"] == "timeout"
     assert score(rep)["score"] < 70
+
+
+class _Soak:
+    """Two players stand in every Bone Pyre; the rest stay put."""
+
+    def __init__(self, uid, soaks):
+        self.uid, self.soaks = uid, soaks
+
+    def act(self, obs):
+        from mythicsim.engine import Action
+        pyre = next((g for g in obs["ground"] if g["kind"] == "pyre"), None)
+        if self.soaks and pyre and not obs["self"]["moving"]:
+            return [Action("move", to=tuple(pyre["pos"]))]
+        return []
+
+
+def _first_pyre(soakers):
+    from mythicsim.engine import Encounter
+    enc = Encounter(4, {m.id: _Soak(m.id, m.id in soakers) for m in C.PARTY}, "test", "normal")
+    enc.boss_next = {"bone_pyre": 2000}  # only the pyre, so nothing else gets in the way
+    rep = enc.run(max_ms=12_000)
+    boom = next(e for e in rep["events"] if e["type"] == "pyre_detonate")
+    hits = [e for e in rep["events"] if e["type"] == "damage" and e["ability"] == "bone_pyre" and e["t"] == boom["t"]]
+    return boom, hits
+
+
+def test_bone_pyre_split_between_soakers():
+    boom, hits = _first_pyre({"brask", "kit"})
+    assert boom["soaked"] and set(boom["inside"]) == {"brask", "kit"}
+    assert {e["target"] for e in hits} == {"brask", "kit"}
+    per = C.PYRE_SOAK / 2 * C.TIERS["normal"].enemy_dmg
+    assert all(abs(e["amount"] + e["absorbed"] - per) <= per * 0.08 + 1 for e in hits)
+
+
+def test_bone_pyre_hits_everyone_when_not_soaked():
+    for soakers in (set(), {"brask"}):
+        boom, hits = _first_pyre(soakers)
+        assert not boom["soaked"] and len(boom["inside"]) == len(soakers)
+        assert len(hits) == len(C.PARTY)  # the whole party, soaker or not
+        assert min(e["amount"] + e["absorbed"] for e in hits) >= C.PYRE_BLAST * C.TIERS["normal"].enemy_dmg * 0.92 - 1
+
+
+def test_bone_pyre_is_not_a_pool_to_dodge():
+    """The "safe" planner and the in-pool alarm treat a pyre as floor, not danger."""
+    from mythicsim.dodge import find_safe_spot, unsafe
+    pyre = [{"id": "pyre_1", "kind": "pyre", "pos": [0.0, 5.0], "radius": 2.5, "armed": False, "detonates_in_ms": 3000}]
+    assert not unsafe((0.0, 5.0), pyre)
+    assert find_safe_spot(pyre, C.ARENA_RADIUS, (0.0, 5.0), (0.0, 5.0)) is not None

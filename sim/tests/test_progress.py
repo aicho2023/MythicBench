@@ -47,16 +47,17 @@ def test_notes_are_appended_only_when_present():
     assert with_notes.startswith(system_prompt("blind")) and "this is pull 3" in with_notes and "Kick the Requiem." in with_notes
 
 
-def _boss_replay(policy: str, seed: int = 42, tier: str = "normal") -> dict:
+def _boss_replay(seed: int = 2, tier: str = "normal") -> dict:
+    """The scripted commander's boss fight (seed 2 on Normal is a clean kill)."""
     from mythicsim.__main__ import simulate
     from mythicsim.metrics import score
-    rep = simulate(policy, seed, tier)
+    rep = simulate(seed, tier, "boss")
     rep["meta"]["metrics"] = score(rep)
     return rep
 
 
 def test_debrief_matches_the_metrics():
-    rep = _boss_replay("competent", tier="plus10")
+    rep = _boss_replay(42, tier="plus10")
     d = debrief_data(rep)
     m = rep["meta"]["metrics"]
     assert d["outcome"] == m["outcome"] and d["boss_hp_pct_left"] == m["boss_hp_pct_remaining"]
@@ -69,7 +70,7 @@ def test_debrief_matches_the_metrics():
 
 
 def test_debrief_of_a_clean_kill():
-    rep = _boss_replay("expert")
+    rep = _boss_replay()
     text = debrief_text(rep)
     assert text.startswith("RESULT: Oruth defeated") and "DEATHS: none." in text
 
@@ -221,13 +222,13 @@ def test_progression_items_publish_without_collisions(tmp_path):
 
 
 def test_debrief_covers_the_dungeon():
-    rep = json.loads((REPLAYS / "competent-run.json").read_text())
+    rep = json.loads((REPLAYS / "commander-plus10.json").read_text())
     text = debrief_text(rep)
     assert "DUNGEON:" in text and "Chapel pack" in text and "Grave Volley" in text
 
 
 def test_debrief_reports_a_timeout_as_a_timeout():
-    rep = json.loads((REPLAYS / "competent-run.json").read_text())
+    rep = json.loads((REPLAYS / "commander-plus10.json").read_text())
     rep["meta"]["outcome"] = "timeout"
     text = debrief_text(rep)
     assert text.startswith("RESULT: time ran out") and "wiped" not in text.split("\n")[0]

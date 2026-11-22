@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 
 from .. import content as C
 from ..engine import Action, dist
-from ..policies import find_safe_spot, unsafe, walk_check
+from ..dodge import find_safe_spot, hazards, unsafe, walk_check
 from .clients import ChatClient, ClientError
 from .prompt import CHAT_COOLDOWN_MS, POOL_HIT_PAD, Order, parse_reply, render_state, system_prompt
 
@@ -192,6 +192,8 @@ class Party:
             if g["id"] not in self.seen_ground:
                 self.seen_ground.add(g["id"])
                 near = {p for p, xz in pos.items() if dist(xz, g["pos"]) <= g["radius"] + POOL_NEAR_M}
+                if g["kind"] not in C.HAZARD_POOLS:
+                    near = set(pos)  # a boss mechanic on the floor concerns everyone, like his casts
                 if near:
                     out.append((f"new pools: {g['id']}", near))
         new_adds = [e["id"] for e in obs["enemies"] if e["role"] == "add" and e["id"] not in self.seen_enemies]
@@ -230,7 +232,7 @@ class Party:
     def in_pool(self, obs: dict, uid: str) -> bool:
         p = next(p for p in obs["party"] if p["id"] == uid)
         return p["alive"] and any(g["armed"] and dist(p["pos"], g["pos"]) <= g["radius"] + POOL_HIT_PAD
-                                  for g in obs["ground"])
+                                  for g in hazards(obs["ground"]))
 
     def tick(self, obs: dict) -> None:
         """Called by the first living character each tick; decides which agents to ask."""
@@ -407,7 +409,7 @@ class LLMPolicy:
         return next((tuple(w) for w in dg["route"] if w[1] < z - 0.8), tuple(dg["route"][-1]))
 
     def safe_destination(self, obs: dict, st: Standing):
-        """Resolve "safe": the bots' dodge planner, keeping the first priority
+        """Resolve "safe": the dodge planner, keeping the first priority
         target in range when possible and never walking through another
         pool. None = already safe and in range."""
         me = obs["self"]

@@ -71,8 +71,8 @@ def test_campaign_only_plays_missing_episodes(sandbox):
 def test_results_are_complete_and_rebuild_identically(sandbox):
     tmp, proto = sandbox
     K.run_campaign(proto)
-    a = K.build_results(proto, tmp / "res-a", tmp / "runs", with_bots=False)
-    K.build_results(proto, tmp / "res-b", tmp / "runs", with_bots=False)
+    a = K.build_results(proto, tmp / "res-a", tmp / "runs")
+    K.build_results(proto, tmp / "res-b", tmp / "runs")
     assert tree_digest(tmp / "res-a") == tree_digest(tmp / "res-b")
     (row,) = a["leaderboard"]
     assert set(row["tiers"]) == {"normal", "plus10"}
@@ -103,7 +103,7 @@ def test_campaign_key_names_the_code_versions():
 def test_learning_effect_is_measured_against_the_control(sandbox):
     tmp, proto = sandbox
     K.run_campaign(proto)
-    res = K.build_results(proto, tmp / "res", tmp / "runs", with_bots=False)
+    res = K.build_results(proto, tmp / "res", tmp / "runs")
     (row,) = res["leaderboard"]
     cell, ctl = row["tiers"]["plus10"], res["controls"][0]
     assert cell["learning_effect"] == round(cell["progression_score"] - ctl["progression_score"], 1)
@@ -114,7 +114,7 @@ def test_learning_effect_is_measured_against_the_control(sandbox):
 def test_incomplete_cells_are_not_ranked(sandbox):
     tmp, proto = sandbox
     K.run_campaign(dict(proto, episodes=1))
-    res = K.build_results(proto, tmp / "res", tmp / "runs", with_bots=False)  # protocol wants 2 episodes
+    res = K.build_results(proto, tmp / "res", tmp / "runs")  # protocol wants 2 episodes
     (row,) = res["leaderboard"]
     assert not row["complete"] and row["rank"] is None
     assert row["tiers"]["normal"]["complete"] is False
@@ -131,7 +131,7 @@ def test_paid_campaign_refuses_uncommitted_code(sandbox, monkeypatch):
 def test_results_ship_the_recordings(sandbox):
     tmp, proto = sandbox
     K.run_campaign(proto)
-    K.build_results(proto, tmp / "res", tmp / "runs", with_bots=False)
+    K.build_results(proto, tmp / "res", tmp / "runs")
     assert list((tmp / "res" / "recordings").glob("*.jsonl.gz"))
 
 
@@ -140,7 +140,7 @@ def test_scripted_commander_is_a_baseline_not_a_ranked_model(sandbox):
     proto = {**proto, "episodes": 1, "tiers": ["plus10"], "controls": [],
              "baselines": [{"provider": "scripted", "id": "commander", "name": "Scripted commander"}]}
     K.run_campaign(proto)
-    res = K.build_results(proto, tmp / "res", tmp / "runs", with_bots=False)
+    res = K.build_results(proto, tmp / "res", tmp / "runs")
     assert [r["model"] for r in res["leaderboard"]] == ["basic"] and res["leaderboard"][0]["rank"] == 1
     (base,) = res["baselines"]
     assert base["model"] == "commander" and base["rank"] is None and base["baseline"]
@@ -152,7 +152,7 @@ def test_cells_in_parallel_give_the_same_results(sandbox):
     K.run_campaign(proto, cells=3, workers=2)
     for c in K.combos(proto):
         assert set(K.finished_episodes(c.key(proto), tmp / "runs")) == {0, 1}
-    a = K.build_results(proto, tmp / "res", tmp / "runs", with_bots=False)
+    a = K.build_results(proto, tmp / "res", tmp / "runs")
     assert a["leaderboard"][0]["complete"]
 
 
@@ -200,7 +200,7 @@ def test_changing_the_rules_retires_old_episodes(sandbox):
     short = dict(proto, max_pulls=1, controls=[])
     K.run_campaign(short)
     longer = dict(short, max_pulls=3)
-    res = K.build_results(longer, tmp / "res", tmp / "runs", with_bots=False)
+    res = K.build_results(longer, tmp / "res", tmp / "runs")
     assert res["leaderboard"] == []  # nothing played under the 3-pull rules yet
     assert all(not K.finished_episodes(c.key(longer), tmp / "runs") for c in K.combos(longer))
 
@@ -233,7 +233,7 @@ def test_learning_effect_is_paired_by_episode(sandbox):
     tmp, proto = sandbox
     proto = dict(proto, tiers=["plus10"], episodes=1, controls=[{"model": "basic", "memory": False, "episodes": 2}])
     K.run_campaign(proto)
-    res = K.build_results(proto, tmp / "res", tmp / "runs", with_bots=False)
+    res = K.build_results(proto, tmp / "res", tmp / "runs")
     cell = res["leaderboard"][0]["tiers"]["plus10"]
     assert cell["episodes"] == 1  # ranked on the protocol's episode count
     pairs = cell["learning_pairs"]

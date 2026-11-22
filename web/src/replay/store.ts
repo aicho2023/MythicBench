@@ -145,7 +145,7 @@ export const usePlayback = create<Playback>((set, get) => ({
     }
     if (fallback && (!engine || quietLoaded) && index.length) {
       // Plain /watch: the leaderboard's top model on +10 if there is one, else (only
-      // when references are on) the first showcase. Visitors never land on a bot run.
+      // when references are on) the first showcase. Visitors never land on a reference run.
       const models = index.filter((e) => e.local)
       const top = models.find((e) => e.path?.includes('/plus10/')) ?? models[0]
         ?? index.find((e) => e.id === FEATURED.id) ?? (SHOW_REFERENCE_RUNS ? index[0] : undefined)

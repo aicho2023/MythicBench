@@ -12,7 +12,7 @@ what to learn. Every fight is a
 deterministic simulation that saves a full event log, so you can watch any
 attempt in a 3D replay viewer and recompute every score yourself.
 
-![Oruth the Unburied, fighting the expert bots in the replay viewer](docs/media/hero.jpg)
+![Oruth the Unburied in the replay viewer](docs/media/hero.jpg)
 
 The simulator, the dungeon, the model harness and the viewer are working. The
 official run across five models is next, followed by a public site with the
@@ -33,7 +33,7 @@ seconds, and 1 to 4 set the speed. Click any line under Agent decisions to
 jump to that moment.
 
 Links can point at a moment:
-`http://localhost:5173/watch?replay=sloppy-wipe&t=30&paused=1`.
+`http://localhost:5173/watch?replay=commander-plus10&t=30&paused=1`.
 
 ## The dungeon
 
@@ -84,41 +84,29 @@ with a clear carrying forward to the remaining attempts. A model that learns
 faster scores higher. The headline MythicBench score is the average of the
 Normal and +10 progression scores.
 
-### Calibration with scripted bots
+### The baseline: a scripted commander
 
-Three hand-written bot parties play the same dungeon at fixed skill levels.
-They don't learn; they show what good and bad play look like. Over 200 seeds:
+The scripted commander plays through exactly the agents' interface (it reads
+the same state text and replies with the same orders) using fixed, obvious
+rules: kick every cast, kill casters first, heal the lowest ally, step out of
+every pool. It never learns. A model has to beat it for its own decisions to
+matter. Over 60 seeds it scores 34.1 on +10 (it wipes every time) and 56.2 on
+Normal.
 
-| | Expert | Competent | Sloppy |
-| --- | --- | --- | --- |
-| Normal clear rate | 100% (98 to 100%) | 77% (71 to 82%) | 0% |
-| Normal score | 84.6 (84.0 to 85.2) | 74.0 (72.6 to 75.5) | 31.3 (30.8 to 31.9) |
-| +10 clear rate | 0% (0 to 2%) | 0% (0 to 2%) | 0% |
-| +10 score | 54.6 (53.9 to 55.4) | 42.5 (41.3 to 43.6) | 9.4 (8.5 to 10.4) |
-
-+10 is tuned against real models rather than the bots: in pilot pulls, the
-best current model cleared it blind only some of the time. Even the expert
-bots run out of time on it.
+That gap is by design. Oruth's Bone Pyre is a circle on the floor that two
+players must stand in, or it hits the whole party. Every generic instinct
+says to step out of glowing circles, so a party has to learn this one from
+its combat log. +10 is tuned against real models: the best of today's should
+clear it only some of the time.
 
 A clear is timed: Oruth and both packs dead before the 4:15 timer, revive
 penalties included. The run ends at the timer, so nothing after it counts.
 
-Ranges are 95% confidence intervals. The three bots come out in the right
-order with no overlap, which is the first check that the benchmark tells
-good play from bad.
-
-The viewer ships one +10 run for each bot, all on seed 10. Every policy on a
-seed faces the same boss timers, so only the decisions differ.
-
-| Run | Outcome | Score | Interrupts | Deaths |
-| --- | --- | --- | --- | --- |
-| Expert bots | Cleared in 3:50 | 81.8 | 17 of 20 | 0 |
-| Competent bots | Wiped on Oruth at 4:34 | 36.3 | 8 of 22 | 5 |
-| Sloppy bots | Stuck on the first pack until time ran out | 6.2 | 0 of 39 | 4 |
+The viewer ships the commander's run on both tiers (seed 7) as a reference.
 
 ## How a model plays
 
-The model reads the same observation the bots get, rendered as text, plus the
+The model reads the game's observation, rendered as text, plus the
 rules: every ability's tooltip, the map and the reply format. The rules
 contain no strategy. It replies with standing orders for each character: an
 optional move and a priority list of `[ability, target]` pairs.
@@ -128,12 +116,11 @@ away when something happens: a cast starts, pools appear, adds spawn, a pack
 is pulled or cleared, someone stands in an armed pool, or an ally gets low or
 dies. The game pauses while it thinks, so a slow model is not penalised.
 
-It uses the same controls as the bots. A move can be a coordinate, `"safe"`
-(the bots' own dodge planner, which steps out of pools while keeping the
-target in range) or `"next"` (the next point on the route). Queued interrupts
-fire 350 ms after a cast starts, the expert bot's reaction time. The model
-decides when and what; it doesn't have to do the geometry the bots get for
-free.
+A move can be a coordinate, `"safe"` (a dodge planner that steps out of
+harmful pools while keeping the target in range; it ignores a Bone Pyre) or
+`"next"` (the next point on the route). Queued interrupts fire 350 ms after a
+cast starts, a fast human's reaction time. The model decides when and what;
+it doesn't have to do the geometry.
 
 Every model gets the same budget: one shared effort setting and at most
 8,000 output tokens per call, thinking included. Invalid entries in a reply
@@ -191,8 +178,7 @@ python -m mythicsim results ../protocol/v1.json --out ../results/v1
 replayed episode free up to the point where it stopped. `results` writes
 `leaderboard.json` with, for each model and tier, the progression score and
 its confidence interval, the clear rate, attempts to clear, the learning gain
-and the cost per attempt. It also writes a gzipped replay of every attempt
-and the scripted bots' scores on the same seeds.
+and the cost per attempt. It also writes a gzipped replay of every attempt.
 
 ### Cost limits
 
@@ -229,9 +215,8 @@ hidden by default because their scores aren't comparable.
 ```bash
 cd sim
 pip install -e ".[dev]"                                              # only needed for the tests
-python -m mythicsim run --policy expert --seed 7 --tier +10          # one run, print the score
-python -m mythicsim bench --policy expert,competent,sloppy --runs 200  # many runs, with 95% CIs
-python -m mythicsim generate --out ../web/public/replays             # rebuild the viewer's bot replays
+python -m mythicsim run --seed 7 --tier +10                          # the scripted commander, one run
+python -m mythicsim generate --out ../web/public/replays             # rebuild the viewer's reference replays
 python -m pytest
 ```
 
@@ -266,8 +251,8 @@ Pages) send every other path to the app.
 - The viewer is tested against the simulator: it must reproduce the final
   state and every score, and jumping to any moment must match playing from
   the start.
-- Bots and models get the same observation and the same controls. Neither
-  can see engine internals.
+- The scripted commander and the models use the same interface. Neither can
+  see engine internals.
 - Every replay records the simulator, content and harness versions, the seed
   and the policy, so results from different rules are never mixed silently.
 
@@ -306,7 +291,7 @@ sim/                        Python simulator, standard library only
   mythicsim/content.py      game rules as data: classes, abilities, boss, dungeon, tiers
   mythicsim/engine.py       100 ms tick loop that writes the event log
   mythicsim/dungeon.py      the dungeon run: map, packs, pulling, resting
-  mythicsim/policies.py     scripted expert, competent and sloppy bots
+  mythicsim/dodge.py        the "safe" move's dodge planner
   mythicsim/metrics.py      scores, computed only from the event log
   mythicsim/llm/            model harness: prompt, clients, debrief, learning episodes
   mythicsim/campaign.py     the official protocol and the results dataset

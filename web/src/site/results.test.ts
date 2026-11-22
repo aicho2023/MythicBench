@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { gzipSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
 import { resultsIndexEntries } from './watchData'
-import { botHeadline, costPerRun, gunzipIfNeeded, headlineTier, modelsOnly, parseWatchPath, topPull, watchPath, type Results } from './results'
+import { costPerRun, gunzipIfNeeded, headlineTier, modelsOnly, parseWatchPath, topPull, watchPath, type Results } from './results'
 
 const sample: Results = JSON.parse(readFileSync(new URL('../../public/results/sample/leaderboard.json', import.meta.url), 'utf8'))
 
@@ -29,11 +29,8 @@ describe('the sample dataset', () => {
     expect(new Set(entries.map((e) => e.path)).size).toBe(entries.length)
     for (const e of entries) expect(e.url).toMatch(/\/replays\/.+\.json\.gz$/)
   })
-  it('scores the bots on the headline tier, like a model', () => {
+  it('takes the headline score from +10', () => {
     expect(headlineTier(sample)).toBe('plus10')
-    const h = botHeadline(sample, 'expert')!
-    expect(h.score).toBeCloseTo(sample.bots!.plus10.expert.progression_score_mean, 1)
-    expect(h.ci![0]).toBeLessThanOrEqual(h.score)
     const row = sample.leaderboard[0]
     expect(row.mythicbench_score).toBe(row.tiers.plus10.progression_score)
   })
@@ -57,11 +54,10 @@ describe('gunzipIfNeeded', () => {
 
 
 describe('what visitors see', () => {
-  it('drops the mock model, the scripted commander and the bots', () => {
+  it('drops the mock model and the scripted commander', () => {
     const r = modelsOnly(sample)
     expect(r.leaderboard).toHaveLength(0) // the sample's only "model" is the mock
     expect(r.baselines).toEqual([])
-    expect(r.bots).toBeUndefined()
     expect(r.controls).toHaveLength(0)
   })
   it('keeps real models and picks the hero pull from the top one', () => {

@@ -118,7 +118,7 @@ def test_move_safe_leaves_the_pool_and_stays_in_melee():
 
 
 def test_safe_move_does_not_walk_through_another_pool():
-    from mythicsim.policies import crosses_pool, find_safe_spot
+    from mythicsim.dodge import crosses_pool, find_safe_spot
     here = (6.0, -4.0)
     ground = [{"pos": [6.0, -4.0], "radius": 2.2, "armed": True},   # the pool we're in
               {"pos": [3.0, -3.0], "radius": 2.2, "armed": True}]   # between us and the boss
