@@ -25,6 +25,7 @@ import re
 import secrets
 import shutil
 import subprocess
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -167,7 +168,15 @@ def remove_run(run_id: str, runs_dir: Path = RUNS_DIR, published_dir: Path = LOC
 # Viewer catalog
 # ---------------------------------------------------------------------------
 
+_PUBLISH_LOCK = threading.Lock()  # a campaign's parallel cells finish (and publish) concurrently
+
+
 def publish(runs_dir: Path = RUNS_DIR, out_dir: Path = LOCAL_REPLAYS, only: list[str] | None = None) -> int:
+    with _PUBLISH_LOCK:
+        return _publish(runs_dir, out_dir, only)
+
+
+def _publish(runs_dir: Path, out_dir: Path, only: list[str] | None) -> int:
     """Copy replays into the viewer's local folder and rebuild ``catalog.json``.
 
     ``only``: copy just these runs' replays (the catalog always lists every run

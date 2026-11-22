@@ -15,6 +15,9 @@ import { ROLE_ICON, ROLE_TINT } from './bits'
 
 const MAX_TEXT = 44
 const MAX_PLATES = 16
+const MAX_BUBBLES = 5
+const BUBBLE_MS = 5000 // a chat bubble stays up this long, as in the game
+const BUBBLE_CHARS = 140
 const TEXT_MS = 1100
 
 const HOT_TICKS = new Set(['bloomward', 'radiant_afterglow'])
@@ -50,6 +53,7 @@ export function WorldOverlay() {
   const root = useRef<HTMLDivElement>(null)
   const texts = useRef<HTMLDivElement[]>([])
   const plates = useRef<HTMLDivElement[]>([])
+  const bubbles = useRef<HTMLDivElement[]>([])
 
   useEffect(() => {
     let raf = 0
@@ -100,6 +104,25 @@ export function WorldOverlay() {
         bar.style.width = '64px'
       }
       for (let i = p; i < MAX_PLATES; i++) if (plates.current[i]) plates.current[i].style.display = 'none'
+
+      // ---- chat bubbles: each player's latest party-chat line, over its head
+      const said: Record<string, string> = {}
+      for (const { e } of engine.eventsBetween(t - BUBBLE_MS, t)) if (e.type === 'chat') said[e.unit] = e.text
+      let b = 0
+      for (const [id, text] of Object.entries(said)) {
+        const u = s.units[id]
+        const el = bubbles.current[b]
+        if (!u?.alive || !el) continue
+        const pos = posAt(u, t)
+        const sp = project(pos[0], HEAD.player + 0.9, pos[1])
+        if (!sp) continue
+        b++
+        const shown = text.length > BUBBLE_CHARS ? `${text.slice(0, BUBBLE_CHARS - 1)}…` : text
+        if (el.textContent !== shown) el.textContent = shown
+        el.style.display = 'block'
+        placed.push({ el, x: sp[0], y: sp[1] })
+      }
+      for (let i = b; i < MAX_BUBBLES; i++) if (bubbles.current[i]) bubbles.current[i].style.display = 'none'
       stackPlates(placed)
 
       // ---- floating combat text
@@ -174,6 +197,10 @@ export function WorldOverlay() {
             <div className="h-full bg-[#e5484d]" />
           </div>
         </div>
+      ))}
+      {Array.from({ length: MAX_BUBBLES }, (_, i) => (
+        <div key={`b${i}`} ref={(el) => { if (el) bubbles.current[i] = el }}
+          className="absolute left-0 top-0 hidden w-max max-w-[220px] rounded-lg bg-[rgba(12,12,14,0.86)] px-2 py-1 text-left font-sans text-[12px] leading-4 text-[#c9cfff] ring-1 ring-white/10" />
       ))}
       {Array.from({ length: MAX_TEXT }, (_, i) => (
         <div key={`t${i}`} ref={(el) => { if (el) texts.current[i] = el }}

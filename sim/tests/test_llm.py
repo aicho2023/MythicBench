@@ -340,3 +340,23 @@ PARTY:
     assert o["move_to"] == "safe"
     assert o["priority"][0] == ["throat_punch", "pack1_bone_chanter_1"]
     assert ["savage_hew", "pack1_bone_chanter_1"] in o["priority"]  # casters first
+
+
+def test_orders_naming_a_dead_enemy_are_not_errors():
+    p = parse_reply(json.dumps({"priority": [["savage_hew", "pack1_bonewalker_1"], ["savage_hew", "mortisar"]]}),
+                    "grokka", IDS, gone={"pack1_bonewalker_1"})
+    assert p.orders["grokka"].priority == [("savage_hew", "mortisar")] and not p.problems
+
+
+def test_chat_is_capped_like_the_game_and_lands_in_the_replay():
+    long = "x" * 400
+    fake = Scripted({"bramble": [hew(say=long)]})
+    pols, party = make_llm_policies(fake, interval_ms=1000)
+    from mythicsim.llm.policy import add_chat_events
+    rep = Encounter(4, pols, "x").run(max_ms=3000)
+    add_chat_events(rep, party.chat)
+    chats = [e for e in rep["events"] if e["type"] == "chat"]
+    assert chats and all(len(e["text"]) == 255 for e in chats)
+    assert rep["events"][-1]["type"] == "encounter_end"
+    ts = [e["t"] for e in rep["events"]]
+    assert ts == sorted(ts)

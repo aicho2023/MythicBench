@@ -16,8 +16,10 @@ from dataclasses import dataclass, field
 from .. import content as C
 from ..engine import dist
 
-# Party chat lines shown in the state (the most recent).
+# Party chat lines shown in the state (the most recent), and the longest
+# message: 255 characters, WoW's chat limit.
 CHAT_SHOWN = 12
+CHAT_MAX_CHARS = 255
 
 # Same hit test the engine uses for pools (centre within radius + half a body).
 POOL_HIT_PAD = 0.45 * 0.5
@@ -184,7 +186,7 @@ Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) i
 You are asked for {member.name}'s orders every 4 seconds of game time, and immediately when something that concerns you happens. The game is paused while everyone thinks; the other players are asked at the same moments you are. {member.name} keeps following your latest orders until you change them:
   - "move_to": [x, z] walks there once, or "safe" steps to the nearest spot clear of all pools, reachable without walking through another pool, from which your first priority target is still in range when possible (the scripted bots' movement logic){next_move}. Omit or null to stay put. A move is carried out each time you send it.
   - "priority": an ordered list of [ability_id, target_id]. Every tick, {member.name} uses the FIRST entry that is ready (off cooldown, in range, GCD free, not casting or moving for cast-time spells). Off-GCD abilities in the list fire even during the GCD. Interrupts only fire while their target is casting something interruptible (reacting {reaction} s after the cast starts), so they can stay in the list; if someone else interrupts first, yours sees nothing to stop and stays ready. Put a reliable filler ability last so you never idle. Leave "priority" out to keep your current one.
-  - "say": a short message to the party chat, which every player sees from then on. Leave it out to say nothing.
+  - "say": a message in party chat (at most {CHAT_MAX_CHARS} characters, as in the game), which every player sees from then on. Leave it out to say nothing.
 Ground effects ("pools") in the state are dangerous to stand in: "desecrate" pools come from Mortisar, "grave" pools from the Restless Graves affix. "safe" avoids both.
 Targets are unit ids from the state (e.g. "mortisar", "bonewalker_1", "lumi"). For self-buffs and party-wide abilities use your own id ("self" and "party" also work).
 You can only use {member.name}'s abilities: {', '.join(mine.abilities)}.
@@ -322,10 +324,12 @@ class Parsed:
     ok: bool  # False when the reply was not usable JSON at all
 
 
-def parse_reply(text: str, me: str, unit_ids: set[str]) -> Parsed:
+def parse_reply(text: str, me: str, unit_ids: set[str], gone: set[str] = frozenset()) -> Parsed:
     """Read one agent's JSON orders for its own character. Invalid pieces are
     dropped and reported, never guessed. ``priority`` absent = keep the old
-    one (``Order.priority`` is then None)."""
+    one (``Order.priority`` is then None). Targets in ``gone`` (enemies that
+    have died) are dropped quietly: an order still naming a dead enemy is
+    harmless, not a mistake."""
     m = re.search(r"\{.*\}", text, re.S)
     if not m:
         return Parsed({}, ["no JSON object in reply"], False)
@@ -343,7 +347,7 @@ def parse_reply(text: str, me: str, unit_ids: set[str]) -> Parsed:
         return Parsed({}, ["reply has none of move_to, priority, say"], False)
     member = next(x for x in C.PARTY if x.id == me)
     problems: list[str] = []
-    o = Order(say=str(data.get("say") or "").strip()[:300], priority=None)
+    o = Order(say=str(data.get("say") or "").strip()[:CHAT_MAX_CHARS], priority=None)
     mv = data.get("move_to")
     if isinstance(mv, dict) and set(mv) >= {"x", "z"}:
         mv = [mv["x"], mv["z"]]  # {"x": .., "z": ..} is unambiguous; accept it
@@ -371,7 +375,8 @@ def parse_reply(text: str, me: str, unit_ids: set[str]) -> Parsed:
                 problems.append(f"cannot use {ab!r}")
                 continue
             if tgt not in unit_ids:
-                problems.append(f"unknown target {tgt!r}")
+                if tgt not in gone:
+                    problems.append(f"unknown target {tgt!r}")
                 continue
             o.priority.append((ab, tgt))
     return Parsed({me: o}, problems, True)

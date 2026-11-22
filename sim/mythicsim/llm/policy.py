@@ -150,7 +150,7 @@ class Party:
         # What has already been announced, to detect new events.
         self.seen_casts: set[str] = set()
         self.seen_ground: set[str] = set()
-        self.seen_enemies: set[str] = set()
+        self.seen_enemies: set[str] = set()  # every enemy ever in view (dead ones too)
         self.low: set[str] = set()
         self.dead: set[str] = set()
         self.marked: set[str] = set()
@@ -295,10 +295,11 @@ class Party:
         else:
             replies = [call(j) for j in jobs]
         ids = {u["id"] for u in obs["party"] + obs["enemies"]}
+        gone = self.seen_enemies - ids
         for (a, why, user, _), reply in zip(jobs, replies):  # applied in party order: deterministic
-            self.apply(obs, a, why, user, reply, ids)
+            self.apply(obs, a, why, user, reply, ids, gone)
 
-    def apply(self, obs: dict, a: Agent, why: list[str], user: str, reply, ids: set[str]) -> None:
+    def apply(self, obs: dict, a: Agent, why: list[str], user: str, reply, ids: set[str], gone: set[str]) -> None:
         rec = {"t": obs["t"], "agent": a.uid, "why": why, "prompt": user}
         self.calls.append(rec)
         if isinstance(reply, ClientError):
@@ -324,7 +325,7 @@ class Party:
             s.truncated_replies += 1
             a.note(f"t={obs['t']}: reply cut off at the output-token limit")
             rec["truncated"] = True
-        parsed = parse_reply(reply.text, a.uid, ids)
+        parsed = parse_reply(reply.text, a.uid, ids, gone)
         if not parsed.ok:
             s.unusable_replies += 1
         s.invalid_entries += len(parsed.problems)
@@ -446,6 +447,16 @@ class LLMPolicy:
             return True
         radius = C.BOSS.radius if tgt["role"] == "boss" else C.ADD.radius if tgt["role"] == "add" else PLAYER_RADIUS
         return dist(me["pos"], tgt["pos"]) - PLAYER_RADIUS - radius <= ab.range
+
+
+def add_chat_events(replay: dict, chat: list[tuple[int, str, str]]) -> None:
+    """Put the party chat into the replay as ``chat`` events, after the other
+    events of the same tick (and before the encounter's end)."""
+    if not chat:
+        return
+    rank = lambda e: (e["t"], 2 if e["type"] == "encounter_end" else 1 if e["type"] == "chat" else 0)  # noqa: E731
+    replay["events"] = sorted(replay["events"] + [{"t": t, "type": "chat", "unit": u, "text": text} for t, u, text in chat],
+                              key=rank)
 
 
 def make_llm_policies(client: ChatClient, **party_kwargs) -> tuple[dict[str, LLMPolicy], Party]:

@@ -19,7 +19,7 @@ from . import spend
 from .engine import SIM_VERSION, Encounter
 from .llm import HARNESS_VERSION, prompt_hash
 from .llm.clients import EFFORTS, CachedClient, ClientError, make_client
-from .llm.policy import make_llm_policies
+from .llm.policy import add_chat_events, make_llm_policies
 from .metrics import score
 from .policies import PROFILES, make_policies
 
@@ -128,6 +128,7 @@ def build_client(args, n_fights: int):
             raise SystemExit(f"project budget used up: ${spent:.2f} of ${cap:.2f} spent. "
                              "Raise MYTHICBENCH_TOTAL_BUDGET_USD in .env to allow more.")
         limit = min(args.budget_usd, left)
+        spend.PROJECT.arm(cap, spent)  # parallel runs in this process share the money left
         per_fight, basis = spend.estimate_fight_usd(price, args.mode, label)
         print(f"budget: this run may spend ${limit:.2f} (project: ${spent:.2f} of ${cap:.2f} used). "
               f"Estimate ~${per_fight:.2f} per fight, up to {n_fights} fights = ~${per_fight * n_fights:.2f} ({basis})",
@@ -161,6 +162,7 @@ def play_llm_seed(client, seed: int, args, label: str, run) -> tuple[dict, dict]
     policies, party = make_llm_policies(client, interval_ms=args.interval_ms, max_calls=args.max_calls,
                                         tier=args.tier, mode=args.mode, scope=f"s{seed}")
     rep = make_encounter(seed, policies, f"llm:{label}", args.tier, args.mode).run()
+    add_chat_events(rep, party.chat)
     s = score(rep)
     rep["meta"]["metrics"] = s
     rep["meta"]["run"] = {k: run.manifest.get(k) for k in
@@ -496,6 +498,8 @@ def main() -> None:
     cp.add_argument("--budget-usd", type=float, help="stop the campaign after spending this much this time")
     cp.add_argument("--offline", action="store_true", help="only use recorded replies (rebuild from recordings)")
     cp.add_argument("--allow-dirty", action="store_true", help="allow a paid campaign from uncommitted code (pilots only)")
+    cp.add_argument("--cells", type=int, default=1,
+                    help="model x tier cells to play at once (each plays --workers episodes at once); default 1")
     rr = sub.add_parser("results", help="collect the protocol's finished episodes into a results dataset")
     rr.add_argument("protocol", type=Path)
     rr.add_argument("--out", type=Path, required=True, help="e.g. ../results/v1")
@@ -521,7 +525,7 @@ def main() -> None:
     elif args.cmd == "campaign":
         from .campaign import load_protocol, run_campaign
         run_campaign(load_protocol(args.protocol), only=args.only, dry_run=args.dry_run, workers=args.workers,
-                     budget_usd=args.budget_usd, offline=args.offline, allow_dirty=args.allow_dirty)
+                     budget_usd=args.budget_usd, offline=args.offline, allow_dirty=args.allow_dirty, cells=args.cells)
     elif args.cmd == "results":
         from .campaign import build_results, load_protocol
         res = build_results(load_protocol(args.protocol), args.out, with_bots=not args.no_bots)

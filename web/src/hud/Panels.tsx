@@ -232,18 +232,31 @@ export function RaidWarnings() {
 // ---------------------------------------------------------------------------
 // Decision log: what the agents did and WHY (their stated reason)
 // ---------------------------------------------------------------------------
+/** WoW's party-chat colour, for the message text. */
+const PARTY_CHAT = '#aab4ff'
+
 export function DecisionLog() {
   const h = useHud()
   const seek = usePlayback((p) => p.seek)
   const inspect = useInspector((p) => p.show)
+  const hasChat = usePlayback((p) => !!p.engine?.replay.events.some((e) => e.type === 'chat'))
+  const [tab, setTab] = useState<'chat' | 'decisions' | null>(null)
   if (!h) return null
+  const view = tab ?? (hasChat ? 'chat' : 'decisions')
   const hasCalls = (h.engine.replay.calls?.length ?? 0) > 0
   const { t, engine, s } = h
-  const rows: { key: number; t: number; who: string; unit?: string; cls: string; text: string; sub?: string; tone: 'info' | 'bad' }[] = []
-  for (const { e, i } of engine.eventsBetween(t - 40000, t)) {
+  const rows: { key: number; t: number; who: string; unit?: string; cls: string; text: string; sub?: string; tone: 'info' | 'bad' | 'chat' }[] = []
+  for (const { e, i } of engine.eventsBetween(t - (view === 'chat' ? 90000 : 40000), t)) {
+    if (view === 'chat') {
+      if (e.type === 'chat') {
+        const u = s.units[e.unit]
+        rows.push({ key: i, t: e.t, who: u?.info.name ?? e.unit, unit: e.unit, cls: u?.info.class ?? '', text: e.text, tone: 'chat' })
+      }
+      continue
+    }
     if (e.type === 'decision') {
       const u = s.units[e.unit]
-      rows.push({ key: i, t: e.t, who: u?.info.name ?? e.unit, unit: e.unit, cls: u?.info.class ?? '', text: e.action, sub: e.reason, tone: 'info' })
+      rows.push({ key: i, t: e.t, who: u?.info.name ?? e.unit, unit: e.unit, cls: u?.info.class ?? '', text: e.action, sub: hasChat ? undefined : e.reason, tone: 'info' })
     } else if (e.type === 'death' && s.units[e.unit]?.info.kind === 'player') {
       const u = s.units[e.unit]
       rows.push({ key: i, t: e.t, who: u.info.name, unit: e.unit, cls: u.info.class, text: `died to ${engine.replay.abilities[e.ability]?.name ?? engine.replay.auras[e.ability]?.name ?? e.ability}`, tone: 'bad' })
@@ -251,16 +264,26 @@ export function DecisionLog() {
       rows.push({ key: i, t: e.t, who: 'Mortisar', cls: 'boss', text: 'Requiem of Bones not interrupted', tone: 'bad' })
     }
   }
-  const shown = rows.slice(window.innerHeight < 840 ? -4 : -6).reverse()
+  const shown = rows.slice(window.innerHeight < 840 ? -4 : view === 'chat' ? -7 : -6).reverse()
   return (
     <div className="card w-[340px] max-w-[calc((100vw-32px)/var(--hud))] py-2">
       <div className="flex items-center justify-between px-3 pb-1">
-        <span className="label">Agent decisions</span>
+        {hasChat ? (
+          <div className="flex gap-1" role="tablist" aria-label="Log">
+            {(['chat', 'decisions'] as const).map((k) => (
+              <button key={k} role="tab" aria-selected={view === k} onClick={() => setTab(k)}
+                className="rounded-md px-1.5 py-0.5 text-label text-fg-faint transition-colors hover:text-fg aria-selected:bg-white/[0.08] aria-selected:text-fg">
+                {k === 'chat' ? 'Party chat' : 'Decisions'}
+              </button>
+            ))}
+          </div>
+        ) : <span className="label">Agent decisions</span>}
         {hasCalls
           ? <button onClick={() => inspect(null, t)} className="text-meta text-fg-faint transition-colors hover:text-fg">All model calls</button>
           : <span className="text-meta text-fg-faint">Click a row to rewind</span>}
       </div>
-      {shown.length === 0 && <div className="px-3 py-2 text-[12px] text-fg-faint">Nothing yet, waiting for the pull</div>}
+      {shown.length === 0 && <div className="px-3 py-2 text-[12px] text-fg-faint">{view === 'chat' ? 'Nobody has said anything yet' : 'Nothing yet, waiting for the pull'}</div>}
+      <div className={view === 'chat' ? 'max-h-[min(200px,calc(100vh-640px))] min-h-[90px] overflow-y-auto' : ''}>
       {shown.map((r) => (
         <div key={r.key} className="group relative">
         <button
@@ -269,11 +292,17 @@ export function DecisionLog() {
           className="grid w-full grid-cols-[36px_1fr] gap-x-2 px-3 py-1 text-left transition-colors hover:bg-white/[0.05]"
         >
           <span className="num font-mono text-meta leading-5 text-fg-faint">{fmtTime(r.t)}</span>
-          <span className="text-[12px] leading-5">
-            <span className="font-medium" style={{ color: r.tone === 'bad' && r.cls === 'boss' ? '#f87171' : CLASS_COLORS[r.cls] ?? '#ededef' }}>{r.who}</span>{' '}
-            <span className={r.tone === 'bad' ? 'text-bad' : 'text-fg'}>{r.text}</span>
-            {r.sub && <span className="block text-[12px] leading-4 text-fg-faint">{r.sub}</span>}
-          </span>
+          {r.tone === 'chat' ? (
+            <span className="text-[12px] leading-[18px]" style={{ color: PARTY_CHAT }}>
+              [<span style={{ color: CLASS_COLORS[r.cls] ?? '#ededef' }}>{r.who}</span>]: {r.text}
+            </span>
+          ) : (
+            <span className="text-[12px] leading-5">
+              <span className="font-medium" style={{ color: r.tone === 'bad' && r.cls === 'boss' ? '#f87171' : CLASS_COLORS[r.cls] ?? '#ededef' }}>{r.who}</span>{' '}
+              <span className={r.tone === 'bad' ? 'text-bad' : 'text-fg'}>{r.text}</span>
+              {r.sub && <span className="block text-[12px] leading-4 text-fg-faint">{r.sub}</span>}
+            </span>
+          )}
         </button>
         {hasCalls && r.unit && (
           <button onClick={() => inspect(r.unit, r.t)} title="See what this agent saw and replied"
@@ -283,6 +312,7 @@ export function DecisionLog() {
         )}
         </div>
       ))}
+      </div>
     </div>
   )
 }

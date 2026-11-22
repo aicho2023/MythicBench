@@ -111,6 +111,8 @@ export type ReplayEvent =
   | (Base & { type: 'revive'; unit: string; hp: number; penalty_ms: number })
   | (Base & { type: 'emote'; unit: string; style: 'yell' | 'warning'; text: string })
   | (Base & { type: 'decision'; unit: string; action: string; reason: string })
+  /** party chat, typed by a character's agent (model runs, harness 0.9+) */
+  | (Base & { type: 'chat'; unit: string; text: string })
 
 /** One model call during a pull: what the agent saw, why it was asked, what it replied. */
 export interface ModelCall {

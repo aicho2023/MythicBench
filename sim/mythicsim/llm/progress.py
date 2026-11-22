@@ -39,7 +39,7 @@ from ..engine import Encounter
 from ..metrics import score
 from .clients import ChatClient, ClientError
 from .debrief import debrief_text
-from .policy import PARTY_IDS, Agent, BrainStats, make_llm_policies
+from .policy import PARTY_IDS, Agent, BrainStats, add_chat_events, make_llm_policies
 
 NOTES_WORD_CAP = 350
 MESSAGE_WORD_CAP = 150
@@ -212,6 +212,7 @@ def run_episode(client: ChatClient, episode: int, *, max_pulls: int = 5, memory:
             rep = DungeonRun(seed, policies, f"llm:{client.spec}", tier).run()
         else:
             rep = Encounter(seed, policies, f"llm:{client.spec}", tier).run()
+        add_chat_events(rep, party.chat)
         rep["meta"]["metrics"] = score(rep)
         db = debrief_text(rep)
         problems: list[str] = []

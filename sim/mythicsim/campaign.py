@@ -119,8 +119,8 @@ def dirty_files() -> list[str]:
 
 
 def run_campaign(proto: dict, *, only: str | None = None, dry_run: bool = False, workers: int = 1,
-                 budget_usd: float | None = None, offline: bool = False, allow_dirty: bool = False) -> None:
-    from .__main__ import run_progress
+                 budget_usd: float | None = None, offline: bool = False, allow_dirty: bool = False,
+                 cells: int = 1) -> None:
     paid = not offline and any(m["provider"] not in FREE_PROVIDERS for m in proto["models"])
     dirty = dirty_files()
     if paid and dirty and not dry_run and not allow_dirty:
@@ -144,33 +144,51 @@ def run_campaign(proto: dict, *, only: str | None = None, dry_run: bool = False,
     print(f"worst case for everything left: ~${total_est:,.2f} (strong models clear early and cost less)")
     if dry_run:
         return
+    jobs = [(c, missing) for c, missing in todo if missing]
+    if cells > 1:
+        # Cells in parallel (each also plays its episodes in parallel). The
+        # project cap is enforced live across all of them (spend.PROJECT);
+        # each cell keeps its own run budget.
+        from concurrent.futures import ThreadPoolExecutor
+        print(f"playing {len(jobs)} cells, {cells} at a time", flush=True)
+        with ThreadPoolExecutor(max_workers=cells) as pool:
+            results = list(pool.map(lambda j: _play_cell(proto, *j, workers, None, offline), jobs))
+        stopped = [c.spec for (c, _), m in zip(jobs, results) if m and m.get("status") == "stopped"]
+        if stopped:
+            print(f"stopped at a budget: {', '.join(stopped)} (rerun to continue)")
+        return
     left = budget_usd
-    for c, missing in todo:
-        if not missing:
-            continue
+    for c, missing in jobs:
         if left is not None and left <= 0:
             print("campaign budget used up; stopping (rerun to continue)")
             return
-        args = argparse.Namespace(
-            model=c.spec, effort=None, episodes=",".join(map(str, missing)), max_pulls=proto["max_pulls"],
-            mode=proto["mode"], tier=c.tier, memory="on" if c.memory else "off", knowledge=proto["knowledge"],
-            interval_ms=proto.get("interval_ms", 4000), max_calls=proto.get("max_calls", 300), workers=workers,
-            offline=offline, no_cache=False, name=f"{proto['name']} {c.spec} {C.tier(c.tier).name}"
-            + ("" if c.memory else " (memory off)"), tag=[f"campaign:{proto['name']}"],
-            budget_usd=left if left is not None else proto.get("run_budget_usd", spend.DEFAULT_RUN_BUDGET_USD),
-            price_in=None, price_out=None, price_cached=None,
-            cache_dir=runs_mod.RUNS_DIR / "cache" / proto["name"],
-            extra={"campaign": proto["name"], "campaign_key": c.key(proto)})
-        try:
-            m = run_progress(args)
-        except SystemExit as err:
-            print(f"campaign stopped at {c.spec} {c.tier}: {err}")
+        m = _play_cell(proto, c, missing, workers, left, offline)
+        if m is None:
             return
         if left is not None:
             left -= (m.get("summary") or {}).get("spent_usd", 0.0)
         if m.get("status") == "stopped":
             print("a run stopped at its budget; stopping the campaign (rerun to continue)")
             return
+
+
+def _play_cell(proto: dict, c: Combo, missing: list[int], workers: int, left: float | None, offline: bool) -> dict | None:
+    from .__main__ import run_progress
+    args = argparse.Namespace(
+        model=c.spec, effort=None, episodes=",".join(map(str, missing)), max_pulls=proto["max_pulls"],
+        mode=proto["mode"], tier=c.tier, memory="on" if c.memory else "off", knowledge=proto["knowledge"],
+        interval_ms=proto.get("interval_ms", 4000), max_calls=proto.get("max_calls", 300), workers=workers,
+        offline=offline, no_cache=False, name=f"{proto['name']} {c.spec} {C.tier(c.tier).name}"
+        + ("" if c.memory else " (memory off)"), tag=[f"campaign:{proto['name']}"],
+        budget_usd=left if left is not None else proto.get("run_budget_usd", spend.DEFAULT_RUN_BUDGET_USD),
+        price_in=None, price_out=None, price_cached=None,
+        cache_dir=runs_mod.RUNS_DIR / "cache" / proto["name"],
+        extra={"campaign": proto["name"], "campaign_key": c.key(proto)})
+    try:
+        return run_progress(args)
+    except SystemExit as err:
+        print(f"campaign stopped at {c.spec} {c.tier}: {err}")
+        return None
 
 
 # ---------------------------------------------------------------------------

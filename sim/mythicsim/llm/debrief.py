@@ -109,6 +109,11 @@ def debrief_text(replay: dict) -> str:
     out = []
     if d["outcome"] == "victory":
         out.append(f"RESULT: Mortisar defeated at {_t(d['duration_ms'])}.")
+        meta = replay["meta"]
+        timer = meta["duration_ms"] + meta.get("penalty_ms", 0)
+        if timer > meta["time_limit_ms"]:
+            out.append(f"The run timer read {_t(timer)}, past the {_t(meta['time_limit_ms'])} limit: the run was not "
+                       "completed in time, so it does not count as a clear.")
     else:
         out.append(f"RESULT: party wiped at {_t(d['duration_ms'])} with Mortisar at {d['boss_hp_pct_left']}% health.")
     if d["enraged_at"] is not None:
