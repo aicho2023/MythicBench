@@ -25,7 +25,7 @@ function setup(r: CatalogRun) {
   if (r.dungeon_mode !== 'dungeon') parts.push('boss fight only')
   if (prog) {
     parts.push(r.knowledge === 'full' ? 'full boss guide' : 'blind')
-    parts.push(`up to ${r.max_pulls ?? '?'} pulls`)
+    parts.push(r.max_pulls === 1 ? 'one pull' : `up to ${r.max_pulls ?? '?'} pulls`)
     if (r.memory === false) parts.push('memory off')
   } else parts.push(`${r.items.length} ${r.items.length === 1 ? 'fight' : 'fights'}`)
   return parts.join(', ')
