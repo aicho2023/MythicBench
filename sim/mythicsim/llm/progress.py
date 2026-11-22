@@ -39,7 +39,7 @@ from ..metrics import score
 from .clients import ChatClient, ClientError
 from .debrief import debrief_text
 from .policy import PARTY_IDS, Agent, BrainStats, add_chat_events, make_llm_policies
-from .prompt import NOTES_HEADER, ORDER_FORMAT_MARK, json_objects
+from .prompt import NOTES_HEADER, ORDER_FORMAT_MARK, clean_text, json_objects
 
 NOTES_WORD_CAP = 350
 MESSAGE_WORD_CAP = 150
@@ -56,7 +56,9 @@ def pull_seed(episode: int, pull: int, base: int = DEFAULT_SEED_BASE) -> int:
 
 
 def _cap(text: str, words: int) -> str:
-    """At most ``words`` words: the stated limit, exactly."""
+    """At most ``words`` words: the stated limit, exactly (and clean Unicode,
+    since talk and notes go into later prompts)."""
+    text = clean_text(text)
     w = text.split()
     return text.strip() if len(w) <= words else " ".join(w[:words]) + " …"
 

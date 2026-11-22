@@ -313,3 +313,62 @@ def test_threads_of_one_process_share_the_paid_lock(tmp_path, monkeypatch):
     assert not errors
     spend._PAID_LOCK.close()
     monkeypatch.setattr(spend, "_PAID_LOCK", None)
+
+
+@pytest.mark.parametrize("body", [b"{}", b'{"content": [{"type": "text", "text": "{}"}]}',
+                                  b'{"content": [], "usage": {"input_tokens": -1, "output_tokens": 5}}', b"[]"])
+def test_a_malformed_answer_is_billable_not_a_free_reply(monkeypatch, tmp_path, body):
+    """A 200 without a body or without usage can't be priced or scored: it counts at its
+    bound and fails the call (the group is left unfinished), never settles at $0."""
+    import io
+    from mythicsim.llm import clients as cl
+
+    class Resp(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    monkeypatch.setattr(cl.urllib.request, "urlopen", lambda req, timeout=0: Resp(body))
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test")
+    price = spend.Price(input=1.0, output=1.0, cached=1.0)
+    m = spend.CostMeter(cl.AnthropicClient("claude-haiku-5-5", effort="low"), price, limit_usd=10.0,
+                        ledger=tmp_path / "l.jsonl")
+    with pytest.raises(cl.ClientError) as err:
+        m.complete("s", "u")
+    assert not err.value.fatal and m.usd == pytest.approx(spend.worst_case_usd(price, "s", "u"))
+
+
+def test_openai_is_asked_for_the_priced_tier(monkeypatch):
+    import io
+    from mythicsim.llm import clients as cl
+    sent = {}
+
+    class Resp(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def urlopen(req, timeout=0):
+        sent.update(json.loads(req.data))
+        return Resp(b'{"choices": [{"message": {"content": "{}"}, "finish_reason": "stop"}], "service_tier": "default",'
+                    b' "usage": {"prompt_tokens": 3, "completion_tokens": 2}}')
+    monkeypatch.setattr(cl.urllib.request, "urlopen", urlopen)
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    r = cl.OpenAIClient("gpt-6-luna", effort="low").complete("s", "u")
+    assert sent["service_tier"] == "default" and r.service_tier == "default"
+
+
+def test_a_prompt_past_the_priced_size_is_never_sent(tmp_path):
+    class Never:
+        spec = "fake:never"
+
+        def complete(self, system, user, tag=""):
+            raise AssertionError("sent")
+    m = spend.CostMeter(Never(), spend.Price(1.0, 1.0, 1.0), limit_usd=100.0, ledger=tmp_path / "l.jsonl")
+    with pytest.raises(spend.ClientError, match="short-context"):
+        m.complete("x" * spend.MAX_PRICED_INPUT_TOKENS, "u")
+    assert m.usd == 0.0

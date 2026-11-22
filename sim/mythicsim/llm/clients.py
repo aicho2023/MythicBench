@@ -43,6 +43,7 @@ class Reply:
     stop_reason: str = ""
     request_id: str = ""
     reasoning_tokens: int | None = None
+    service_tier: str = ""  # OpenAI: the tier that served the request (priced as Standard)
 
 
 class ChatClient(Protocol):
@@ -153,6 +154,29 @@ def _post(url: str, headers: dict, body: dict, timeout: float = 180.0, retries: 
     raise ClientError("unreachable")
 
 
+def _malformed(why: str) -> ClientError:
+    # The request was answered (and may have been billed), but not in a shape
+    # we can trust: the meter counts it at its bound, the group is left
+    # unfinished (a rerun asks again), and it's never scored as a model reply.
+    return ClientError(f"malformed response from the provider: {why}")
+
+
+def _envelope(out, body_key: str, body_type: type, usage_keys: tuple[str, ...]) -> None:
+    """A 200 must carry its body and its token usage, or it can't be priced or scored."""
+    import math
+    if not isinstance(out, dict):
+        raise _malformed(f"not a JSON object ({type(out).__name__})")
+    if not isinstance(out.get(body_key), body_type):
+        raise _malformed(f"no {body_key!r}")
+    usage = out.get("usage")
+    if not isinstance(usage, dict):
+        raise _malformed("no 'usage'")
+    for k in usage_keys:
+        v = usage.get(k)
+        if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or v < 0:
+            raise _malformed(f"usage.{k} is {v!r}")
+
+
 # Per-call output cap (thinking + answer), the same for every model.
 MAX_OUTPUT_TOKENS = 8000
 
@@ -191,6 +215,7 @@ class AnthropicClient:
                      # The rules never change between calls: let Anthropic cache them.
                      "system": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
                      "messages": [{"role": "user", "content": user}], **self.effort_params()})
+        _envelope(out, "content", list, ("input_tokens", "output_tokens"))
         text = "".join(b.get("text", "") for b in out.get("content", []) if b.get("type") == "text")
         thinking = "".join(b.get("thinking", "") for b in out.get("content", []) if b.get("type") == "thinking")
         u = out.get("usage", {})
@@ -235,10 +260,16 @@ class OpenAIClient:
                      # Route requests that share the rules prefix together so
                      # OpenAI's (best-effort) prompt cache actually hits.
                      "prompt_cache_key": _cache_key(system),
+                     # The Standard tier, as priced in spend.PRICES (not whatever
+                     # tier the project defaults to); the served tier is recorded.
+                     "service_tier": "default",
                      **({"reasoning_effort": self.effort} if self.effort else {}),
                      "messages": [{"role": "system", "content": system},
                                   {"role": "user", "content": user}]})
-        choices = out.get("choices") or [{}]
+        _envelope(out, "choices", list, ("prompt_tokens", "completion_tokens"))
+        if not out["choices"] or not isinstance(out["choices"][0].get("message"), dict):
+            raise _malformed("no message in choices")
+        choices = out["choices"]
         msg = choices[0].get("message") or {}
         text = msg.get("content") or ""
         truncated = choices[0].get("finish_reason") == "length"
@@ -249,7 +280,8 @@ class OpenAIClient:
         return Reply(text, usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0),
                      time.monotonic() - t0, cache_read_tokens=read, truncated=truncated, refused=refused,
                      model=str(out.get("model") or ""), stop_reason=str(choices[0].get("finish_reason") or ""),
-                     request_id=str(out.get("id") or ""), reasoning_tokens=reasoning)
+                     request_id=str(out.get("id") or ""), reasoning_tokens=reasoning,
+                     service_tier=str(out.get("service_tier") or ""))
 
 
 MOCK_ORDERS = {
@@ -433,7 +465,8 @@ class CachedClient:
                      cache_read_tokens=r.get("cache_read_tokens", 0), truncated=r.get("truncated", False),
                      cache_write_tokens=r.get("cache_write_tokens", 0), refused=r.get("refused", False),
                      thinking=r.get("thinking", ""), model=r.get("model", ""), stop_reason=r.get("stop_reason", ""),
-                     request_id=r.get("request_id", ""), reasoning_tokens=r.get("reasoning_tokens"))
+                     request_id=r.get("request_id", ""), reasoning_tokens=r.get("reasoning_tokens"),
+                     service_tier=r.get("service_tier", ""))
 
     def complete(self, system: str, user: str, tag: str = "") -> Reply:
         k = self.key(system, user, tag)
@@ -463,7 +496,7 @@ class CachedClient:
                             "cache_write_tokens": reply.cache_write_tokens,
                             "truncated": reply.truncated, "refused": reply.refused, "thinking": reply.thinking,
                             "model": reply.model, "stop_reason": reply.stop_reason, "request_id": reply.request_id,
-                            "reasoning_tokens": reply.reasoning_tokens})
+                            "reasoning_tokens": reply.reasoning_tokens, "service_tier": reply.service_tier})
             return reply
         finally:
             with rec.lock:

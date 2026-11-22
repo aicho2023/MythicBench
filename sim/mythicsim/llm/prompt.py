@@ -31,10 +31,17 @@ PARTY_IDS = frozenset(m.id for m in C.PARTY)
 # Same hit test the engine uses for pools (centre within radius + half a body).
 POOL_HIT_PAD = C.PLAYER_RADIUS * 0.5
 
+def clean_text(text: str) -> str:
+    """Model text made safe to put in another prompt: valid Unicode only (a
+    lone surrogate, which a reply's JSON can spell as \\ud800, becomes U+FFFD).
+    Applied the same way live and when replaying a recording."""
+    return text.encode("utf-8", "surrogatepass").decode("utf-8", "replace")
+
+
 def fit_chat(text: str) -> str:
     """A chat message cut to CHAT_MAX_CHARS: at the last whole sentence that
     fits, else the last whole word (never mid-word)."""
-    text = " ".join(text.split())
+    text = " ".join(clean_text(text).split())
     if len(text) <= CHAT_MAX_CHARS:
         return text
     cut = text[:CHAT_MAX_CHARS + 1]

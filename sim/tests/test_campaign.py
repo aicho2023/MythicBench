@@ -418,3 +418,12 @@ def test_an_official_protocol_is_pinned(sandbox, monkeypatch, capsys):
 def test_v1_is_pinned_to_the_committed_protocol():
     v1 = K.load_protocol(Path(__file__).parents[2] / "protocol" / "v1.json")
     assert K.OFFICIAL_PROTOCOLS["v1"] == K.protocol_digest(v1)
+
+
+def test_an_altered_official_protocol_is_refused_before_anything_runs(tmp_path):
+    v1 = json.loads((Path(__file__).parents[2] / "protocol" / "v1.json").read_text())
+    v1["episodes"] = 3  # same name, different protocol
+    p = tmp_path / "v1.json"
+    p.write_text(json.dumps(v1))
+    with pytest.raises(SystemExit, match="pinned"):
+        K.run_campaign(K.load_protocol(p), dry_run=True)

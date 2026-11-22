@@ -50,7 +50,7 @@ Also played, none of them ranked:
 - **Normal** (sanity check): Haiku, Luna and the commander, 3 groups each.
 - **Effort sweeps**: Haiku and Luna at low and high effort, 3 groups each.
 
-Code versions: harness 1.0.0 (1.0.0-rc.3 until the review is done), sim 0.8.0, content 1.6.0. Every replay records
+Code versions: harness 1.0.0 (1.0.0-rc.4 until the review is done), sim 0.8.0, content 1.6.0. Every replay records
 them, and the campaign refuses to mix results from different versions.
 
 ## Metrics
@@ -128,7 +128,8 @@ output cap), and the hold is written to the spend ledger before the request is
 sent. Any attempt that may have been billed (a timeout, a dropped connection, a
 server error, an unreadable answer) counts as spent at that bound, and a resend
 needs a hold of its own; a hold left unsettled by a crash counts as spent. One
-paid process runs at a time. The campaign stops cleanly at a limit; whatever
+paid process runs at a time. Requests ask for each provider's standard tier
+(the one priced), and a prompt past the short-context size the prices assume is never sent. The campaign stops cleanly at a limit; whatever
 finished by then is reported, with what didn't.
 
 ## What gets published

@@ -482,3 +482,13 @@ def test_a_reply_recorded_by_another_process_is_reused_not_asked_again(tmp_path)
 
 def test_stop_is_a_move_order():
     assert parse_reply('{"move_to": "stop"}', "brask", {"brask"}).orders["brask"].move_to == "stop"
+
+
+def test_a_lone_surrogate_in_chat_cannot_break_the_next_prompt():
+    from mythicsim.llm.prompt import clean_text
+    p = parse_reply('{"say": "kick \\ud800 now"}', "brask", {"brask"})
+    said = p.orders["brask"].say
+    said.encode("utf-8")  # would raise on a lone surrogate
+    assert "�" in said and clean_text("ok") == "ok"
+    from mythicsim import spend
+    assert spend.worst_case_usd(spend.Price(1, 1, 1), "s", "\ud800") > 0  # the bound never crashes either

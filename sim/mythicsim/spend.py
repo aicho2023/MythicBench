@@ -245,6 +245,17 @@ ProjectGuard = Guard  # older name
 # Tokens a request adds beyond its text (roles, message framing, the system
 # block): a generous allowance.
 MESSAGE_OVERHEAD_TOKENS = 512
+# PRICES are short-context rates; some models charge more above a prompt size
+# (Haiku, for one, above 100,000 input tokens). Our prompts are a few thousand
+# tokens; a request whose upper bound passes this is refused, never sent.
+MAX_PRICED_INPUT_TOKENS = 100_000
+
+
+def input_token_bound(system: str, user: str) -> int:
+    """At most one token per UTF-8 byte, plus message overhead (surrogatepass:
+    never fails on odd text; a lone surrogate counts its 3 bytes)."""
+    return (len(system.encode("utf-8", "surrogatepass")) + len(user.encode("utf-8", "surrogatepass"))
+            + MESSAGE_OVERHEAD_TOKENS)
 
 
 def worst_case_usd(price: Price, system: str, user: str) -> float:
@@ -254,7 +265,7 @@ def worst_case_usd(price: Price, system: str, user: str) -> float:
     writes above the plain input rate); the output is the full cap, thinking
     included (the request sets it as the maximum)."""
     from .llm.clients import MAX_OUTPUT_TOKENS
-    tokens_in = len(system.encode()) + len(user.encode()) + MESSAGE_OVERHEAD_TOKENS
+    tokens_in = input_token_bound(system, user)
     rate_in = max(price.input, price.write if price.write is not None else price.input)
     return (tokens_in * rate_in + MAX_OUTPUT_TOKENS * price.output) / 1e6
 
@@ -325,6 +336,12 @@ class CostMeter:
 
     def complete(self, system: str, user: str, tag: str = "") -> Reply:
         metered = self.ledger is not None or self.limit_usd is not None
+        if metered and input_token_bound(system, user) > MAX_PRICED_INPUT_TOKENS:
+            err = ClientError(f"prompt of up to {input_token_bound(system, user):,} tokens is past the "
+                              f"{MAX_PRICED_INPUT_TOKENS:,}-token short-context pricing the price table assumes; "
+                              "not sent", fatal=True)
+            err.not_billed = True
+            raise err
         est = worst_case_usd(self.price, system, user) if metered else 0.0
         held: list[float] = []  # one hold per attempt that went out
         holds: list[str] = []  # their ids in the ledger

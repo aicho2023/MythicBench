@@ -54,7 +54,10 @@ Pieces:
 #          calls keyed by seed and memory; recordings per freeze
 #   1.0.0-rc.3 second review: spend holds on disk before each request and
 #          counted for every maybe-billed attempt; byte bound on input tokens
-HARNESS_VERSION = "1.0.0-rc.3"
+#   1.0.0-rc.4 third review: malformed provider answers are billable errors, not
+#          free replies; model text is cleaned before it enters a prompt; OpenAI
+#          pinned to the Standard tier; oversized prompts refused; v1 pin checked at launch
+HARNESS_VERSION = "1.0.0-rc.4"
 
 
 def prompt_hash(knowledge: str = "full", tier: str = "plus10", mode: str = "boss") -> str:

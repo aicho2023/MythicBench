@@ -226,6 +226,10 @@ def run_campaign(proto: dict, *, only: str | None = None, dry_run: bool = False,
     """Play what's left of the protocol. ``first``: a staged run plays only each
     cell's first N episodes (ids below N); running again without it plays the
     rest under the same protocol, so the stages add up to one dataset."""
+    pinned = OFFICIAL_PROTOCOLS.get(proto["name"])
+    if pinned and protocol_digest(proto) != pinned:
+        raise SystemExit(f"protocol {proto['name']!r} differs from the pinned official one (digest "
+                         f"{protocol_digest(proto)[:12]}, pinned {pinned[:12]}): restore it, or give it another name")
     paid = not offline and any(c.model["provider"] not in FREE_PROVIDERS for c in combos(proto, only))
     dirty = dirty_files()
     if paid and dirty and not dry_run and not allow_dirty:
