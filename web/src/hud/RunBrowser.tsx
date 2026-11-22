@@ -1,9 +1,11 @@
-import { ChevronDown, ChevronRight, Search, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Download, Search, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { fmtTime, modelName } from '../content/display'
 import { runItemId, usePlayback } from '../replay/store'
-import type { CatalogItem, CatalogRun, ReplayIndexEntry } from '../replay/types'
+import type { CatalogItem, CatalogRun, Replay, ReplayIndexEntry } from '../replay/types'
 import { SHOW_REFERENCE_RUNS } from '../site/config'
+import { downloadExport } from '../site/exportRuns'
+import { fetchMaybeGzipJson } from '../site/results'
 
 type Sort = 'newest' | 'best'
 
@@ -59,6 +61,9 @@ export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void
   const [sort, setSort] = useState<Sort>('newest')
   const currentRun = current?.split('/')[0] // item ids are <run_id>/<seed-N or eE-pP>
   const [open, setOpen] = useState<Set<string>>(() => new Set(currentRun ? [currentRun] : []))
+  // The analysis export in progress: what's being exported, and how many pulls are read so far.
+  const [exporting, setExporting] = useState<{ what: string; done: number; total: number } | null>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -87,6 +92,24 @@ export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void
   // Pulls picked out to show (the home page's clip), listed until the official runs replace them.
   const featured = index.filter((r) => r.id.startsWith('featured:'))
 
+  const exportRuns = async (what: string, list: CatalogRun[], name: string) => {
+    if (exporting || !list.length) return
+    const urlOf = (run: CatalogRun, it: CatalogItem) => {
+      const e = index.find((x) => x.id === runItemId(run.run_id, it))
+      return e?.url ?? `${import.meta.env.BASE_URL}replays/${e?.file ?? `local/${it.file}`}`
+    }
+    setExportError(null)
+    setExporting({ what, done: 0, total: list.reduce((a, r) => a + r.items.length, 0) })
+    try {
+      await downloadExport(list, urlOf, name.replace(/[^A-Za-z0-9._@-]+/g, '-'), (u) => fetchMaybeGzipJson<Replay>(u),
+        (done, total) => setExporting({ what, done, total }))
+    } catch (err) {
+      setExportError(`Export failed: ${String(err)}`)
+    } finally {
+      setExporting(null)
+    }
+  }
+
   const toggle = (id: string) => setOpen((s) => {
     const n = new Set(s)
     if (n.has(id)) n.delete(id)
@@ -101,8 +124,19 @@ export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void
         <div className="border-b border-line px-5 pb-4 pt-4">
           <div className="flex items-center justify-between">
             <span className="text-[15px] font-medium text-fg">Runs</span>
-            <button onClick={onClose} className="icon-btn -mr-2" title="Close (Esc)"><X size={16} /></button>
+            <span className="flex items-center gap-1">
+              {shown.length > 0 && (
+                <button className="btn h-7 px-2 text-[12px]" disabled={!!exporting}
+                  onClick={() => exportRuns('all', shown, shown.length === 1 ? `mythicbench-${shown[0].run_id}` : `mythicbench-${shown.length}-runs`)}
+                  title="Download every run listed below (search and filters apply) as analysis files: an overview, CSVs, every model call, and one story per group">
+                  <Download size={14} />
+                  {exporting?.what === 'all' ? `Exporting ${exporting.done}/${exporting.total}` : `Export ${shown.length === 1 ? 'run' : `${shown.length} runs`}`}
+                </button>
+              )}
+              <button onClick={onClose} className="icon-btn -mr-2" title="Close (Esc)"><X size={16} /></button>
+            </span>
           </div>
+          {exportError && <p className="mt-2 text-[12px] text-bad">{exportError}</p>}
           <div className="mt-3 flex items-center gap-2 rounded-lg border border-line bg-surface-raised px-3 focus-within:border-white/20">
             <Search size={16} className="shrink-0 text-fg-faint" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search models, names, tags" aria-label="Search model, name, tag or run id"
@@ -217,6 +251,12 @@ export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void
                       {r.tags.length > 0 && <><dt className="text-fg-faint">Tags</dt><dd className="text-fg-muted">{r.tags.join(', ')}</dd></>}
                       <dt className="text-fg-faint">Run id</dt><dd className="truncate font-mono text-fg-faint">{r.run_id}</dd>
                     </dl>
+                    <button className="btn mt-3 h-7 px-2 text-[12px]" disabled={!!exporting}
+                      onClick={() => exportRuns(r.run_id, [r], `mythicbench-${r.run_id}`)}
+                      title="Download this run as analysis files: an overview, CSVs, every model call, and one story per group">
+                      <Download size={14} />
+                      {exporting?.what === r.run_id ? `Exporting ${exporting.done}/${exporting.total}` : 'Export this run'}
+                    </button>
                   </div>
                 )}
               </div>

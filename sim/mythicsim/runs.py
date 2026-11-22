@@ -206,7 +206,8 @@ def _publish(runs_dir: Path, out_dir: Path, only: list[str] | None) -> int:
                 dst.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(src, dst)
         # Keep sub-folders (episodes/E/pull-K.json) so files never collide.
-        items = [{**it, "file": f"{rid}/{it['file']}"} for it in m["items"] if (dest / it["file"]).exists()]
+        items = [{**it, "file": f"{rid}/{it['file']}", **_pull_stats(runs_dir / rid / it["file"])}
+                 for it in m["items"] if (dest / it["file"]).exists()]
         if not items:
             continue
         s = dict(m.get("summary") or {})
@@ -227,6 +228,16 @@ def _publish(runs_dir: Path, out_dir: Path, only: list[str] | None) -> int:
     if old.exists():
         old.unlink()
     return len(runs)
+
+
+def _pull_stats(replay: Path) -> dict:
+    """A pull's cost, call counts and reply problems, for the viewer's analysis export."""
+    from .campaign import STAT_KEYS
+    p = replay.with_name(replay.stem + ".stats.json")
+    if not p.exists():
+        return {}
+    st = json.loads(p.read_text())
+    return {"usd": st.get("usd"), "stats": {k: st[k] for k in STAT_KEYS if k in st}}
 
 
 def estimate_cost(m: dict, run_dir: Path) -> dict:

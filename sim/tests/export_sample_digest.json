@@ -1,0 +1,21 @@
+{
+ "README.md": "68b8358888c68db8e6ad69cfcccf6b5a559ce7a8ea061067ad627a23bd6fa456",
+ "between_pulls.jsonl": "7e275c2ebd267501cea69e80700d34942a420506d2e476b378b522a1e52f014d",
+ "calls.jsonl": "04c9594e02f083e355bd0e419dca56b0185c5fed723da41f394eaf1cf340a0e5",
+ "damage_taken.csv": "012884275b1ecc8832ef1909a667b40fd9ac5312eb140cc65a59d2112ce89fa9",
+ "deaths.csv": "28c75901a31b2373eb71c873a52fb6f7e5c7e435c0a3a2a259afb8b528c382db",
+ "groups.csv": "89d5d9e80060a22ead222024899a83c4b7812adfa7813685f4b359a43b3e29ad",
+ "groups/basic@medium_normal/ranked-g0.md": "5117b60c3af336e7fd0deeaab5df0e7965be4cfef6ee235085f63576970915c6",
+ "groups/basic@medium_normal/ranked-g1.md": "a2072d37d87dee063f7df19efb49e5a243e1ef2471cd328e3b3ad44df29b6175",
+ "groups/basic@medium_plus10/control-off-g0.md": "046521663904071033f86a3b7890a0cf71a7840b799d3d920c5678b903282387",
+ "groups/basic@medium_plus10/control-off-g1.md": "a7a769edfba5ca8f235aeeeae317b5c5ea22f54aa2bba44844244e8d0dcb5c39",
+ "groups/basic@medium_plus10/ranked-g0.md": "523eb4bea60dc8aa60c9bac34769632f3a562d3eb51cf0bc569d8a8b8a9dd450",
+ "groups/basic@medium_plus10/ranked-g1.md": "7179b79f77196ab8a0e733c079b5e7028d6d56cbfa586b2936efbf8861f98c60",
+ "groups/commander_normal/baseline-g0.md": "6efe10a6896f5ec0725c5882a7ffd5e92442c5a2e1543cb001478981e6403daa",
+ "groups/commander_normal/baseline-g1.md": "9269d63ace2b6d6a9baaa82340ce61d90899edbdbbacf22d38096246ada70f44",
+ "groups/commander_plus10/baseline-g0.md": "d2cc194b6af0d7e4311321a572c0ffc0a54590cbc67b35adc6a4fae39c5d3c91",
+ "groups/commander_plus10/baseline-g1.md": "bbe8689ac89d55c7ede63e4c6a8fb4b60588ef747cd6f5d5497179c890b2c0c4",
+ "mechanics.csv": "caaf33fab5b3b8c8c58b35ef9f665b046f9000198aa401f14d2921096787aa3d",
+ "overview.md": "71ad5f6a64a37fc8277d8d0d775b39cc19bd81eb43262cb23508ef3c33cc5405",
+ "pulls.csv": "dc354001347fcf7d6bc04afc2afb27b9593b033d78ce0731e5628ed797b92a7d"
+}

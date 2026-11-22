@@ -134,6 +134,18 @@ def _sort_key(r: dict) -> tuple:
 # One pull
 # ---------------------------------------------------------------------------
 
+def _js(v):
+    """Numbers written the way JavaScript writes them (27, not 27.0), so this
+    export and the website's (web/src/site/exportRuns.ts) give identical files."""
+    if isinstance(v, float) and v.is_integer():
+        return int(v)
+    if isinstance(v, dict):
+        return {k: _js(x) for k, x in v.items()}
+    if isinstance(v, list):
+        return [_js(x) for x in v]
+    return v
+
+
 def _s(ms) -> float | None:
     return None if ms is None else round(ms / 1000, 1)
 
@@ -330,7 +342,7 @@ class Pull:
             elif ty == "death" and u in self.players:
                 lines.append((t, f"DEATH {self.name(u)} ({self.ability(e.get('ability'))})"))
             elif ty == "revive":
-                lines.append((t, f"{self.name(u)} revived (+{_s(e.get('penalty_ms', 0))} s on the timer)"))
+                lines.append((t, f"{self.name(u)} revived (+{_js(_s(e.get('penalty_ms', 0)))} s on the timer)"))
             elif ty == "spawn" and isinstance(u, dict) and u.get("kind") == "add":
                 lines.append((t, f"add rises: {u.get('name')}"))
             elif ty == "encounter_end":
@@ -369,7 +381,7 @@ def _csv(rows: list[dict], cols: list[str]) -> str:
     w = csv.DictWriter(buf, fieldnames=cols, extrasaction="ignore", lineterminator="\n")
     w.writeheader()
     for r in rows:
-        w.writerow({k: ("" if r.get(k) is None else r[k]) for k in cols})
+        w.writerow({k: ("" if r.get(k) is None else _js(r[k])) for k in cols})
     return buf.getvalue()
 
 
@@ -378,12 +390,12 @@ def _group_story(pulls: list[Pull], group_row: dict) -> str:
     head = (f"# {r['model']}" + (f" @ {r['effort']}" if r.get("effort") else "") + f", {r['tier']}, "
             f"{r['role']} group {r['group']}" + ("" if r["memory"] else " (memory off)"))
     out = [head, "",
-           f"Group score {group_row['group_score']}; pull scores {group_row['scores']}; "
+           f"Group score {_js(group_row['group_score'])}; pull scores {group_row['scores']}; "
            + (f"cleared on pull {group_row['cleared_on']}." if group_row["cleared_on"] else "no clear."), ""]
     for p in pulls:
         m = p.m
-        out += [f"## Pull {p.ref['pull']}: {m.get('outcome')} at {m.get('duration_s')} s, score {m.get('score')}, "
-                f"{p.name(p.boss)} at {m.get('boss_hp_pct_remaining')}% (seed {p.meta.get('seed')})", "",
+        out += [f"## Pull {p.ref['pull']}: {m.get('outcome')} at {_js(m.get('duration_s'))} s, score {_js(m.get('score'))}, "
+                f"{p.name(p.boss)} at {_js(m.get('boss_hp_pct_remaining'))}% (seed {p.meta.get('seed')})", "",
                 "### The fight", "", "```", *p.timeline(), "```", ""]
         b = p.between()
         if not b:
@@ -393,10 +405,11 @@ def _group_story(pulls: list[Pull], group_row: dict) -> str:
             out += [f"- **{p.name(u)}**: {n}" for u, n in b["notes_before"].items() if n] + [""]
         if b["debrief"]:
             out += ["### The debrief the party read after it", "", "```", b["debrief"], "```", ""]
-        if b["talk"]:
+        said = [x for x in b["talk"] if x.get("message")]
+        if said:
             out += ["### The talk", ""]
             out += [f"- r{x.get('round')} **{p.name(x['agent'])}**{' (ready)' if x.get('ready') else ''}: "
-                    f"{x.get('message', '')}" for x in b["talk"] if x.get("message")] + [""]
+                    f"{x['message']}" for x in said] + [""]
     return "\n".join(out) + "\n"
 
 
@@ -405,8 +418,8 @@ def _by_pull_table(rows: list[dict], max_pulls: int) -> list[str]:
     out = ["| pull | groups | score | deaths | boss kicks | trash kicks | pyres soaked | mark hit allies | "
            "avoidable dmg |", "|---|---|---|---|---|---|---|---|---|"]
 
-    def pct(a, b):
-        return f"{a}/{b} ({a / b:.0%})" if b else "-"
+    def pct(a, b):  # the nearest whole percent, a half rounding up (integer math, the same in the browser)
+        return f"{a}/{b} ({(200 * a + b) // (2 * b)}%)" if b else "-"
 
     for k in range(1, max_pulls + 1):
         rs = [r for r in rows if r["pull"] == k]
@@ -468,8 +481,9 @@ def _overview(source: str, pull_rows: list[dict], group_rows: list[dict], death_
 
 README = """# MythicBench analysis export
 
-Made by `python -m mythicsim export`. Every number here is computed from the
-replays; nothing is new data. Start with `overview.md`.
+Made by `python -m mythicsim export` or the website's Export button (the same
+files). Every number here is computed from the replays; nothing is new data.
+Start with `overview.md`.
 
 | file | one row per |
 | --- | --- |
@@ -542,15 +556,16 @@ def export(refs: list[dict], max_pulls: int, out: Path, source: str, prompts: bo
         name = f"groups/{_cell(r)}/{r['role']}{'' if r['memory'] else '-off'}{local}-g{r['group']}"
         files[name + ".md"] = _group_story(ps, g)
     files["README.md"] = README.format(max_pulls=max_pulls, prompts=" (and the full prompt)" if prompts else
-                                       " (prompts left out; `--prompts` adds them)")
+                                       " (prompts left out; the command line's `--prompts` adds them)")
     files["overview.md"] = _overview(source, pull_rows, group_rows, death_rows, max_pulls)
     files["pulls.csv"] = _csv(pull_rows, PULL_COLS)
     files["groups.csv"] = _csv(group_rows, GROUP_COLS)
     files["deaths.csv"] = _csv(death_rows, DEATH_COLS)
     files["mechanics.csv"] = _csv(mech_rows, MECH_COLS)
     files["damage_taken.csv"] = _csv(dmg_rows, DMG_COLS)
-    files["calls.jsonl"] = "".join(json.dumps(c, ensure_ascii=False) + "\n" for c in calls)
-    files["between_pulls.jsonl"] = "".join(json.dumps(b, ensure_ascii=False) + "\n" for b in between)
+    files["calls.jsonl"] = "".join(json.dumps(_js(c), ensure_ascii=False, separators=(",", ":")) + "\n" for c in calls)
+    files["between_pulls.jsonl"] = "".join(json.dumps(_js(b), ensure_ascii=False, separators=(",", ":")) + "\n"
+                                           for b in between)
     if out.exists():
         import shutil
         shutil.rmtree(out)  # a fresh export: no stale group files from an earlier one

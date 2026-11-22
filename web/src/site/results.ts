@@ -12,6 +12,8 @@ export interface PullResult {
   /** path inside the dataset, e.g. replays/<model>/<tier>/ep0-pull1.json.gz */
   file: string
   usd: number | null
+  /** the pull's call counts, tokens and reply problems */
+  stats?: Record<string, unknown>
 }
 
 export interface EpisodeResult { episode: number; run_id: string; pulls: PullResult[] }

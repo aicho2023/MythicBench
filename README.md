@@ -232,6 +232,12 @@ python -m mythicsim export --tag soak-check                 # local runs (or --r
 It writes to `runs/analysis/<name>/`. Add `--prompts` to include every call's
 full prompt, which makes the export much bigger.
 
+The website does the same in the browser and downloads a zip. In the run list,
+**Export this run** exports one run, and **Export N runs** exports every run
+the search and filters show. The files are byte-identical to the command's,
+and both test suites check this against one shared fingerprint
+(`sim/tests/export_sample_digest.json`).
+
 ## Simulator commands
 
 ```bash

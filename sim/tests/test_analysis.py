@@ -141,3 +141,21 @@ def test_deaths_list_the_last_five_seconds():
     assert d["unit"] == "ivy" and d["ability"] == "desecrate" and d["t_s"] == 9.0
     assert d["last_5s"] == "bone_pyre 30000; desecrate 8000"
     assert p.row()["first_death"] == "ivy: desecrate"
+
+
+DIGEST = Path(__file__).with_name("export_sample_digest.json")
+
+
+def test_matches_the_websites_export(tmp_path):
+    """The website builds the same files in the browser (web/src/site/exportRuns.ts).
+    Both test suites check the sample's export against one shared fingerprint
+    (UPDATE_EXPORT_DIGEST=1 rewrites it after the sample dataset is rebuilt)."""
+    import hashlib
+    import os
+    refs, max_pulls = A.from_results(SAMPLE)
+    A.export(refs, max_pulls, tmp_path / "out", "sample")
+    got = {p.relative_to(tmp_path / "out").as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+           for p in sorted((tmp_path / "out").rglob("*")) if p.is_file()}
+    if os.environ.get("UPDATE_EXPORT_DIGEST"):
+        DIGEST.write_text(json.dumps(got, indent=1, sort_keys=True) + "\n")
+    assert got == json.loads(DIGEST.read_text())
