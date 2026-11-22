@@ -147,6 +147,36 @@ class BudgetExceeded(ClientError):
         super().__init__(msg, fatal=True)
 
 
+class ProjectGuard:
+    """The project cap, enforced live across every run in this process.
+
+    Each run checks the cap when it starts, but runs played in parallel (a
+    campaign's cells) would each see the same money left. This adds up what
+    all metered runs in the process have spent since the guard was armed."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self.cap: float | None = None
+        self.base = 0.0
+        self.spent = 0.0
+
+    def arm(self, cap: float, already_spent: float) -> None:
+        with self._lock:
+            if self.cap is None:
+                self.cap, self.base, self.spent = cap, already_spent, 0.0
+
+    def check(self) -> None:
+        if self.cap is not None and self.base + self.spent >= self.cap:
+            raise BudgetExceeded(f"project budget of ${self.cap:.2f} reached (spent ${self.base + self.spent:.2f})")
+
+    def add(self, usd: float) -> None:
+        with self._lock:
+            self.spent += usd
+
+
+PROJECT = ProjectGuard()
+
+
 @dataclass
 class CostMeter:
     """Wraps a client and adds up what its calls cost.
@@ -175,8 +205,12 @@ class CostMeter:
         # is reached, so a run can overshoot by about one call per worker.
         if self.limit_usd is not None and self.usd >= self.limit_usd:
             raise BudgetExceeded(f"budget of ${self.limit_usd:.2f} reached (spent ${self.usd:.2f})")
+        if self.ledger is not None:
+            PROJECT.check()
         reply = self.inner.complete(system, user, tag=tag)
         cost = self.price.reply_cost(reply)
+        if self.ledger is not None:
+            PROJECT.add(cost)
         with self._lock:
             self.usd += cost
             self.calls += 1

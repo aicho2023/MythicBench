@@ -256,3 +256,14 @@ def test_tiers_have_their_own_timers():
     for t in ("normal", "plus10"):
         rep = simulate("expert", 2, t, "dungeon")
         assert rep["meta"]["time_limit_ms"] == C.TIERS[t].limit_ms
+
+
+def test_game_guide_lists_every_ability_and_matches_the_committed_file():
+    from mythicsim.guide import game_guide
+    g = game_guide()
+    for m, member in zip(C.PARTY, g["party"]):
+        assert member["id"] == m.id
+        assert [a["id"] for a in member["abilities"]] == list(C.CLASSES[m.cls].abilities)
+    assert {t["id"] for t in g["tiers"]} == set(C.TIERS)
+    committed = json.loads((Path(__file__).parents[2] / "web" / "public" / "replays" / "game.json").read_text())
+    assert committed == json.loads(json.dumps(g)), "run: python -m mythicsim generate --out ../web/public/replays"

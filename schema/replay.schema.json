@@ -627,6 +627,25 @@
             "hp",
             "penalty_ms"
           ]
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "chat"
+            },
+            "unit": {
+              "type": "string"
+            },
+            "text": {
+              "type": "string",
+              "maxLength": 255
+            }
+          },
+          "required": [
+            "unit",
+            "text"
+          ],
+          "description": "a party-chat message from a character's agent (model runs)"
         }
       ]
     }

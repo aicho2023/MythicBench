@@ -5,19 +5,22 @@ import { usePlayback } from '../replay/store'
 import { AssetBoundary } from '../scene/ErrorBoundary'
 import { Scene } from '../scene/Scene'
 import { TEASER_REPLAY, TEASER_START_S } from './config'
+import { fetchResults, topPullId } from './results'
 
 export default function Teaser() {
   const box = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const p = usePlayback.getState()
-    p.ensureIndex().then(() => p.load(TEASER_REPLAY, { quiet: true, startMs: TEASER_START_S * 1000 }))
+    // The top model's best pull once there are results; the configured showcase before that.
+    Promise.all([p.ensureIndex(), fetchResults().then(topPullId, () => null)])
+      .then(([, top]) => p.load(top ?? TEASER_REPLAY, { quiet: true, startMs: top ? 0 : TEASER_START_S * 1000 }))
     let visible = true
     const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; usePlayback.getState().setPlaying(visible) })
     if (box.current) io.observe(box.current)
     // Loop: at the end of the replay, go back to the start point.
     const off = usePlayback.subscribe((s) => {
       if (visible && s.engine && !s.playing && s.t >= s.engine.duration) {
-        s.seek(TEASER_START_S * 1000)
+        s.seek(s.currentId === TEASER_REPLAY ? TEASER_START_S * 1000 : 0)
         s.setPlaying(true)
       }
     })

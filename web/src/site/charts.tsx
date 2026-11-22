@@ -104,6 +104,10 @@ export function LearningCurves({ results, tier }: { results: Results; tier: stri
       const c = row.tiers[tier]?.curve_mean
       if (c?.length) out.push({ key: row.model, label: modelName(row.model), color: modelColor(results, row.model), values: c })
     }
+    for (const b of results.baselines ?? []) {
+      const c = b.tiers[tier]?.curve_mean
+      if (c?.length) out.push({ key: b.model, label: b.name, color: BOT, values: c, dashed: true })
+    }
     for (const c of results.controls.filter((c) => c.tier === tier && c.curve_mean?.length)) {
       out.push({ key: `${c.model}:off`, label: `${modelName(c.model)}, memory off`, color: modelColor(results, c.model), values: c.curve_mean!, dashed: true })
     }

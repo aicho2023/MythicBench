@@ -5,6 +5,7 @@ import { SCHOOL_COLORS } from '../content/display'
 import type { ReplayState } from '../replay/engine'
 import { posAt } from '../replay/engine'
 import { frameState, usePlayback } from '../replay/store'
+import { muzzleOffset } from './anchors'
 import { softCircleTexture, swirlTexture } from './materials'
 
 export function Effects() {
@@ -124,7 +125,10 @@ function Projectiles() {
         if (!src || !tgt) continue
         const a = posAt(src, e.t)
         const b = posAt(tgt, f.t)
-        tmpA.set(a[0], chestHeight(f.s, e.source), a[1])
+        // Leave from the weapon (bow, staff tip), not the chest.
+        const mz = muzzleOffset(e.source, posAt(src, f.t))
+        if (mz) tmpA.set(a[0] + mz[0], mz[1], a[1] + mz[2])
+        else tmpA.set(a[0], chestHeight(f.s, e.source), a[1])
         tmpB.set(b[0], chestHeight(f.s, e.target), b[1])
         const g = refs.current[n]
         if (!g) continue
@@ -350,7 +354,9 @@ function HealBeams() {
         if (!src || !tgt || !g || src === tgt) continue
         const p = posAt(src, f.t)
         const q = posAt(tgt, f.t)
-        a.set(p[0], 1.15, p[1])
+        const mz = muzzleOffset(bm.from, p)
+        if (mz) a.set(p[0] + mz[0], mz[1], p[1] + mz[2])
+        else a.set(p[0], 1.15, p[1])
         b.set(q[0], 0.95, q[1])
         dir.subVectors(b, a)
         const len = dir.length()

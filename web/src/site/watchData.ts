@@ -35,7 +35,7 @@ function cellRun(r: Results, model: string, provider: string, effort: string | n
 /** Every model x tier cell (and memory-off control) as a run, leaderboard order. */
 export function resultsCatalogRuns(r: Results): CatalogRun[] {
   const runs: CatalogRun[] = []
-  for (const row of r.leaderboard) {
+  for (const row of [...r.leaderboard, ...(r.baselines ?? [])]) {
     for (const [tier, cell] of Object.entries(row.tiers)) runs.push(cellRun(r, row.model, row.provider, row.effort, tier, true, cell))
     for (const c of r.controls.filter((c) => c.model === row.model)) runs.push(cellRun(r, row.model, row.provider, row.effort, c.tier, false, c))
   }

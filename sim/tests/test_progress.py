@@ -224,3 +224,11 @@ def test_debrief_covers_the_dungeon():
     rep = json.loads((REPLAYS / "competent-run.json").read_text())
     text = debrief_text(rep)
     assert "DUNGEON:" in text and "Chapel pack" in text and "Grave Volley" in text
+
+
+def test_debrief_says_when_a_kill_was_over_time():
+    rep = json.loads((REPLAYS / "expert-clear.json").read_text())
+    rep["meta"]["time_limit_ms"] = rep["meta"]["duration_ms"] - 1000
+    assert "does not count as a clear" in debrief_text(rep)
+    rep["meta"]["time_limit_ms"] = rep["meta"]["duration_ms"] + 60_000
+    assert "does not count" not in debrief_text(rep)

@@ -18,6 +18,7 @@ PROTO = {
     "models": [{"provider": "mock", "id": "basic", "name": "Mock"}],
     "controls": [{"model": "basic", "memory": False, "tiers": ["plus10"]}],
 }
+WITH_BASELINE = {**PROTO, "baselines": [{"provider": "scripted", "id": "commander", "name": "Scripted commander"}]}
 
 
 @pytest.fixture
@@ -75,8 +76,8 @@ def test_results_are_complete_and_rebuild_identically(sandbox):
     assert set(row["tiers"]) == {"normal", "plus10"}
     cell = row["tiers"]["plus10"]
     assert cell["episodes"] == 2 and 2 <= cell["pulls"] <= 4 and len(cell["curve_mean"]) == 2
-    assert row["mythicbench_score"] == round((row["tiers"]["normal"]["progression_score"]
-                                              + cell["progression_score"]) / 2, 1)
+    assert row["mythicbench_score"] == cell["progression_score"]  # the headline is +10
+    assert row["mythicbench_score_ci95"] == cell["progression_score_ci95"]
     assert a["controls"] and a["controls"][0]["memory"] is False
     replays = list((tmp / "res-a" / "replays").rglob("*.json.gz"))
     assert len(replays) == sum(c["pulls"] for c in row["tiers"].values()) + a["controls"][0]["pulls"]
@@ -130,3 +131,34 @@ def test_results_ship_the_recordings(sandbox):
     K.run_campaign(proto)
     K.build_results(proto, tmp / "res", tmp / "runs", with_bots=False)
     assert list((tmp / "res" / "recordings").glob("*.jsonl.gz"))
+
+
+def test_scripted_commander_is_a_baseline_not_a_ranked_model(sandbox):
+    tmp, proto = sandbox
+    proto = {**proto, "episodes": 1, "tiers": ["plus10"], "controls": [],
+             "baselines": [{"provider": "scripted", "id": "commander", "name": "Scripted commander"}]}
+    K.run_campaign(proto)
+    res = K.build_results(proto, tmp / "res", tmp / "runs", with_bots=False)
+    assert [r["model"] for r in res["leaderboard"]] == ["basic"] and res["leaderboard"][0]["rank"] == 1
+    (base,) = res["baselines"]
+    assert base["model"] == "commander" and base["rank"] is None and base["baseline"]
+    assert base["mythicbench_score"] > res["leaderboard"][0]["mythicbench_score"]  # rules beat the mock
+
+
+def test_cells_in_parallel_give_the_same_results(sandbox):
+    tmp, proto = sandbox
+    K.run_campaign(proto, cells=3, workers=2)
+    for c in K.combos(proto):
+        assert set(K.finished_episodes(c.key(proto), tmp / "runs")) == {0, 1}
+    a = K.build_results(proto, tmp / "res", tmp / "runs", with_bots=False)
+    assert a["leaderboard"][0]["complete"]
+
+
+def test_project_cap_holds_across_parallel_runs(monkeypatch):
+    g = spend.ProjectGuard()
+    g.arm(cap=1.0, already_spent=0.9)
+    g.arm(cap=99.0, already_spent=0.0)  # a second run arming again doesn't reset it
+    g.check()
+    g.add(0.1)
+    with pytest.raises(spend.BudgetExceeded):
+        g.check()

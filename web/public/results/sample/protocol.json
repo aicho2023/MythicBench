@@ -29,5 +29,13 @@
     "plus10"
    ]
   }
+ ],
+ "headline_tier": "plus10",
+ "baselines": [
+  {
+   "provider": "scripted",
+   "id": "commander",
+   "name": "Scripted commander"
+  }
  ]
 }
