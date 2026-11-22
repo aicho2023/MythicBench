@@ -391,3 +391,23 @@ def test_attacks_go_on_enemies_and_heals_on_allies():
     enc = Encounter(1, {}, "x")
     assert not enc.begin_cast(enc.units["lumi"], "mending_light", "mortisar")  # the engine refuses it too
     assert not enc.begin_cast(enc.units["grokka"], "savage_hew", "grokka")
+
+
+def test_thinking_out_loud_before_the_json_is_fine():
+    text = 'I am at {x: 1, z: 2}, out of range {sort of}. So: {"move_to": [0, 51.5], "priority": [["savage_hew", "mortisar"]]}'
+    p = parse_reply(text, "grokka", IDS)
+    assert p.ok and p.orders["grokka"].move_to == (0.0, 51.5) and not p.problems
+
+
+def test_the_last_orders_object_is_the_answer():
+    text = 'Draft: {"priority": [["ravage", "mortisar"]]} Final: {"priority": [["savage_hew", "mortisar"]]}'
+    assert parse_reply(text, "grokka", IDS).orders["grokka"].priority == [("savage_hew", "mortisar")]
+
+
+def test_an_empty_object_means_no_change():
+    p = parse_reply("{}", "grokka", IDS)
+    assert p.ok and p.orders["grokka"].priority is None and p.orders["grokka"].move_to is None
+
+
+def test_trailing_garbage_without_orders_is_still_unusable():
+    assert not parse_reply('thinking... <invoke name="x"></invoke> Error: unknown tool', "grokka", IDS).ok

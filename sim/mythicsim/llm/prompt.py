@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import json
 import math
-import re
 from dataclasses import dataclass, field
 
 from .. import content as C
@@ -341,26 +340,54 @@ class Parsed:
     ok: bool  # False when the reply was not usable JSON at all
 
 
+ORDER_KEYS = ("move_to", "priority", "say")
+
+
+def json_objects(text: str) -> list[dict]:
+    """Every complete JSON object in a reply, in order. A model that thinks out
+    loud before answering (braces in its prose and all) still gets its final,
+    well-formed answer read; nothing malformed is ever repaired or guessed."""
+    dec = json.JSONDecoder()
+    out, i = [], text.find("{")
+    while i != -1:
+        try:
+            obj, end = dec.raw_decode(text, i)
+        except json.JSONDecodeError:
+            i = text.find("{", i + 1)
+            continue
+        if isinstance(obj, dict):
+            out.append(obj)
+        i = text.find("{", end)
+    return out
+
+
+def _orders_in(data: dict, me: str) -> dict | None:
+    if isinstance(data.get(me), dict):  # {"grokka": {...}}: unambiguous, accept it
+        return data[me]
+    if isinstance(data.get("orders"), dict):
+        o = data["orders"]
+        return o[me] if isinstance(o.get(me), dict) else o
+    return data
+
+
 def parse_reply(text: str, me: str, unit_ids: set[str], gone: set[str] = frozenset()) -> Parsed:
     """Read one agent's JSON orders for its own character. Invalid pieces are
     dropped and reported, never guessed. ``priority`` absent = keep the old
     one (``Order.priority`` is then None). Targets in ``gone`` (enemies that
     have died) are dropped quietly: an order still naming a dead enemy is
     harmless, not a mistake."""
-    m = re.search(r"\{.*\}", text, re.S)
-    if not m:
-        return Parsed({}, ["no JSON object in reply"], False)
-    try:
-        data = json.loads(m.group(0))
-    except json.JSONDecodeError as err:
-        return Parsed({}, [f"invalid JSON: {err.msg}"], False)
-    if not isinstance(data, dict):
-        return Parsed({}, ["reply is not a JSON object"], False)
-    if isinstance(data.get(me), dict):  # {"grokka": {...}}: unambiguous, accept it
-        data = data[me]
-    elif isinstance(data.get("orders"), dict):
-        data = data["orders"].get(me, data["orders"]) if isinstance(data["orders"].get(me), dict) else data["orders"]
-    if not any(k in data for k in ("move_to", "priority", "say")):
+    objs = json_objects(text)
+    if not objs:
+        return Parsed({}, ["no complete JSON object in reply"], False)
+    # The last object that carries orders is the answer. An empty object {}
+    # means "no change" (every field left out keeps its value, as the rules
+    # say); an object of some other shape is a wrong reply.
+    cands = [d for d in (_orders_in(o, me) for o in objs) if any(k in d for k in ORDER_KEYS)]
+    if cands:
+        data = cands[-1]
+    elif any(o == {} for o in objs):
+        data = {}
+    else:
         return Parsed({}, ["reply has none of move_to, priority, say"], False)
     member = next(x for x in C.PARTY if x.id == me)
     problems: list[str] = []

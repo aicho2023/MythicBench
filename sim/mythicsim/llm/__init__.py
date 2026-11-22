@@ -35,7 +35,9 @@ Pieces:
 #          instructions and reply format; strict reply checks (finite
 #          coordinates, friend/foe targets, "ready" must be true); notes
 #          marked off as notes; party chat capped at 255 characters
-HARNESS_VERSION = "0.10.0"
+#   0.10.1 replies: the last complete orders object is read (thinking out loud
+#          first is fine); an empty {} means "no change"
+HARNESS_VERSION = "0.10.1"
 
 
 def prompt_hash(knowledge: str = "full", tier: str = "plus10", mode: str = "boss") -> str:
