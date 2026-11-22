@@ -62,7 +62,7 @@ describe('timeline markers', () => {
   const load = (f: string): Replay => JSON.parse(readFileSync(join(dir, f), 'utf8'))
 
   it('mark each stand in a pool once, at the first hit', () => {
-    const replay = load('sloppy-wipe.json')
+    const replay = load('competent-run.json')
     const pools = new ReplayEngine(replay).markers().filter((m) => m.kind === 'pool')
     const hits = replay.events.filter((e) => e.type === 'damage' && ['desecrate', 'restless_grave'].includes(e.ability)
       && replay.units.find((u) => u.id === e.target)?.kind === 'player')

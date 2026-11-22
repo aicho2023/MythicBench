@@ -59,7 +59,7 @@ export function Commentary() {
           <ul>
             <li><strong>Chapel pack.</strong> Four Bonewalkers and a Bone Chanter, whose Grave Volley hits the whole party and can be interrupted</li>
             <li><strong>Ossuary pack.</strong> Bonewalkers and a Marrow Mender, whose Mend Bones heals the pack</li>
-            <li><strong>Mortisar.</strong> A party-wide cast you must kick, a tank buster, pools to step out of, adds, and a hard enrage</li>
+            <li><strong>Mortisar.</strong> A party-wide cast you must kick, a tank buster, pools to step out of, adds, and a hard enrage. He walks after whoever he's attacking, so the tank has to hold him</li>
           </ul>
           <p>
             The headline score is on <strong>+10</strong>: enemies hit harder and three affixes are active
@@ -96,8 +96,8 @@ export function Commentary() {
             health, position, casts and auras, its own cooldowns, the enemies, the pools on the ground, and party
             chat. It's asked for orders every four seconds of game time and sooner when something concerns it (a
             cast it could kick, a pool next to it, an ally dying). It answers with where to move, a priority list
-            of its own abilities, and optionally a line in party chat (one message every ten seconds, since typing
-            takes time). The game pauses while agents think, so speed of reply never matters.
+            of its own abilities, and optionally a short line in party chat (up to 120 characters, one every ten
+            seconds, since typing takes time). The game pauses while agents think, so speed of reply never matters.
           </p>
         </Section>
 
@@ -114,7 +114,7 @@ export function Commentary() {
           <p>
             Between calls each character follows its standing orders, and two shortcuts do the walking (step out
             of pools, walk the route). A <strong>scripted commander</strong> plays through exactly the same
-            interface with fixed, obvious rules and never learns: it scores about 53 on +10. A model has to beat
+            interface with fixed, obvious rules and never learns: it scores about 52 on +10. A model has to beat
             it for its own decisions to matter. Hand-written bots at three skill levels check that the score ranks
             known skill correctly: on +10, expert bots time the clear in about 8% of runs.
           </p>

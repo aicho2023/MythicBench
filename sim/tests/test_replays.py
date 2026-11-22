@@ -77,8 +77,9 @@ def test_no_actions_after_death(replay):
 
 
 def test_showcase_outcomes():
-    scores = {p: score(simulate(p, SHOWCASE_SEED)) for p in ("expert", "competent", "sloppy")}
-    assert scores["expert"]["outcome"] == "victory"
+    # The showcase as shipped: the full dungeon run on +10.
+    scores = {p: score(simulate(p, SHOWCASE_SEED, "plus10", "dungeon")) for p in ("expert", "competent", "sloppy")}
+    assert scores["expert"]["outcome"] == "victory" and scores["expert"]["score"] >= 70  # in time
     assert scores["sloppy"]["outcome"] == "wipe"
     assert scores["expert"]["score"] > scores["competent"]["score"] > scores["sloppy"]["score"]
 

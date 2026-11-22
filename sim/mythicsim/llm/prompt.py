@@ -17,9 +17,9 @@ from .. import content as C
 from ..engine import dist
 
 # Party chat lines shown in the state (the most recent), and the longest
-# message: 255 characters, WoW's chat limit.
+# message: one short line, as typed mid-fight (it shows as a bubble overhead).
 CHAT_SHOWN = 12
-CHAT_MAX_CHARS = 255
+CHAT_MAX_CHARS = 120
 # Typing takes time: one party-chat message per character every 10 s of game time.
 CHAT_COOLDOWN_MS = 10_000
 
@@ -29,7 +29,21 @@ COORD_LIMIT = 200.0
 PARTY_IDS = frozenset(m.id for m in C.PARTY)
 
 # Same hit test the engine uses for pools (centre within radius + half a body).
-POOL_HIT_PAD = 0.45 * 0.5
+POOL_HIT_PAD = C.PLAYER_RADIUS * 0.5
+
+def fit_chat(text: str) -> str:
+    """A chat message cut to CHAT_MAX_CHARS: at the last whole sentence that
+    fits, else the last whole word (never mid-word)."""
+    text = " ".join(text.split())
+    if len(text) <= CHAT_MAX_CHARS:
+        return text
+    cut = text[:CHAT_MAX_CHARS + 1]
+    end = max(cut.rfind(". "), cut.rfind("! "), cut.rfind("? "))
+    if end >= CHAT_MAX_CHARS // 2:
+        return cut[:end + 1]
+    space = cut.rfind(" ")
+    return cut[:space].rstrip(",;:-– ") if space > 0 else text[:CHAT_MAX_CHARS]
+
 
 KIND_TEXT = {
     "damage": "single-target damage", "aoe_damage": "damages every enemy within {radius:g} m of you",
@@ -193,7 +207,7 @@ def system_prompt(knowledge: str = "full", notes: str | None = None, pull: int |
 {_tier_section(tier)}
 
 ## Arena
-Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) in metres. Mortisar stands still at ({C.BOSS_POS[0]:g}, {C.BOSS_POS[1]:g}) with a body radius of {b.radius:g} m. Characters move at 5 m/s and can't stand inside one another. Moving cancels a cast in progress, and spells with a cast time cannot be started while moving. Melee range is {C.MELEE_RANGE:g} m from the target's edge. Global cooldown (GCD): {C.GCD_MS / 1000:g}s after most abilities.
+Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) in metres. Mortisar starts on his throne at ({C.BOSS_POS[0]:g}, {C.BOSS_POS[1]:g}), with a body radius of {b.radius:g} m. Once pulled, he takes {b.rise_ms / 1000:g} s to rise from it; after that he walks after whoever he is attacking ({b.speed:g} m/s) whenever they're out of his melee reach, but never leaves this room. Characters move at 5 m/s, have a body radius of {C.PLAYER_RADIUS:g} m, and can't stand inside one another. Moving cancels a cast in progress, and spells with a cast time cannot be started while moving. Melee range is {C.MELEE_RANGE:g} m from the target's edge. Global cooldown (GCD): {C.GCD_MS / 1000:g}s after most abilities.
 
 ## The party
 {chr(10).join(party)}
@@ -204,7 +218,7 @@ Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) i
 You are asked for {member.name}'s orders every 4 seconds of game time, and immediately when something that concerns you happens. The game is paused while everyone thinks; the other players are asked at the same moments you are. {member.name} keeps following your latest orders until you change them:
   - "move_to": [x, z] walks there once, or "safe" steps to the nearest spot clear of all pools, reachable without walking through another pool, from which your first priority target is still in range when possible (the scripted bots' movement logic){next_move}. Omit or null to stay put. A move is carried out each time you send it.
   - "priority": an ordered list of [ability_id, target_id]. Every tick, {member.name} uses the FIRST entry that is ready (off cooldown, in range, GCD free, not casting or moving for cast-time spells). Off-GCD abilities in the list fire even during the GCD. Interrupts only fire while their target is casting something interruptible (reacting {reaction} s after the cast starts), so they can stay in the list; if someone else interrupts first, yours sees nothing to stop and stays ready. Put a reliable filler ability last so you never idle. Leave "priority" out to keep your current one.
-  - "say": a message in party chat (at most {CHAT_MAX_CHARS} characters, as in the game), which every player sees from then on. Typing takes time: you can send one message every {CHAT_COOLDOWN_MS // 1000} s, and one sent sooner isn't delivered. Leave it out to say nothing.
+  - "say": one short line in party chat (at most {CHAT_MAX_CHARS} characters; anything longer is cut off), which every player sees from then on. Typing takes time: you can send one message every {CHAT_COOLDOWN_MS // 1000} s, and one sent sooner isn't delivered. Leave it out to say nothing.
 Ground effects ("pools") in the state are dangerous to stand in: "desecrate" pools come from Mortisar, "grave" pools from the Restless Graves affix. "safe" avoids both.
 Targets are unit ids from the state (e.g. "mortisar", "bonewalker_1", "lumi"). For self-buffs and party-wide abilities use your own id ("self" and "party" also work).
 You can only use {member.name}'s abilities: {', '.join(mine.abilities)}.
@@ -281,7 +295,7 @@ def render_state(obs: dict, me: str, gcd_ms: int, orders_age_s: float | None, kn
     if boss and dg and not dg["boss_engaged"]:
         boss = None  # described above as asleep
     if boss:
-        lines.append(f"BOSS mortisar {boss['hp_pct']:.1f}% HP, attacking {boss['target']}"
+        lines.append(f"BOSS mortisar {boss['hp_pct']:.1f}% HP at {_p(boss['pos'])}, attacking {boss['target']}"
                      f"{_cast(boss['casting'])}{_auras(boss['auras'])}.")
         if not blind:
             nxt = ", ".join(f"{k} in {v / 1000:.1f}s" for k, v in sorted(obs["boss_next_ms"].items(), key=lambda kv: kv[1]))
@@ -395,7 +409,7 @@ def parse_reply(text: str, me: str, unit_ids: set[str], gone: set[str] = frozens
         return Parsed({}, ["reply has none of move_to, priority, say"], False)
     member = next(x for x in C.PARTY if x.id == me)
     problems: list[str] = []
-    o = Order(say=str(data.get("say") or "").strip()[:CHAT_MAX_CHARS], priority=None)
+    o = Order(say=fit_chat(str(data.get("say") or "")), priority=None)
     mv = data.get("move_to")
     if isinstance(mv, dict) and set(mv) >= {"x", "z"}:
         mv = [mv["x"], mv["z"]]  # {"x": .., "z": ..} is unambiguous; accept it

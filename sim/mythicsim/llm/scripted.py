@@ -31,7 +31,7 @@ from .clients import Reply
 CASTERS = {d.name for d in C.TRASH.values() if not d.swing_ms}
 _LINE = re.compile(r"^\s+(\w+)(?: \(YOU\))? \((\w+)\) (\d+)% HP.*? at \((-?[\d.]+), (-?[\d.]+)\)")
 _ENEMY = re.compile(r"(\w+) \(([^)]+)\) (\d+)% HP at \((-?[\d.]+), (-?[\d.]+)\) attacking (\w+)")
-_BOSS = re.compile(r"^BOSS mortisar ([\d.]+)% HP, attacking (\w+)")
+_BOSS = re.compile(r"^BOSS mortisar ([\d.]+)% HP at \((-?[\d.]+), (-?[\d.]+)\), attacking (\w+)")
 
 
 def _party(state: str) -> dict[str, dict]:
@@ -56,7 +56,8 @@ def _enemies(state: str) -> list[dict]:
     for l in state.splitlines():
         b = _BOSS.match(l)
         if b:
-            out.append({"id": "mortisar", "name": "Mortisar", "hp": float(b.group(1)), "pos": C.BOSS_POS, "on": b.group(2)})
+            out.append({"id": "mortisar", "name": "Mortisar", "hp": float(b.group(1)),
+                        "pos": (float(b.group(2)), float(b.group(3))), "on": b.group(4)})
     return out
 
 
@@ -118,8 +119,8 @@ def orders(me: str, state: str) -> dict:
         if here and order["move_to"] is None and "Out of combat" not in state.splitlines()[0]:
             radius = C.BOSS.radius if target["id"] == "mortisar" else C.ADD.radius
             d = dist(here, target["pos"])
-            if d - radius - 0.45 > reach - 0.3:
-                stop = radius + 0.45 + min(reach, C.MELEE_RANGE) * 0.5
+            if d - radius - C.PLAYER_RADIUS > reach - 0.3:
+                stop = radius + C.PLAYER_RADIUS + min(reach, C.MELEE_RANGE) * 0.5
                 f = (d - stop) / d
                 order["move_to"] = [round(here[0] + (target["pos"][0] - here[0]) * f, 2),
                                     round(here[1] + (target["pos"][1] - here[1]) * f, 2)]

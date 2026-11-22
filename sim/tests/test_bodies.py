@@ -56,3 +56,25 @@ def test_one_order_one_move_event():
     settle(enc)
     moves = [e for e in enc.events if e["type"] == "move" and e["unit"] in {m.id for m in C.PARTY}]
     assert len(moves) == len(C.PARTY)
+
+
+def test_enemies_do_not_stand_inside_each_other_or_the_party():
+    """A boss fight's adds crowd the tank but keep their bodies apart."""
+    from mythicsim.policies import make_policies
+    enc = Encounter(8, make_policies("expert", 8), "test", "plus10")
+    enc.run(max_ms=150_000)
+    standing = [u for u in enc.units.values() if u.alive and u.move is None]
+    for a, b in combinations(standing, 2):
+        assert dist(a.pos, b.pos) >= a.radius + b.radius - 0.01, (a.id, b.id, a.pos, b.pos)
+
+
+def test_mortisar_walks_after_a_target_out_of_reach():
+    class Stand:
+        def act(self, obs):
+            return []
+    enc = Encounter(3, {m.id: Stand() for m in C.PARTY}, "test", "normal")
+    tank = enc.units["bramble"]
+    tank.pos = (0.0, 10.0)  # far out of his reach
+    settle(enc, 6000)
+    assert enc.edge_dist(enc.boss, tank) <= C.MELEE_RANGE
+    assert dist(enc.boss.pos, C.BOSS_POS) > 3.0

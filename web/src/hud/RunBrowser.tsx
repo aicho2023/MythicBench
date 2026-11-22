@@ -84,6 +84,8 @@ export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void
   }, [runs, q, provider, showOld, sort, currentHarness])
   // The scripted bots are a reference for local work, not shown to visitors.
   const bots = SHOW_REFERENCE_RUNS ? index.filter((r) => !r.local && !r.id.startsWith('featured:')) : []
+  // Pulls picked out to show (the home page's clip), listed until the official runs replace them.
+  const featured = index.filter((r) => r.id.startsWith('featured:'))
 
   const toggle = (id: string) => setOpen((s) => {
     const n = new Set(s)
@@ -132,7 +134,22 @@ export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void
         </div>
 
         <div className="flex-1 overflow-y-auto px-3 py-3">
-          {runs.length === 0 && (
+          {runs.length === 0 && featured.length > 0 && (
+            <section className="px-2 pb-2 pt-1">
+              <h3 className="text-[13px] font-medium text-fg">Pilot pulls</h3>
+              <p className="mt-1 text-[12px] leading-5 text-fg-faint">The official runs aren't in yet. These pulls were played by real models before them, to test the harness.</p>
+              <div className="mt-2">
+                {featured.map((f) => (
+                  <button key={f.id} onClick={() => load(f.id)} title={f.blurb}
+                    className={`block w-full rounded-md px-2 py-2 text-left transition-colors ${current === f.id ? 'bg-white/[0.08]' : 'hover:bg-white/[0.04]'}`}>
+                    <span className="block text-[13px] text-fg">{f.label}</span>
+                    {f.blurb && <span className="mt-0.5 block text-[12px] leading-5 text-fg-faint">{f.blurb}</span>}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+          {runs.length === 0 && featured.length === 0 && (
             <p className="px-2 py-4 text-[13px] leading-5 text-fg-muted">
               No model runs yet. Play some with <code className="font-mono text-fg">python -m mythicsim progress --model …</code> and they show up here.
             </p>

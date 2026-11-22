@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-CONTENT_VERSION = "1.3.0"
+CONTENT_VERSION = "1.4.0"
 
 GCD_MS = 1000
 MELEE_RANGE = 3.0
@@ -80,6 +80,11 @@ class AuraDef:
         return out
 
 
+# Body sizes (radius, metres). Bodies never overlap where they stand, so these
+# are what keeps a fight readable: sized to the characters' models.
+PLAYER_RADIUS = 0.6
+
+
 @dataclass(frozen=True)
 class ClassDef:
     id: str
@@ -91,7 +96,7 @@ class ClassDef:
     interrupt: str | None = None
     auto_attack: tuple[int, int] | None = None  # (amount, swing_ms) for melee classes
     speed: float = 5.0
-    radius: float = 0.45
+    radius: float = PLAYER_RADIUS
 
 
 # ---------------------------------------------------------------------------
@@ -238,7 +243,7 @@ class PartyMember:
     home: tuple[float, float]  # default standing spot (x, z)
 
 
-# The boss stands on a dais at (0, -2) facing +z, toward the party.
+# The boss starts on a dais at (0, -2) facing +z, toward the party.
 BOSS_POS = (0.0, -2.0)
 
 PARTY: tuple[PartyMember, ...] = (
@@ -260,6 +265,12 @@ class BossDef:
     name: str = "Mortisar, the Hollow King"
     max_hp: int = 1_500_000
     radius: float = 1.6
+    # He walks after whoever he's attacking until they're back in his reach,
+    # a little slower than the party runs, but not while casting. When pulled,
+    # he takes a moment to rise from his throne first: time for the tank to
+    # pick him up there.
+    speed: float = 4.0
+    rise_ms: int = 3000
     model: str = "Skeleton_Warrior"
     melee: tuple[int, int] = (3200, 2000)
     # first cast time and repeat interval, in ms
@@ -296,7 +307,7 @@ BOSS = BossDef()
 class AddDef:
     name: str = "Risen Bonewalker"
     max_hp: int = 30000
-    radius: float = 0.5
+    radius: float = 0.6
     speed: float = 3.5
     model: str = "Skeleton_Minion"
     swing_ms: int = 1500
@@ -456,9 +467,9 @@ ABILITIES.update({a.id: a for a in (
 TRASH: dict[str, TrashDef] = {
     "bonewalker": TrashDef("bonewalker", "Risen Bonewalker", 42000, ADD.radius, ADD.speed,
                            ADD.model, swing_ms=ADD.swing_ms),
-    "bone_chanter": TrashDef("bone_chanter", "Bone Chanter", 90000, 0.55, 3.0, "Skeleton_Mage",
+    "bone_chanter": TrashDef("bone_chanter", "Bone Chanter", 90000, 0.6, 3.0, "Skeleton_Mage",
                              spells=("grave_volley", "bone_bolt")),
-    "marrow_mender": TrashDef("marrow_mender", "Marrow Mender", 80000, 0.55, 3.0, "Skeleton_Rogue",
+    "marrow_mender": TrashDef("marrow_mender", "Marrow Mender", 80000, 0.6, 3.0, "Skeleton_Rogue",
                               spells=("mend_bones", "bone_bolt")),
 }
 MEND_PCT = 0.30

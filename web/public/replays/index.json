@@ -2,40 +2,40 @@
   {
     "id": "expert-clear",
     "policy": "expert",
-    "seed": 10,
+    "seed": 24,
     "mode": "dungeon",
     "tier": "plus10",
     "label": "Expert bots",
     "blurb": "Clean pulls, casters first, every kick lands. Clears the +10 in time.",
     "file": "expert-clear.json",
     "outcome": "victory",
-    "duration_s": 253.4,
-    "score": 70.8
+    "duration_s": 236.2,
+    "score": 78.8
   },
   {
     "id": "competent-run",
     "policy": "competent",
-    "seed": 10,
+    "seed": 24,
     "mode": "dungeon",
     "tier": "plus10",
     "label": "Competent bots",
     "blurb": "Same run, same seed. A few missed kicks and slow dodges, and the party wipes.",
     "file": "competent-run.json",
     "outcome": "wipe",
-    "duration_s": 142.2,
-    "score": 36.4
+    "duration_s": 103.3,
+    "score": 32.4
   },
   {
     "id": "sloppy-wipe",
     "policy": "sloppy",
-    "seed": 10,
+    "seed": 24,
     "mode": "dungeon",
     "tier": "plus10",
     "label": "Sloppy bots",
     "blurb": "Same run, same seed. Missed kicks, tunnel vision, standing in the bad.",
     "file": "sloppy-wipe.json",
-    "outcome": "timeout",
-    "duration_s": 255.0,
-    "score": 6.2
+    "outcome": "wipe",
+    "duration_s": 51.2,
+    "score": 9.0
   }
 ]

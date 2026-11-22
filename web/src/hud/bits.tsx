@@ -27,14 +27,15 @@ export function AbilityIcon({
         background: harmful ? 'rgba(248,113,113,0.12)' : 'rgba(255,255,255,0.06)',
         boxShadow: `inset 0 0 0 1px ${harmful ? 'rgba(248,113,113,0.45)' : 'rgba(255,255,255,0.10)'}`,
       }}
-      title={title ?? info?.name ?? ability}
+      title={title === '' ? undefined : title ?? info?.name ?? ability}
     >
-      <Icon className="absolute inset-0 m-auto" style={{ color: col, opacity: frac > 0 ? 0.45 : 0.95 }} size={Math.round(size * 0.6)} strokeWidth={1.75} />
+      <Icon className="absolute inset-0 m-auto" style={{ color: col, opacity: label && frac > 0 ? 0.3 : frac > 0 ? 0.45 : 0.95 }} size={Math.round(size * 0.6)} strokeWidth={1.75} />
       {frac > 0 && (
         <div className="absolute inset-0" style={{ background: `conic-gradient(rgba(0,0,0,0.6) ${frac * 360}deg, transparent 0deg)` }} />
       )}
       {label && (
-        <span className="num absolute inset-0 grid place-items-center font-mono text-[10px] font-medium text-white [text-shadow:0_1px_2px_#000]">
+        <span className="num absolute inset-0 grid place-items-center font-mono font-semibold leading-none text-white [text-shadow:0_0_3px_#000,0_1px_2px_#000]"
+          style={{ fontSize: Math.max(9, Math.round(size * 0.5)) }}>
           {label}
         </span>
       )}

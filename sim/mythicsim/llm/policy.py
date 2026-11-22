@@ -33,7 +33,7 @@ from ..policies import find_safe_spot, unsafe, walk_check
 from .clients import ChatClient, ClientError
 from .prompt import CHAT_COOLDOWN_MS, POOL_HIT_PAD, Order, parse_reply, render_state, system_prompt
 
-PLAYER_RADIUS = 0.45
+PLAYER_RADIUS = C.PLAYER_RADIUS
 LOW_HP_PCT = 40.0
 # A queued interrupt reacts this long after a cast starts: the same reaction
 # time as the expert bot. Without it, a standing order would kick on the very

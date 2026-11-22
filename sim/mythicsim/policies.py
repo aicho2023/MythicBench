@@ -97,7 +97,7 @@ def find_safe_spot(ground: list[dict], arena_radius: float, near: tuple, anchor:
             cand = (near[0] + ring * cx, near[1] + ring * cz)
             if not (inside(cand) if inside else dist(cand, (0.0, 0.0)) <= lim) or unsafe(cand, ground, 0.9):
                 continue
-            if reach and dist(cand, reach[0]) - 0.45 - reach[1] > reach[2]:
+            if reach and dist(cand, reach[0]) - C.PLAYER_RADIUS - reach[1] > reach[2]:
                 continue
             if avoid_paths and crosses_pool(near, cand, others):
                 continue
@@ -128,6 +128,11 @@ class ScriptedPolicy:
         self.attention: dict[str, bool] = {}  # memoised dice rolls per event id
         self.first_seen: dict[str, int] = {}
         self.dodge_to: tuple | None = None
+        # The party's layout around Mortisar: which way it faces, and where he
+        # stood when that was set (it turns only when he walks, not every time
+        # the tank sidesteps).
+        self.facing = (0.0, 1.0)
+        self.boss_seen = C.BOSS_POS
 
     # ------------------------------------------------------------------
     def roll(self, key: str, p: float) -> bool:
@@ -276,20 +281,43 @@ class ScriptedPolicy:
         return None
 
     def desired_spot(self, obs: dict) -> tuple:
-        """Where this bot wants to stand right now (home, or next to its target)."""
+        """Where this bot wants to stand right now (its place around the boss, or next to its target)."""
         me = obs["self"]
+        boss = next((e for e in obs["enemies"] if e["role"] == "boss" and e["alive"]), None)
         if self.cls in ("berserker", "shadowblade"):
             tgt = self.pick_target(obs)
             if tgt and tgt["role"] == "add":
-                # step next to the add
-                tp = tuple(tgt["pos"])
-                d = dist(me["pos"], tp)
-                if d > 3.2:  # out of melee reach (3 m edge to edge), allowing for being nudged aside
-                    f = (d - 1.6) / d
-                    return (me["pos"][0] + (tp[0] - me["pos"][0]) * f,
-                            me["pos"][1] + (tp[1] - me["pos"][1]) * f)
-                return tuple(me["pos"])
-        return self.home
+                return self.step_to(me, tgt, C.ADD.radius) or tuple(me["pos"])
+        return self.place(obs, boss)
+
+    @staticmethod
+    def step_to(me: dict, tgt: dict, radius: float):
+        """A spot in melee reach of tgt, if me is out of it (3 m edge to edge, allowing for being nudged aside)."""
+        tp = tuple(tgt["pos"])
+        d = dist(me["pos"], tp)
+        if d - radius - C.PLAYER_RADIUS <= C.MELEE_RANGE - 0.4:
+            return None
+        f = (d - radius - C.PLAYER_RADIUS - 1.0) / d
+        return (me["pos"][0] + (tp[0] - me["pos"][0]) * f, me["pos"][1] + (tp[1] - me["pos"][1]) * f)
+
+    def place(self, obs: dict, boss: dict | None) -> tuple:
+        """This bot's home spot, carried along with Mortisar. The homes are laid
+        out around his throne with the tank in front of him; wherever the tank
+        holds him, turn and shift the layout to match."""
+        if not boss:
+            return self.home
+        tank = next((p for p in obs["party"] if p["role"] == "tank" and p["alive"]), None)
+        bp = tuple(boss["pos"])
+        if tank and dist(bp, self.boss_seen) > 0.5 and dist(tank["pos"], bp) > 0.5:
+            d = dist(tank["pos"], bp)
+            self.facing = ((tank["pos"][0] - bp[0]) / d, (tank["pos"][1] - bp[1]) / d)
+            self.boss_seen = bp
+        fx, fz = self.facing
+        ox, oz = self.home[0] - C.BOSS_POS[0], self.home[1] - C.BOSS_POS[1]
+        spot = (bp[0] + ox * fz + oz * fx, bp[1] - ox * fx + oz * fz)
+        r = dist(spot, (0.0, 0.0))
+        lim = C.ARENA_RADIUS - 2.0
+        return (spot[0] * lim / r, spot[1] * lim / r) if r > lim else spot
 
     # ------------------------------------------------------------------
     # Targeting
@@ -306,7 +334,7 @@ class ScriptedPolicy:
 
     def in_range(self, me: dict, tgt: dict, rng: float) -> bool:
         radius = C.BOSS.radius if tgt["role"] == "boss" else C.ADD.radius
-        return dist(me["pos"], tgt["pos"]) - radius - 0.45 <= rng
+        return dist(me["pos"], tgt["pos"]) - radius - C.PLAYER_RADIUS <= rng
 
     # ------------------------------------------------------------------
     # Class rotations (one action per free GCD)

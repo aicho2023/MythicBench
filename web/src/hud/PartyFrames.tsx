@@ -1,7 +1,8 @@
 import { Skull } from 'lucide-react'
 import { CLASS_COLORS, ROLE_LABEL, SCHOOL_COLORS, fmtNum } from '../content/display'
 import { useHud } from '../replay/store'
-import { AbilityIcon, Bar, RoleIcon, secs } from './bits'
+import { TipTarget } from './AbilityTip'
+import { AbilityIcon, Bar, RoleIcon } from './bits'
 
 /** How long an instant ability stays highlighted after it's used. */
 const USED_MS = 1200
@@ -57,27 +58,28 @@ export function PartyFrames() {
             {u.cast ? (
               <Bar frac={(t - u.cast.t0) / u.cast.castMs} color="rgba(255,255,255,0.55)" height={2} className="mt-0.5" track="transparent" />
             ) : <div className="mt-0.5 h-[2px]" />}
-            <div className="mt-1 flex items-center gap-1">
+            <div className="mt-1.5 flex items-center gap-1">
               {(cls?.abilities ?? []).map((ab) => {
                 const info = engine.replay.abilities[ab]
                 const rem = Math.max(0, (u.readyAt[ab] ?? 0) - t)
                 const on = ab === active
                 return (
-                  <span key={ab} className="rounded transition-shadow" style={on ? { boxShadow: `0 0 0 1.5px ${col}` } : undefined}>
-                    <AbilityIcon ability={ab} info={info} size={16} remainingMs={rem} totalMs={info.cooldown_ms}
-                      label={rem > 0 && info.cooldown_ms >= 5000 ? secs(rem) : undefined}
-                      title={`${info.name}${rem > 0 ? `: ready in ${secs(rem)}` : ': ready'}`} />
-                  </span>
+                  <TipTarget key={ab} kind="ability" id={ab} unit={u.info.id}>
+                    <span className="rounded transition-shadow" style={on ? { boxShadow: `0 0 0 1.5px ${col}` } : undefined}>
+                      <AbilityIcon ability={ab} info={info} size={22} remainingMs={u.alive ? rem : 0} totalMs={info.cooldown_ms}
+                        label={u.alive && rem >= 1000 ? String(Math.ceil(rem / 1000)) : undefined} title="" />
+                    </span>
+                  </TipTarget>
                 )
               })}
               <div className="ml-auto flex gap-1">
                 {Object.entries(u.auras).slice(0, 3).map(([aid, a]) => {
                   const info = engine.replay.auras[aid]
-                  const rem = a.t0 + a.dur - t
                   return (
-                    <AbilityIcon key={aid} ability={aid} info={{ ...info, school: info.harmful ? 'shadow' : 'holy' }} harmful={info.harmful} size={16}
-                      label={a.stacks && a.stacks > 1 ? `x${a.stacks}` : rem < 60000 ? secs(rem) : undefined}
-                      title={`${info.name}${a.stacks && a.stacks > 1 ? ` (${a.stacks} stacks)` : ''}: ${info.description ?? ''}`} />
+                    <TipTarget key={aid} kind="aura" id={aid} unit={u.info.id}>
+                      <AbilityIcon ability={aid} info={{ ...info, school: info.harmful ? 'shadow' : 'holy' }} harmful={info.harmful} size={18}
+                        label={a.stacks && a.stacks > 1 ? String(a.stacks) : undefined} title="" />
+                    </TipTarget>
                   )
                 })}
               </div>

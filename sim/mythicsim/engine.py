@@ -22,7 +22,8 @@ from typing import Callable, Protocol
 from . import content as C
 
 TICK_MS = 100
-SIM_VERSION = "0.4.0"  # 0.3.0: bodies collide where they stop; 0.4.0: a run ends at its timer
+SIM_VERSION = "0.5.0"  # 0.3.0: bodies collide where they stop; 0.4.0: a run ends at its timer;
+# 0.5.0: enemies keep their space too, and Mortisar walks after his target
 
 
 # ---------------------------------------------------------------------------
@@ -48,12 +49,14 @@ def lerp(a: Vec, b: Vec, f: float) -> Vec:
     return (a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f)
 
 
-# Bodies take up space: a player never ends a move inside another unit. Units
+# Bodies take up space: no unit ends a move inside another. Units
 # may pass through each other while walking (as in WoW), but where they stop,
 # their bodies keep at least BODY_GAP between them. A destination that's taken
 # shifts to the nearest free spot on rings around it. Literal unit vectors, not
 # cos/sin, so every machine gets the same answer.
-BODY_GAP = 0.1
+BODY_GAP = 0.2
+# Enemies swing when their target is this close, edge to edge (m).
+ENEMY_REACH = 1.2
 SPOT_RINGS = (0.5, 1.0, 1.5, 2.0, 2.5, 3.0)
 SPOT_DIRS = ((1.0, 0.0), (0.7071067811865476, 0.7071067811865476), (0.0, 1.0),
              (-0.7071067811865476, 0.7071067811865476), (-1.0, 0.0),
@@ -199,7 +202,7 @@ class Encounter:
         boss_hp = self.scaled_hp(b.max_hp)
         if self.tyrant:
             boss_hp = int(round(boss_hp * C.TYRANT_HP))
-        self.units[b.id] = Unit(b.id, b.name, "boss", "boss", "boss", boss_hp, b.radius, 0.0,
+        self.units[b.id] = Unit(b.id, b.name, "boss", "boss", "boss", boss_hp, b.radius, b.speed,
                                 b.model, C.BOSS_POS, target=C.PARTY[0].id)
         self.boss = self.units[b.id]
         self.boss_engaged_t = 0  # when Mortisar was pulled (the dungeon run pulls him later)
@@ -252,6 +255,9 @@ class Encounter:
                     return
             u.asked_to = to
             to = self.free_spot(u, to)
+        elif not exact:
+            u.asked_to = to
+            to = self.free_spot(u, to)
         if u.move and dist(u.move.to, to) < 0.05:
             return
         if not u.move and dist(u.pos, to) < 0.05:
@@ -300,9 +306,9 @@ class Encounter:
         if not self.taken(u, to):
             return to
         pool_ok = self.in_pool(u, to)
-        # A spot asked for within melee reach of an enemy was asked for to
-        # fight it: shift around that enemy, not away from it.
-        foes = [o for o in self.units.values() if o.kind != "player" and o.alive
+        # A spot asked for within melee reach of a foe was asked for to
+        # fight it: shift around that foe, not away from it.
+        foes = [o for o in self.units.values() if (o.kind == "player") != (u.kind == "player") and o.alive
                 and dist(to, o.pos) - o.radius - u.radius <= C.MELEE_RANGE]
         for ring in SPOT_RINGS:
             best = None
@@ -593,7 +599,11 @@ class Encounter:
                 else:
                     self.cast_desecrate(b)
                 return
-        if self.t >= b.swing_at and self.edge_dist(b, tank) <= C.MELEE_RANGE + 1:
+        if self.edge_dist(b, tank) > C.MELEE_RANGE:
+            if self.t - self.boss_engaged_t >= C.BOSS.rise_ms:
+                self.chase(b, tank)
+            return
+        if self.t >= b.swing_at:
             b.swing_at = self.t + C.BOSS.melee[1]
             self.emit("cast_success", unit=b.id, ability="hollow_strike", target=tank.id)
             self.damage(b, tank, "hollow_strike", C.BOSS.melee[0])
@@ -659,6 +669,25 @@ class Encounter:
         """Enemies that chase their target and claw it (the dungeon filters these)."""
         return [u for u in self.units.values() if u.kind == "add" and u.alive]
 
+    def chase(self, e: Unit, tgt: Unit) -> None:
+        """Walk an enemy up to its target, to a free spot beside it."""
+        d = dist(e.pos, tgt.pos)
+        stop = e.radius + tgt.radius + 0.4
+        f = max(0.0, (d - stop) / d) if d else 0
+        dest = lerp(e.pos, tgt.pos, f)
+        if e.kind == "boss":
+            dest = self.leash(dest)
+        # Re-plan only when the target has moved on (re-planning every tick = jitter).
+        if e.move and e.asked_to is not None and dist(e.asked_to, dest) <= 1.0:
+            return
+        self.start_move(e, dest)
+
+    def leash(self, spot: Vec) -> Vec:
+        """Mortisar never leaves his throne room (the arena circle)."""
+        d = dist(spot, (0.0, 0.0))
+        lim = C.ARENA_RADIUS - 2.5
+        return (spot[0] * lim / d, spot[1] * lim / d) if d > lim else spot
+
     def add_tick(self) -> None:
         for a in self.melee_adds():
             tgt = self.units.get(a.target)
@@ -668,22 +697,14 @@ class Encounter:
                     return
                 tgt = min(alive, key=lambda p: dist(p.pos, a.pos))
                 a.target = tgt.id
-            gap = self.edge_dist(a, tgt)
-            if gap > 0.9:
-                # Chase: aim for a point just short of the target
-                d = dist(a.pos, tgt.pos)
-                stop = a.radius + tgt.radius + 0.5
-                f = max(0.0, (d - stop) / d) if d else 0
-                dest = lerp(a.pos, tgt.pos, f)
-                if not a.move or dist(a.move.to, dest) > 1.0:
-                    self.start_move(a, dest)
-            else:
-                if a.move:
-                    self.stop_move(a)
-                if self.t >= a.swing_at:
-                    a.swing_at = self.t + C.ADD.swing_ms
-                    self.emit("cast_success", unit=a.id, ability="bone_claw", target=tgt.id)
-                    self.damage(a, tgt, "bone_claw", C.ABILITIES["bone_claw"].amount)
+            if self.edge_dist(a, tgt) > ENEMY_REACH:
+                self.chase(a, tgt)
+            elif self.t >= a.swing_at:
+                # In reach: swing. (A walker finishes its step to the free spot
+                # it chose rather than stopping on top of someone.)
+                a.swing_at = self.t + C.ADD.swing_ms
+                self.emit("cast_success", unit=a.id, ability="bone_claw", target=tgt.id)
+                self.damage(a, tgt, "bone_claw", C.ABILITIES["bone_claw"].amount)
 
     # ----- periodic effects ------------------------------------------------
     def aura_tick(self) -> None:

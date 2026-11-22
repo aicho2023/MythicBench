@@ -39,7 +39,9 @@ Pieces:
 #          first is fine); an empty {} means "no change"
 #   0.11.0 party chat: one message per character every 10 s (typing takes
 #          time); the state says when you can type again
-HARNESS_VERSION = "0.11.0"
+#   0.12.0 party chat capped at 120 characters (cut at a whole sentence or
+#          word); the state gives Mortisar's position, since he now moves
+HARNESS_VERSION = "0.12.0"
 
 
 def prompt_hash(knowledge: str = "full", tier: str = "plus10", mode: str = "boss") -> str:
