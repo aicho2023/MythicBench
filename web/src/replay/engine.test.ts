@@ -57,3 +57,22 @@ describe.each(files)('%s', (file) => {
     expect(JSON.stringify(engine.stateAt(60_000))).toBe(a)
   })
 })
+
+describe('timeline markers', () => {
+  const load = (f: string): Replay => JSON.parse(readFileSync(join(dir, f), 'utf8'))
+
+  it('mark each stand in a pool once, at the first hit', () => {
+    const replay = load('sloppy-wipe.json')
+    const pools = new ReplayEngine(replay).markers().filter((m) => m.kind === 'pool')
+    const hits = replay.events.filter((e) => e.type === 'damage' && ['desecrate', 'restless_grave'].includes(e.ability)
+      && replay.units.find((u) => u.id === e.target)?.kind === 'player')
+    expect(pools.length).toBeGreaterThan(0)
+    expect(pools.length).toBeLessThan(hits.length) // one marker per stand, not per tick
+    for (const m of pools) expect(hits.some((e) => e.t === m.t)).toBe(true)
+  })
+
+  it('come out in time order', () => {
+    const ms = new ReplayEngine(load('competent-run.json')).markers()
+    expect(ms.map((m) => m.t)).toEqual([...ms.map((m) => m.t)].sort((a, b) => a - b))
+  })
+})

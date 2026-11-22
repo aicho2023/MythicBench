@@ -1,7 +1,9 @@
 import { AlertTriangle, Megaphone } from 'lucide-react'
 import { useState } from 'react'
+import type { ReplayMeta } from '../replay/types'
 import { CLASS_COLORS, WARN_CASTS, dungeonProgress, dungeonScore, fmtNum, fmtTime, runScore } from '../content/display'
 import { usePlayback, useHud } from '../replay/store'
+import { useInspector } from './CallInspector'
 
 // ---------------------------------------------------------------------------
 // Scorecard: the eval's metrics, live as the replay plays.
@@ -67,11 +69,64 @@ export function Scorecard() {
         <Metric label={dungeon ? 'Party deaths (revives)' : 'Party deaths'} value={`${s.deaths}`} tone={s.deaths === 0 ? 'good' : 'bad'} />
         <Metric label="Avoidable damage" value={fmtNum(avoidable)} tone={avoidable === 0 ? 'good' : 'bad'} />
       </dl>
-      <dl className="border-t border-line px-3 py-2 font-mono text-meta text-fg-faint">
+      <Reproduce />
+    </div>
+  )
+}
+
+/** The command that rebuilds this exact replay, from the commit that made it. */
+export function reproduceCommand(m: ReplayMeta): string {
+  const tier = m.tier ?? 'plus10'
+  const mode = m.mode ?? 'boss'
+  const r = m.run
+  const lines = r?.git_commit ? [`git checkout ${r.git_commit.replace(/-dirty$/, '')}`] : []
+  if (!r || !m.progress) {
+    if (m.policy.startsWith('scripted-')) {
+      lines.push(`cd sim && python -m mythicsim run --policy ${m.policy.slice(9)} --seed ${m.seed} --tier ${tier} --mode ${mode} --out replay.json`)
+    } else if (r) {
+      lines.push(`cd sim && python -m mythicsim llm --model ${r.label} --seeds ${m.seed} --tier ${tier} --mode ${mode} --offline`)
+    }
+    return lines.join('\n')
+  }
+  const p = m.progress
+  lines.push(`cd sim && python -m mythicsim progress --model ${r.label} --episodes ${p.episode} --max-pulls ${r.max_pulls ?? p.pull}`
+    + ` --tier ${tier} --mode ${mode} --knowledge ${p.knowledge} --memory ${p.memory ? 'on' : 'off'} --offline`
+    + (r.campaign ? ` --cache-dir ../web/public/results/${r.campaign}/recordings` : ''))
+  return lines.join('\n')
+}
+
+function Reproduce() {
+  const engine = usePlayback((p) => p.engine)
+  const [open, setOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+  if (!engine) return null
+  const m = engine.replay.meta
+  const r = m.run
+  const cmd = reproduceCommand(m)
+  return (
+    <div className="pointer-events-auto border-t border-line px-3 py-2 font-mono text-meta text-fg-faint">
+      <dl>
         <div className="flex justify-between gap-4"><dt>Policy</dt><dd className="truncate text-fg-muted">{m.policy}</dd></div>
         <div className="flex justify-between gap-4"><dt>Seed</dt><dd className="num text-fg-muted">{m.seed}</dd></div>
+        {r && <div className="flex justify-between gap-4"><dt>Harness</dt><dd className="num text-fg-muted">v{r.harness_version}{r.prompt_hash ? ` (${r.prompt_hash})` : ''}</dd></div>}
         <div className="flex justify-between gap-4"><dt>Sim / content</dt><dd className="num text-fg-muted">v{m.sim_version} / v{m.content_version}</dd></div>
+        {r?.git_commit && <div className="flex justify-between gap-4"><dt>Commit</dt><dd className="num text-fg-muted">{r.git_commit}</dd></div>}
       </dl>
+      {cmd && (
+        <button onClick={() => setOpen((v) => !v)} className="mt-1 font-sans text-fg-faint transition-colors hover:text-fg">
+          {open ? 'Hide' : 'Reproduce this replay'}
+        </button>
+      )}
+      {open && cmd && (
+        <div className="mt-1">
+          <pre className="overflow-x-auto whitespace-pre rounded-md border border-line bg-surface-raised p-2 text-[11px] leading-4 text-fg-muted">{cmd}</pre>
+          <p className="mt-1 font-sans leading-4">
+            {m.progress ? 'Replays the recorded model replies (free, no API key). Without --offline it calls the model again.' : 'Bots are deterministic: same seed, same replay.'}
+          </p>
+          <button onClick={() => { navigator.clipboard?.writeText(cmd); setCopied(true); setTimeout(() => setCopied(false), 1200) }}
+            className="mt-1 font-sans text-fg-faint transition-colors hover:text-fg">{copied ? 'Copied' : 'Copy command'}</button>
+        </div>
+      )}
     </div>
   )
 }
@@ -180,16 +235,18 @@ export function RaidWarnings() {
 export function DecisionLog() {
   const h = useHud()
   const seek = usePlayback((p) => p.seek)
+  const inspect = useInspector((p) => p.show)
   if (!h) return null
+  const hasCalls = (h.engine.replay.calls?.length ?? 0) > 0
   const { t, engine, s } = h
-  const rows: { key: number; t: number; who: string; cls: string; text: string; sub?: string; tone: 'info' | 'bad' }[] = []
+  const rows: { key: number; t: number; who: string; unit?: string; cls: string; text: string; sub?: string; tone: 'info' | 'bad' }[] = []
   for (const { e, i } of engine.eventsBetween(t - 40000, t)) {
     if (e.type === 'decision') {
       const u = s.units[e.unit]
-      rows.push({ key: i, t: e.t, who: u?.info.name ?? e.unit, cls: u?.info.class ?? '', text: e.action, sub: e.reason, tone: 'info' })
+      rows.push({ key: i, t: e.t, who: u?.info.name ?? e.unit, unit: e.unit, cls: u?.info.class ?? '', text: e.action, sub: e.reason, tone: 'info' })
     } else if (e.type === 'death' && s.units[e.unit]?.info.kind === 'player') {
       const u = s.units[e.unit]
-      rows.push({ key: i, t: e.t, who: u.info.name, cls: u.info.class, text: `died to ${engine.replay.abilities[e.ability]?.name ?? engine.replay.auras[e.ability]?.name ?? e.ability}`, tone: 'bad' })
+      rows.push({ key: i, t: e.t, who: u.info.name, unit: e.unit, cls: u.info.class, text: `died to ${engine.replay.abilities[e.ability]?.name ?? engine.replay.auras[e.ability]?.name ?? e.ability}`, tone: 'bad' })
     } else if (e.type === 'cast_success' && e.ability === 'requiem_of_bones') {
       rows.push({ key: i, t: e.t, who: 'Mortisar', cls: 'boss', text: 'Requiem of Bones not interrupted', tone: 'bad' })
     }
@@ -199,13 +256,16 @@ export function DecisionLog() {
     <div className="card w-[340px] max-w-[calc((100vw-32px)/var(--hud))] py-2">
       <div className="flex items-center justify-between px-3 pb-1">
         <span className="label">Agent decisions</span>
-        <span className="text-meta text-fg-faint">Click a row to rewind</span>
+        {hasCalls
+          ? <button onClick={() => inspect(null, t)} className="text-meta text-fg-faint transition-colors hover:text-fg">All model calls</button>
+          : <span className="text-meta text-fg-faint">Click a row to rewind</span>}
       </div>
       {shown.length === 0 && <div className="px-3 py-2 text-[12px] text-fg-faint">Nothing yet, waiting for the pull</div>}
       {shown.map((r) => (
+        <div key={r.key} className="group relative">
         <button
-          key={r.key}
           onClick={() => seek(r.t - 2000)}
+          title="Rewind to this moment"
           className="grid w-full grid-cols-[36px_1fr] gap-x-2 px-3 py-1 text-left transition-colors hover:bg-white/[0.05]"
         >
           <span className="num font-mono text-meta leading-5 text-fg-faint">{fmtTime(r.t)}</span>
@@ -215,6 +275,13 @@ export function DecisionLog() {
             {r.sub && <span className="block text-[12px] leading-4 text-fg-faint">{r.sub}</span>}
           </span>
         </button>
+        {hasCalls && r.unit && (
+          <button onClick={() => inspect(r.unit, r.t)} title="See what this agent saw and replied"
+            className="absolute right-2 top-1 rounded-md bg-surface-raised px-1.5 py-0.5 text-meta text-fg-faint opacity-0 transition-opacity hover:text-fg focus-visible:opacity-100 group-hover:opacity-100">
+            Why?
+          </button>
+        )}
+        </div>
       ))}
     </div>
   )

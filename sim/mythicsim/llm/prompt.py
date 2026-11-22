@@ -1,9 +1,10 @@
-"""What the model sees and how its reply is read.
+"""What each agent sees and how its reply is read.
 
-The system prompt states the *rules* (what every ability does, the arena, the
-reply format), the same information a player gets from tooltips. It gives no
-strategy: deciding who interrupts, when to move, and what to prioritise is
-exactly what the benchmark measures.
+Five agents play, one per character, all the same model. Each agent's system
+prompt states the *rules* (what every ability in the party does, the arena,
+the reply format): the same information a player gets from tooltips. It gives
+no strategy: who interrupts, when to move, what to prioritise, and how to
+coordinate (party chat) is exactly what the benchmark measures.
 """
 
 from __future__ import annotations
@@ -14,6 +15,9 @@ from dataclasses import dataclass, field
 
 from .. import content as C
 from ..engine import dist
+
+# Party chat lines shown in the state (the most recent).
+CHAT_SHOWN = 12
 
 # Same hit test the engine uses for pools (centre within radius + half a body).
 POOL_HIT_PAD = 0.45 * 0.5
@@ -121,26 +125,27 @@ def _tier_section(tier: str) -> str:
 
 
 def notes_section(notes: str | None, pull: int | None) -> str:
-    """Appended to the rules on later pulls when the agent keeps notes."""
+    """Appended to the rules on later pulls: the agent's own notes, verbatim."""
     if not notes:
         return ""
     return (f"\n\n## Your notes from previous pulls (this is pull {pull})\n"
-            f"You wrote these after earlier attempts at this boss. Use them.\n{notes.strip()}")
+            f"You wrote these yourself after earlier attempts.\n{notes.strip()}")
 
 
 def system_prompt(knowledge: str = "full", notes: str | None = None, pull: int | None = None,
-                  tier: str = C.DEFAULT_TIER, mode: str = "boss") -> str:
-    """The rules. ``knowledge="blind"`` hides everything about the boss.
-
-    The "full" text with no notes is byte-identical to earlier harness
-    versions, so its prompt hash and recorded replies stay valid."""
+                  tier: str = C.DEFAULT_TIER, mode: str = "boss", me: str = "bramble") -> str:
+    """The rules for the agent playing ``me``. ``knowledge="blind"`` hides
+    everything about the boss. Notes (the agent's own) are appended last, so
+    the text before them is identical across pulls and caches well."""
     from .policy import REACTION_MS  # local import: policy imports this module
     if knowledge not in KNOWLEDGE:
         raise ValueError(f"knowledge must be one of {KNOWLEDGE}")
+    member = next(m for m in C.PARTY if m.id == me)
+    mine = C.CLASSES[member.cls]
     party = []
     for m in C.PARTY:
         cd = C.CLASSES[m.cls]
-        party.append(f"  {m.id} - {m.name}, {cd.name} ({cd.role}), {cd.max_hp} HP, "
+        party.append(f"  {m.id} - {m.name}, {cd.name} ({cd.role}){' (YOU)' if m.id == me else ''}, {cd.max_hp} HP, "
                      f"usual spot ({m.home[0]:g}, {m.home[1]:g})"
                      + (f", melee auto-attacks" if cd.auto_attack else "") + ":")
         party.extend(_ability_line(a) for a in cd.abilities)
@@ -158,32 +163,34 @@ def system_prompt(knowledge: str = "full", notes: str | None = None, pull: int |
         score_text = (f"A wipe earns up to 70 points in proportion to the boss's health removed. A kill earns 70 plus "
                       f"up to 30 for speed: the full 30 for killing with a quarter of the {limit} s timer (or more) left.")
     next_move = (', or "next" walks to the next waypoint of the route toward the boss' if mode == "dungeon" else "")
-    return f"""You control a party of five adventurers fighting a dungeon boss in a turn-based simulation of a real-time fight. Your goal: kill the boss as fast as possible without dying. {intro}
+    example = next(a for a in mine.abilities if C.ABILITIES[a].kind not in ("interrupt", "taunt", "buff"))
+    tgt = "mortisar" if C.ABILITIES[example].kind in ("damage", "aoe_damage") else me
+    return f"""You play {member.name} ({me}), the {mine.name} ({mine.role}), in a party of five adventurers fighting through a dungeon in a turn-based simulation of a real-time fight. Each of the other four characters is played by another player; you control only {member.name}. The party's goal: kill the boss as fast as possible without dying. {intro}
 
-## Score (0-100)
+## Score (0-100, shared by the whole party)
 {score_text}
 
 {_tier_section(tier)}
 
 ## Arena
-Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) in metres. Mortisar stands still at ({C.BOSS_POS[0]:g}, {C.BOSS_POS[1]:g}) with a body radius of {b.radius:g} m. Characters move at 5 m/s. Moving cancels a cast in progress, and spells with a cast time cannot be started while moving. Melee range is {C.MELEE_RANGE:g} m from the target's edge. Global cooldown (GCD): {C.GCD_MS / 1000:g}s after most abilities.
+Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) in metres. Mortisar stands still at ({C.BOSS_POS[0]:g}, {C.BOSS_POS[1]:g}) with a body radius of {b.radius:g} m. Characters move at 5 m/s and can't stand inside one another. Moving cancels a cast in progress, and spells with a cast time cannot be started while moving. Melee range is {C.MELEE_RANGE:g} m from the target's edge. Global cooldown (GCD): {C.GCD_MS / 1000:g}s after most abilities.
 
-## Your party
+## The party
 {chr(10).join(party)}
 
 {_boss_section(knowledge)}
 {(chr(10) + _dungeon_section(knowledge, tier) + chr(10)) if mode == "dungeon" else ""}
 ## How you play
-You are asked for orders every 4 seconds of game time, and immediately when something important happens (a boss cast starts, pools appear, adds spawn, an ally gets low). The game is paused while you think. Each character keeps following its latest orders until you give it new ones:
-  - "move_to": [x, z] walks there once, or "safe" steps to the nearest spot clear of all pools, reachable without walking through another pool, from which the character's first priority target is still in range when possible (the scripted bots' movement logic){next_move}. Omit or null to stay put. A move is carried out each time you send it.
-  - "priority": an ordered list of [ability_id, target_id]. Every tick, the character uses the FIRST entry that is ready (off cooldown, in range, GCD free, not casting or moving for cast-time spells). Off-GCD abilities in the list fire even during the GCD. Interrupts only fire while their target is casting something interruptible (reacting {reaction} s after the cast starts), so they can stay in the list; once one character interrupts, the others' interrupts see nothing to stop and stay ready. Put a reliable filler ability last so the character never idles.
-  - "say": one short sentence explaining the decision (shown in the replay).
+You are asked for {member.name}'s orders every 4 seconds of game time, and immediately when something that concerns you happens. The game is paused while everyone thinks; the other players are asked at the same moments you are. {member.name} keeps following your latest orders until you change them:
+  - "move_to": [x, z] walks there once, or "safe" steps to the nearest spot clear of all pools, reachable without walking through another pool, from which your first priority target is still in range when possible (the scripted bots' movement logic){next_move}. Omit or null to stay put. A move is carried out each time you send it.
+  - "priority": an ordered list of [ability_id, target_id]. Every tick, {member.name} uses the FIRST entry that is ready (off cooldown, in range, GCD free, not casting or moving for cast-time spells). Off-GCD abilities in the list fire even during the GCD. Interrupts only fire while their target is casting something interruptible (reacting {reaction} s after the cast starts), so they can stay in the list; if someone else interrupts first, yours sees nothing to stop and stays ready. Put a reliable filler ability last so you never idle. Leave "priority" out to keep your current one.
+  - "say": a short message to the party chat, which every player sees from then on. Leave it out to say nothing.
 Ground effects ("pools") in the state are dangerous to stand in: "desecrate" pools come from Mortisar, "grave" pools from the Restless Graves affix. "safe" avoids both.
-Targets are unit ids from the state (e.g. "mortisar", "bonewalker_1", "lumi"). For self-buffs and party-wide abilities use the character's own id ("self" and "party" also work).
-Characters you leave out keep their previous orders: include only the characters whose orders should change.
+Targets are unit ids from the state (e.g. "mortisar", "bonewalker_1", "lumi"). For self-buffs and party-wide abilities use your own id ("self" and "party" also work).
+You can only use {member.name}'s abilities: {', '.join(mine.abilities)}.
 
 Reply with ONLY a JSON object, no prose:
-{{"orders": {{"bramble": {{"move_to": null, "priority": [["bulwark_slam", "mortisar"], ["rampart_strike", "mortisar"]], "say": "Tanking the boss."}}, "...": {{}}}}}}""" + notes_section(notes, pull)
+{{"move_to": null, "priority": [["{example}", "{tgt}"]], "say": ""}}""" + notes_section(notes, pull)
 
 
 # ---------------------------------------------------------------------------
@@ -227,10 +234,13 @@ def _auras(a: dict, stacks: dict | None = None) -> str:
                                     for k, v in a.items())) if a else ""
 
 
-def render_state(obs: dict, gcd: dict[str, int], orders_age_s: float | None, knowledge: str = "full") -> str:  # noqa: E501
-    """Compact text snapshot of the fight, from one observation.
+def render_state(obs: dict, me: str, gcd_ms: int, orders_age_s: float | None, knowledge: str = "full",
+                 chat: list[tuple[int, str, str]] | None = None) -> str:
+    """Compact text snapshot of the fight as one character sees it.
 
-    Blind mode shows only what's on screen: no boss-ability timers."""
+    Like party frames in the game: everyone's health, position, auras and
+    casts are visible, but only your own cooldowns and GCD. Blind mode shows
+    only what's on screen: no boss-ability timers."""
     blind = knowledge == "blind"
     limit = f"{C.BOSS.enrage_ms / 1000:g}s"
     dg = obs.get("dungeon")
@@ -268,22 +278,27 @@ def render_state(obs: dict, gcd: dict[str, int], orders_age_s: float | None, kno
              for g in obs["ground"]]
     lines.append("POOLS: " + ("; ".join(pools) if pools else "none") + ".")
     lines.append("PARTY:")
-    for p in obs["party"]:
+    names = {m.id: m.name for m in C.PARTY}
+    for p in sorted(obs["party"], key=lambda p: p["id"] != me):
+        you = " (YOU)" if p["id"] == me else ""
         if not p["alive"]:
-            lines.append(f"  {p['id']} ({p['class']}): DEAD.")
+            lines.append(f"  {p['id']}{you} ({p['class']}): DEAD.")
             continue
-        cds = p.get("cooldowns", {})
-        ready = [a for a, v in cds.items() if v == 0]
-        waiting = [f"{a} {v / 1000:.1f}s" for a, v in cds.items() if v > 0]
-        g = gcd.get(p["id"], 0)
-        lines.append(
-            f"  {p['id']} ({p['class']}) {p['hp_pct']:.0f}% HP ({p['hp']}/{p['max_hp']})"
-            + (f" +{p['absorb']} shield" if p["absorb"] else "")
-            + f" at {_p(p['pos'])}{' moving' if p['moving'] else ''}{_cast(p['casting'])}{_auras(p['auras'], p.get('stacks'))}"
-            + (f", GCD {g / 1000:.1f}s" if g else "")
-            + f". Ready: {', '.join(ready) or 'nothing'}"
-            + (f". On cooldown: {', '.join(waiting)}" if waiting else "") + "."
-            + _danger(p, obs["ground"]))
+        line = (f"  {p['id']}{you} ({p['class']}) {p['hp_pct']:.0f}% HP ({p['hp']}/{p['max_hp']})"
+                + (f" +{p['absorb']} shield" if p["absorb"] else "")
+                + f" at {_p(p['pos'])}{' moving' if p['moving'] else ''}{_cast(p['casting'])}"
+                + f"{_auras(p['auras'], p.get('stacks'))}")
+        if p["id"] == me:
+            cds = p.get("cooldowns", {})
+            ready = [a for a, v in cds.items() if v == 0]
+            waiting = [f"{a} {v / 1000:.1f}s" for a, v in cds.items() if v > 0]
+            line += ((f", GCD {gcd_ms / 1000:.1f}s" if gcd_ms else "")
+                     + f". Ready: {', '.join(ready) or 'nothing'}"
+                     + (f". On cooldown: {', '.join(waiting)}" if waiting else ""))
+        lines.append(line + "." + _danger(p, obs["ground"]))
+    if chat:
+        lines.append("PARTY CHAT (oldest first):")
+        lines.extend(f"  [{t / 1000:.1f}s] {names.get(who, who)}: {text}" for t, who, text in chat[-CHAT_SHOWN:])
     if orders_age_s is not None:
         lines.append(f"Your current orders were given {orders_age_s:.1f}s ago.")
     return "\n".join(lines)
@@ -296,7 +311,7 @@ def render_state(obs: dict, gcd: dict[str, int], orders_age_s: float | None, kno
 @dataclass
 class Order:
     move_to: tuple[float, float] | str | None = None  # (x, z) or "safe"
-    priority: list[tuple[str, str]] = field(default_factory=list)
+    priority: list[tuple[str, str]] | None = field(default_factory=list)  # None: keep the current one
     say: str = ""
 
 
@@ -307,8 +322,10 @@ class Parsed:
     ok: bool  # False when the reply was not usable JSON at all
 
 
-def parse_reply(text: str, unit_ids: set[str], dead: set[str] = frozenset()) -> Parsed:
-    """Read the model's JSON. Invalid pieces are dropped and reported, never guessed."""
+def parse_reply(text: str, me: str, unit_ids: set[str]) -> Parsed:
+    """Read one agent's JSON orders for its own character. Invalid pieces are
+    dropped and reported, never guessed. ``priority`` absent = keep the old
+    one (``Order.priority`` is then None)."""
     m = re.search(r"\{.*\}", text, re.S)
     if not m:
         return Parsed({}, ["no JSON object in reply"], False)
@@ -316,48 +333,45 @@ def parse_reply(text: str, unit_ids: set[str], dead: set[str] = frozenset()) -> 
         data = json.loads(m.group(0))
     except json.JSONDecodeError as err:
         return Parsed({}, [f"invalid JSON: {err.msg}"], False)
-    raw = data.get("orders") if isinstance(data, dict) else None
-    if not isinstance(raw, dict):
-        return Parsed({}, ["reply has no 'orders' object"], False)
-    orders: dict[str, Order] = {}
+    if not isinstance(data, dict):
+        return Parsed({}, ["reply is not a JSON object"], False)
+    if isinstance(data.get(me), dict):  # {"grokka": {...}}: unambiguous, accept it
+        data = data[me]
+    elif isinstance(data.get("orders"), dict):
+        data = data["orders"].get(me, data["orders"]) if isinstance(data["orders"].get(me), dict) else data["orders"]
+    if not any(k in data for k in ("move_to", "priority", "say")):
+        return Parsed({}, ["reply has none of move_to, priority, say"], False)
+    member = next(x for x in C.PARTY if x.id == me)
     problems: list[str] = []
-    for m_ in C.PARTY:
-        spec = raw.get(m_.id)
-        if spec is None or m_.id in dead:
-            continue  # orders for a dead character are moot, not an error
-        if not isinstance(spec, dict):
-            problems.append(f"{m_.id}: orders must be an object")
-            continue
-        o = Order(say=str(spec.get("say") or "")[:200])
-        mv = spec.get("move_to")
-        if isinstance(mv, dict) and set(mv) >= {"x", "z"}:
-            mv = [mv["x"], mv["z"]]  # {"x": .., "z": ..} is unambiguous; accept it
-        if isinstance(mv, list) and len(mv) == 1 and isinstance(mv[0], str):
-            mv = mv[0]  # ["safe"] means "safe"
-        if isinstance(mv, str) and mv.strip().lower() in ("safe", "next"):
-            o.move_to = mv.strip().lower()
-        elif mv is not None:
-            if isinstance(mv, (list, tuple)) and len(mv) == 2 and all(isinstance(v, (int, float)) for v in mv):
-                o.move_to = (float(mv[0]), float(mv[1]))
-            else:
-                problems.append(f"{m_.id}: bad move_to {mv!r}")
-        allowed = C.CLASSES[m_.cls].abilities
-        for entry in spec.get("priority") or []:
+    o = Order(say=str(data.get("say") or "").strip()[:300], priority=None)
+    mv = data.get("move_to")
+    if isinstance(mv, dict) and set(mv) >= {"x", "z"}:
+        mv = [mv["x"], mv["z"]]  # {"x": .., "z": ..} is unambiguous; accept it
+    if isinstance(mv, list) and len(mv) == 1 and isinstance(mv[0], str):
+        mv = mv[0]  # ["safe"] means "safe"
+    if isinstance(mv, str) and mv.strip().lower() in ("safe", "next"):
+        o.move_to = mv.strip().lower()
+    elif mv is not None:
+        if isinstance(mv, (list, tuple)) and len(mv) == 2 and all(isinstance(v, (int, float)) for v in mv):
+            o.move_to = (float(mv[0]), float(mv[1]))
+        else:
+            problems.append(f"bad move_to {mv!r}")
+    if "priority" in data:
+        o.priority = []
+        allowed = C.CLASSES[member.cls].abilities
+        raw = data.get("priority") or []
+        for entry in raw if isinstance(raw, list) else [raw]:
             if not (isinstance(entry, (list, tuple)) and len(entry) == 2):
-                problems.append(f"{m_.id}: bad priority entry {entry!r}")
+                problems.append(f"bad priority entry {entry!r}")
                 continue
             ab, tgt = str(entry[0]), str(entry[1])
             if tgt in ("self", "party", "me", "all"):
-                tgt = m_.id
+                tgt = me
             if ab not in allowed:
-                problems.append(f"{m_.id}: cannot use {ab!r}")
+                problems.append(f"cannot use {ab!r}")
                 continue
             if tgt not in unit_ids:
-                problems.append(f"{m_.id}: unknown target {tgt!r}")
+                problems.append(f"unknown target {tgt!r}")
                 continue
             o.priority.append((ab, tgt))
-        orders[m_.id] = o
-    for k in raw:
-        if k not in {m_.id for m_ in C.PARTY}:
-            problems.append(f"unknown character {k!r}")
-    return Parsed(orders, problems, True)
+    return Parsed({me: o}, problems, True)

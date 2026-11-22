@@ -39,9 +39,9 @@ export function Home() {
             Can an AI lead a Mythic+ group through a dungeon it has never seen?
           </h1>
           <p className="mt-6 max-w-[520px] text-[17px] leading-7 text-fg-muted">
-            One model gives the orders for a five-person party in the Gravecrown Crypt: two trash packs, then
-            Mortisar, on one timer. It goes in blind. After each wipe it reads the combat log, writes notes for
-            the group, and pulls again, up to five times.
+            Five AI agents, one per character, run the Gravecrown Crypt: two trash packs, then Mortisar, on one
+            timer. They go in blind. After each wipe they read the combat log, talk it over, each write their own
+            notes, and pull again, up to five times.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/watch" className="btn btn-primary h-11 px-5 text-[14px]">Watch a run</Link>

@@ -8,9 +8,9 @@ import { Draft, PaperCurves, PaperLeaderboard, PaperScatter } from './paperFigur
 
 Most agent benchmarks ask a model to finish a task once. Raid leaders do something else: they walk a
 group into a fight nobody has seen, watch it go wrong, work out why from the combat log, and call a
-better plan for the next pull. MythicBench measures that loop. One model gives the orders for a
-five-person party through a short Mythic+-style dungeon. It starts blind, and after every wipe it reads a
-factual debrief, rewrites its notes, and tries again.
+better plan for the next pull. MythicBench measures that loop. Five agents, one per character and all
+the same model, play a five-person party through a short Mythic+-style dungeon. They start blind. After
+every wipe they read the same factual combat log, talk it over, each rewrite their own notes, and try again.
 
 Two things are scored: how well it plays, and how much it improves between attempts.
 
@@ -19,7 +19,7 @@ Two things are scored: how well it plays, and how much it improves between attem
 ## 2. The dungeon
 
 The Gravecrown Crypt runs like a Mythic+ key: walk in, clear two trash packs, then kill Mortisar, the
-Hollow King, all on one 4:30 timer.
+Hollow King, all on one 4:15 timer.
 
 - **Chapel pack.** Four Bonewalkers and a Bone Chanter, whose Grave Volley hits the whole party and can be interrupted
 - **Ossuary pack.** Three Bonewalkers and a Marrow Mender, whose Mend Bones heals the pack. Kill the Mender first
@@ -27,29 +27,34 @@ Hollow King, all on one 4:30 timer.
 
 ### Normal and +10
 
-**Normal** has enemies at 60% of their listed health and damage and no affixes; a competent group
-should clear it. **+10** has full damage, 85% health, and three affixes, which the party always sees, as
-in the game:
+**Normal** has enemies at 95% of their listed health and 90% of their damage, and no affixes; a
+competent group should clear it. **+10** has 85% health, 115% damage, and three affixes, which the party
+always sees, as in the game:
 
 - **Restless Graves.** A dead undead leaves a grave for 12 s that heals undead and hurts players standing in it
 - **Marrowburst.** Every undead death stacks damage over time on the whole party, so many kills at once hurt
-- **Hollow Tyrant.** Mortisar summons adds three times and Desecrates four players instead of three
+- **Hollow Tyrant.** Mortisar summons adds three times, Desecrates four players instead of three, and every
+  ~24 s brands a player with Grave Mark, which detonates on every ally within 6 m
 
 ### Scoring a pull
 
-Each pull scores 0 to 100. A wipe earns up to 70 for progress (each pack 15%, Mortisar 70%). A clear
-earns 70 plus up to 30 for speed, with the 10 s revive penalties counted. Win or loss alone would tie
+Each pull scores 0 to 100. A wipe earns up to 70 for progress (each pack 15%, Mortisar 70%). A kill
+earns 70 plus up to 30 for speed, with the 10 s revive penalties counted. Only a kill within the timer
+counts as a clear; a kill after it is a depleted key: it scores 70, and the group goes again. Win or loss alone would tie
 every group that wins and every group that wipes; the score keeps separating them.
 
 ## 3. The harness and equal settings
 
 The simulator is deterministic: the same seed and the same orders give a byte-identical replay on any
-machine. Every model sees the same JSON observation a scripted bot sees, from each character's point of
-view, and returns a priority list of abilities per character every few seconds of game time.
+machine. Each agent sees what its character would: party frames (everyone's health, position, casts and
+auras), its own cooldowns, the enemies, the pools on the ground, and the party chat. It is asked for its
+character's orders every 4 seconds of game time, and sooner when something concerns it: a cast it could
+interrupt, a pool near it, an ally dying. It replies with a move, a priority list of its own abilities,
+and optionally a line in party chat. The simulation pauses while the agents think, so latency never matters.
 
 Every model in the official run gets the same settings:
 
-- the same prompt and the same observation format;
+- the same prompt and the same observation format, and no provider-specific JSON mode;
 - one shared reasoning effort (`medium`);
 - the same seeds, call interval and call budget per pull;
 - every reply recorded, so any run can be replayed exactly, for free.
@@ -60,14 +65,17 @@ Every model in the official run gets the same settings:
 
 - **Blind.** The party knows its own abilities and the affixes, nothing about the enemies
 - **Episodes.** Three per model and tier, each up to five pulls, stopping at the first clear
-- **Debrief.** After a wipe: who died to what, what hit hardest, every enemy cast seen and whether it was interrupted
-- **Notes.** The model rewrites its team notes (about 350 words) and they go into the rules for the next pull
+- **Combat log.** After a wipe every agent gets the same summary: who died to what, what hit hardest, every enemy cast seen and whether it was interrupted
+- **Party talk.** The agents speak in turn, tank first, until all five say they're ready (at most three rounds)
+- **Notes.** Each agent then rewrites its own private notes (at most 350 words), which go into its rules for the next pull. Nothing tells the agents what to learn or how
 - **New seed each pull.** The mechanics stay the same; the timings shuffle, so memorizing doesn't help
-- **Controls.** The two cheapest models also play +10 with memory off, their notes wiped between pulls
+- **Controls.** The two cheapest models also play with memory off: no talk and no notes between pulls
 
 An episode's progression score is the mean of its pull scores, with a clear carried forward for the
-pulls it saved. The MythicBench score is the mean of the Normal and +10 progression scores; its 95%
-interval combines the two tiers' standard errors.
+pulls it saved. The MythicBench score is the mean of the Normal and +10 progression scores. Intervals are
+Student-t 95% intervals over episodes (with three episodes the multiplier is 4.3, not 1.96). The learning
+effect is the progression score with memory on minus the score with memory off, on the same seeds: a
+within-episode gain alone is biased upward, because a clear carries forward.
 
 ## 5. Results
 
@@ -91,8 +99,8 @@ interval combines the two tiers' standard errors.
 
 Before any model plays, three hand-written bots check that the benchmark can tell good play from bad:
 **expert** (clean pulls, casters first, every kick), **competent** (a few missed kicks and slow dodges)
-and **sloppy**. Over 200 seeds on +10 they score 73.5, 59.6 and 16.3, with non-overlapping 95%
-intervals, and clear 60%, 13% and 0% of the time. On Normal, expert and competent clear nearly always.
+and **sloppy**. Over 200 seeds on +10 they score 66.1, 49.7 and 7.0, with non-overlapping 95%
+intervals, and clear 25%, 1% and 0% of the time. On Normal they clear 99%, 79% and 0%.
 The bots also appear on the leaderboard, scored on the same seeds as the models.
 
 ## 8. Limitations

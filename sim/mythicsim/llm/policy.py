@@ -1,15 +1,21 @@
-"""The LLM party brain.
+"""Five LLM agents, one per character.
 
-One model controls all five characters (like one player multiboxing). The
-engine asks each character's policy for actions every 100 ms tick; calling a
-model that often is impossible, so the brain only calls it:
+Each character is played by its own agent (all five are the same model, each
+with its own rules text, notes, and conversation). The engine asks each
+character's policy for actions every 100 ms tick; calling a model that often is
+impossible, so an agent is only called:
 
-* every ``interval_ms`` of game time, and
-* immediately when something important happens (a boss cast starts, pools
-  appear, adds spawn, an ally gets low or dies).
+* every ``interval_ms`` of game time (a routine check-in), and
+* immediately when something that concerns it happens: a cast it could
+  interrupt (or any cast that can't be), pools near it, adds, a pack or the
+  boss pulled, an ally dying, itself (or, for the healer, anyone) getting low,
+  a Grave Mark on or near it, itself standing in a pool.
+
+Agents asked at the same tick are called in parallel and see the same moment;
+what they say goes to a party chat that everyone sees from the next call on.
 
 The simulation runs synchronously, so the game is effectively paused while
-the model thinks: slow models aren't penalised for latency, and runs stay
+the agents think: slow models aren't penalised for latency, and runs stay
 reproducible from the recorded replies.
 
 Between calls each character follows its latest standing orders (a move and
@@ -18,6 +24,7 @@ a priority list), checked against the same rules the engine enforces.
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
 from .. import content as C
@@ -35,6 +42,12 @@ LOW_HP_PCT = 40.0
 REACTION_MS = 350
 # Routine check-in interval (game time). Important events ask sooner.
 ROUTINE_MS = 4000
+# A new pool concerns characters within this distance of its edge.
+POOL_NEAR_M = 4.0
+
+INTERRUPTERS = {m.id for m in C.PARTY if any(C.ABILITIES[a].kind == "interrupt" for a in C.CLASSES[m.cls].abilities)}
+HEALERS = {m.id for m in C.PARTY if C.CLASSES[m.cls].role == "healer"}
+PARTY_IDS = [m.id for m in C.PARTY]
 
 
 @dataclass
@@ -46,7 +59,7 @@ class BrainStats:
     cache_write_tokens: int = 0  # part of input_tokens written to the provider's prompt cache
     latency_s: float = 0.0
     cached_calls: int = 0
-    unusable_replies: int = 0  # not JSON / no orders: the party keeps its old orders
+    unusable_replies: int = 0  # not JSON / no orders: the character keeps its old orders
     truncated_replies: int = 0  # cut off by the output-token limit
     invalid_entries: int = 0  # unknown abilities/targets etc. that we dropped
     api_errors: int = 0
@@ -61,6 +74,15 @@ class BrainStats:
         d["latency_s"] = round(self.latency_s, 2)
         return d
 
+    def add(self, o: "BrainStats") -> None:
+        for k in ("calls", "input_tokens", "output_tokens", "cache_read_tokens", "cache_write_tokens", "latency_s",
+                  "cached_calls", "unusable_replies", "truncated_replies", "invalid_entries", "api_errors", "refusals"):
+            setattr(self, k, getattr(self, k) + getattr(o, k))
+        self.budget_exhausted = self.budget_exhausted or o.budget_exhausted
+        for k, v in o.triggers.items():
+            self.triggers[k] = self.triggers.get(k, 0) + v
+        self.problems.extend(o.problems[: max(0, 50 - len(self.problems))])
+
 
 @dataclass
 class Standing:
@@ -70,24 +92,62 @@ class Standing:
     said: bool = False
 
 
-class PartyBrain:
+def trigger_kind(w: str) -> str:
+    return ("boss_cast" if "started casting" in w else "pools" if w.startswith("new pools")
+            else "in_pool" if "standing in" in w
+            else "pack" if w.endswith(("pulled", "cleared")) or "woke" in w
+            else "adds" if w.startswith("adds") else "death" if w.endswith("died")
+            else "low_hp" if "is low" in w else "start" if "starting" in w
+            else "mark" if "branded" in w else "routine")
+
+
+class Agent:
+    """One character's player: its own rules text (with its own notes), orders, and stats."""
+
+    def __init__(self, uid: str, system: str):
+        self.uid = uid
+        self.system = system
+        self.orders: Standing | None = None
+        self.stats = BrainStats()
+        self.last_call_t: int | None = None
+        self.pending: list[str] = []  # events since the last call, waiting for the minimum gap
+        self.gcd = 0
+
+    def describe_orders(self) -> str:
+        s = self.orders
+        if not s:
+            return "  (none yet)"
+        mv = f"move_to {s.order.move_to}, " if s.order.move_to and not s.move_done else ""
+        pr = ", ".join(f"{a}->{t}" for a, t in s.order.priority or []) or "nothing"
+        return f"  {mv}priority [{pr}]"
+
+    def note(self, msg: str) -> None:
+        if len(self.stats.problems) < 50:
+            self.stats.problems.append(msg)
+
+
+class Party:
     def __init__(self, client: ChatClient, interval_ms: int = ROUTINE_MS, min_gap_ms: int = 500,
-                 max_calls: int = 300, knowledge: str = "full", notes: str | None = None,
-                 pull: int | None = None, tier: str = C.DEFAULT_TIER, mode: str = "boss"):
+                 max_calls: int = 300, knowledge: str = "full", notes: dict[str, str] | None = None,
+                 pull: int | None = None, tier: str = C.DEFAULT_TIER, mode: str = "boss", scope: str = "",
+                 parallel: bool = True):
         self.client = client
         self.knowledge = knowledge
         self.interval_ms = interval_ms
         self.min_gap_ms = min_gap_ms
-        self.max_calls = max_calls
-        self.system = system_prompt(knowledge, notes, pull, tier, mode)
+        self.max_calls = max_calls  # per agent
+        self.scope = scope  # tags recorded replies with where they were asked (episode/pull)
+        self.parallel = parallel
+        notes = notes or {}
+        self.agents = {uid: Agent(uid, system_prompt(knowledge, notes.get(uid) or None, pull, tier, mode, uid))
+                       for uid in PARTY_IDS}
+        self.chat: list[tuple[int, str, str]] = []
+        self.calls: list[dict] = []  # every model call, for the replay's call inspector
         self.pack_states: dict[str, str] = {}
         self.boss_awake = False
-        self.orders: dict[str, Standing] = {}
-        self.gcd: dict[str, int] = {}
-        self.stats = BrainStats()
-        self.last_call_t: int | None = None
         self.last_tick = -1
-        # What we had already told the model about, to detect new events.
+        self.started = False
+        # What has already been announced, to detect new events.
         self.seen_casts: set[str] = set()
         self.seen_ground: set[str] = set()
         self.seen_enemies: set[str] = set()
@@ -95,163 +155,217 @@ class PartyBrain:
         self.dead: set[str] = set()
         self.marked: set[str] = set()
 
+    @property
+    def stats(self) -> BrainStats:
+        total = BrainStats()
+        for a in self.agents.values():
+            total.add(a.stats)
+        return total
+
+    def stats_dict(self) -> dict:
+        d = self.stats.as_dict()
+        d["agents"] = {uid: {k: v for k, v in a.stats.as_dict().items() if k != "problems"}
+                       for uid, a in self.agents.items()}
+        return d
+
     # ------------------------------------------------------------------
-    def triggers(self, obs: dict) -> list[str]:
-        why: list[str] = []
+    def events(self, obs: dict) -> list[tuple[str, set[str]]]:
+        """New events this tick, each with the characters it concerns."""
+        everyone = set(PARTY_IDS)
+        pos = {p["id"]: p["pos"] for p in obs["party"]}
+        out: list[tuple[str, set[str]]] = []
         for e in obs["enemies"]:
             c = e["casting"]
             if c:
                 key = f"{e['id']}:{obs['t'] - c['elapsed_ms']}"
                 if key not in self.seen_casts:
-                    why.append(f"{e['id']} started casting {c['ability']}")
-        new_pools = [g["id"] for g in obs["ground"] if g["id"] not in self.seen_ground]
-        if new_pools:
-            why.append(f"new pools: {', '.join(new_pools)}")
+                    self.seen_casts.add(key)
+                    # Kickable casts concern whoever can kick; the boss's other
+                    # casts concern everyone; a trash caster's, its target and the healer.
+                    who = (INTERRUPTERS if c["interruptible"] else everyone if e["role"] == "boss"
+                           else HEALERS | ({c["target"]} if c.get("target") else set()))
+                    out.append((f"{e['id']} started casting {c['ability']}", who))
+        for g in obs["ground"]:
+            if g["id"] not in self.seen_ground:
+                self.seen_ground.add(g["id"])
+                near = {p for p, xz in pos.items() if dist(xz, g["pos"]) <= g["radius"] + POOL_NEAR_M}
+                if near:
+                    out.append((f"new pools: {g['id']}", near))
         new_adds = [e["id"] for e in obs["enemies"] if e["role"] == "add" and e["id"] not in self.seen_enemies]
-        if new_adds and self.last_call_t is not None:
-            why.append(f"adds appeared: {', '.join(new_adds)}")
+        self.seen_enemies |= {e["id"] for e in obs["enemies"]}
+        if new_adds and self.started:
+            out.append((f"adds appeared: {', '.join(new_adds)}", everyone))
         dg = obs.get("dungeon")
         if dg:
             for p in dg["packs"]:
                 old = self.pack_states.get(p["id"], "idle")
                 if p["state"] != old:
-                    why.append(f"{p['name']} {'pulled' if p['state'] == 'engaged' else 'cleared'}")
+                    out.append((f"{p['name']} {'pulled' if p['state'] == 'engaged' else 'cleared'}", everyone))
             if dg["boss_engaged"] and not self.boss_awake:
-                why.append("Mortisar woke up")
-        for p in obs["party"]:
-            if p["alive"] and "grave_mark" in p["auras"] and p["id"] not in self.marked:
-                why.append(f"{p['id']} was branded with grave_mark")
-            if p["alive"] and any(g["armed"] and dist(p["pos"], g["pos"]) <= g["radius"] + POOL_HIT_PAD
-                                  for g in obs["ground"]):
-                why.append(f"{p['id']} is standing in an armed pool")
-            if not p["alive"] and p["id"] not in self.dead:
-                why.append(f"{p['id']} died")
-            elif p["alive"] and p["hp_pct"] < LOW_HP_PCT and p["id"] not in self.low:
-                why.append(f"{p['id']} is low ({p['hp_pct']:.0f}%)")
-        return why
-
-    def remember(self, obs: dict) -> None:
-        for e in obs["enemies"]:
-            self.seen_enemies.add(e["id"])
-            if e["casting"]:
-                self.seen_casts.add(f"{e['id']}:{obs['t'] - e['casting']['elapsed_ms']}")
-        self.seen_ground |= {g["id"] for g in obs["ground"]}
-        self.low = {p["id"] for p in obs["party"] if p["alive"] and p["hp_pct"] < LOW_HP_PCT}
-        self.dead = {p["id"] for p in obs["party"] if not p["alive"]}
-        self.marked = {p["id"] for p in obs["party"] if p["alive"] and "grave_mark" in p["auras"]}
-        dg = obs.get("dungeon")
-        if dg:
+                out.append(("Mortisar woke up", everyone))
             self.pack_states = {p["id"]: p["state"] for p in dg["packs"]}
             self.boss_awake = dg["boss_engaged"]
+        low, dead, marked = set(), set(), set()
+        for p in obs["party"]:
+            if not p["alive"]:
+                dead.add(p["id"])
+                if p["id"] not in self.dead:
+                    out.append((f"{p['id']} died", everyone))
+                continue
+            if "grave_mark" in p["auras"]:
+                marked.add(p["id"])
+                if p["id"] not in self.marked:
+                    near = {o for o, xz in pos.items() if dist(xz, p["pos"]) <= C.GRAVE_MARK_RADIUS + 2.0}
+                    out.append((f"{p['id']} was branded with grave_mark", near | {p["id"]}))
+            if p["hp_pct"] < LOW_HP_PCT:
+                low.add(p["id"])
+                if p["id"] not in self.low:
+                    out.append((f"{p['id']} is low ({p['hp_pct']:.0f}%)", HEALERS | {p["id"]}))
+        self.low, self.dead, self.marked = low, dead, marked
+        return out
+
+    def in_pool(self, obs: dict, uid: str) -> bool:
+        p = next(p for p in obs["party"] if p["id"] == uid)
+        return p["alive"] and any(g["armed"] and dist(p["pos"], g["pos"]) <= g["radius"] + POOL_HIT_PAD
+                                  for g in obs["ground"])
 
     def tick(self, obs: dict) -> None:
-        """Called by the first living character each tick; decides whether to ask the model."""
+        """Called by the first living character each tick; decides which agents to ask."""
         t = obs["t"]
         if t == self.last_tick:
             return
         self.last_tick = t
-        why = self.triggers(obs)
-        if self.last_call_t is None:
-            why = ["the fight is starting"]
-        elif t - self.last_call_t >= self.interval_ms:
-            why = why or ["routine check-in"]
-        elif not why or t - self.last_call_t < self.min_gap_ms:
-            # Urgent: an interruptible cast can't wait for the minimum gap.
-            if not any("started casting" in w for w in why):
-                return
-        if self.stats.calls >= self.max_calls:
-            self.stats.budget_exhausted = True
-            return
-        self.call(obs, why)
+        events = self.events(obs)
+        alive = {p["id"] for p in obs["party"] if p["alive"]}
+        asks: list[tuple[Agent, list[str]]] = []
+        for uid in PARTY_IDS:
+            a = self.agents[uid]
+            if uid not in alive:
+                a.pending.clear()
+                continue
+            a.pending.extend(w for w, who in events if uid in who and w not in a.pending)
+            why = list(a.pending)
+            if self.in_pool(obs, uid):
+                why.append(f"{uid} is standing in an armed pool")
+            if a.last_call_t is None:
+                why = ["the fight is starting"]
+            elif t - a.last_call_t >= self.interval_ms:
+                why = why or ["routine check-in"]
+            elif not why or t - a.last_call_t < self.min_gap_ms:
+                # Urgent: an interruptible cast can't wait for the minimum gap.
+                if not any("started casting" in w for w in why):
+                    continue
+            if a.stats.calls >= self.max_calls:
+                a.stats.budget_exhausted = True
+                continue
+            asks.append((a, why))
+        self.started = True
+        if asks:
+            self.ask(obs, asks)
 
-    def call(self, obs: dict, why: list[str]) -> None:
-        for w in why:
-            kind = ("boss_cast" if "started casting" in w else "pools" if w.startswith("new pools")
-                    else "in_pool" if "standing in" in w
-                    else "pack" if w.endswith(("pulled", "cleared")) or "woke" in w
-                    else "adds" if w.startswith("adds") else "death" if w.endswith("died")
-                    else "low_hp" if "is low" in w else "start" if "starting" in w
-                    else "mark" if "branded" in w else "routine")
-            self.stats.triggers[kind] = self.stats.triggers.get(kind, 0) + 1
-        age = None if self.last_call_t is None else (obs["t"] - self.last_call_t) / 1000
-        user = (render_state(obs, self.gcd, age, self.knowledge)
-                + "\nCURRENT ORDERS:\n" + self.describe_orders()
-                + f"\nWHY YOU ARE BEING ASKED NOW: {'; '.join(why)}.\nReply with the JSON orders.")
-        self.last_call_t = obs["t"]
-        self.remember(obs)
-        self.stats.calls += 1
-        try:
-            reply = self.client.complete(self.system, user)
-        except ClientError as err:
-            if err.fatal:
-                raise
-            self.stats.api_errors += 1
-            self.note(f"t={obs['t']}: {err}")
+    def ask(self, obs: dict, asks: list[tuple[Agent, list[str]]]) -> None:
+        jobs = []
+        chat = list(self.chat)  # everyone asked now sees the same chat
+        for a, why in asks:
+            for w in why:
+                k = trigger_kind(w)
+                a.stats.triggers[k] = a.stats.triggers.get(k, 0) + 1
+            age = None if a.last_call_t is None else (obs["t"] - a.last_call_t) / 1000
+            user = (render_state(obs, a.uid, a.gcd, age, self.knowledge, chat)
+                    + "\nYOUR CURRENT ORDERS:\n" + a.describe_orders()
+                    + f"\nWHY YOU ARE BEING ASKED NOW: {'; '.join(why)}.\nReply with the JSON orders for {a.uid}.")
+            a.last_call_t = obs["t"]
+            a.pending.clear()
+            a.stats.calls += 1
+            tag = f"{self.scope}|play|{a.uid}|{a.stats.calls}"
+            jobs.append((a, why, user, tag))
+
+        def call(job):
+            a, _, user, tag = job
+            try:
+                return self.client.complete(a.system, user, tag=tag)
+            except ClientError as err:
+                if err.fatal:
+                    raise
+                return err
+
+        if self.parallel and len(jobs) > 1:
+            with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
+                replies = list(pool.map(call, jobs))
+        else:
+            replies = [call(j) for j in jobs]
+        ids = {u["id"] for u in obs["party"] + obs["enemies"]}
+        for (a, why, user, _), reply in zip(jobs, replies):  # applied in party order: deterministic
+            self.apply(obs, a, why, user, reply, ids)
+
+    def apply(self, obs: dict, a: Agent, why: list[str], user: str, reply, ids: set[str]) -> None:
+        rec = {"t": obs["t"], "agent": a.uid, "why": why, "prompt": user}
+        self.calls.append(rec)
+        if isinstance(reply, ClientError):
+            a.stats.api_errors += 1
+            a.note(f"t={obs['t']}: {reply}")
+            rec["error"] = str(reply)[:300]
             return
-        self.stats.input_tokens += reply.input_tokens
-        self.stats.output_tokens += reply.output_tokens
-        self.stats.cache_read_tokens += reply.cache_read_tokens
-        self.stats.cache_write_tokens += reply.cache_write_tokens
-        self.stats.latency_s += reply.latency_s
-        self.stats.cached_calls += reply.cached
+        s = a.stats
+        s.input_tokens += reply.input_tokens
+        s.output_tokens += reply.output_tokens
+        s.cache_read_tokens += reply.cache_read_tokens
+        s.cache_write_tokens += reply.cache_write_tokens
+        s.latency_s += reply.latency_s
+        s.cached_calls += reply.cached
+        rec.update(reply=reply.text, thinking=reply.thinking, input_tokens=reply.input_tokens,
+                   output_tokens=reply.output_tokens, cache_read_tokens=reply.cache_read_tokens)
         if reply.refused:
-            self.stats.refusals += 1
-            self.note(f"t={obs['t']}: the provider refused to answer")
+            s.refusals += 1
+            a.note(f"t={obs['t']}: the provider refused to answer")
+            rec["refused"] = True
             return
         if reply.truncated:
-            self.stats.truncated_replies += 1
-            self.note(f"t={obs['t']}: reply cut off at the output-token limit")
-        ids = {u["id"] for u in obs["party"] + obs["enemies"]}
-        dead = {p["id"] for p in obs["party"] if not p["alive"]}
-        parsed = parse_reply(reply.text, ids, dead)
+            s.truncated_replies += 1
+            a.note(f"t={obs['t']}: reply cut off at the output-token limit")
+            rec["truncated"] = True
+        parsed = parse_reply(reply.text, a.uid, ids)
         if not parsed.ok:
-            self.stats.unusable_replies += 1
-        self.stats.invalid_entries += len(parsed.problems)
+            s.unusable_replies += 1
+        s.invalid_entries += len(parsed.problems)
         for p in parsed.problems:
-            self.note(f"t={obs['t']}: {p}")
-        for uid, order in parsed.orders.items():
-            old = self.orders.get(uid)
-            if old and old.order == order:
-                # Same orders again: don't re-log the decision, but a move the
-                # model sends again is a fresh instruction (e.g. "safe" for a new pool).
-                old.move_done = order.move_to is None
-                continue
-            self.orders[uid] = Standing(order, obs["t"])
-
-    def note(self, msg: str) -> None:
-        if len(self.stats.problems) < 50:
-            self.stats.problems.append(msg)
-
-    def describe_orders(self) -> str:
-        if not self.orders:
-            return "  (none yet)"
-        out = []
-        for m in C.PARTY:
-            s = self.orders.get(m.id)
-            if not s:
-                out.append(f"  {m.id}: none")
-                continue
-            mv = f"move_to {s.order.move_to}, " if s.order.move_to and not s.move_done else ""
-            pr = ", ".join(f"{a}->{t}" for a, t in s.order.priority) or "nothing"
-            out.append(f"  {m.id}: {mv}priority [{pr}]")
-        return "\n".join(out)
+            a.note(f"t={obs['t']}: {p}")
+        if parsed.problems:
+            rec["problems"] = parsed.problems
+        order = parsed.orders.get(a.uid)
+        if order is None:
+            return
+        if order.priority is None:  # left out: keep the current priority list
+            order.priority = list(a.orders.order.priority or []) if a.orders else []
+        if order.say:
+            self.chat.append((obs["t"], a.uid, order.say))
+        old = a.orders
+        if old and old.order.move_to == order.move_to and old.order.priority == order.priority:
+            # Same orders again: a move the agent sends again is a fresh
+            # instruction (e.g. "safe" for a new pool); a new message is said.
+            old.move_done = order.move_to is None
+            if order.say and order.say != old.order.say:
+                old.order.say, old.said = order.say, False
+            return
+        a.orders = Standing(order, obs["t"])
 
 
 class LLMPolicy:
-    """Per-character adapter: follows the brain's standing orders each tick."""
+    """Per-character adapter: follows its agent's standing orders each tick."""
 
-    def __init__(self, unit_id: str, brain: PartyBrain):
+    def __init__(self, unit_id: str, party: Party):
         self.uid = unit_id
-        self.brain = brain
-        self.name = f"llm:{brain.client.spec}"
+        self.party = party
+        self.name = f"llm:{party.client.spec}"
 
     def act(self, obs: dict) -> list[Action]:
         me = obs["self"]
-        self.brain.gcd[self.uid] = me.get("gcd_ms", 0)
+        agent = self.party.agents[self.uid]
+        agent.gcd = me.get("gcd_ms", 0)
         if not me["alive"]:
             return []
-        self.brain.tick(obs)
-        st = self.brain.orders.get(self.uid)
+        self.party.tick(obs)
+        st = agent.orders
         if not st:
             return []
         out: list[Action] = []
@@ -268,7 +382,7 @@ class LLMPolicy:
         if me["casting"]:
             return out
         units = {u["id"]: u for u in obs["party"] + obs["enemies"]}
-        for ab_id, tgt_id in st.order.priority:
+        for ab_id, tgt_id in st.order.priority or []:
             if self.usable(ab_id, tgt_id, me, units, moving):
                 out.append(Action("cast", ab_id, tgt_id, reason=self.say(st)))
                 break
@@ -290,7 +404,7 @@ class LLMPolicy:
         pos = tuple(me["pos"])
         units = {u["id"]: u for u in obs["party"] + obs["enemies"]}
         reach = None
-        for ab_id, tgt_id in st.order.priority:
+        for ab_id, tgt_id in st.order.priority or []:
             tgt, ab = units.get(tgt_id), C.ABILITIES[ab_id]
             if tgt and tgt["alive"] and tgt_id != self.uid and ab.kind not in ("taunt", "buff", "raid_heal", "aoe_damage"):
                 radius = C.BOSS.radius if tgt["role"] == "boss" else C.ADD.radius if tgt["role"] == "add" else PLAYER_RADIUS
@@ -334,6 +448,6 @@ class LLMPolicy:
         return dist(me["pos"], tgt["pos"]) - PLAYER_RADIUS - radius <= ab.range
 
 
-def make_llm_policies(client: ChatClient, **brain_kwargs) -> tuple[dict[str, LLMPolicy], PartyBrain]:
-    brain = PartyBrain(client, **brain_kwargs)
-    return {m.id: LLMPolicy(m.id, brain) for m in C.PARTY}, brain
+def make_llm_policies(client: ChatClient, **party_kwargs) -> tuple[dict[str, LLMPolicy], Party]:
+    party = Party(client, **party_kwargs)
+    return {uid: LLMPolicy(uid, party) for uid in PARTY_IDS}, party

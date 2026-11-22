@@ -73,9 +73,20 @@ export interface ReplayMeta {
   revives?: number
   boss_engaged_ms?: number | null
   /** Model runs: which run produced this replay. */
-  run?: { run_id: string; name: string | null; label: string; model: string; effort: string | null; harness_version: string; prompt_hash: string }
-  /** Progression runs: this pull's place in its episode and what the model knew. */
-  progress?: { episode: number; pull: number; memory: boolean; knowledge: string; level?: number; tier?: string; notes_before: string; notes_after: string; debrief: string }
+  run?: {
+    run_id: string; name: string | null; label: string; model: string; effort: string | null; harness_version: string; prompt_hash: string
+    git_commit?: string | null; knowledge?: string | null; tier?: string | null; dungeon_mode?: string | null; max_pulls?: number | null; campaign?: string | null
+  }
+  /** Progression runs: this pull's place in its episode and what the agents knew. */
+  progress?: {
+    episode: number; pull: number; memory: boolean; knowledge: string; level?: number; tier?: string
+    /** One agent per character (harness 0.9+): notes per character id. Older runs: one string for the whole party. */
+    agents?: string
+    notes_before: string | Record<string, string>; notes_after: string | Record<string, string>
+    /** The party's talk between this pull and the next. */
+    talk?: TalkLine[]
+    debrief: string
+  }
 }
 
 interface Base { t: number }
@@ -101,6 +112,25 @@ export type ReplayEvent =
   | (Base & { type: 'emote'; unit: string; style: 'yell' | 'warning'; text: string })
   | (Base & { type: 'decision'; unit: string; action: string; reason: string })
 
+/** One model call during a pull: what the agent saw, why it was asked, what it replied. */
+export interface ModelCall {
+  t: number
+  agent: string
+  why: string[]
+  prompt: string
+  reply?: string
+  thinking?: string
+  input_tokens?: number
+  output_tokens?: number
+  cache_read_tokens?: number
+  problems?: string[]
+  error?: string
+  refused?: boolean
+  truncated?: boolean
+}
+
+export interface TalkLine { round: number; agent: string; message: string; ready: boolean; thinking?: string }
+
 export interface Replay {
   schema_version: string
   meta: ReplayMeta
@@ -120,6 +150,9 @@ export interface Replay {
   affixes?: Record<string, { name: string; description: string }>
   units: UnitInfo[]
   events: ReplayEvent[]
+  /** Model runs (harness 0.9+): every call, and each agent's rules text. */
+  calls?: ModelCall[]
+  agents?: Record<string, { system: string }>
 }
 
 export interface ReplayIndexEntry {
@@ -149,6 +182,11 @@ export interface CatalogItem {
   outcome: string
   score: number
   duration_s: number
+  in_time?: boolean
+  /** per-pull facts for the learning charts */
+  deaths?: number
+  kicks?: [number, number]
+  avoidable?: number
 }
 
 /** A model run (one `mythicsim llm` invocation), from replays/local/catalog.json. */

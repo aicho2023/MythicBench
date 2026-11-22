@@ -87,3 +87,46 @@ def test_dry_run_plays_nothing(sandbox, capsys):
     K.run_campaign(proto, dry_run=True)
     assert not (tmp / "runs").exists() or not list((tmp / "runs").glob("*/manifest.json"))
     assert "worst case" in capsys.readouterr().out
+
+
+def test_campaign_key_names_the_code_versions():
+    from mythicsim.engine import SIM_VERSION
+    from mythicsim.llm import HARNESS_VERSION
+    (c, *_) = K.combos(PROTO)
+    key = c.key(PROTO)
+    assert HARNESS_VERSION in key and SIM_VERSION in key and K.C.CONTENT_VERSION in key
+
+
+def test_learning_effect_is_measured_against_the_control(sandbox):
+    tmp, proto = sandbox
+    K.run_campaign(proto)
+    res = K.build_results(proto, tmp / "res", tmp / "runs", with_bots=False)
+    (row,) = res["leaderboard"]
+    cell, ctl = row["tiers"]["plus10"], res["controls"][0]
+    assert cell["learning_effect"] == round(cell["progression_score"] - ctl["progression_score"], 1)
+    assert "learning_effect" not in row["tiers"]["normal"]  # no control there
+    assert row["rank"] == 1 and row["complete"]
+
+
+def test_incomplete_cells_are_not_ranked(sandbox):
+    tmp, proto = sandbox
+    K.run_campaign(dict(proto, episodes=1))
+    res = K.build_results(proto, tmp / "res", tmp / "runs", with_bots=False)  # protocol wants 2 episodes
+    (row,) = res["leaderboard"]
+    assert not row["complete"] and row["rank"] is None
+    assert row["tiers"]["normal"]["complete"] is False
+
+
+def test_paid_campaign_refuses_uncommitted_code(sandbox, monkeypatch):
+    tmp, proto = sandbox
+    paid = dict(proto, models=[{"provider": "anthropic", "id": "claude-haiku-5-5", "effort": "medium"}])
+    monkeypatch.setattr(K, "dirty_files", lambda: ["sim/mythicsim/engine.py"])
+    with pytest.raises(SystemExit, match="uncommitted"):
+        K.run_campaign(paid)
+
+
+def test_results_ship_the_recordings(sandbox):
+    tmp, proto = sandbox
+    K.run_campaign(proto)
+    K.build_results(proto, tmp / "res", tmp / "runs", with_bots=False)
+    assert list((tmp / "res" / "recordings").glob("*.jsonl.gz"))

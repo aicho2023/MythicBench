@@ -9,8 +9,9 @@ Pieces:
                 response cache that makes model runs replayable
   prompt.py   - game rules -> system prompt, observation -> state text,
                 model reply -> validated orders
-  policy.py   - the party "brain": decides when to call the model and turns
-                its orders into per-tick actions
+  policy.py   - five agents, one per character: when each is asked, party
+                chat, and turning its orders into per-tick actions
+  progress.py - pulls, the party's talk between pulls, each agent's notes
 """
 
 # Bump whenever anything the model sees or can do changes (prompt text, state
@@ -24,11 +25,18 @@ Pieces:
 #   0.7.0  4 s routine check-ins; "include only changed orders"; 8,000-token
 #          output cap; adaptive thinking with summaries; refusals recorded
 #   0.8.0  harder tiers with per-tier timers; Grave Mark (+10) and its trigger
-HARNESS_VERSION = "0.8.0"
+#   0.9.0  five agents (one per character) with party chat; between pulls a
+#          party talk and private per-agent notes, with no guidance on what to
+#          learn; only timed clears end an episode; no OpenAI JSON mode
+#          (same reply contract for both providers); recorded replies tagged
+#          by episode/pull/agent/call
+HARNESS_VERSION = "0.9.0"
 
 
 def prompt_hash(knowledge: str = "full", tier: str = "plus10", mode: str = "boss") -> str:
-    """Short fingerprint of the exact rules text the model receives (before any notes)."""
+    """Short fingerprint of the exact rules texts the five agents receive (before any notes)."""
     import hashlib
+    from .. import content as C
     from .prompt import system_prompt
-    return hashlib.sha256(system_prompt(knowledge, tier=tier, mode=mode).encode()).hexdigest()[:10]
+    texts = [system_prompt(knowledge, tier=tier, mode=mode, me=m.id) for m in C.PARTY]
+    return hashlib.sha256("\n\0".join(texts).encode()).hexdigest()[:10]

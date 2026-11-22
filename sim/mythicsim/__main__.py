@@ -139,7 +139,9 @@ def build_client(args, n_fights: int):
         client = meter
     if not args.no_cache:
         safe = label.replace(":", "_").replace("/", "_").replace("@", "_")
-        client = CachedClient(client, runs_mod.RUNS_DIR / "cache" / f"{safe}.jsonl", offline=args.offline)
+        # A campaign records into its own folder, so it never replays pilot runs.
+        cache_dir = getattr(args, "cache_dir", None) or runs_mod.RUNS_DIR / "cache"
+        client = CachedClient(client, Path(cache_dir) / f"{safe}.jsonl", offline=args.offline)
     tally = spend.CostMeter(client, price)
     return tally, label, price, meter
 
@@ -156,15 +158,18 @@ def money_summary(tally, meter, n_fights: int) -> dict:
 
 
 def play_llm_seed(client, seed: int, args, label: str, run) -> tuple[dict, dict]:
-    policies, brain = make_llm_policies(client, interval_ms=args.interval_ms, max_calls=args.max_calls,
-                                        tier=args.tier, mode=args.mode)
+    policies, party = make_llm_policies(client, interval_ms=args.interval_ms, max_calls=args.max_calls,
+                                        tier=args.tier, mode=args.mode, scope=f"s{seed}")
     rep = make_encounter(seed, policies, f"llm:{label}", args.tier, args.mode).run()
     s = score(rep)
     rep["meta"]["metrics"] = s
     rep["meta"]["run"] = {k: run.manifest.get(k) for k in
-                          ("run_id", "name", "label", "model", "effort", "harness_version", "prompt_hash")}
+                          ("run_id", "name", "label", "model", "effort", "harness_version", "prompt_hash", "git_commit",
+                                     "knowledge", "tier", "dungeon_mode", "max_pulls", "campaign")}
+    rep["agents"] = {uid: {"system": a.system} for uid, a in party.agents.items()}
+    rep["calls"] = party.calls
     run.replay_path(seed).write_text(json.dumps(rep, separators=(",", ":")))
-    st = brain.stats.as_dict()
+    st = party.stats_dict()
     st["usd"] = cost_fields(args._price, st)
     (run.seeds_dir / f"seed-{seed}.stats.json").write_text(json.dumps(st, indent=2))
     return rep, st
@@ -279,11 +284,12 @@ def run_progress(args) -> dict:
         d = run.dir / "episodes" / str(ep.episode)
         d.mkdir(parents=True, exist_ok=True)
         pr.replay["meta"]["run"] = {k: run.manifest.get(k) for k in
-                                    ("run_id", "name", "label", "model", "effort", "harness_version", "prompt_hash")}
+                                    ("run_id", "name", "label", "model", "effort", "harness_version", "prompt_hash", "git_commit",
+                                     "knowledge", "tier", "dungeon_mode", "max_pulls", "campaign")}
         (d / f"pull-{pr.pull}.json").write_text(json.dumps(pr.replay, separators=(",", ":")))
         pr.stats["usd"] = cost_fields(price, pr.stats)
         (d / f"pull-{pr.pull}.stats.json").write_text(json.dumps(pr.stats, indent=2))
-        (d / f"notes-after-{pr.pull}.md").write_text(pr.notes_after)
+        (d / f"notes-after-{pr.pull}.json").write_text(json.dumps(pr.notes_after, indent=1))
         m = pr.metrics
         print(f"episode {ep.episode:>2} pull {pr.pull}: {m['outcome']:7s} score {m['score']:6.1f}  "
               f"deaths {len(m['deaths'])}  calls {pr.stats['calls']}  "
@@ -304,7 +310,7 @@ def run_progress(args) -> dict:
                 # Marks the episode complete (the campaign resumes from these).
                 (run.dir / "episodes" / str(ep.episode) / "episode.json").write_text(json.dumps({
                     "episode": ep.episode, "pulls": len(ep.pulls), "complete": True,
-                    "cleared_on": next((p.pull for p in ep.pulls if p.metrics["outcome"] == "victory"), None)}))
+                    "cleared_on": ep.killed_on}))
             except spend.BudgetExceeded as err:
                 # The interrupted episode's finished pulls are on disk but not
                 # counted: a cut-short episode would bias pulls-to-kill.
@@ -325,7 +331,8 @@ def run_progress(args) -> dict:
     summary = summarize(results, args.max_pulls)
     summary.update(money_summary(client, meter, sum(len(e.pulls) for e in results)))
     items = [{"episode": e.episode, "pull": p.pull, "seed": p.seed, "file": f"episodes/{e.episode}/pull-{p.pull}.json",
-              "outcome": p.metrics["outcome"], "score": p.metrics["score"], "duration_s": p.metrics["duration_s"]}
+              "outcome": p.metrics["outcome"], "in_time": p.metrics.get("in_time", False),
+              "score": p.metrics["score"], "duration_s": p.metrics["duration_s"], **pull_facts(p.metrics)}
              for e in results for p in e.pulls]
     runs_mod.finish_run(run, summary, items, status="stopped" if stopped else "done", note=stopped)
     runs_mod.publish(only=[run.run_id])
@@ -334,6 +341,13 @@ def run_progress(args) -> dict:
     if stopped:
         print(f"STOPPED EARLY: {stopped}. Kept {len(results)} of {len(episodes)} complete episodes.")
     return run.manifest
+
+
+def pull_facts(m: dict) -> dict:
+    """Small per-pull numbers the viewer charts across an episode."""
+    k = m.get("interrupts") or {}
+    return {"deaths": len(m.get("deaths") or []), "kicks": [k.get("interrupted", 0), k.get("interruptible_casts", 0)],
+            "avoidable": sum((m.get("avoidable_damage_taken") or {}).values())}
 
 
 def run_runs(args) -> None:
@@ -427,6 +441,7 @@ def main() -> None:
                      help="difficulty: normal, or +10 (default; harder mechanics via affixes)")
     m.add_argument("--offline", action="store_true", help="only use recorded replies (no API calls)")
     m.add_argument("--no-cache", action="store_true", help="don't record or reuse replies")
+    m.add_argument("--cache-dir", type=Path, help="where recorded replies live (default runs/cache)")
     m.add_argument("--effort", choices=EFFORTS,
                    help="thinking/reasoning effort (default: the provider's own default). "
                         "Also accepted as provider:model@effort. Each effort is a separate configuration")
@@ -452,6 +467,7 @@ def main() -> None:
     pg.add_argument("--workers", type=int, default=1, help="episodes to play in parallel")
     pg.add_argument("--offline", action="store_true")
     pg.add_argument("--no-cache", action="store_true")
+    pg.add_argument("--cache-dir", type=Path, help="where recorded replies live (a campaign records into runs/cache/<protocol name>)")
     pg.add_argument("--name")
     pg.add_argument("--tag", action="append", default=[])
     add_money_args(pg)
@@ -479,6 +495,7 @@ def main() -> None:
     cp.add_argument("--workers", type=int, default=3, help="episodes to play in parallel per model and tier")
     cp.add_argument("--budget-usd", type=float, help="stop the campaign after spending this much this time")
     cp.add_argument("--offline", action="store_true", help="only use recorded replies (rebuild from recordings)")
+    cp.add_argument("--allow-dirty", action="store_true", help="allow a paid campaign from uncommitted code (pilots only)")
     rr = sub.add_parser("results", help="collect the protocol's finished episodes into a results dataset")
     rr.add_argument("protocol", type=Path)
     rr.add_argument("--out", type=Path, required=True, help="e.g. ../results/v1")
@@ -504,7 +521,7 @@ def main() -> None:
     elif args.cmd == "campaign":
         from .campaign import load_protocol, run_campaign
         run_campaign(load_protocol(args.protocol), only=args.only, dry_run=args.dry_run, workers=args.workers,
-                     budget_usd=args.budget_usd, offline=args.offline)
+                     budget_usd=args.budget_usd, offline=args.offline, allow_dirty=args.allow_dirty)
     elif args.cmd == "results":
         from .campaign import build_results, load_protocol
         res = build_results(load_protocol(args.protocol), args.out, with_bots=not args.no_bots)

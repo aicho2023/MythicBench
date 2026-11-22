@@ -4,9 +4,11 @@ MythicBench is an open-source benchmark that asks one question: can an AI
 model lead a five-person party through a Mythic+-style dungeon it has never
 seen, and does it get better with each attempt?
 
-One model controls the whole party: a tank, a healer and three damage
-dealers. It starts blind. After each wipe it reads a combat log, writes notes
-for its team, and tries again, up to five times. Every fight is a
+Five agents, one per character and all the same model, play the party: a
+tank, a healer and three damage dealers, with a party chat between them. They
+start blind. After each wipe they read the same combat log, talk it over, each
+rewrite their own notes, and try again, up to five times. Nothing tells them
+what to learn. Every fight is a
 deterministic simulation that saves a full event log, so you can watch any
 attempt in a 3D replay viewer and recompute every score yourself.
 

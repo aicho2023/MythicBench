@@ -47,10 +47,11 @@ export function About() {
 
         <Section title="For ML people">
           <p>
-            An in-context learning eval with a deterministic environment. The model controls five agents through
-            a JSON observation and a fixed order format. It starts blind, gets a factual debrief after each
-            failure, and rewrites its own notes, which are its only memory across attempts. Each attempt uses a
-            new seed, so it has to learn mechanics, not timings.
+            A multi-agent, in-context learning eval in a deterministic environment. Five copies of one model each
+            play one character through a text observation and a fixed order format, with a party chat between
+            them. They start blind. After each failure they all get the same factual combat log, talk it over in
+            turns, and each rewrite their own private notes, which are their only memory across attempts. The
+            prompts never say what to learn. Each attempt uses a new seed, so they have to learn mechanics, not timings.
           </p>
           <ul>
             <li>Every model gets the same prompt, effort, seeds, call interval and call budget</li>

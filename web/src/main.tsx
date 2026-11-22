@@ -15,6 +15,7 @@ import './index.css'
 // The viewer (three.js) and the paper (MDX) load on demand.
 const Watch = lazy(() => import('./App'))
 const Paper = lazy(() => import('./pages/Paper').then((m) => ({ default: m.Paper })))
+const Compare = lazy(() => import('./pages/Compare').then((m) => ({ default: m.Compare })))
 
 // Links from before the site existed opened the viewer at the root: /?replay=<id>, /?run=<id>.
 {
@@ -30,6 +31,7 @@ function Site() {
   else if (path === '/watch' || path.startsWith('/watch/')) page = <div className="viewer h-full"><Watch path={path} /></div>
   else if (path === '/paper') page = <Paper />
   else if (path === '/about') page = <About />
+  else if (path === '/compare') page = <Compare />
   else page = <NotFound />
   return <Suspense fallback={<div className="grid h-full place-items-center text-[13px] text-fg-faint">Loading…</div>}>{page}</Suspense>
 }

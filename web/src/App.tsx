@@ -4,6 +4,7 @@ import { AboutPanel, EndBanner, ReplayControls, TimelineLegend, TopBar } from '.
 import { DamageMeter, DecisionLog, RaidWarnings, Scorecard } from './hud/Panels'
 import { PartyFrames } from './hud/PartyFrames'
 import { LearningPanel } from './hud/LearningPanel'
+import { CallInspector } from './hud/CallInspector'
 import { RunBrowser } from './hud/RunBrowser'
 import { WorldOverlay } from './hud/WorldOverlay'
 import { usePlayback } from './replay/store'
@@ -71,6 +72,7 @@ export default function App({ path = '/watch' }: { path?: string }) {
         </div>
         <div className="absolute left-1/2 top-[28%] z-10 -translate-x-1/2"><div className="hud-s"><EndBanner /></div></div>
         {about && <AboutPanel onClose={closeAbout} />}
+        <CallInspector />
         {runs && <RunBrowser onClose={closeRuns} initialQuery={modelOnly ? modelName(modelOnly) : ''} />}
       </div>
       {!ready && !error && (
