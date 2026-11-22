@@ -44,7 +44,7 @@ export function TopBar({ onAbout, onRuns }: { onAbout: () => void; onRuns: () =>
           <ListTree size={16} className="shrink-0 text-fg-muted" />
           <span className="truncate">{watching ? watching.label : 'Choose a run'}</span>
           {watching && !watching.local && !watching.id.startsWith('featured:') && <span className="shrink-0 text-meta text-fg-faint">reference</span>}
-          {catalogSize > 0 && <span className="num hidden shrink-0 font-mono text-meta text-fg-faint sm:inline">{catalogSize} runs</span>}
+          {catalogSize > 0 && <span className="num hidden shrink-0 font-mono text-meta text-fg-faint sm:inline">{catalogSize} {catalogSize === 1 ? 'run' : 'runs'}</span>}
         </button>
       }
       right={
