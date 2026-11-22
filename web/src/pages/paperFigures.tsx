@@ -22,7 +22,7 @@ export function PaperLeaderboard() {
   return (
     <>
       <div className="not-prose my-6"><SampleNotice results={results} /></div>
-      <Figure n={1} caption="MythicBench score (mean of the Normal and +10 progression scores) with its 95% interval, per-tier scores, +10 clear rate, pulls to clear +10 over the episodes that cleared, and the list-price cost of one episode on each tier. Scripted bots on the same seeds below.">
+      <Figure n={1} caption="MythicBench score (the +10 progression score) with its 95% interval, per-tier scores, +10 clear rate, pulls to clear +10 over the episodes that cleared, and the list-price cost of one episode on each tier. The scripted commander and the scripted bots on the same seeds below.">
         <LeaderboardTable results={results} />
       </Figure>
     </>

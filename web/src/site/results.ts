@@ -57,7 +57,11 @@ export interface Results {
   }
   harness_version: string; content_version: string; sim_version?: string
   tiers: Record<string, { name: string; affixes: string[] }>
+  /** the tier the MythicBench score is (+10); the others are shown, not ranked on */
+  headline_tier?: string
   leaderboard: LeaderboardRow[]
+  /** reference players through the same interface (the scripted commander): shown, never ranked */
+  baselines?: LeaderboardRow[]
   controls: ControlRow[]
   bots?: Record<string, Record<string, BotScore>>
 }
@@ -127,15 +131,13 @@ export function costPerRun(row: LeaderboardRow): number | null {
 }
 
 /** The bots' headline score, combined across tiers the same way as a model's. */
+/** The tier the headline score is (older datasets: the last tier). */
+export const headlineTier = (r: Results) => r.headline_tier ?? (tierIds(r).includes('plus10') ? 'plus10' : tierIds(r)[tierIds(r).length - 1])
+
+/** A bot's headline: its progression score on the headline tier. */
 export function botHeadline(r: Results, bot: string): { score: number; ci: CI } | null {
-  const tiers = tierIds(r)
-  const cells = tiers.map((t) => r.bots?.[t]?.[bot])
-  if (!cells.length || cells.some((c) => !c)) return null
-  const means = cells.map((c) => c!.progression_score_mean)
-  const ses = cells.map((c) => (c!.progression_score_ci95 ? (c!.progression_score_ci95[1] - c!.progression_score_ci95[0]) / (2 * 1.96) : 0))
-  const mean = means.reduce((a, b) => a + b, 0) / means.length
-  const half = (1.96 * Math.sqrt(ses.reduce((s, x) => s + x * x, 0))) / ses.length
-  return { score: round1(mean), ci: [round1(mean - half), round1(mean + half)] }
+  const cell = r.bots?.[headlineTier(r)]?.[bot]
+  return cell ? { score: round1(cell.progression_score_mean), ci: cell.progression_score_ci95 } : null
 }
 
 const round1 = (x: number) => Math.round(x * 10) / 10
@@ -176,10 +178,7 @@ export function parseWatchPath(path: string): (Partial<PullAddress> & { model: s
   return { model, tier, memory, episode: num(rest[0]), pull: num(rest[1]) }
 }
 
-/** A model's per-episode headline: the mean of its tier scores episode by episode (tiers share seeds). */
-export function episodeHeadlines(row: LeaderboardRow): number[] {
-  const cells = Object.values(row.tiers)
-  const n = Math.min(...cells.map((c) => c.episode_scores?.length ?? 0))
-  if (!cells.length || !isFinite(n) || n === 0) return []
-  return Array.from({ length: n }, (_, k) => cells.reduce((a, c) => a + c.episode_scores![k], 0) / cells.length)
+/** A model's per-episode headline scores: its episodes on the headline tier. */
+export function episodeHeadlines(r: Results, row: LeaderboardRow): number[] {
+  return row.tiers[headlineTier(r)]?.episode_scores ?? []
 }

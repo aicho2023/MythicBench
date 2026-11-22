@@ -72,7 +72,8 @@ Every model in the official run gets the same settings:
 - **Controls.** The two cheapest models also play with memory off: no talk and no notes between pulls
 
 An episode's progression score is the mean of its pull scores, with a clear carried forward for the
-pulls it saved. The MythicBench score is the mean of the Normal and +10 progression scores. Intervals are
+pulls it saved. The MythicBench score is the +10 progression score; Normal is a sanity tier, shown but not
+ranked on, because strong models clear it on the first pull and it would compress the differences. Intervals are
 Student-t 95% intervals over episodes (with three episodes the multiplier is 4.3, not 1.96). The learning
 effect is the progression score with memory on minus the score with memory off, on the same seeds: a
 within-episode gain alone is biased upward, because a clear carries forward.
@@ -95,7 +96,17 @@ within-episode gain alone is biased upward, because a clear carries forward.
 - **The kick that never comes.** Requiem of Bones goes off because nobody saved an interrupt. [Watch this moment](/watch/basic/plus10/0/2?t=120&paused=1)
 - **Notes that don't change the plan.** The model writes the right lesson, then plays the same way. [Compare pulls 1 and 3](/watch/basic/plus10/0/3)
 
-## 7. The scripted bots as calibration
+## 7. Baselines: the scripted commander and the bots
+
+The agents don't press every button themselves: between calls each character follows its standing orders,
+and two shortcuts do the walking ("safe" steps out of pools, "next" walks the route). How much of a score
+is the harness and how much is the model? The **scripted commander** answers that. It plays through
+exactly the same interface as the agents, reading the same text and replying with the same orders, with
+fixed, obvious rules: kick every caster, kill casters first, then adds, then the boss; step out of pools;
+the healer heals the lowest ally; walk on when the party is healthy. It never learns. With no orders at
+all the party never moves and scores near 0; the commander's rules are the real floor. Over 16 seeds it
+scores 55.9 on +10 and 67.6 on Normal, and never clears within the timer. A model has to beat it for its
+own decisions to count.
 
 Before any model plays, three hand-written bots check that the benchmark can tell good play from bad:
 **expert** (clean pulls, casters first, every kick), **competent** (a few missed kicks and slow dodges)

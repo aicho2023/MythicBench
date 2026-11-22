@@ -15,7 +15,6 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
-import math
 import shutil
 import statistics as st
 from dataclasses import dataclass
@@ -26,9 +25,10 @@ from . import runs as runs_mod
 from . import spend
 from .engine import SIM_VERSION
 from .llm import HARNESS_VERSION
-from .llm.progress import ci95 as _ci, diff_ci95, t95
+from .llm.progress import ci95 as _ci, diff_ci95
 
 BOT_EPISODES = 30
+FREE_PROVIDERS = ("mock", "scripted")  # no API: nothing to pay, nothing to record
 REQUIRED = ("name", "mode", "knowledge", "tiers", "episodes", "max_pulls", "effort", "models")
 
 
@@ -41,7 +41,7 @@ class Combo:
     @property
     def spec(self) -> str:
         provider, mid = self.model["provider"], self.model["id"]
-        return f"mock:{mid}" if provider == "mock" else f"{provider}:{mid}@{self.model.get('effort')}"
+        return f"{provider}:{mid}" if provider in FREE_PROVIDERS else f"{provider}:{mid}@{self.model.get('effort')}"
 
     def key(self, proto: dict) -> str:
         # Versions are part of the key: episodes played by different code never
@@ -63,11 +63,20 @@ def load_protocol(path: Path) -> dict:
         C.tier(t)
     for m in proto["models"]:
         m.setdefault("effort", proto["effort"])
+    if headline_tier(proto) not in [C.tier(t).id for t in proto["tiers"]]:
+        raise SystemExit(f"{path}: headline_tier must be one of the tiers")
     return proto
 
 
+def headline_tier(proto: dict) -> str:
+    """The tier the MythicBench score is: +10 by default (Normal is near its
+    ceiling for strong models, so it's a sanity tier, shown but not ranked on)."""
+    return C.tier(proto.get("headline_tier", "plus10")).id
+
+
 def combos(proto: dict, only: str | None = None) -> list[Combo]:
-    out = [Combo(m, C.tier(t).id, True) for m in proto["models"] for t in proto["tiers"]]
+    # Baselines (e.g. the scripted commander) play like models, through the same interface.
+    out = [Combo(m, C.tier(t).id, True) for m in proto["models"] + proto.get("baselines", []) for t in proto["tiers"]]
     by_id = {m["id"]: m for m in proto["models"]}
     for ctl in proto.get("controls", []):
         m = by_id[ctl["model"]]
@@ -112,7 +121,7 @@ def dirty_files() -> list[str]:
 def run_campaign(proto: dict, *, only: str | None = None, dry_run: bool = False, workers: int = 1,
                  budget_usd: float | None = None, offline: bool = False, allow_dirty: bool = False) -> None:
     from .__main__ import run_progress
-    paid = not offline and any(m["provider"] != "mock" for m in proto["models"])
+    paid = not offline and any(m["provider"] not in FREE_PROVIDERS for m in proto["models"])
     dirty = dirty_files()
     if paid and dirty and not dry_run and not allow_dirty:
         raise SystemExit("refusing to run a paid campaign from uncommitted code (commit first, or pass "
@@ -284,35 +293,33 @@ def build_results(proto: dict, out_dir: Path, runs_dir: Path | None = None, with
             cell["learning_effect"] = round(cell["progression_score"] - ctl["progression_score"], 1)
             cell["learning_effect_ci95"] = diff_ci95(cell["episode_scores"], ctl["episode_scores"])
     tiers = [C.tier(t).id for t in proto["tiers"]]
+    head = headline_tier(proto)
     for row in rows.values():
         cells = [row["tiers"].get(t) for t in tiers]
         row["complete"] = all(x and x["complete"] for x in cells)
+        cell = row["tiers"].get(head)
+        # The headline is the headline tier's progression score and interval.
+        row["mythicbench_score"] = cell["progression_score"] if cell else None
+        row["mythicbench_score_ci95"] = cell["progression_score_ci95"] if cell else None
         if all(cells):
-            # The headline: mean of the tier scores. Its interval combines the
-            # tiers' standard errors with the smaller sample's t multiplier.
-            means = [x["progression_score"] for x in cells]
-            ns = [len(x["episode_scores"]) for x in cells]
-            if min(ns) >= 2:
-                ses = [st.stdev(x["episode_scores"]) / math.sqrt(n) for x, n in zip(cells, ns)]
-                half = t95(min(ns) - 1) * math.sqrt(sum(s * s for s in ses)) / len(ses)
-                row["mythicbench_score_ci95"] = [round(st.mean(means) - half, 1), round(st.mean(means) + half, 1)]
-            else:
-                row["mythicbench_score_ci95"] = None
-            row["mythicbench_score"] = round(st.mean(means), 1)
             row["cost_usd"] = round(sum(x["cost_usd"] for x in cells), 4)
-        else:
-            row["mythicbench_score"] = None
-    ranked = sorted((r for r in rows.values() if r["complete"] and r["mythicbench_score"] is not None),
+    baseline_ids = {m["id"] for m in proto.get("baselines", [])}
+    baselines = sorted((r for r in rows.values() if r["model"] in baseline_ids), key=lambda r: r["model"])
+    models = [r for r in rows.values() if r["model"] not in baseline_ids]
+    ranked = sorted((r for r in models if r["complete"] and r["mythicbench_score"] is not None),
                     key=lambda r: (-r["mythicbench_score"], r["model"]))
-    board = ranked + sorted((r for r in rows.values() if r not in ranked), key=lambda r: r["model"])
+    board = ranked + sorted((r for r in models if r not in ranked), key=lambda r: r["model"])
     for i, r in enumerate(board):
         r["rank"] = i + 1 if r in ranked else None
+    for r in baselines:
+        r["rank"] = None
+        r["baseline"] = True
     result = {
         "protocol": {k: proto[k] for k in proto if k != "models"} | {"models": [m["id"] for m in proto["models"]]},
         "harness_version": HARNESS_VERSION, "content_version": C.CONTENT_VERSION, "sim_version": SIM_VERSION,
         "tiers": {t: {"name": C.tier(t).name, "affixes": [C.AFFIXES[a].name for a in C.tier(t).affixes]}
                   for t in tiers},
-        "leaderboard": board, "controls": controls,
+        "headline_tier": head, "leaderboard": board, "baselines": baselines, "controls": controls,
     }
     if with_bots:
         result["bots"] = bot_reference(proto)

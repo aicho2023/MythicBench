@@ -314,3 +314,29 @@ def test_recordings_can_be_read_gzipped(tmp_path):
     path.unlink()
     again = CachedClient(MockClient(), path, offline=True).complete("rules", "state", tag="t")
     assert again.cached and again.text == first.text
+
+
+def test_scripted_commander_plays_through_the_same_interface():
+    from mythicsim.dungeon import DungeonRun
+    from mythicsim.llm.clients import make_client
+    from mythicsim.metrics import score
+    client = make_client("scripted:commander")
+    pols, party = make_llm_policies(client, tier="normal", mode="dungeon", knowledge="blind")
+    s = score(DungeonRun(10001, pols, "x", "normal").run())
+    st = party.stats
+    assert st.calls > 50 and st.unusable_replies == 0 and st.invalid_entries == 0
+    assert s["progress_pct"] > 50  # walks the route, pulls, fights
+
+
+def test_scripted_commander_kicks_casters_and_leaves_pools():
+    from mythicsim.llm.scripted import orders
+    state = """Run timer 30.0s of 255s. IN COMBAT.
+ENEMIES FIGHTING YOU: pack1_bone_chanter_1 (Bone Chanter) 80% HP at (0.0, 48.0) attacking bramble, casting grave_volley (1.0s left) INTERRUPTIBLE; pack1_bonewalker_1 (Risen Bonewalker) 50% HP at (1.0, 55.0) attacking bramble.
+POOLS: none.
+PARTY:
+  grokka (YOU) (berserker) 90% HP (40000/44000) at (0.0, 50.0). Ready: savage_hew. STANDING IN POOL grave_1 (ARMED, 0.5 m from its centre, radius 2.5)!
+  bramble (guardian) 70% HP (43400/62000) at (0.0, 54.0)."""
+    o = orders("grokka", state)
+    assert o["move_to"] == "safe"
+    assert o["priority"][0] == ["throat_punch", "pack1_bone_chanter_1"]
+    assert ["savage_hew", "pack1_bone_chanter_1"] in o["priority"]  # casters first

@@ -85,9 +85,11 @@ function Results({ results }: { results: Results }) {
         </div>
         <div className="mt-6"><LeaderboardTable results={results} /></div>
         <HowToRead>
-          A model's MythicBench score is the mean of its Normal and +10 progression scores. A progression score
-          averages every pull of an episode on a 0 to 100 scale, where 70 and up is a clear, and a clear counts
-          again for each pull it saved, so clearing sooner scores higher. The bar is the 95% confidence interval
+          A model's MythicBench score is its progression score on +10. Normal is a sanity check, shown but not
+          ranked on: strong models clear it on the first pull. A progression score averages every pull of an
+          episode on a 0 to 100 scale, where a clear within the timer scores 70 and up, and a clear counts again
+          for each pull it saved, so clearing sooner scores higher. The scripted commander below gives fixed,
+          obvious orders through the same interface: a model has to beat it for its own decisions to matter. The bar is the 95% confidence interval
           across episodes: where two bars overlap, the order of those two models isn't settled. Cost per run is
           what one blind episode on each tier costs at list prices. Click a model to watch its pulls.
         </HowToRead>

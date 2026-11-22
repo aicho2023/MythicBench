@@ -23,6 +23,14 @@
     ]
    }
   ],
+  "headline_tier": "plus10",
+  "baselines": [
+   {
+    "provider": "scripted",
+    "id": "commander",
+    "name": "Scripted commander"
+   }
+  ],
   "models": [
    "basic"
   ]
@@ -44,6 +52,7 @@
    ]
   }
  },
+ "headline_tier": "plus10",
  "leaderboard": [
   {
    "model": "basic",
@@ -93,7 +102,7 @@
      "episode_list": [
       {
        "episode": 0,
-       "run_id": "2026-11-22T0306_basic_6d08",
+       "run_id": "2026-11-22T0316_basic_d0e4",
        "pulls": [
         {
          "pull": 1,
@@ -147,7 +156,7 @@
       },
       {
        "episode": 1,
-       "run_id": "2026-11-22T0306_basic_6d08",
+       "run_id": "2026-11-22T0316_basic_d0e4",
        "pulls": [
         {
          "pull": 1,
@@ -243,7 +252,7 @@
      "episode_list": [
       {
        "episode": 0,
-       "run_id": "2026-11-22T0306_basic_7d7c",
+       "run_id": "2026-11-22T0316_basic_f1c0",
        "pulls": [
         {
          "pull": 1,
@@ -297,7 +306,7 @@
       },
       {
        "episode": 1,
-       "run_id": "2026-11-22T0306_basic_7d7c",
+       "run_id": "2026-11-22T0316_basic_f1c0",
        "pulls": [
         {
          "pull": 1,
@@ -358,13 +367,332 @@
     }
    },
    "complete": true,
+   "mythicbench_score": 2.6,
    "mythicbench_score_ci95": [
-    2.0,
-    3.8
+    2.2,
+    3.0
    ],
-   "mythicbench_score": 2.9,
    "cost_usd": 0.0,
    "rank": 1
+  }
+ ],
+ "baselines": [
+  {
+   "model": "commander",
+   "provider": "scripted",
+   "name": "Scripted commander",
+   "effort": null,
+   "tiers": {
+    "normal": {
+     "episodes": 2,
+     "complete": true,
+     "pulls": 6,
+     "progression_score": 64.8,
+     "progression_score_ci95": [
+      32.2,
+      97.4
+     ],
+     "episode_scores": [
+      62.23,
+      67.37
+     ],
+     "clear_rate": 0.0,
+     "pulls_to_clear_mean": null,
+     "pulls_to_clear": [
+      null,
+      null
+     ],
+     "first_pull_score_mean": 70.0,
+     "curve_mean": [
+      70.0,
+      61.6,
+      62.8
+     ],
+     "cost_usd": 0.0,
+     "usd_per_pull": 0.0,
+     "tokens_per_pull": [
+      1184916,
+      0
+     ],
+     "refusals": 0,
+     "unusable_replies": 0,
+     "truncated_replies": 0,
+     "api_errors": 0,
+     "pulls_out_of_calls": 0,
+     "harness_versions": [
+      "0.9.0"
+     ],
+     "episode_list": [
+      {
+       "episode": 0,
+       "run_id": "2026-11-22T0316_commander_dced",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 10001,
+         "score": 70.0,
+         "outcome": "victory",
+         "in_time": false,
+         "duration_s": 281.8,
+         "file": "replays/commander/normal/ep0-pull1.json.gz",
+         "usd": 0.0,
+         "deaths": 0,
+         "kicks": [
+          21,
+          23
+         ],
+         "avoidable": 299364
+        },
+        {
+         "pull": 2,
+         "seed": 10002,
+         "score": 53.3,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 288.7,
+         "file": "replays/commander/normal/ep0-pull2.json.gz",
+         "usd": 0.0,
+         "deaths": 5,
+         "kicks": [
+          20,
+          22
+         ],
+         "avoidable": 221714
+        },
+        {
+         "pull": 3,
+         "seed": 10003,
+         "score": 63.4,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 284.7,
+         "file": "replays/commander/normal/ep0-pull3.json.gz",
+         "usd": 0.0,
+         "deaths": 5,
+         "kicks": [
+          20,
+          22
+         ],
+         "avoidable": 127237
+        }
+       ]
+      },
+      {
+       "episode": 1,
+       "run_id": "2026-11-22T0316_commander_dced",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 10101,
+         "score": 70.0,
+         "outcome": "victory",
+         "in_time": false,
+         "duration_s": 261.0,
+         "file": "replays/commander/normal/ep1-pull1.json.gz",
+         "usd": 0.0,
+         "deaths": 0,
+         "kicks": [
+          19,
+          21
+         ],
+         "avoidable": 89008
+        },
+        {
+         "pull": 2,
+         "seed": 10102,
+         "score": 70.0,
+         "outcome": "victory",
+         "in_time": false,
+         "duration_s": 258.8,
+         "file": "replays/commander/normal/ep1-pull2.json.gz",
+         "usd": 0.0,
+         "deaths": 0,
+         "kicks": [
+          19,
+          21
+         ],
+         "avoidable": 211151
+        },
+        {
+         "pull": 3,
+         "seed": 10103,
+         "score": 62.1,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 281.6,
+         "file": "replays/commander/normal/ep1-pull3.json.gz",
+         "usd": 0.0,
+         "deaths": 5,
+         "kicks": [
+          20,
+          22
+         ],
+         "avoidable": 169690
+        }
+       ]
+      }
+     ]
+    },
+    "plus10": {
+     "episodes": 2,
+     "complete": true,
+     "pulls": 6,
+     "progression_score": 55.9,
+     "progression_score_ci95": [
+      21.0,
+      90.9
+     ],
+     "episode_scores": [
+      58.7,
+      53.2
+     ],
+     "clear_rate": 0.0,
+     "pulls_to_clear_mean": null,
+     "pulls_to_clear": [
+      null,
+      null
+     ],
+     "first_pull_score_mean": 60.0,
+     "curve_mean": [
+      60.0,
+      50.5,
+      57.4
+     ],
+     "cost_usd": 0.0,
+     "usd_per_pull": 0.0,
+     "tokens_per_pull": [
+      1269075,
+      0
+     ],
+     "refusals": 0,
+     "unusable_replies": 0,
+     "truncated_replies": 0,
+     "api_errors": 0,
+     "pulls_out_of_calls": 0,
+     "harness_versions": [
+      "0.9.0"
+     ],
+     "episode_list": [
+      {
+       "episode": 0,
+       "run_id": "2026-11-22T0316_commander_87c8",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 10001,
+         "score": 55.4,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 252.2,
+         "file": "replays/commander/plus10/ep0-pull1.json.gz",
+         "usd": 0.0,
+         "deaths": 5,
+         "kicks": [
+          17,
+          20
+         ],
+         "avoidable": 118390
+        },
+        {
+         "pull": 2,
+         "seed": 10002,
+         "score": 50.7,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 290.1,
+         "file": "replays/commander/plus10/ep0-pull2.json.gz",
+         "usd": 0.0,
+         "deaths": 5,
+         "kicks": [
+          19,
+          21
+         ],
+         "avoidable": 123959
+        },
+        {
+         "pull": 3,
+         "seed": 10003,
+         "score": 70.0,
+         "outcome": "victory",
+         "in_time": false,
+         "duration_s": 284.8,
+         "file": "replays/commander/plus10/ep0-pull3.json.gz",
+         "usd": 0.0,
+         "deaths": 1,
+         "kicks": [
+          19,
+          22
+         ],
+         "avoidable": 181952
+        }
+       ]
+      },
+      {
+       "episode": 1,
+       "run_id": "2026-11-22T0316_commander_87c8",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 10101,
+         "score": 64.6,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 293.4,
+         "file": "replays/commander/plus10/ep1-pull1.json.gz",
+         "usd": 0.0,
+         "deaths": 5,
+         "kicks": [
+          20,
+          22
+         ],
+         "avoidable": 259942
+        },
+        {
+         "pull": 2,
+         "seed": 10102,
+         "score": 50.3,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 208.6,
+         "file": "replays/commander/plus10/ep1-pull2.json.gz",
+         "usd": 0.0,
+         "deaths": 5,
+         "kicks": [
+          15,
+          17
+         ],
+         "avoidable": 59723
+        },
+        {
+         "pull": 3,
+         "seed": 10103,
+         "score": 44.7,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 216.5,
+         "file": "replays/commander/plus10/ep1-pull3.json.gz",
+         "usd": 0.0,
+         "deaths": 5,
+         "kicks": [
+          12,
+          16
+         ],
+         "avoidable": 145435
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "complete": true,
+   "mythicbench_score": 55.9,
+   "mythicbench_score_ci95": [
+    21.0,
+    90.9
+   ],
+   "cost_usd": 0.0,
+   "rank": null,
+   "baseline": true
   }
  ],
  "controls": [
@@ -413,7 +741,7 @@
    "episode_list": [
     {
      "episode": 0,
-     "run_id": "2026-11-22T0306_basic_fc62",
+     "run_id": "2026-11-22T0316_basic_7964",
      "pulls": [
       {
        "pull": 1,
@@ -467,7 +795,7 @@
     },
     {
      "episode": 1,
-     "run_id": "2026-11-22T0306_basic_fc62",
+     "run_id": "2026-11-22T0316_basic_7964",
      "pulls": [
       {
        "pull": 1,

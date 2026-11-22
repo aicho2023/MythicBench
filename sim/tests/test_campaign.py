@@ -18,6 +18,7 @@ PROTO = {
     "models": [{"provider": "mock", "id": "basic", "name": "Mock"}],
     "controls": [{"model": "basic", "memory": False, "tiers": ["plus10"]}],
 }
+WITH_BASELINE = {**PROTO, "baselines": [{"provider": "scripted", "id": "commander", "name": "Scripted commander"}]}
 
 
 @pytest.fixture
@@ -75,8 +76,8 @@ def test_results_are_complete_and_rebuild_identically(sandbox):
     assert set(row["tiers"]) == {"normal", "plus10"}
     cell = row["tiers"]["plus10"]
     assert cell["episodes"] == 2 and 2 <= cell["pulls"] <= 4 and len(cell["curve_mean"]) == 2
-    assert row["mythicbench_score"] == round((row["tiers"]["normal"]["progression_score"]
-                                              + cell["progression_score"]) / 2, 1)
+    assert row["mythicbench_score"] == cell["progression_score"]  # the headline is +10
+    assert row["mythicbench_score_ci95"] == cell["progression_score_ci95"]
     assert a["controls"] and a["controls"][0]["memory"] is False
     replays = list((tmp / "res-a" / "replays").rglob("*.json.gz"))
     assert len(replays) == sum(c["pulls"] for c in row["tiers"].values()) + a["controls"][0]["pulls"]
@@ -130,3 +131,15 @@ def test_results_ship_the_recordings(sandbox):
     K.run_campaign(proto)
     K.build_results(proto, tmp / "res", tmp / "runs", with_bots=False)
     assert list((tmp / "res" / "recordings").glob("*.jsonl.gz"))
+
+
+def test_scripted_commander_is_a_baseline_not_a_ranked_model(sandbox):
+    tmp, proto = sandbox
+    proto = {**proto, "episodes": 1, "tiers": ["plus10"], "controls": [],
+             "baselines": [{"provider": "scripted", "id": "commander", "name": "Scripted commander"}]}
+    K.run_campaign(proto)
+    res = K.build_results(proto, tmp / "res", tmp / "runs", with_bots=False)
+    assert [r["model"] for r in res["leaderboard"]] == ["basic"] and res["leaderboard"][0]["rank"] == 1
+    (base,) = res["baselines"]
+    assert base["model"] == "commander" and base["rank"] is None and base["baseline"]
+    assert base["mythicbench_score"] > res["leaderboard"][0]["mythicbench_score"]  # rules beat the mock

@@ -114,7 +114,7 @@ def build_client(args, n_fights: int):
     client = make_client(args.model, args.effort)
     label = client.spec  # includes @effort when set
     price = spend.price_for(label, args.price_in, args.price_out, args.price_cached)
-    paid = not args.offline and not label.startswith("mock:")
+    paid = not args.offline and not label.startswith(("mock:", "scripted:"))
     if price is None:
         if paid:
             raise SystemExit(f"no price known for {label}. Add it to PRICES in sim/mythicsim/spend.py, "

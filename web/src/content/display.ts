@@ -22,6 +22,7 @@ const MODEL_NAMES: Record<string, string> = {
   'claude-haiku-5-5': 'Claude Haiku 5.5', 'claude-sonnet-5-5': 'Claude Sonnet 5.5',
   'claude-opus-5-5': 'Claude Opus 5.5', 'claude-fable-5-2': 'Claude Fable 5.2',
   'gpt-6-luna': 'GPT-6 Luna', 'gpt-6.2-sol': 'GPT-6.2 Sol', 'gpt-6.2-astra': 'GPT-6.2 Astra',
+  commander: 'Scripted commander', basic: 'Mock model',
   'gpt-5.4': 'GPT-5.4', 'gpt-5.4-mini': 'GPT-5.4 mini', 'gpt-5.4-nano': 'GPT-5.4 nano', 'gpt-4.1-mini': 'GPT-4.1 mini',
   basic: 'Mock model',
 }

@@ -269,7 +269,10 @@ def make_client(spec: str, effort: str | None = None) -> ChatClient:
         return OpenAIClient(model, effort)
     if provider == "mock":
         return MockClient(model)
-    raise ClientError(f"unknown provider {provider!r} (use anthropic, openai, or mock)")
+    if provider == "scripted":
+        from .scripted import ScriptedCommander
+        return ScriptedCommander(model)
+    raise ClientError(f"unknown provider {provider!r} (use anthropic, openai, scripted, or mock)")
 
 
 # ---------------------------------------------------------------------------
