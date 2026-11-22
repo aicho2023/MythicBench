@@ -284,7 +284,7 @@ class ScriptedPolicy:
                 # step next to the add
                 tp = tuple(tgt["pos"])
                 d = dist(me["pos"], tp)
-                if d > 2.2:
+                if d > 3.2:  # out of melee reach (3 m edge to edge), allowing for being nudged aside
                     f = (d - 1.6) / d
                     return (me["pos"][0] + (tp[0] - me["pos"][0]) * f,
                             me["pos"][1] + (tp[1] - me["pos"][1]) * f)
@@ -456,7 +456,7 @@ class DungeonPolicy(ScriptedPolicy):
             if tgt and self.cls in ("guardian", "berserker", "shadowblade"):
                 tp = tuple(tgt["pos"])
                 d = dist(me["pos"], tp)
-                if d > 2.2:
+                if d > 3.2:  # out of melee reach (3 m edge to edge), allowing for being nudged aside
                     f = (d - 1.6) / d
                     return (me["pos"][0] + (tp[0] - me["pos"][0]) * f, me["pos"][1] + (tp[1] - me["pos"][1]) * f)
                 return tuple(me["pos"])

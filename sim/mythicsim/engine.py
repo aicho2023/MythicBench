@@ -22,7 +22,7 @@ from typing import Callable, Protocol
 from . import content as C
 
 TICK_MS = 100
-SIM_VERSION = "0.2.0"
+SIM_VERSION = "0.3.0"  # 0.3.0: bodies collide where they stop
 
 
 # ---------------------------------------------------------------------------
@@ -46,6 +46,19 @@ def dist(a: Vec, b: Vec) -> float:
 
 def lerp(a: Vec, b: Vec, f: float) -> Vec:
     return (a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f)
+
+
+# Bodies take up space: a player never ends a move inside another unit. Units
+# may pass through each other while walking (as in WoW), but where they stop,
+# their bodies keep at least BODY_GAP between them. A destination that's taken
+# shifts to the nearest free spot on rings around it. Literal unit vectors, not
+# cos/sin, so every machine gets the same answer.
+BODY_GAP = 0.1
+SPOT_RINGS = (0.5, 1.0, 1.5, 2.0, 2.5, 3.0)
+SPOT_DIRS = ((1.0, 0.0), (0.7071067811865476, 0.7071067811865476), (0.0, 1.0),
+             (-0.7071067811865476, 0.7071067811865476), (-1.0, 0.0),
+             (-0.7071067811865476, -0.7071067811865476), (0.0, -1.0),
+             (0.7071067811865476, -0.7071067811865476))
 
 
 # ---------------------------------------------------------------------------
@@ -108,6 +121,7 @@ class Unit:
     cooldowns: dict[str, int] = field(default_factory=dict)
     auras: dict[str, Aura] = field(default_factory=dict)
     pack: str | None = None  # dungeon trash: which pack this enemy belongs to
+    asked_to: Vec | None = None  # last destination asked for, before free_spot moved it
     engaged: bool = True  # dungeon trash/boss: has it been pulled yet?
 
     def __post_init__(self) -> None:
@@ -225,9 +239,19 @@ class Encounter:
         return dist(a.pos, b.pos) - a.radius - b.radius
 
     # ----- movement --------------------------------------------------------
-    def start_move(self, u: Unit, to: Vec) -> None:
+    def start_move(self, u: Unit, to: Vec, *, exact: bool = False) -> None:
         to = self.clamp(to)
         to = (r2(to[0]), r2(to[1]))
+        if u.kind == "player" and not exact:
+            # Asking again for the spot it was already sent to (and shifted
+            # away from) is not a new order, as long as where it was shifted
+            # to is still free and no worse for pools.
+            if u.asked_to is not None and dist(u.asked_to, to) < 0.05:
+                here = u.move.to if u.move else u.pos
+                if not self.taken(u, here) and (self.in_pool(u, to) or not self.in_pool(u, here)):
+                    return
+            u.asked_to = to
+            to = self.free_spot(u, to)
         if u.move and dist(u.move.to, to) < 0.05:
             return
         if not u.move and dist(u.pos, to) < 0.05:
@@ -252,8 +276,49 @@ class Encounter:
 
     def stop_move(self, u: Unit) -> None:
         if u.move:
-            self.start_move(u, u.pos)
+            self.start_move(u, u.pos, exact=True)
             u.move = None
+        u.asked_to = None
+
+    def taken(self, u: Unit, spot: Vec) -> bool:
+        """Would u's body overlap another unit standing (or headed) there?"""
+        for o in self.units.values():
+            if o is u or not o.alive:
+                continue
+            there = o.move.to if o.move else o.pos
+            if dist(spot, there) < u.radius + o.radius + BODY_GAP:
+                return True
+        return False
+
+    def in_pool(self, u: Unit, spot: Vec) -> bool:
+        """Would u standing there be hit by a pool? (Same reach as ground_tick, plus a margin.)"""
+        return any(dist(spot, g["pos"]) <= g["radius"] + u.radius * 0.5 + 0.2 for g in self.ground.values())
+
+    def free_spot(self, u: Unit, to: Vec) -> Vec:
+        """Nearest spot to ``to`` where u's body fits: walkable, not inside
+        another unit, and not in a pool unless ``to`` itself was."""
+        if not self.taken(u, to):
+            return to
+        pool_ok = self.in_pool(u, to)
+        # A spot asked for within melee reach of an enemy was asked for to
+        # fight it: shift around that enemy, not away from it.
+        foes = [o for o in self.units.values() if o.kind != "player" and o.alive
+                and dist(to, o.pos) - o.radius - u.radius <= C.MELEE_RANGE]
+        for ring in SPOT_RINGS:
+            best = None
+            for dx, dz in SPOT_DIRS:
+                c = (r2(to[0] + dx * ring), r2(to[1] + dz * ring))
+                w = self.clamp(c)
+                if dist(w, c) > 0.01 or self.taken(u, c) or (not pool_ok and self.in_pool(u, c)):
+                    continue
+                # Same ring: prefer staying close to the enemy it came to
+                # fight, else the side the unit is coming from.
+                key = min(dist(c, o.pos) - o.radius for o in foes) if foes else dist(c, u.pos)
+                if best is None or key < best[0]:
+                    best = (key, c)
+            if best:
+                return best[1]
+        return to
 
     # ----- combat math -----------------------------------------------------
     def damage(self, src: Unit, tgt: Unit, ability: str, base: float, *, crit_ok: bool = True) -> None:
@@ -328,6 +393,7 @@ class Encounter:
         if u.move:
             u.pos = u.move.pos_at(self.t)
             u.move = None
+        u.asked_to = None
         self.emit("death", unit=u.id, killer=killer.id, ability=ability)
         for aid in list(u.auras):
             del u.auras[aid]

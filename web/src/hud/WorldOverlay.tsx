@@ -20,6 +20,32 @@ const TEXT_MS = 1100
 const HOT_TICKS = new Set(['bloomward', 'radiant_afterglow'])
 const HEAD: Record<string, number> = { boss: 6.4, add: 2.2, player: 2.55 }
 
+/**
+ * Nameplates that would overlap on screen stack upward instead, like an MMO's
+ * stacking nameplates. The plate nearest the camera (lowest on screen) keeps
+ * its spot.
+ */
+function stackPlates(placed: { el: HTMLDivElement; x: number; y: number }[]) {
+  const boxes = placed.map((q) => ({ ...q, w: q.el.offsetWidth, h: q.el.offsetHeight }))
+  boxes.sort((a, b) => b.y - a.y)
+  const done: { x: number; y: number; w: number; h: number }[] = []
+  for (const b of boxes) {
+    let y = b.y
+    for (let moved = true; moved;) {
+      moved = false
+      for (const d of done) {
+        // anchors are bottom-centre: a box spans [x - w/2, x + w/2] x [y - h, y]
+        if (Math.abs(b.x - d.x) < (b.w + d.w) / 2 && y > d.y - d.h && y - b.h < d.y) {
+          y = d.y - d.h - 1
+          moved = true
+        }
+      }
+    }
+    done.push({ x: b.x, y, w: b.w, h: b.h })
+    b.el.style.transform = `translate(${b.x}px, ${y}px) translate(-50%, -100%)`
+  }
+}
+
 export function WorldOverlay() {
   const root = useRef<HTMLDivElement>(null)
   const texts = useRef<HTMLDivElement[]>([])
@@ -44,6 +70,7 @@ export function WorldOverlay() {
 
       // ---- nameplates
       let p = 0
+      const placed: { el: HTMLDivElement; x: number; y: number }[] = []
       for (const id of s.order) {
         const u = s.units[id]
         if (!u.alive || u.info.kind === 'boss' || p >= MAX_PLATES) continue
@@ -54,7 +81,7 @@ export function WorldOverlay() {
         if (!sp) continue
         p++
         el.style.display = 'block'
-        el.style.transform = `translate(${sp[0]}px, ${sp[1]}px) translate(-50%, -100%)`
+        placed.push({ el, x: sp[0], y: sp[1] })
         const row = el.firstElementChild as HTMLElement
         const icons = row.firstElementChild as HTMLElement
         const name = row.lastElementChild as HTMLElement
@@ -73,6 +100,7 @@ export function WorldOverlay() {
         bar.style.width = '64px'
       }
       for (let i = p; i < MAX_PLATES; i++) if (plates.current[i]) plates.current[i].style.display = 'none'
+      stackPlates(placed)
 
       // ---- floating combat text
       const items: { i: number; x: number; y: number; z: number; age: number; text: string; color: string; size: number }[] = []

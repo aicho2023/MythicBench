@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-CONTENT_VERSION = "1.1.0"
+CONTENT_VERSION = "1.2.0"
 
 GCD_MS = 1000
 MELEE_RANGE = 3.0
@@ -344,7 +344,7 @@ class Tier:
 
 
 TIERS: dict[str, Tier] = {t.id: t for t in (
-    Tier("normal", "Normal", 1.0, 0.9, (), 255_000),
+    Tier("normal", "Normal", 0.95, 0.9, (), 255_000),
     Tier("plus10", "+10", 0.85, 1.15, ("restless_graves", "marrowburst", "hollow_tyrant"), 255_000),
 )}
 DEFAULT_TIER = "plus10"

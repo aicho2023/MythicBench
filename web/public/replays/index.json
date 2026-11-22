@@ -9,8 +9,8 @@
     "blurb": "Clean pulls, casters first, every kick lands. Clears the +10 in time.",
     "file": "expert-clear.json",
     "outcome": "victory",
-    "duration_s": 230.0,
-    "score": 81.8
+    "duration_s": 253.4,
+    "score": 70.8
   },
   {
     "id": "competent-run",
@@ -22,8 +22,8 @@
     "blurb": "Same run, same seed. A few missed kicks and slow dodges, and the party wipes.",
     "file": "competent-run.json",
     "outcome": "wipe",
-    "duration_s": 274.3,
-    "score": 36.3
+    "duration_s": 142.2,
+    "score": 36.4
   },
   {
     "id": "sloppy-wipe",

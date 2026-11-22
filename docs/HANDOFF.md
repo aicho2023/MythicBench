@@ -60,8 +60,8 @@ competent 72.3 (70.2–74.5), sloppy 14.9 (14.3–15.4). Win rates 99.5% / 68.5%
 Score (`metrics.run_score`, v2): wipe = 70 × share of boss removed; kill = 70 +
 30 × speed (full speed with ≥25% of the timer left).
 
-**Difficulty is two tiers (content 1.1.0):**
-- Normal: 1.0× enemy health, 0.9× damage, no affixes.
+**Difficulty is two tiers (content 1.2.0):**
+- Normal: 0.95× enemy health, 0.9× damage, no affixes.
 - +10: 0.85× health, 1.15× damage, plus three affixes:
   - Restless Graves;
   - Marrowburst;
@@ -75,8 +75,14 @@ Over 200 seeds:
 
 | Tier | Expert | Competent | Sloppy |
 | --- | --- | --- | --- |
-| +10 | 31% | 1% | 0% |
-| Normal | 99% | 80% | 0% | The
+| +10 | 25% | 1% | 0% |
+| Normal | 99% | 79% | 0% |
+
+Sim 0.3.0 gave units bodies: a player never ends a move inside another unit
+(`Encounter.free_spot`). That cost melee some uptime, so Normal's enemy
+health went from 1.0× to 0.95× to keep its clear rates where they were.
+
+The
 old `--level` key levels are gone; runs made with them show as "+N (old)".
 
 ### Pending from the owner

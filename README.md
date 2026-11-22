@@ -89,10 +89,10 @@ They don't learn; they show what good and bad play look like. Over 200 seeds:
 
 | | Expert | Competent | Sloppy |
 | --- | --- | --- | --- |
-| Normal clear rate | 99% (96 to 100%) | 80% (73 to 85%) | 0% |
-| Normal score | 82.8 (82.2 to 83.3) | 74.6 (73.3 to 75.8) | 31.6 (31.2 to 32.1) |
-| +10 clear rate | 31% (25 to 37%) | 1% (0 to 4%) | 0% |
-| +10 score | 66.9 (66.2 to 67.5) | 48.2 (46.8 to 49.7) | 6.7 (6.3 to 7.1) |
+| Normal clear rate | 99% (96 to 100%) | 79% (72 to 84%) | 0% |
+| Normal score | 83.8 (83.1 to 84.5) | 76.0 (75.0 to 77.0) | 31.6 (31.1 to 32.1) |
+| +10 clear rate | 25% (20 to 31%) | 1% (0 to 3%) | 0% |
+| +10 score | 66.1 (65.4 to 66.8) | 49.7 (48.3 to 51.1) | 7.0 (6.5 to 7.5) |
 
 Ranges are 95% confidence intervals. The three bots come out in the right
 order with no overlap, which is the first check that the benchmark tells

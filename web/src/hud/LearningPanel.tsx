@@ -1,6 +1,14 @@
 import { useMemo } from 'react'
 import { runItemId, usePlayback } from '../replay/store'
 
+/** Models write their notes in light markdown: show **bold** as bold, not asterisks. */
+function Md({ text }: { text: string }) {
+  return <>{text.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
+    part.startsWith('**') && part.endsWith('**') && part.length > 4
+      ? <strong key={i} className="font-semibold text-fg">{part.slice(2, -2)}</strong>
+      : part)}</>
+}
+
 /**
  * Shown for progression replays (learning over pulls): where this pull sits in
  * its episode, the score curve across pulls, what the model knew going in,
@@ -62,14 +70,14 @@ export function LearningPanel({ onShowMeter }: { onShowMeter: () => void }) {
       <div className="mt-2 max-h-[300px] overflow-y-auto px-3">
         <div className="text-label text-fg-faint">Going in, it knew</div>
         <p className="mt-1 whitespace-pre-wrap text-[12px] leading-[18px] text-fg-muted">
-          {prog.notes_before.trim() || (prog.knowledge === 'blind' ? 'Nothing about the boss: first pull, blind.' : 'No notes yet.')}
+          {prog.notes_before.trim() ? <Md text={prog.notes_before.trim()} /> : (prog.knowledge === 'blind' ? 'Nothing about the boss: first pull, blind.' : 'No notes yet.')}
         </p>
         {prog.memory && prog.notes_after !== prog.notes_before && (
           <>
             <div className="mt-3 text-label text-fg-faint">After this pull it wrote <span className="text-fg-faint">(new lines marked)</span></div>
             <div className="mt-1 text-[12px] leading-[18px]">
               {after.map((l, i) => (
-                <p key={i} className={before.has(l.trim()) ? 'pl-2 text-fg-muted' : 'border-l-2 border-accent/70 pl-1.5 text-fg'}>{l}</p>
+                <p key={i} className={before.has(l.trim()) ? 'pl-2 text-fg-muted' : 'border-l-2 border-accent/70 pl-1.5 text-fg'}><Md text={l} /></p>
               ))}
             </div>
           </>
