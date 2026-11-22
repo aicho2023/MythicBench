@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-CONTENT_VERSION = "1.0.0"
+CONTENT_VERSION = "1.2.0"
 
 GCD_MS = 1000
 MELEE_RANGE = 3.0
@@ -198,6 +198,8 @@ _AURAS = [
     AuraDef("taunted", "Taunted", "roar", True, 600000, description="Forced to attack the Guardian."),
     AuraDef("marrow_shards", "Marrow Shards", "claw", True, 4000, tick_ms=1000, tick_amount=900,
             description="Bone shards from a fallen undead: damage every second, per stack.", stacks=True),
+    AuraDef("grave_mark", "Grave Mark", "raise", True, 6000,
+            description="Detonates when it expires, hitting every ally within 6 m hard. Get away from the group."),
 ]
 AURAS: dict[str, AuraDef] = {a.id: a for a in _AURAS}
 
@@ -325,8 +327,9 @@ AFFIXES: dict[str, Affix] = {a.id: a for a in (
           "When an undead enemy other than Mortisar dies, every player gains a stack of Marrow Shards: shadow "
           "damage every second for 4 sec, for each stack. Many kills at once stack it high: stagger kills."),
     Affix("hollow_tyrant", "Hollow Tyrant",
-          "Mortisar has 15% more health, Summons the Restless three times (at 80%, 50% and 25% health), "
-          "and Desecrates four players instead of three."),
+          "Mortisar Summons the Restless three times (at 80%, 50% and 25% health), Desecrates four players "
+          "instead of three, and every ~24 sec brands a player with a Grave Mark: after 6 sec it detonates, "
+          "hitting the marked player and, much harder, every ally within 6 m of them. Spread out."),
 )}
 
 
@@ -337,11 +340,12 @@ class Tier:
     enemy_hp: float  # multiplies every enemy's health
     enemy_dmg: float  # multiplies every enemy's damage
     affixes: tuple[str, ...]
+    limit_ms: int  # the dungeon run's timer
 
 
 TIERS: dict[str, Tier] = {t.id: t for t in (
-    Tier("normal", "Normal", 0.6, 0.6, ()),
-    Tier("plus10", "+10", 0.85, 1.0, ("restless_graves", "marrowburst", "hollow_tyrant")),
+    Tier("normal", "Normal", 0.95, 0.9, (), 255_000),
+    Tier("plus10", "+10", 0.85, 1.15, ("restless_graves", "marrowburst", "hollow_tyrant"), 255_000),
 )}
 DEFAULT_TIER = "plus10"
 TIER_ALIASES = {"normal": "normal", "n": "normal", "plus10": "plus10", "+10": "plus10", "10": "plus10"}
@@ -355,6 +359,11 @@ GRAVE_DAMAGE = 3_500
 TYRANT_HP = 1.0
 TYRANT_RAISE_AT = (0.80, 0.50, 0.25)
 TYRANT_DESECRATE_TARGETS = 4
+GRAVE_MARK_FIRST_MS = 16_000  # after the boss is pulled (jittered like his other timers)
+GRAVE_MARK_EVERY_MS = 24_000
+GRAVE_MARK_RADIUS = 6.0
+GRAVE_MARK_SELF = 6_000  # damage to the marked player
+GRAVE_MARK_SPLASH = 22_000  # damage to each ally within GRAVE_MARK_RADIUS
 
 
 def tier(tier_id: str) -> Tier:
@@ -440,6 +449,8 @@ ABILITIES.update({a.id: a for a in (
             range=30.0, amount=5000, description="A ranged bolt at the caster's target."),
     Ability("restless_grave", "Restless Grave", "affix", "desecrate", school="shadow", amount=GRAVE_DAMAGE,
             description=AFFIXES["restless_graves"].description),
+    Ability("grave_mark", "Grave Mark", "boss", "raise", school="shadow", amount=GRAVE_MARK_SPLASH,
+            description="Brands a player; after 6 sec it detonates on everyone within 6 m. Spread out."),
 )})
 
 TRASH: dict[str, TrashDef] = {
@@ -465,7 +476,7 @@ PACKS: tuple[PackDef, ...] = (
 )
 AGGRO_RADIUS = 9.0  # a pack attacks when any player comes this close to any member
 BOSS_ENGAGE_RADIUS = 13.0  # Mortisar wakes when a player is this close to him
-DUNGEON_LIMIT_MS = 270_000  # the run's timer (4:30); expert bots clear in ~3:43
+DUNGEON_LIMIT_MS = 270_000  # default run timer; each tier sets its own (Tier.limit_ms)
 DEATH_PENALTY_MS = 10_000  # each revive costs this much on the timer (like an M+ death)
 REVIVE_AFTER_MS = 3_000  # out of combat this long, fallen allies get back up
 REVIVE_HP_PCT = 0.5

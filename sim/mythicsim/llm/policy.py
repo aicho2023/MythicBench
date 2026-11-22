@@ -93,6 +93,7 @@ class PartyBrain:
         self.seen_enemies: set[str] = set()
         self.low: set[str] = set()
         self.dead: set[str] = set()
+        self.marked: set[str] = set()
 
     # ------------------------------------------------------------------
     def triggers(self, obs: dict) -> list[str]:
@@ -118,6 +119,8 @@ class PartyBrain:
             if dg["boss_engaged"] and not self.boss_awake:
                 why.append("Mortisar woke up")
         for p in obs["party"]:
+            if p["alive"] and "grave_mark" in p["auras"] and p["id"] not in self.marked:
+                why.append(f"{p['id']} was branded with grave_mark")
             if p["alive"] and any(g["armed"] and dist(p["pos"], g["pos"]) <= g["radius"] + POOL_HIT_PAD
                                   for g in obs["ground"]):
                 why.append(f"{p['id']} is standing in an armed pool")
@@ -135,6 +138,7 @@ class PartyBrain:
         self.seen_ground |= {g["id"] for g in obs["ground"]}
         self.low = {p["id"] for p in obs["party"] if p["alive"] and p["hp_pct"] < LOW_HP_PCT}
         self.dead = {p["id"] for p in obs["party"] if not p["alive"]}
+        self.marked = {p["id"] for p in obs["party"] if p["alive"] and "grave_mark" in p["auras"]}
         dg = obs.get("dungeon")
         if dg:
             self.pack_states = {p["id"]: p["state"] for p in dg["packs"]}
@@ -166,7 +170,8 @@ class PartyBrain:
                     else "in_pool" if "standing in" in w
                     else "pack" if w.endswith(("pulled", "cleared")) or "woke" in w
                     else "adds" if w.startswith("adds") else "death" if w.endswith("died")
-                    else "low_hp" if "is low" in w else "start" if "starting" in w else "routine")
+                    else "low_hp" if "is low" in w else "start" if "starting" in w
+                    else "mark" if "branded" in w else "routine")
             self.stats.triggers[kind] = self.stats.triggers.get(kind, 0) + 1
         age = None if self.last_call_t is None else (obs["t"] - self.last_call_t) / 1000
         user = (render_state(obs, self.gcd, age, self.knowledge)

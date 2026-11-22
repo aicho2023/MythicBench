@@ -229,7 +229,7 @@ class DungeonRun(Encounter):
     def observe(self, u):
         obs = super().observe(u)
         obs["dungeon"] = {
-            "elapsed_ms": self.t, "penalty_ms": self.penalty_ms, "limit_ms": C.DUNGEON_LIMIT_MS,
+            "elapsed_ms": self.t, "penalty_ms": self.penalty_ms, "limit_ms": self.tier.limit_ms,
             "in_combat": self.in_combat(), "boss_engaged": self.boss.engaged,
             "packs": [{"id": p.id, "name": p.name, "room": p.room, "state": self.pack_state[p.id],
                        "alive": [i for i in self.pack_members[p.id] if self.units[i].alive]} for p in C.PACKS],
@@ -245,8 +245,8 @@ class DungeonRun(Encounter):
         self.emit("emote", unit=self.boss.id, style="warning",
                   text="The Gravecrown Crypt: clear the way to the Hollow King.")
 
-    def run(self, max_ms: int = C.DUNGEON_LIMIT_MS + 60_000) -> dict:
-        return super().run(max_ms)
+    def run(self, max_ms: int | None = None) -> dict:
+        return super().run(max_ms if max_ms is not None else self.tier.limit_ms + 60_000)
 
     def to_replay(self) -> dict:
         rep = super().to_replay()
@@ -255,7 +255,7 @@ class DungeonRun(Encounter):
                                        "description": "Out-of-combat health regeneration."}
         rep["meta"].update({
             "mode": MODE, "encounter": "gravecrown_crypt_run",
-            "title": "Gravecrown Crypt — full run", "time_limit_ms": C.DUNGEON_LIMIT_MS,
+            "title": "Gravecrown Crypt: full run", "time_limit_ms": self.tier.limit_ms,
             "penalty_ms": self.penalty_ms, "revives": self.revives,
             "boss_engaged_ms": self.boss_engaged_t if self.boss.engaged else None,
         })

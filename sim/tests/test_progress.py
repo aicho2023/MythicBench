@@ -44,16 +44,16 @@ def test_notes_are_appended_only_when_present():
     assert with_notes.startswith(system_prompt("blind")) and "this is pull 3" in with_notes and "Kick the Requiem." in with_notes
 
 
-def _boss_replay(policy: str, seed: int = 42) -> dict:
+def _boss_replay(policy: str, seed: int = 42, tier: str = "normal") -> dict:
     from mythicsim.__main__ import simulate
     from mythicsim.metrics import score
-    rep = simulate(policy, seed)
+    rep = simulate(policy, seed, tier)
     rep["meta"]["metrics"] = score(rep)
     return rep
 
 
 def test_debrief_matches_the_metrics():
-    rep = _boss_replay("competent")
+    rep = _boss_replay("competent", tier="plus10")
     d = debrief_data(rep)
     m = rep["meta"]["metrics"]
     assert d["outcome"] == m["outcome"] and d["boss_hp_pct_left"] == m["boss_hp_pct_remaining"]

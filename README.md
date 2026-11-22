@@ -37,7 +37,7 @@ Links can point at a moment:
 
 The Gravecrown Crypt plays like a Mythic+ key. The party walks in from the
 entrance, clears two packs of undead, then kills Mortisar, the Hollow King.
-One 4:30 timer covers the whole run.
+One 4:15 timer covers the whole run.
 
 - The Chapel pack is four Bonewalkers and a Bone Chanter. The Chanter's
   Grave Volley hits the whole party and can be interrupted.
@@ -54,17 +54,17 @@ One 4:30 timer covers the whole run.
 There are two tiers, chosen with `--tier normal` or `--tier +10` (the
 default).
 
-On Normal, enemies have 60% of their listed health and damage, and there are
-no affixes. A competent group clears it.
+On Normal, enemies have their full listed health and 90% of their damage,
+and there are no affixes. A good group clears it; a careless one doesn't.
 
-On +10, enemies have 85% health and full damage, and three affixes change how
+On +10, enemies have 85% health and 115% damage, and three affixes change how
 the dungeon has to be played:
 
 | Affix | Effect |
 | --- | --- |
 | Restless Graves | Each undead that dies (Mortisar excepted) leaves a grave for 12 seconds. It heals undead standing in it and hurts players standing in it. |
 | Marrowburst | Each undead death gives every player a stack of Marrow Shards, which deals damage every second for 4 seconds per stack. Killing a whole pack at once hurts. |
-| Hollow Tyrant | Mortisar summons adds three times instead of twice and Desecrates four players instead of three. |
+| Hollow Tyrant | Mortisar summons adds three times instead of twice, Desecrates four players instead of three, and every 24 seconds or so brands a player with a Grave Mark. Six seconds later it detonates, hitting the marked player and, much harder, everyone within 6 m of them. |
 
 The affixes are always shown to the model, as they are in the game. Only the
 boss's abilities are hidden.
@@ -89,22 +89,23 @@ They don't learn; they show what good and bad play look like. Over 200 seeds:
 
 | | Expert | Competent | Sloppy |
 | --- | --- | --- | --- |
-| Normal clear rate | 100% | 99.5% | 19% |
-| +10 clear rate | 60% (53 to 67%) | 13% (9 to 18%) | 0% |
-| +10 score | 73.5 (72.4 to 74.7) | 59.6 (58.1 to 61.2) | 16.3 (14.7 to 17.9) |
+| Normal clear rate | 99% (96 to 100%) | 79% (72 to 84%) | 0% |
+| Normal score | 83.8 (83.1 to 84.5) | 76.0 (75.0 to 77.0) | 31.6 (31.1 to 32.1) |
+| +10 clear rate | 25% (20 to 31%) | 1% (0 to 3%) | 0% |
+| +10 score | 66.1 (65.4 to 66.8) | 49.7 (48.3 to 51.1) | 7.0 (6.5 to 7.5) |
 
 Ranges are 95% confidence intervals. The three bots come out in the right
 order with no overlap, which is the first check that the benchmark tells
 good play from bad.
 
-The viewer ships one +10 run for each bot, all on seed 5. Every policy on a
+The viewer ships one +10 run for each bot, all on seed 10. Every policy on a
 seed faces the same boss timers, so only the decisions differ.
 
 | Run | Outcome | Score | Interrupts | Deaths |
 | --- | --- | --- | --- | --- |
-| Expert bots | Cleared in 4:09 | 79.3 | 18 of 22 | 0 |
-| Competent bots | Wiped at 4:26 with Mortisar nearly dead | 69.7 | 17 of 20 | 5 |
-| Sloppy bots | Wiped at 0:40 on the first pack | 6.9 | 4 of 8 | 5 |
+| Expert bots | Cleared in 3:50 | 81.8 | 17 of 20 | 0 |
+| Competent bots | Wiped on Mortisar at 4:34 | 36.3 | 8 of 22 | 5 |
+| Sloppy bots | Stuck on the first pack until time ran out | 6.2 | 0 of 39 | 4 |
 
 ## How a model plays
 
@@ -274,6 +275,7 @@ familiar:
 | Desecrate (pools under three players) | don't stand in the bad |
 | Summon the Restless | add waves to swap to |
 | Hollow Fury, 3:15 after the pull | the hard enrage |
+| Grave Mark (+10) | the spread debuff: run out of the group |
 | Restless Graves, Marrowburst, Hollow Tyrant | the week's affixes |
 
 | Class (role) | Key abilities | Closest WoW match |
