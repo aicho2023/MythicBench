@@ -161,20 +161,100 @@ def _malformed(why: str) -> ClientError:
     return ClientError(f"malformed response from the provider: {why}")
 
 
-def _envelope(out, body_key: str, body_type: type, usage_keys: tuple[str, ...]) -> None:
-    """A 200 must carry its body and its token usage, or it can't be priced or scored."""
-    import math
-    if not isinstance(out, dict):
-        raise _malformed(f"not a JSON object ({type(out).__name__})")
-    if not isinstance(out.get(body_key), body_type):
-        raise _malformed(f"no {body_key!r}")
-    usage = out.get("usage")
-    if not isinstance(usage, dict):
-        raise _malformed("no 'usage'")
-    for k in usage_keys:
-        v = usage.get(k)
-        if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or v < 0:
-            raise _malformed(f"usage.{k} is {v!r}")
+def _strict(read, out, t0: float) -> "Reply":
+    """Read a provider's answer strictly: any shape we don't expect is a
+    malformed (possibly billed) response, never a crash or a $0 reply."""
+    try:
+        return read(out, t0)
+    except ClientError:
+        raise
+    except Exception as err:  # noqa: BLE001 - an unexpected shape, whatever it is
+        raise _malformed(f"{type(err).__name__}: {err}") from None
+
+
+def _obj(x, what: str) -> dict:
+    if not isinstance(x, dict):
+        raise _malformed(f"{what} is {type(x).__name__}, not an object")
+    return x
+
+
+def _text(x, what: str) -> str:
+    if x is None:
+        return ""
+    if not isinstance(x, str):
+        raise _malformed(f"{what} is {type(x).__name__}, not text")
+    return x
+
+
+def _tokens(d: dict, key: str, what: str, required: bool = True) -> int:
+    """A token count used for billing: a whole number >= 0 (absent or null = 0 when optional)."""
+    v = d.get(key)
+    if v is None and not required:
+        return 0
+    if isinstance(v, bool) or not isinstance(v, int) or v < 0:
+        raise _malformed(f"{what}.{key} is {v!r}")
+    return v
+
+
+def _read_anthropic(out, t0: float) -> "Reply":
+    out = _obj(out, "the response")
+    content = out.get("content")
+    if not isinstance(content, list):
+        raise _malformed("no 'content' list")
+    text, thinking = [], []
+    for i, b in enumerate(content):
+        b = _obj(b, f"content[{i}]")
+        kind = _text(b.get("type"), f"content[{i}].type")
+        if kind == "text":
+            text.append(_text(b.get("text"), f"content[{i}].text"))
+        elif kind == "thinking":
+            thinking.append(_text(b.get("thinking"), f"content[{i}].thinking"))
+    u = _obj(out.get("usage"), "usage")
+    fresh = _tokens(u, "input_tokens", "usage")
+    read = _tokens(u, "cache_read_input_tokens", "usage", required=False)
+    write = _tokens(u, "cache_creation_input_tokens", "usage", required=False)
+    total_in = fresh + read + write
+    if total_in <= 0:
+        raise _malformed("no input tokens counted for a request that had a prompt")
+    stop = _text(out.get("stop_reason"), "stop_reason")
+    return Reply("".join(text), total_in, _tokens(u, "output_tokens", "usage"), time.monotonic() - t0,
+                 cache_read_tokens=read, truncated=stop == "max_tokens", cache_write_tokens=write,
+                 refused=stop == "refusal", thinking="".join(thinking)[:4000],
+                 model=_text(out.get("model"), "model"), stop_reason=stop, request_id=_text(out.get("id"), "id"))
+
+
+def _read_openai(out, t0: float) -> "Reply":
+    out = _obj(out, "the response")
+    choices = out.get("choices")
+    if not isinstance(choices, list) or not choices:
+        raise _malformed("no 'choices'")
+    c0 = _obj(choices[0], "choices[0]")
+    msg = _obj(c0.get("message"), "choices[0].message")
+    text = _text(msg.get("content"), "message.content")
+    refusal = _text(msg.get("refusal"), "message.refusal")
+    finish = _text(c0.get("finish_reason"), "finish_reason")
+    usage = _obj(out.get("usage"), "usage")
+    prompt = _tokens(usage, "prompt_tokens", "usage")
+    completion = _tokens(usage, "completion_tokens", "usage")
+    if prompt <= 0:
+        raise _malformed("no input tokens counted for a request that had a prompt")
+    pdet = usage.get("prompt_tokens_details")
+    read = _tokens(_obj(pdet, "prompt_tokens_details"), "cached_tokens", "prompt_tokens_details", required=False) \
+        if pdet is not None else 0
+    if read > prompt:
+        raise _malformed(f"{read} cached tokens out of {prompt} input tokens")
+    cdet = usage.get("completion_tokens_details")
+    reasoning = None
+    if cdet is not None:
+        cdet = _obj(cdet, "completion_tokens_details")
+        if cdet.get("reasoning_tokens") is not None:
+            reasoning = _tokens(cdet, "reasoning_tokens", "completion_tokens_details")
+            if reasoning > completion:
+                raise _malformed(f"{reasoning} reasoning tokens out of {completion} output tokens")
+    return Reply(text, prompt, completion, time.monotonic() - t0, cache_read_tokens=read,
+                 truncated=finish == "length", refused=bool(refusal) or finish == "content_filter",
+                 model=_text(out.get("model"), "model"), stop_reason=finish, request_id=_text(out.get("id"), "id"),
+                 reasoning_tokens=reasoning, service_tier=_text(out.get("service_tier"), "service_tier"))
 
 
 # Per-call output cap (thinking + answer), the same for every model.
@@ -215,18 +295,7 @@ class AnthropicClient:
                      # The rules never change between calls: let Anthropic cache them.
                      "system": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
                      "messages": [{"role": "user", "content": user}], **self.effort_params()})
-        _envelope(out, "content", list, ("input_tokens", "output_tokens"))
-        text = "".join(b.get("text", "") for b in out.get("content", []) if b.get("type") == "text")
-        thinking = "".join(b.get("thinking", "") for b in out.get("content", []) if b.get("type") == "thinking")
-        u = out.get("usage", {})
-        read = u.get("cache_read_input_tokens", 0) or 0
-        write = u.get("cache_creation_input_tokens", 0) or 0
-        total_in = (u.get("input_tokens", 0) or 0) + write + read
-        return Reply(text, total_in, u.get("output_tokens", 0), time.monotonic() - t0, cache_read_tokens=read,
-                     truncated=out.get("stop_reason") == "max_tokens", cache_write_tokens=write,
-                     refused=out.get("stop_reason") == "refusal", thinking=thinking[:4000],
-                     model=str(out.get("model") or ""), stop_reason=str(out.get("stop_reason") or ""),
-                     request_id=str(out.get("id") or ""))
+        return _strict(_read_anthropic, out, t0)
 
     def effort_params(self) -> dict:
         if self.effort == "none":
@@ -266,22 +335,7 @@ class OpenAIClient:
                      **({"reasoning_effort": self.effort} if self.effort else {}),
                      "messages": [{"role": "system", "content": system},
                                   {"role": "user", "content": user}]})
-        _envelope(out, "choices", list, ("prompt_tokens", "completion_tokens"))
-        if not out["choices"] or not isinstance(out["choices"][0].get("message"), dict):
-            raise _malformed("no message in choices")
-        choices = out["choices"]
-        msg = choices[0].get("message") or {}
-        text = msg.get("content") or ""
-        truncated = choices[0].get("finish_reason") == "length"
-        refused = bool(msg.get("refusal")) or choices[0].get("finish_reason") == "content_filter"
-        usage = out.get("usage", {})
-        read = (usage.get("prompt_tokens_details") or {}).get("cached_tokens", 0) or 0
-        reasoning = (usage.get("completion_tokens_details") or {}).get("reasoning_tokens")
-        return Reply(text, usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0),
-                     time.monotonic() - t0, cache_read_tokens=read, truncated=truncated, refused=refused,
-                     model=str(out.get("model") or ""), stop_reason=str(choices[0].get("finish_reason") or ""),
-                     request_id=str(out.get("id") or ""), reasoning_tokens=reasoning,
-                     service_tier=str(out.get("service_tier") or ""))
+        return _strict(_read_openai, out, t0)
 
 
 MOCK_ORDERS = {

@@ -372,3 +372,60 @@ def test_a_prompt_past_the_priced_size_is_never_sent(tmp_path):
     with pytest.raises(spend.ClientError, match="short-context"):
         m.complete("x" * spend.MAX_PRICED_INPUT_TOKENS, "u")
     assert m.usd == 0.0
+
+
+def _serve(monkeypatch, body: bytes):
+    import io
+    from mythicsim.llm import clients as cl
+
+    class Resp(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+    monkeypatch.setattr(cl.urllib.request, "urlopen", lambda req, timeout=0: Resp(body))
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test")
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    return cl
+
+
+ANTHROPIC_BAD = [
+    {"content": [None], "usage": {"input_tokens": 5, "output_tokens": 1}},
+    {"content": [{"type": "text", "text": 7}], "usage": {"input_tokens": 5, "output_tokens": 1}},
+    {"content": [{"type": "text", "text": "{}"}], "usage": {"input_tokens": 0, "output_tokens": 0}},
+    {"content": [{"type": "text", "text": "{}"}], "usage": {"input_tokens": 5, "output_tokens": 1,
+                                                          "cache_read_input_tokens": -40}},
+    {"content": [{"type": "text", "text": "{}"}], "usage": {"input_tokens": 5.5, "output_tokens": 1}},
+]
+OPENAI_BAD = [
+    {"choices": [None], "usage": {"prompt_tokens": 5, "completion_tokens": 1}},
+    {"choices": [{"message": None}], "usage": {"prompt_tokens": 5, "completion_tokens": 1}},
+    {"choices": [{"message": {"content": "{}"}}], "usage": {"prompt_tokens": 0, "completion_tokens": 0}},
+    {"choices": [{"message": {"content": "{}"}}], "usage": {"prompt_tokens": 5, "completion_tokens": 1,
+                                                          "prompt_tokens_details": {"cached_tokens": 9}}},
+    {"choices": [{"message": {"content": "{}"}}], "usage": {"prompt_tokens": 5, "completion_tokens": 1,
+                                                          "completion_tokens_details": {"reasoning_tokens": 3}}},
+]
+
+
+@pytest.mark.parametrize("provider,body", [("anthropic", b) for b in ANTHROPIC_BAD] + [("openai", b) for b in OPENAI_BAD])
+def test_every_billing_field_is_checked(monkeypatch, tmp_path, provider, body):
+    """Nested nulls, wrong types, zero input for a real prompt, negative or impossible counts:
+    a possibly billed malformed answer, counted at its bound, never a crash or a $0 settle."""
+    cl = _serve(monkeypatch, json.dumps(body).encode())
+    client = cl.AnthropicClient("claude-haiku-5-5", effort="low") if provider == "anthropic" \
+        else cl.OpenAIClient("gpt-6-luna", effort="low")
+    price = spend.Price(input=1.0, output=1.0, cached=1.0)
+    m = spend.CostMeter(client, price, limit_usd=10.0, ledger=tmp_path / "l.jsonl")
+    with pytest.raises(cl.ClientError, match="malformed") as err:
+        m.complete("s", "u")
+    assert not err.value.fatal and m.usd == pytest.approx(spend.worst_case_usd(price, "s", "u"))
+    assert all(r["usd"] >= 0 for r in spend.read_ledger(tmp_path / "l.jsonl"))
+
+
+def test_a_valid_answer_with_no_output_is_accepted(monkeypatch):
+    cl = _serve(monkeypatch, json.dumps({"content": [], "stop_reason": "end_turn",
+                                         "usage": {"input_tokens": 9, "output_tokens": 0}}).encode())
+    r = cl.AnthropicClient("claude-haiku-5-5", effort="low").complete("s", "u")
+    assert r.input_tokens == 9 and r.output_tokens == 0 and r.text == ""

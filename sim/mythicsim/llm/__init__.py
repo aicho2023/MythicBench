@@ -57,7 +57,9 @@ Pieces:
 #   1.0.0-rc.4 third review: malformed provider answers are billable errors, not
 #          free replies; model text is cleaned before it enters a prompt; OpenAI
 #          pinned to the Standard tier; oversized prompts refused; v1 pin checked at launch
-HARNESS_VERSION = "1.0.0-rc.4"
+#   1.0.0-rc.5 fourth review: every nested field and billing count in a provider's
+#          answer is checked; anything off is a possibly billed malformed answer
+HARNESS_VERSION = "1.0.0-rc.5"
 
 
 def prompt_hash(knowledge: str = "full", tier: str = "plus10", mode: str = "boss") -> str:
