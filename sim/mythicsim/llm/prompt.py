@@ -77,16 +77,16 @@ def _boss_section(knowledge: str) -> str:
     if knowledge == "blind":
         # A first-time raider: no guide, no boss tooltips, no timers. Everything
         # about the boss has to be learned from what happens on screen.
-        return f"""## Mortisar, the Hollow King ({b.max_hp:,} HP)
+        return f"""## Oruth the Unburied ({b.max_hp:,} HP)
   - You have never fought him. His abilities, their timing, and what they do are unknown: learn them from what you see (his casts by name with a cast bar, the damage your party takes, anything that appears on the ground, any new enemies).
-  - Mortisar attacks whoever he is targeting (normally the tank)."""
+  - Oruth attacks whoever he is targeting (normally the tank)."""
     boss = [_ability_line(a).replace("    - ", "  - ") for a in
             ("hollow_strike", "soul_rend", "requiem_of_bones", "desecrate", "raise_dead", "hollow_fury")]
-    return f"""## Mortisar, the Hollow King ({b.max_hp:,} HP)
+    return f"""## Oruth the Unburied ({b.max_hp:,} HP)
 {chr(10).join(boss)}
   - Desecrate pools have radius {b.desecrate_radius:g} m, become dangerous {b.desecrate_arm_ms / 1000:g}s after appearing, hit for {C.ABILITIES['desecrate'].amount} every {b.desecrate_tick_ms / 1000:g}s while you stand in them, and last {b.desecrate_duration_ms / 1000:g}s.
   - Summon the Restless is cast at {', '.join(f'{int(x * 100)}%' for x in b.raise_dead_at)} boss health. Risen Bonewalkers ({C.ADD.max_hp} HP) run at the healer.
-  - Mortisar attacks whoever he is targeting (normally the tank).
+  - Oruth attacks whoever he is targeting (normally the tank).
   - Boss timers vary from fight to fight; the state shows when each is next due."""
 
 
@@ -121,8 +121,8 @@ def _dungeon_section(knowledge: str, tier: str = C.DEFAULT_TIER) -> str:
         kinds.append(line + ("" if not d.spells else ":"))
         kinds.extend(_trash_line(s, blind) for s in d.spells)
     return f"""## The dungeon run
-This is a full Mythic+-style run, not just the boss: walk from the entrance, clear two packs of undead, then fight Mortisar. One timer covers the whole run: {C.tier(tier).limit_ms / 1000:g} s.
-Map (positions are (x, z); the entrance is at large z, Mortisar's room at the origin):
+This is a full Mythic+-style run, not just the boss: walk from the entrance, clear two packs of undead, then fight Oruth. One timer covers the whole run: {C.tier(tier).limit_ms / 1000:g} s.
+Map (positions are (x, z); the entrance is at large z, Oruth's room at the origin):
 {rooms}
   - Corridors join them: {cors}. You can only walk inside rooms and corridors.
 Route, entrance to boss: {', '.join(f'({w[0]:g}, {w[1]:g})' for w in C.ROUTE)}.
@@ -130,10 +130,10 @@ Packs:
 {chr(10).join(packs)}
 Enemies:
 {chr(10).join(kinds)}
-Pulling: a pack attacks when anyone comes within {C.AGGRO_RADIUS:g} m of any of its members, or hits one. Mortisar wakes when someone comes within {C.BOSS_ENGAGE_RADIUS:g} m of him; his abilities and timers only start then.
+Pulling: a pack attacks when anyone comes within {C.AGGRO_RADIUS:g} m of any of its members, or hits one. Oruth wakes when someone comes within {C.BOSS_ENGAGE_RADIUS:g} m of him; his abilities and timers only start then.
 Between pulls (no enemy fighting you): the party regenerates {int(C.OOC_REGEN_PCT_PER_S * 100)}% health per second, and after {C.REVIVE_AFTER_MS / 1000:g} s out of combat fallen allies get back up at {int(C.REVIVE_HP_PCT * 100)}% health. Each revive adds {C.DEATH_PENALTY_MS / 1000:g} s to the timer. Resting costs time; pulling hurt costs lives.
-The run ends when the timer runs out (revive penalties included); nothing after that counts. It is a clear when Mortisar and every pack are dead within the timer.
-Score for the run (0-100): a clear earns 70 plus up to 30 for speed (the full 30 with a quarter of the timer left; revive penalties count). Otherwise (a wipe, or the timer running out), up to 70 for progress (each pack is worth 15%, Mortisar 70% by health removed)."""
+The run ends when the timer runs out (revive penalties included); nothing after that counts. It is a clear when Oruth and every pack are dead within the timer.
+Score for the run (0-100): a clear earns 70 plus up to 30 for speed (the full 30 with a quarter of the timer left; revive penalties count). Otherwise (a wipe, or the timer running out), up to 70 for progress (each pack is worth 15%, Oruth 70% by health removed)."""
 
 
 def _tier_section(tier: str) -> str:
@@ -163,7 +163,7 @@ def notes_section(notes: str | None, pull: int | None) -> str:
 
 
 def system_prompt(knowledge: str = "full", notes: str | None = None, pull: int | None = None,
-                  tier: str = C.DEFAULT_TIER, mode: str = "boss", me: str = "bramble") -> str:
+                  tier: str = C.DEFAULT_TIER, mode: str = "boss", me: str = "rook") -> str:
     """The rules for the agent playing ``me``. ``knowledge="blind"`` hides
     everything about the boss. Notes (the agent's own) are appended last, so
     the text before them is identical across pulls and caches well."""
@@ -190,7 +190,7 @@ def system_prompt(knowledge: str = "full", notes: str | None = None, pull: int |
         score_text = "Scored over the whole dungeon run; see \"The dungeon run\" below."
         # The run's own timer (in the dungeon section) is the only limit stated:
         # the blind party isn't told anything about the boss's timing.
-        intro = "" if knowledge == "blind" else intro + " (Mortisar's clock starts when he is pulled.)"
+        intro = "" if knowledge == "blind" else intro + " (Oruth's clock starts when he is pulled.)"
     else:
         score_text = (f"A wipe earns up to 70 points in proportion to the boss's health removed. A kill earns 70 plus "
                       f"up to 30 for speed: the full 30 for killing with a quarter of the {limit} s timer (or more) left.")
@@ -198,7 +198,7 @@ def system_prompt(knowledge: str = "full", notes: str | None = None, pull: int |
             if mode == "dungeon" else "kill the boss as fast as possible without dying.")
     next_move = (', or "next" walks to the next waypoint of the route toward the boss' if mode == "dungeon" else "")
     example = next(a for a in mine.abilities if C.ABILITIES[a].kind not in ("interrupt", "taunt", "buff"))
-    tgt = "mortisar" if C.ABILITIES[example].kind in ("damage", "aoe_damage") else me
+    tgt = "oruth" if C.ABILITIES[example].kind in ("damage", "aoe_damage") else me
     return f"""You play {member.name} ({me}), the {mine.name} ({mine.role}), in a party of five adventurers fighting through a dungeon in a turn-based simulation of a real-time fight. Each of the other four characters is played by another player; you control only {member.name}. The party's goal: {goal}{(" " + intro) if intro else ""}
 
 ## Score (0-100, shared by the whole party)
@@ -207,7 +207,7 @@ def system_prompt(knowledge: str = "full", notes: str | None = None, pull: int |
 {_tier_section(tier)}
 
 ## Arena
-Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) in metres. Mortisar starts on his throne at ({C.BOSS_POS[0]:g}, {C.BOSS_POS[1]:g}), with a body radius of {b.radius:g} m. Once pulled, he takes {b.rise_ms / 1000:g} s to rise from it; after that he walks after whoever he is attacking ({b.speed:g} m/s) whenever they're out of his melee reach, but never leaves this room. Characters move at 5 m/s, have a body radius of {C.PLAYER_RADIUS:g} m, and can't stand inside one another. Moving cancels a cast in progress, and spells with a cast time cannot be started while moving. Melee range is {C.MELEE_RANGE:g} m from the target's edge. Global cooldown (GCD): {C.GCD_MS / 1000:g}s after most abilities.
+Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) in metres. Oruth starts on his throne at ({C.BOSS_POS[0]:g}, {C.BOSS_POS[1]:g}), with a body radius of {b.radius:g} m. Once pulled, he takes {b.rise_ms / 1000:g} s to rise from it; after that he walks after whoever he is attacking ({b.speed:g} m/s) whenever they're out of his melee reach, but never leaves this room. Characters move at 5 m/s, have a body radius of {C.PLAYER_RADIUS:g} m, and can't stand inside one another. Moving cancels a cast in progress, and spells with a cast time cannot be started while moving. Melee range is {C.MELEE_RANGE:g} m from the target's edge. Global cooldown (GCD): {C.GCD_MS / 1000:g}s after most abilities.
 
 ## The party
 {chr(10).join(party)}
@@ -219,8 +219,8 @@ You are asked for {member.name}'s orders every 4 seconds of game time, and immed
   - "move_to": [x, z] walks there once, or "safe" steps to the nearest spot clear of all pools, reachable without walking through another pool, from which your first priority target is still in range when possible (the scripted bots' movement logic){next_move}. Omit or null to stay put. A move is carried out each time you send it.
   - "priority": an ordered list of [ability_id, target_id]. Every tick, {member.name} uses the FIRST entry that is ready (off cooldown, in range, GCD free, not casting or moving for cast-time spells). Off-GCD abilities in the list fire even during the GCD. Interrupts only fire while their target is casting something interruptible (reacting {reaction} s after the cast starts), so they can stay in the list; if someone else interrupts first, yours sees nothing to stop and stays ready. Put a reliable filler ability last so you never idle. Leave "priority" out to keep your current one.
   - "say": one short line in party chat (at most {CHAT_MAX_CHARS} characters; anything longer is cut off), which every player sees from then on. Typing takes time: you can send one message every {CHAT_COOLDOWN_MS // 1000} s, and one sent sooner isn't delivered. Leave it out to say nothing.
-Ground effects ("pools") in the state are dangerous to stand in: "desecrate" pools come from Mortisar, "grave" pools from the Restless Graves affix. "safe" avoids both.
-Targets are unit ids from the state (e.g. "mortisar", "bonewalker_1", "lumi"). For self-buffs and party-wide abilities use your own id ("self" and "party" also work).
+Ground effects ("pools") in the state are dangerous to stand in: "desecrate" pools come from Oruth, "grave" pools from the Restless Graves affix. "safe" avoids both.
+Targets are unit ids from the state (e.g. "oruth", "bonewalker_1", "ivy"). For self-buffs and party-wide abilities use your own id ("self" and "party" also work).
 You can only use {member.name}'s abilities: {', '.join(mine.abilities)}.
 
 Reply with ONLY a JSON object, no prose:
@@ -287,7 +287,7 @@ def render_state(obs: dict, me: str, gcd_ms: int, orders_age_s: float | None, kn
             lines.append(f"PACK {p['name']} ({p['room']}): {p['state'].upper()}"
                          + (f", {len(p['alive'])} left" if p["state"] != "dead" else ""))
         if not dg["boss_engaged"]:
-            lines.append("BOSS mortisar is asleep on his throne at (0.0, -2.0); he wakes when someone comes within "
+            lines.append("BOSS oruth is asleep on his throne at (0.0, -2.0); he wakes when someone comes within "
                          f"{C.BOSS_ENGAGE_RADIUS:g} m.")
     else:
         lines = [f"Time {obs['t'] / 1000:.1f}s ({'time limit' if blind else 'enrage at'} {limit})."]
@@ -295,7 +295,7 @@ def render_state(obs: dict, me: str, gcd_ms: int, orders_age_s: float | None, kn
     if boss and dg and not dg["boss_engaged"]:
         boss = None  # described above as asleep
     if boss:
-        lines.append(f"BOSS mortisar {boss['hp_pct']:.1f}% HP at {_p(boss['pos'])}, attacking {boss['target']}"
+        lines.append(f"BOSS oruth {boss['hp_pct']:.1f}% HP at {_p(boss['pos'])}, attacking {boss['target']}"
                      f"{_cast(boss['casting'])}{_auras(boss['auras'])}.")
         if not blind:
             nxt = ", ".join(f"{k} in {v / 1000:.1f}s" for k, v in sorted(obs["boss_next_ms"].items(), key=lambda kv: kv[1]))
@@ -380,7 +380,7 @@ def json_objects(text: str) -> list[dict]:
 
 
 def _orders_in(data: dict, me: str) -> dict | None:
-    if isinstance(data.get(me), dict):  # {"grokka": {...}}: unambiguous, accept it
+    if isinstance(data.get(me), dict):  # {"brask": {...}}: unambiguous, accept it
         return data[me]
     if isinstance(data.get("orders"), dict):
         o = data["orders"]

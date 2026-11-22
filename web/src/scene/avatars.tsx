@@ -351,7 +351,7 @@ export const CLASS_STYLE: Record<string, 'melee' | 'caster' | 'archer' | 'dual'>
 }
 
 // ---------------------------------------------------------------------------
-// Mortisar, the Hollow King
+// Oruth the Unburied
 // ---------------------------------------------------------------------------
 
 export function BossModel({ rig, castColor }: { rig: RigRefs; castColor: string }) {

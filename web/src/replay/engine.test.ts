@@ -25,7 +25,7 @@ describe.each(files)('%s', (file) => {
 
   it('score matches the Python metrics', () => {
     const s = engine.stateAt(engine.duration)
-    const boss = s.units.mortisar
+    const boss = s.units.oruth
     const left = Math.round((1000 * boss.hp) / boss.info.max_hp) / 10
     const got = replay.meta.mode === 'dungeon'
       ? dungeonScore(s.ended!.outcome, s.ended!.t + s.penaltyMs, dungeonProgress(s.units), replay.meta.time_limit_ms)

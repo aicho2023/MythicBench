@@ -11,7 +11,7 @@ export const PAGES: PageMeta[] = [
   { path: '/', title: 'MythicBench: can an AI lead a Mythic+ group?', description: DESCRIPTION },
   { path: '/watch', title: 'Watch a run | MythicBench', description: 'Replays of every pull in the benchmark, in 3D, with every decision the model made.' },
   { path: '/commentary', title: 'Commentary | MythicBench', description: 'How MythicBench works, what it measures, and what the models did.' },
-  { path: '/party', title: 'The party | MythicBench', description: 'Every character and ability in MythicBench, the enemies of the Gravecrown Crypt, and the affixes.' },
+  { path: '/party', title: 'The party | MythicBench', description: 'Every character and ability in MythicBench, the enemies of the Hollow Vault, and the affixes.' },
   { path: '/compare', title: 'Side by side | MythicBench', description: 'Two MythicBench replays on one clock, seen from above.' },
   { path: '/about', title: 'About | MythicBench', description: 'How MythicBench works, for WoW players and for ML people, how to run it yourself, and credits.' },
 ]

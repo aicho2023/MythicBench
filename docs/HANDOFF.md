@@ -60,9 +60,9 @@ competent 72.3 (70.2–74.5), sloppy 14.9 (14.3–15.4). Win rates 99.5% / 68.5%
 Score (`metrics.run_score`, v2): wipe = 70 × share of boss removed; kill = 70 +
 30 × speed (full speed with ≥25% of the timer left).
 
-**Difficulty is two tiers (content 1.3.0):**
+**Difficulty is two tiers (content 1.5.0):**
 - Normal: 0.95× enemy health, 0.9× damage, no affixes.
-- +10: 0.85× health, 1.15× damage, plus three affixes:
+- +10: 0.98× health, 1.15× damage, plus three affixes:
   - Restless Graves;
   - Marrowburst;
   - Hollow Tyrant, which includes Grave Mark (a spread mark that detonates on
@@ -75,11 +75,26 @@ Over 200 seeds:
 
 | Tier | Expert | Competent | Sloppy |
 | --- | --- | --- | --- |
-| +10 | 8% | 0% | 0% |
-| Normal | 99% | 79% | 0% |
+| +10 | 0% | 0% | 0% |
+| Normal | 100% | 77% | 0% |
+
+Content 1.5.0 tuned +10 against real models, not the bots: on content 1.4.0
+(0.85× health), GPT-6.2 Sol cleared 2 of 5 blind first pulls, and two of
+the misses ended with Oruth under 3%. That leaves a five-pull group
+almost sure to clear, with no room to measure learning or for better models.
++10 enemy health went to 0.98× (about +15%): a clean pull should clear, a
+death usually costs the timer. The bots now run out of time on +10 (expert
+54.6, competent 42.5, sloppy 9.4); they rank skill, they don't set the
+ceiling. Scripted commander over 30 seeds: 49.2 on +10, 63.3 on Normal.
+Check on 1.5.0: Sol cleared 1 of 2 blind first pulls (78.4, with 18 s to
+spare; the other ran out of time with Oruth at 7.1%).
+
+Sim 0.5.0 / content 1.4.0: Oruth walks after his target when it's out of
+his melee reach (after a 3 s rise from his throne when pulled), enemies take
+free spots like players, and bodies are 0.6 m.
 
 Sim 0.4.0 (after the pre-run audit): a run ends at its timer (revive
-penalties included) and a clear needs Mortisar and every pack dead. Before,
+penalties included) and a clear needs Oruth and every pack dead. Before,
 a kill up to 60 s late scored 70 and counted; most of the old +10 "clears"
 (25%) were late, so the timed rate is 8%. The scripted commander (same
 interface as the agents, fixed rules): 53.2 on +10, 62.2 on Normal over 16
@@ -209,16 +224,16 @@ These are what make the benchmark trustworthy. Tests enforce most of them.
 
 ## 8. Encounter design (quick reference)
 
-Boss **Mortisar, the Hollow King** (1.5M HP, on a dais at `(0,-2)`):
+Boss **Oruth the Unburied** (1.5M HP, on a dais at `(0,-2)`):
 - *Requiem of Bones* — 3 s interruptible party-wide damage + DoT, every 16 s → **kick it**
 - *Soul Rend* — 2 s tank buster + DoT, every 24 s → **defensive / shield**
 - *Desecrate* — pools under 3 non-tanks, 1.5 s arm, persist 40 s → **move**
 - *Summon the Restless* at 70%/35% — 3 Bonewalkers target the healer → **taunt & swap**
 - *Hollow Fury* hard enrage at 3:15: ramping party-wide damage every second
 
-Party: Bramble (Guardian/tank), Lumi (Lightweaver/healer), Grokka
-(Berserker), Nyx (Shadowblade), Bao (Ranger — future panda). Kick order:
-Grokka → Nyx → Bao → Bramble. Full WoW-analogy table in `README.md`.
+Party: Rook (Guardian/tank), Ivy (Lightweaver/healer), Brask
+(Berserker), Kit (Shadowblade), Wren (Ranger — future panda). Kick order:
+Brask → Kit → Wren → Rook. Full WoW-analogy table in `README.md`.
 
 ## 9. Known limitations / tech debt
 
@@ -358,7 +373,7 @@ Grokka → Nyx → Bao → Bramble. Full WoW-analogy table in `README.md`.
   0%).
 - The LLM rules gain a dungeon section (map, packs, trash tooltips, which blind
   mode hides, pulling, resting, scoring). The state shows pack status and
-  enemies not yet pulled. New triggers: pack pulled, pack cleared, Mortisar
+  enemies not yet pulled. New triggers: pack pulled, pack cleared, Oruth
   woke. `move_to: "next"` walks the route.
 - Debrief: pull and clear times, trash casts interrupted, revives.
 - Viewer: `CryptRun` builds the rooms and corridors from `replay.arena`.
@@ -395,7 +410,7 @@ Grokka → Nyx → Bao → Bramble. Full WoW-analogy table in `README.md`.
 ## 10. Suggested next steps
 
 1. Get the owner's questions answered; merge PR #3 if approved.
-2. **Panda ranger** (owner wants Bao as a panda-inspired ranger): e.g. tint the
+2. **Panda ranger** (owner wants Wren as a panda-inspired ranger): e.g. tint the
    Ranger model and attach panda ears/eye patches to the `head` bone.
 3. **Phase 2 — LLM agents & evals:** the harness is built (see 9b). Next:
    - First real runs (Anthropic + OpenAI); read the replays, then iterate on

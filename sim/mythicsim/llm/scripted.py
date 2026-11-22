@@ -31,7 +31,7 @@ from .clients import Reply
 CASTERS = {d.name for d in C.TRASH.values() if not d.swing_ms}
 _LINE = re.compile(r"^\s+(\w+)(?: \(YOU\))? \((\w+)\) (\d+)% HP.*? at \((-?[\d.]+), (-?[\d.]+)\)")
 _ENEMY = re.compile(r"(\w+) \(([^)]+)\) (\d+)% HP at \((-?[\d.]+), (-?[\d.]+)\) attacking (\w+)")
-_BOSS = re.compile(r"^BOSS mortisar ([\d.]+)% HP at \((-?[\d.]+), (-?[\d.]+)\), attacking (\w+)")
+_BOSS = re.compile(r"^BOSS oruth ([\d.]+)% HP at \((-?[\d.]+), (-?[\d.]+)\), attacking (\w+)")
 
 
 def _party(state: str) -> dict[str, dict]:
@@ -56,7 +56,7 @@ def _enemies(state: str) -> list[dict]:
     for l in state.splitlines():
         b = _BOSS.match(l)
         if b:
-            out.append({"id": "mortisar", "name": "Mortisar", "hp": float(b.group(1)),
+            out.append({"id": "oruth", "name": "Oruth", "hp": float(b.group(1)),
                         "pos": (float(b.group(2)), float(b.group(3))), "on": b.group(4)})
     return out
 
@@ -74,14 +74,14 @@ def orders(me: str, state: str) -> dict:
         healthy = all(p["hp"] >= 70 for p in party.values())
         order["move_to"] = "next" if healthy else None
     # Who to hit: casters, then adds (lowest first), then the boss.
-    adds = sorted((e for e in enemies if e["id"] != "mortisar"), key=lambda e: (e["name"] not in CASTERS, e["hp"], e["id"]))
-    targets = adds + [e for e in enemies if e["id"] == "mortisar"]
+    adds = sorted((e for e in enemies if e["id"] != "oruth"), key=lambda e: (e["name"] not in CASTERS, e["hp"], e["id"]))
+    targets = adds + [e for e in enemies if e["id"] == "oruth"]
     target = targets[0] if targets else None
     prio: list[list[str]] = []
     kick = next((a for a in abilities if a.kind == "interrupt"), None)
     if kick:
         for e in targets:
-            if e["name"] in CASTERS or e["id"] == "mortisar":
+            if e["name"] in CASTERS or e["id"] == "oruth":
                 prio.append([kick.id, e["id"]])
     role = cls.role
     alive = {k: v for k, v in party.items() if v["hp"] > 0}
@@ -106,7 +106,7 @@ def orders(me: str, state: str) -> dict:
         if mine.get("hp", 100) < 50:
             prio += [[a.id, me] for a in abilities if a.kind == "buff"]
     elif role == "dps":
-        if any(e["id"] == "mortisar" for e in enemies):
+        if any(e["id"] == "oruth" for e in enemies):
             prio += [[a.id, me] for a in abilities if a.kind == "buff"]
     if len(enemies) >= 3:
         prio += [[a.id, me] for a in abilities if a.kind == "aoe_damage"]
@@ -117,7 +117,7 @@ def orders(me: str, state: str) -> dict:
         reach = max((a.range for a in dmg), default=C.MELEE_RANGE)
         here = mine.get("pos")
         if here and order["move_to"] is None and "Out of combat" not in state.splitlines()[0]:
-            radius = C.BOSS.radius if target["id"] == "mortisar" else C.ADD.radius
+            radius = C.BOSS.radius if target["id"] == "oruth" else C.ADD.radius
             d = dist(here, target["pos"])
             if d - radius - C.PLAYER_RADIUS > reach - 0.3:
                 stop = radius + C.PLAYER_RADIUS + min(reach, C.MELEE_RANGE) * 0.5

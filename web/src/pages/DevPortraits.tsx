@@ -1,4 +1,4 @@
-// Dev only (/dev/portraits?id=bramble): one party member, posed, on a flat
+// Dev only (/dev/portraits?id=rook): one party member, posed, on a flat
 // green background, for taking the Party page's portrait pictures. The magenta
 // is keyed out afterwards; the site itself never loads three.js for them.
 import { Canvas } from '@react-three/fiber'
@@ -7,7 +7,7 @@ import { KayKitAvatar } from '../scene/kaykit/KayKitAvatar'
 import type { Replay, UnitInfo } from '../replay/types'
 
 export default function DevPortraits() {
-  const id = new URLSearchParams(location.search).get('id') ?? 'bramble'
+  const id = new URLSearchParams(location.search).get('id') ?? 'rook'
   const clip = new URLSearchParams(location.search).get('clip') ?? 'Idle_A'
   const at = Number(new URLSearchParams(location.search).get('at') ?? 0.6)
   const [info, setInfo] = useState<UnitInfo | null>(null)

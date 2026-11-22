@@ -1,3 +1,4 @@
+import { bossOf } from '../replay/engine'
 import { AlertTriangle, Megaphone } from 'lucide-react'
 import { useState } from 'react'
 import type { ReplayMeta } from '../replay/types'
@@ -15,7 +16,7 @@ export function Scorecard() {
   const t = s.ended ? Math.min(h.t, s.ended.t) : h.t // timer stops on kill/wipe
   const m = engine.replay.meta
   const limit = m.time_limit_ms
-  const boss = s.units.mortisar
+  const boss = bossOf(s)
   const bossPct = boss ? (100 * boss.hp) / boss.info.max_hp : 0
   const avoidable = Object.values(s.avoidableTaken).reduce((a, b) => a + b, 0)
   const dungeon = m.mode === 'dungeon'
@@ -48,7 +49,7 @@ export function Scorecard() {
       </div>
       <div className="mt-3 flex items-baseline justify-between border-t border-line px-3 pb-1 pt-2"
         title={dungeon
-          ? 'Score 0-100. A wipe earns up to 70 for progress (each pack 15%, Mortisar 70%); a clear earns 70 plus up to 30 for speed (full 30 with a quarter of the timer left; revive penalties count).'
+          ? 'Score 0-100. A wipe earns up to 70 for progress (each pack 15%, Oruth 70%); a clear earns 70 plus up to 30 for speed (full 30 with a quarter of the timer left; revive penalties count).'
           : 'Score 0-100. A wipe earns up to 70 for boss health removed; a kill earns 70 plus up to 30 for speed (full 30 with a quarter of the timer left).'}>
         <span className="text-[12px] text-fg-muted">Score{!s.ended && <span className="text-fg-faint"> so far</span>}</span>
         <span className="num font-mono text-[20px] leading-7 text-fg">{score.toFixed(1)}</span>
@@ -62,7 +63,7 @@ export function Scorecard() {
               tone={s.cleared[p.id] !== undefined ? 'good' : 'plain'} />
           ))}
         </>}
-        <Metric label={dungeon ? 'Mortisar' : 'Boss health left'}
+        <Metric label={dungeon ? 'Oruth' : 'Boss health left'}
           value={dungeon && !boss?.engaged ? 'asleep' : `${bossPct.toFixed(1)}% left`.replace(dungeon ? '' : ' left', '')}
           tone={bossPct === 0 ? 'good' : 'plain'} />
         <Metric label="Interrupts" value={`${s.kicks.interrupted} / ${s.kicks.casts}`}
@@ -215,7 +216,7 @@ export function RaidWarnings() {
             {w.style === 'yell' ? (
               <div className="flex w-max max-w-[min(560px,calc(100vw-32px))] items-start gap-2 rounded-lg bg-[rgba(17,17,19,0.85)] px-3 py-2 text-[13px] leading-5 text-fg">
                 <Megaphone size={14} className="mt-0.5 shrink-0 text-fg-faint" />
-                <span><span className="text-fg-muted">Mortisar:</span> {w.text}</span>
+                <span><span className="text-fg-muted">Oruth:</span> {w.text}</span>
               </div>
             ) : (
               <div className="flex w-max max-w-[calc(100vw-32px)] items-center gap-2 rounded-lg border border-warn/30 bg-[rgba(17,17,19,0.88)] px-3 py-2 text-[13px] font-medium leading-5 text-warn">
@@ -262,7 +263,7 @@ export function DecisionLog() {
       const u = s.units[e.unit]
       rows.push({ key: i, t: e.t, who: u.info.name, unit: e.unit, cls: u.info.class, text: `died to ${engine.replay.abilities[e.ability]?.name ?? engine.replay.auras[e.ability]?.name ?? e.ability}`, tone: 'bad' })
     } else if (e.type === 'cast_success' && e.ability === 'requiem_of_bones') {
-      rows.push({ key: i, t: e.t, who: 'Mortisar', cls: 'boss', text: 'Requiem of Bones not interrupted', tone: 'bad' })
+      rows.push({ key: i, t: e.t, who: 'Oruth', cls: 'boss', text: 'Requiem of Bones not interrupted', tone: 'bad' })
     }
   }
   const shown = rows.slice(window.innerHeight < 840 ? -4 : view === 'chat' ? -7 : -6).reverse()

@@ -128,7 +128,7 @@ class ScriptedPolicy:
         self.attention: dict[str, bool] = {}  # memoised dice rolls per event id
         self.first_seen: dict[str, int] = {}
         self.dodge_to: tuple | None = None
-        # The party's layout around Mortisar: which way it faces, and where he
+        # The party's layout around Oruth: which way it faces, and where he
         # stood when that was set (it turns only when he walks, not every time
         # the tank sidesteps).
         self.facing = (0.0, 1.0)
@@ -301,7 +301,7 @@ class ScriptedPolicy:
         return (me["pos"][0] + (tp[0] - me["pos"][0]) * f, me["pos"][1] + (tp[1] - me["pos"][1]) * f)
 
     def place(self, obs: dict, boss: dict | None) -> tuple:
-        """This bot's home spot, carried along with Mortisar. The homes are laid
+        """This bot's home spot, carried along with Oruth. The homes are laid
         out around his throne with the tank in front of him; wherever the tank
         holds him, turn and shift the layout to match."""
         if not boss:
@@ -327,7 +327,7 @@ class ScriptedPolicy:
         if not enemies:
             return None
         adds = [e for e in enemies if e["role"] == "add"]
-        if adds and self.skill.swaps_to_adds and self.uid != "bramble":
+        if adds and self.skill.swaps_to_adds and self.uid != "rook":
             return min(adds, key=lambda e: (e["hp"], e["id"]))
         boss = next((e for e in enemies if e["role"] == "boss"), None)
         return boss or enemies[0]
@@ -456,7 +456,7 @@ def make_policies(profile: str, seed: int) -> dict[str, ScriptedPolicy]:
 SPECIAL_TRASH = ("bone_chanter", "marrow_mender")  # kill these first
 REST_TO_PCT = 80.0
 # Formation offsets (x, metres behind the leader along the route).
-FORMATION = {"bramble": (0.0, 0.0), "grokka": (-1.2, 2.0), "nyx": (1.2, 2.0), "bao": (1.4, 6.0), "lumi": (-1.4, 6.5)}
+FORMATION = {"rook": (0.0, 0.0), "brask": (-1.2, 2.0), "kit": (1.2, 2.0), "wren": (1.4, 6.0), "ivy": (-1.4, 6.5)}
 
 
 class DungeonPolicy(ScriptedPolicy):
@@ -496,7 +496,7 @@ class DungeonPolicy(ScriptedPolicy):
 
     def formation_spot(self, obs: dict) -> tuple:
         party = {p["id"]: p for p in obs["party"]}
-        leader = next((party[i] for i in ("bramble", "grokka", "nyx", "bao", "lumi") if party[i]["alive"]), None)
+        leader = next((party[i] for i in ("rook", "brask", "kit", "wren", "ivy") if party[i]["alive"]), None)
         if self.uid == (leader or {}).get("id"):
             return self.leader_spot(obs)
         if not leader:
@@ -529,7 +529,7 @@ class DungeonPolicy(ScriptedPolicy):
             return None
         me = obs["self"]
         near = lambda e: (dist(me["pos"], e["pos"]), e["id"])  # noqa: E731
-        if self.uid == "bramble":
+        if self.uid == "rook":
             walkers = [e for e in enemies if e["class"] not in SPECIAL_TRASH]
             return min(walkers or enemies, key=near)
         special = [e for e in enemies if e["class"] in SPECIAL_TRASH]

@@ -26,11 +26,11 @@ interface Guide {
 
 /** What one party member is for, in a sentence a WoW player would say. */
 const BLURB: Record<string, string> = {
-  bramble: 'Holds the boss and the packs. Kicks, taunts loose adds onto himself, and has one big defensive.',
-  lumi: 'The only healer. Single-target heals, a heal over time, a shield, and a group heal for the big hits. No kick.',
-  grokka: 'Melee damage with a cleave for packs and a kick.',
-  nyx: 'Melee damage, an area attack for packs, and a fast kick that is off the global cooldown.',
-  bao: 'Ranged damage, a ranged kick, and Wild Roar: haste for the whole party.',
+  rook: 'Holds the boss and the packs. Kicks, taunts loose adds onto himself, and has one big defensive.',
+  ivy: 'The only healer. Single-target heals, a heal over time, a shield, and a group heal for the big hits. No kick.',
+  brask: 'Melee damage with a cleave for packs and a kick.',
+  kit: 'Melee damage, an area attack for packs, and a fast kick that is off the global cooldown.',
+  wren: 'Ranged damage, a ranged kick, and Wild Roar: haste for the whole party.',
 }
 
 function stats(a: GuideAbility): string[] {
@@ -135,7 +135,7 @@ export function Party() {
             </Section>
 
             <Section id="enemies" title="Enemies"
-              intro="The Gravecrown Crypt: two packs of undead, then Mortisar. The agents learn all of this by fighting it.">
+              intro="The Hollow Vault: two packs of undead, then Oruth. The agents learn all of this by fighting it.">
               <div className="space-y-8">
                 {g.trash.map((t) => (
                   <article key={t.id} className="rounded-xl border border-line p-5 sm:p-6">

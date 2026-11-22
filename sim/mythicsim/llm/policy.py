@@ -205,7 +205,7 @@ class Party:
                 if p["state"] != old:
                     out.append((f"{p['name']} {'pulled' if p['state'] == 'engaged' else 'cleared'}", everyone))
             if dg["boss_engaged"] and not self.boss_awake:
-                out.append(("Mortisar woke up", everyone))
+                out.append(("Oruth woke up", everyone))
             self.pack_states = {p["id"]: p["state"] for p in dg["packs"]}
             self.boss_awake = dg["boss_engaged"]
         low, dead, marked = set(), set(), set()

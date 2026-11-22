@@ -23,14 +23,15 @@ export const SITE_URL = 'https://mythicbench.com'
 /**
  * The home page's clip until official results exist (then it's the top model's
  * best +10 pull, automatically). A real model, never a scripted run: GPT-6.2
- * Sol's pilot pull on +10, which cleared blind on its first try (94.2).
+ * Sol's pilot pull on an earlier, easier tuning of +10 (content 1.4.0), until
+ * the official run replaces it.
  */
 export const FEATURED = {
   id: 'featured:sol-pilot',
   file: 'featured/sol-pilot.json.gz',
   label: 'GPT-6.2 Sol, +10 pilot pull',
-  caption: 'GPT-6.2 Sol\'s five agents clear the +10 blind, on their first pull, in a pilot before the official run. Every pull is replayable the same way',
+  caption: 'GPT-6.2 Sol\'s five agents in a pilot pull, on an earlier, easier tuning of +10. The official run replaces this clip',
 }
 export const TEASER_REPLAY = FEATURED.id
-/** Where the clip starts playing, in seconds (just before Mortisar is pulled). */
+/** Where the clip starts playing, in seconds (just before Oruth is pulled). */
 export const TEASER_START_S = 62

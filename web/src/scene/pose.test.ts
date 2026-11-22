@@ -14,14 +14,14 @@ describe('pose', () => {
   it('shows the ranger releasing before the next draw of a chained shot', () => {
     // a cast_start on the same tick as the previous steady_arrow resolved
     const chained = replay.events.find((e, i) =>
-      e.type === 'cast_start' && e.unit === 'bao' && e.ability === 'steady_arrow' &&
-      replay.events.slice(Math.max(0, i - 4), i).some((p) => p.type === 'cast_success' && p.unit === 'bao' && p.t === e.t))
+      e.type === 'cast_start' && e.unit === 'wren' && e.ability === 'steady_arrow' &&
+      replay.events.slice(Math.max(0, i - 4), i).some((p) => p.type === 'cast_success' && p.unit === 'wren' && p.t === e.t))
     expect(chained).toBeDefined()
     const t0 = chained!.t
-    const release = pose('bao', t0 + 100)
+    const release = pose('wren', t0 + 100)
     expect(release.mode).toBe('shoot')
     expect(release.since).toBe(100)
-    const draw = pose('bao', t0 + RELEASE_MS + 100)
+    const draw = pose('wren', t0 + RELEASE_MS + 100)
     expect(draw.mode).toBe('cast')
     expect(draw.k).toBeGreaterThan(0)
     expect(draw.k).toBeLessThan(0.2)
@@ -55,8 +55,8 @@ describe('pose', () => {
   })
 
   it('is a pure function of time (scrubbing back gives the same pose)', () => {
-    const a = pose('bao', 61234)
-    pose('bao', 90000)
-    expect(pose('bao', 61234)).toEqual(a)
+    const a = pose('wren', 61234)
+    pose('wren', 90000)
+    expect(pose('wren', 61234)).toEqual(a)
   })
 })

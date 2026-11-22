@@ -40,8 +40,10 @@ Pieces:
 #   0.11.0 party chat: one message per character every 10 s (typing takes
 #          time); the state says when you can type again
 #   0.12.0 party chat capped at 120 characters (cut at a whole sentence or
-#          word); the state gives Mortisar's position, since he now moves
-HARNESS_VERSION = "0.12.0"
+#          word); the state gives Oruth's position, since he now moves
+#   0.13.0 new names: the Hollow Vault, Oruth the Unburied, and the party
+#          Rook, Ivy, Brask, Kit and Wren (ids too)
+HARNESS_VERSION = "0.13.0"
 
 
 def prompt_hash(knowledge: str = "full", tier: str = "plus10", mode: str = "boss") -> str:

@@ -73,7 +73,7 @@ def test_mortisar_walks_after_a_target_out_of_reach():
         def act(self, obs):
             return []
     enc = Encounter(3, {m.id: Stand() for m in C.PARTY}, "test", "normal")
-    tank = enc.units["bramble"]
+    tank = enc.units["rook"]
     tank.pos = (0.0, 10.0)  # far out of his reach
     settle(enc, 6000)
     assert enc.edge_dist(enc.boss, tank) <= C.MELEE_RANGE

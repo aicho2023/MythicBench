@@ -49,7 +49,7 @@ makes headless runs fast (~0.25 s per full fight).
 
 ## Decision 3: event sourcing for the viewer
 
-The viewer never stores "the current health of Bramble." It stores the event
+The viewer never stores "the current health of Rook." It stores the event
 log, and computes state at time *t* by applying (folding) events in order.
 This pattern is called **event sourcing**.
 
@@ -123,7 +123,7 @@ future comparison should have.
   of the event log.
 - **Dungeon run** (`dungeon.py`, content 0.3.0): `DungeonRun(Encounter)`.
   - Rooms are circles and corridors rectangles (`content.ROOMS/CORRIDORS`, `walkable`).
-  - Packs sleep until a player is within `AGGRO_RADIUS` or hits one; Mortisar
+  - Packs sleep until a player is within `AGGRO_RADIUS` or hits one; Oruth
     sleeps until `BOSS_ENGAGE_RADIUS`, and his timers and enrage shift to the pull.
   - Out of combat: regen, and revives after 3 s, each +10 s on the timer.
   - Trash ids are pack-prefixed (`pack1_bonewalker_1`) so they never collide

@@ -12,7 +12,7 @@ what to learn. Every fight is a
 deterministic simulation that saves a full event log, so you can watch any
 attempt in a 3D replay viewer and recompute every score yourself.
 
-![Mortisar, the Hollow King, fighting the expert bots in the replay viewer](docs/media/hero.jpg)
+![Oruth the Unburied, fighting the expert bots in the replay viewer](docs/media/hero.jpg)
 
 The simulator, the dungeon, the model harness and the viewer are working. The
 official run across five models is next, followed by a public site with the
@@ -37,15 +37,15 @@ Links can point at a moment:
 
 ## The dungeon
 
-The Gravecrown Crypt plays like a Mythic+ key. The party walks in from the
-entrance, clears two packs of undead, then kills Mortisar, the Hollow King.
+The Hollow Vault plays like a Mythic+ key. The party walks in from the
+entrance, clears two packs of undead, then kills Oruth the Unburied.
 One 4:15 timer covers the whole run.
 
 - The Chapel pack is four Bonewalkers and a Bone Chanter. The Chanter's
   Grave Volley hits the whole party and can be interrupted.
 - The Ossuary pack is three Bonewalkers and a Marrow Mender. Its Mend Bones
   heals the pack and can also be interrupted, so the Mender should die first.
-- A pack attacks when someone comes within 9 m or hits it. Mortisar sleeps
+- A pack attacks when someone comes within 9 m or hits it. Oruth sleeps
   until someone walks into his room; his ability timers and his 3:15 enrage
   start then.
 - Out of combat, the party regains health, and fallen characters get back up
@@ -64,9 +64,9 @@ the dungeon has to be played:
 
 | Affix | Effect |
 | --- | --- |
-| Restless Graves | Each undead that dies (Mortisar excepted) leaves a grave for 12 seconds. It heals undead standing in it and hurts players standing in it. |
+| Restless Graves | Each undead that dies (Oruth excepted) leaves a grave for 12 seconds. It heals undead standing in it and hurts players standing in it. |
 | Marrowburst | Each undead death gives every player a stack of Marrow Shards, which deals damage every second for 4 seconds per stack. Killing a whole pack at once hurts. |
-| Hollow Tyrant | Mortisar summons adds three times instead of twice, Desecrates four players instead of three, and every 24 seconds or so brands a player with a Grave Mark. Six seconds later it detonates, hitting the marked player and, much harder, everyone within 6 m of them. |
+| Hollow Tyrant | Oruth summons adds three times instead of twice, Desecrates four players instead of three, and every 24 seconds or so brands a player with a Grave Mark. Six seconds later it detonates, hitting the marked player and, much harder, everyone within 6 m of them. |
 
 The affixes are always shown to the model, as they are in the game. Only the
 boss's abilities are hidden.
@@ -74,7 +74,7 @@ boss's abilities are hidden.
 ### Scoring
 
 Each attempt gets a score from 0 to 100. A wipe earns up to 70, in proportion
-to how far the party got: each trash pack is worth 15% and Mortisar 70%, by
+to how far the party got: each trash pack is worth 15% and Oruth 70%, by
 health removed. A clear earns 70 plus up to 30 for speed, with the full 30
 for finishing with a quarter of the timer left. Revive penalties count
 against the timer.
@@ -91,12 +91,16 @@ They don't learn; they show what good and bad play look like. Over 200 seeds:
 
 | | Expert | Competent | Sloppy |
 | --- | --- | --- | --- |
-| Normal clear rate | 99% (96 to 100%) | 79% (72 to 84%) | 0% |
-| Normal score | 83.8 (83.1 to 84.5) | 75.9 (75.0 to 76.9) | 31.6 (31.1 to 32.1) |
-| +10 clear rate | 8% (5 to 13%) | 0% (0 to 2%) | 0% |
-| +10 score | 63.8 (63.2 to 64.5) | 48.8 (47.5 to 50.1) | 7.0 (6.5 to 7.5) |
+| Normal clear rate | 100% (98 to 100%) | 77% (71 to 82%) | 0% |
+| Normal score | 84.6 (84.0 to 85.2) | 74.0 (72.6 to 75.5) | 31.3 (30.8 to 31.9) |
+| +10 clear rate | 0% (0 to 2%) | 0% (0 to 2%) | 0% |
+| +10 score | 54.6 (53.9 to 55.4) | 42.5 (41.3 to 43.6) | 9.4 (8.5 to 10.4) |
 
-A clear is timed: Mortisar and both packs dead before the 4:15 timer, revive
++10 is tuned against real models rather than the bots: in pilot pulls, the
+best current model cleared it blind only some of the time. Even the expert
+bots run out of time on it.
+
+A clear is timed: Oruth and both packs dead before the 4:15 timer, revive
 penalties included. The run ends at the timer, so nothing after it counts.
 
 Ranges are 95% confidence intervals. The three bots come out in the right
@@ -109,7 +113,7 @@ seed faces the same boss timers, so only the decisions differ.
 | Run | Outcome | Score | Interrupts | Deaths |
 | --- | --- | --- | --- | --- |
 | Expert bots | Cleared in 3:50 | 81.8 | 17 of 20 | 0 |
-| Competent bots | Wiped on Mortisar at 4:34 | 36.3 | 8 of 22 | 5 |
+| Competent bots | Wiped on Oruth at 4:34 | 36.3 | 8 of 22 | 5 |
 | Sloppy bots | Stuck on the first pack until time ran out | 6.2 | 0 of 39 | 4 |
 
 ## How a model plays
@@ -141,7 +145,7 @@ without calling the model again.
 ### Learning over pulls
 
 In a progression run the party starts blind. It knows its own abilities and
-the affixes, but nothing about Mortisar: no tooltips, no timers, no warning
+the affixes, but nothing about Oruth: no tooltips, no timers, no warning
 about the enrage. After each wipe it gets a factual debrief built from the
 event log: who died to what, what hit hardest, every boss cast and whether it
 was interrupted, the adds, and the time spent in pools. It then rewrites its
@@ -276,7 +280,7 @@ familiar:
 
 | MythicBench | In WoW terms |
 | --- | --- |
-| Mortisar, the Hollow King | the last boss of the key |
+| Oruth the Unburied | the last boss of the key |
 | Requiem of Bones (interruptible party damage) | the cast you have to kick |
 | Soul Rend (tank buster) | press your big defensive |
 | Desecrate (pools under three players) | don't stand in the bad |
