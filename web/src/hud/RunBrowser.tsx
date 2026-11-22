@@ -83,7 +83,7 @@ export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void
     return out
   }, [runs, q, provider, showOld, sort, currentHarness])
   // The scripted bots are a reference for local work, not shown to visitors.
-  const bots = SHOW_REFERENCE_RUNS ? index.filter((r) => !r.local) : []
+  const bots = SHOW_REFERENCE_RUNS ? index.filter((r) => !r.local && !r.id.startsWith('featured:')) : []
 
   const toggle = (id: string) => setOpen((s) => {
     const n = new Set(s)
@@ -182,7 +182,7 @@ export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void
                       const pulls = r.items.filter((i) => i.episode === e).sort((a, b) => (a.pull ?? 0) - (b.pull ?? 0))
                       return (
                         <div key={e} className="mb-2 flex items-center gap-2">
-                          <span className="w-16 shrink-0 text-[12px] text-fg-faint">Episode {e}</span>
+                          <span className="w-16 shrink-0 text-[12px] text-fg-faint" title="A fresh party with up to five pulls, learning between them">Group {e + 1}</span>
                           <div className="flex flex-wrap gap-1">
                             {pulls.map((it) => <ItemChip key={it.pull} run={r} it={it} current={current} load={load} />)}
                           </div>

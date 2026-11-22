@@ -1,6 +1,6 @@
 // Turns the results dataset into the viewer's run list (Catalog) and replay
 // index, so the existing run browser and player work on it unchanged.
-import { modelName } from '../content/display'
+import { modelName, pullLabel } from '../content/display'
 import type { CatalogRun, ReplayIndexEntry } from '../replay/types'
 import { resultsUrl } from './config'
 import { resultsRunId, tierName, watchPath, type Results, type TierCell } from './results'
@@ -50,7 +50,7 @@ export function resultsIndexEntries(r: Results): ReplayIndexEntry[] {
     return {
       id: `${run.run_id}/e${it.episode}-p${it.pull}`,
       policy: `llm:${run.label}`, seed: it.seed,
-      label: `${who}, ${tier}${run.memory ? '' : ' memory off'}, episode ${it.episode} pull ${it.pull}`,
+      label: `${who}, ${tier}${run.memory ? '' : ' memory off'}, ${pullLabel(it.episode, it.pull)}`,
       blurb: `${run.name}`,
       file: it.file, url: resultsUrl(it.file),
       outcome: it.outcome, duration_s: it.duration_s, score: it.score,

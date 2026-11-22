@@ -37,7 +37,9 @@ Pieces:
 #          marked off as notes; party chat capped at 255 characters
 #   0.10.1 replies: the last complete orders object is read (thinking out loud
 #          first is fine); an empty {} means "no change"
-HARNESS_VERSION = "0.10.1"
+#   0.11.0 party chat: one message per character every 10 s (typing takes
+#          time); the state says when you can type again
+HARNESS_VERSION = "0.11.0"
 
 
 def prompt_hash(knowledge: str = "full", tier: str = "plus10", mode: str = "boss") -> str:

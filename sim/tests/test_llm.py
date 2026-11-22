@@ -411,3 +411,13 @@ def test_an_empty_object_means_no_change():
 
 def test_trailing_garbage_without_orders_is_still_unusable():
     assert not parse_reply('thinking... <invoke name="x"></invoke> Error: unknown tool', "grokka", IDS).ok
+
+
+def test_chat_is_limited_to_one_message_every_ten_seconds():
+    fake = Scripted({"bramble": [hew(say="Kick the chanter.")]})
+    pols, party = make_llm_policies(fake, interval_ms=1000)
+    Encounter(4, pols, "x").run(max_ms=25_000)
+    times = [t for t, who, _ in party.chat if who == "bramble"]
+    assert times and all(b - a >= 10_000 for a, b in zip(times, times[1:]))
+    assert party.agents["bramble"].stats.chat_dropped > 0
+    assert any("You can type in party chat again in" in p for p in fake.prompts["bramble"])

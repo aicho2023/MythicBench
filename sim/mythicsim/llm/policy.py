@@ -31,7 +31,7 @@ from .. import content as C
 from ..engine import Action, dist
 from ..policies import find_safe_spot, unsafe, walk_check
 from .clients import ChatClient, ClientError
-from .prompt import POOL_HIT_PAD, Order, parse_reply, render_state, system_prompt
+from .prompt import CHAT_COOLDOWN_MS, POOL_HIT_PAD, Order, parse_reply, render_state, system_prompt
 
 PLAYER_RADIUS = 0.45
 LOW_HP_PCT = 40.0
@@ -64,6 +64,7 @@ class BrainStats:
     invalid_entries: int = 0  # unknown abilities/targets etc. that we dropped
     api_errors: int = 0
     refusals: int = 0  # the provider declined to answer (keeps old orders)
+    chat_dropped: int = 0  # chat messages typed before the 10 s chat cooldown was up
     budget_exhausted: bool = False
     triggers: dict[str, int] = field(default_factory=dict)
     problems: list[str] = field(default_factory=list)  # first few, for debugging
@@ -76,7 +77,8 @@ class BrainStats:
 
     def add(self, o: "BrainStats") -> None:
         for k in ("calls", "input_tokens", "output_tokens", "cache_read_tokens", "cache_write_tokens", "latency_s",
-                  "cached_calls", "unusable_replies", "truncated_replies", "invalid_entries", "api_errors", "refusals"):
+                  "cached_calls", "unusable_replies", "truncated_replies", "invalid_entries", "api_errors", "refusals",
+                  "chat_dropped"):
             setattr(self, k, getattr(self, k) + getattr(o, k))
         self.budget_exhausted = self.budget_exhausted or o.budget_exhausted
         for k, v in o.triggers.items():
@@ -112,6 +114,7 @@ class Agent:
         self.last_call_t: int | None = None
         self.pending: list[str] = []  # events since the last call, waiting for the minimum gap
         self.gcd = 0
+        self.last_said: int | None = None  # when this character last sent a chat message
 
     def describe_orders(self) -> str:
         s = self.orders
@@ -271,7 +274,8 @@ class Party:
                 k = trigger_kind(w)
                 a.stats.triggers[k] = a.stats.triggers.get(k, 0) + 1
             age = None if a.last_call_t is None else (obs["t"] - a.last_call_t) / 1000
-            user = (render_state(obs, a.uid, a.gcd, age, self.knowledge, chat)
+            ready_in = 0 if a.last_said is None else max(0, a.last_said + CHAT_COOLDOWN_MS - obs["t"])
+            user = (render_state(obs, a.uid, a.gcd, age, self.knowledge, chat, ready_in)
                     + "\nYOUR CURRENT ORDERS:\n" + a.describe_orders()
                     + f"\nWHY YOU ARE BEING ASKED NOW: {'; '.join(why)}.\nReply with the JSON orders for {a.uid}.")
             a.last_call_t = obs["t"]
@@ -339,7 +343,12 @@ class Party:
         if order.priority is None:  # left out: keep the current priority list
             order.priority = list(a.orders.order.priority or []) if a.orders else []
         if order.say:
-            self.chat.append((obs["t"], a.uid, order.say))
+            if a.last_said is not None and obs["t"] - a.last_said < CHAT_COOLDOWN_MS:
+                s.chat_dropped += 1  # typed too soon: not delivered, not shown
+                order.say = ""
+            else:
+                a.last_said = obs["t"]
+                self.chat.append((obs["t"], a.uid, order.say))
         old = a.orders
         if old and old.order.move_to == order.move_to and old.order.priority == order.priority:
             # Same orders again: a move the agent sends again is a fresh

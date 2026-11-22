@@ -3,7 +3,8 @@ import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { CostScatter, LearningCurves } from '../site/charts'
 import { LeaderboardTable } from '../site/Leaderboard'
 import { Page } from '../site/Layout'
-import { modelName } from '../content/display'
+import { modelName, pullLabel } from '../content/display'
+import { FEATURED } from '../site/config'
 import { tierName, topPull, type Results } from '../site/results'
 import { Link } from '../site/router'
 import { useResults } from '../site/useResults'
@@ -23,7 +24,7 @@ export function SampleNotice({ results }: { results: Results }) {
   if (!results.leaderboard.length) {
     return (
       <p className="rounded-xl border border-line bg-surface px-4 py-3 text-[13px] leading-5 text-fg-muted">
-        <span className="text-fg">Results are coming soon.</span> The official run of seven models fills in the
+        <span className="text-fg">Results are coming soon.</span> The official run of five models fills in the
         leaderboard and charts on launch.
       </p>
     )
@@ -32,7 +33,7 @@ export function SampleNotice({ results }: { results: Results }) {
     <p className="rounded-xl border border-line bg-surface px-4 py-3 text-[13px] leading-5 text-fg-muted">
       <span className="text-fg">Sample data.</span> These numbers come from the <span className="font-mono text-[12px]">{results.protocol.name}</span> protocol:
       a mock model that makes no API calls, and the scripted bots. They exist so the site can be built and checked.
-      The official run of seven models replaces them on launch.
+      The official run of five models replaces them on launch.
     </p>
   )
 }
@@ -56,11 +57,11 @@ export function Home() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/watch" className="btn btn-primary h-11 px-5 text-[14px]">Watch a run</Link>
-            <Link to="/paper" className="btn h-11 px-5 text-[14px]">Read the paper</Link>
+            <Link to="/commentary" className="btn h-11 px-5 text-[14px]">Read the commentary</Link>
           </div>
         </div>
         <figure className="m-0">
-          <Link to={top?.path ?? '/watch?replay=expert-clear'} aria-label="Open this replay in the viewer"
+          <Link to={top?.path ?? `/watch?replay=${encodeURIComponent(FEATURED.id)}`} aria-label="Open this replay in the viewer"
             className="group relative block aspect-[16/10] overflow-hidden rounded-2xl border border-line bg-[#0d0a18]">
             <Suspense fallback={null}><Teaser /></Suspense>
             <span className="absolute bottom-3 right-3 inline-flex items-center gap-2 rounded-lg border border-line bg-[rgba(15,15,16,0.88)] px-3 py-2 text-[13px] text-fg transition-colors group-hover:bg-surface-raised">
@@ -69,8 +70,8 @@ export function Home() {
           </Link>
           <figcaption className="mt-3 text-[13px] leading-5 text-fg-faint">
             {top
-              ? <>{modelName(top.model)}'s best pull on {tierName(results!, top.tier)} (episode {top.episode}, pull {top.pull}). Every pull is replayable the same way</>
-              : 'Scripted expert bots clearing the +10, a reference run. Every model pull is replayable the same way'}
+              ? <>{modelName(top.model)}'s best pull on {tierName(results!, top.tier)} ({pullLabel(top.episode, top.pull)}). Every pull is replayable the same way</>
+              : FEATURED.caption}
           </figcaption>
         </figure>
       </section>
@@ -98,17 +99,18 @@ function ResultsBody({ results }: { results: Results }) {
         <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
           <h2 className="text-[20px] font-medium text-fg">Leaderboard</h2>
           <p className="text-[13px] text-fg-faint">
-            {p.episodes} blind episodes of up to {p.max_pulls} pulls on each tier, effort {p.effort}, harness {results.harness_version}
+            {p.episodes} fresh groups per model, each with up to {p.max_pulls} pulls, effort {p.effort}, harness {results.harness_version}
           </p>
         </div>
         <div className="mt-6"><LeaderboardTable results={results} /></div>
         <HowToRead>
-          A model's MythicBench score is its progression score on +10. Normal is a sanity check, shown but not
-          ranked on: strong models clear it on the first pull. A progression score averages every pull of an
-          episode on a 0 to 100 scale, where a clear within the timer scores 70 and up, and a clear counts again
-          for each pull it saved, so clearing sooner scores higher.{(results.baselines ?? []).length > 0 && ' The scripted commander below gives fixed, obvious orders through the same interface: a model has to beat it for its own decisions to matter.'} The bar is the 95% confidence interval
-          across episodes: where two bars overlap, the order of those two models isn't settled. Cost per run is
-          what one blind episode on each tier costs at list prices. Click a model to watch its pulls.
+          Each model plays as several <b>groups</b>: a group is a fresh party that gets up to {p.max_pulls} <b>pulls</b> at
+          the dungeon, talking it over and taking notes between pulls, and it's done once it clears in time. A
+          model's MythicBench score is its average group score on +10 (Normal is a sanity check, not ranked on).
+          A group's score averages its pulls on a 0 to 100 scale, where a clear within the timer scores 70 and up,
+          and a clear counts again for each pull it saved, so clearing sooner scores higher.{(results.baselines ?? []).length > 0 && ' The scripted commander below gives fixed, obvious orders through the same interface: a model has to beat it for its own decisions to matter.'} The bar is the 95% confidence interval
+          across groups, with a dot per group: where two bars overlap, the order of those two models isn't
+          settled. Cost is what one group on +10 costs at list prices, thinking included. Click a model to watch its pulls.
         </HowToRead>
       </section>
 
@@ -121,7 +123,7 @@ function ResultsBody({ results }: { results: Results }) {
         </div>
         <div className="lg:pt-14">
           <HowToRead>
-            Each dot is a model: its +10 score against what one +10 episode costs, on a log scale. Up and to the
+            Each dot is a model: its +10 score against what one +10 group costs, on a log scale. Up and to the
             left is better value. Every model runs at the same named reasoning effort (medium), but that setting
             buys different amounts of thinking from different providers, so cost is the fairer axis: where we
             also ran a model at low and high effort, its dashed line shows how its score moves with spend. A
@@ -142,7 +144,7 @@ function ResultsBody({ results }: { results: Results }) {
           <LearningCurves results={results} tier={tier} />
         </div>
         <HowToRead>
-          Each solid line is one model's mean score at each pull, across episodes, with an episode that cleared
+          Each solid line is one model's mean score at each pull, across its groups, with a group that cleared
           carrying its clearing score forward. It shows observed progression, not proof that the notes helped:
           that's what the memory-off control is for. A dashed line in a model's color is that control, which
           plays the same seeds with no talk and no notes between pulls; the learning effect is the paired

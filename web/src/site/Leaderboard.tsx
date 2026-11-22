@@ -12,9 +12,9 @@ function pullsToClear(r: Results, row: LeaderboardRow, tier: string): { text: st
   const cell = row.tiers[tier]
   if (!cell) return { text: '–', title: 'Not played' }
   const cleared = cell.pulls_to_clear.filter((p): p is number => p !== null && p <= r.protocol.max_pulls)
-  if (!cleared.length) return { text: 'Not cleared', title: `No episode cleared within ${r.protocol.max_pulls} pulls` }
+  if (!cleared.length) return { text: 'Not cleared', title: `No group cleared within ${r.protocol.max_pulls} pulls` }
   const mean = cleared.reduce((a, b) => a + b, 0) / cleared.length
-  return { text: mean.toFixed(1), title: `Mean over the ${cleared.length} of ${cell.episodes} episodes that cleared` }
+  return { text: mean.toFixed(1), title: `Mean over the ${cleared.length} of ${cell.episodes} groups that cleared` }
 }
 
 function effectText(v: number | undefined) {
@@ -50,7 +50,7 @@ export function LeaderboardTable({ results }: { results: Results }) {
             <th className={`${TH} hidden text-right lg:table-cell`}>{tierName(results, hard)} clear rate</th>
             <th className={`${TH} hidden text-right lg:table-cell`}>Pulls to clear {tierName(results, hard)}</th>
             {hasEffect && <th className={`${TH} hidden text-right xl:table-cell`} title="Progression score with memory on minus memory off, same seeds">Learning effect {tierName(results, hard)}</th>}
-            <th className={`${TH} hidden pr-0 text-right sm:table-cell`}>Cost per {tierName(results, hard)} episode</th>
+            <th className={`${TH} hidden pr-0 text-right sm:table-cell`}>Cost per {tierName(results, hard)} group</th>
             <th className="w-6" aria-hidden />
           </tr>
         </thead>

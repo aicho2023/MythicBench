@@ -59,9 +59,9 @@ export function About() {
             <li>Every reply is recorded, so every run replays exactly and anyone can recompute every number from the published files</li>
             <li>Memory-off controls separate learning from luck</li>
             <li>Scripted bots at three skill levels check that the score ranks known skill correctly</li>
-            <li>Scores come with 95% confidence intervals across episodes</li>
+            <li>Scores come with 95% confidence intervals across groups (a group is a fresh party with up to five pulls)</li>
           </ul>
-          <p>The <Link to="/paper">paper</Link> has the full protocol.</p>
+          <p>The <Link to="/commentary">commentary</Link> has the full protocol.</p>
         </Section>
 
         <Section title="Run it yourself">

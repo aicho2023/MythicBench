@@ -26,6 +26,16 @@ const MODEL_NAMES: Record<string, string> = {
   'gpt-5.4': 'GPT-5.4', 'gpt-5.4-mini': 'GPT-5.4 mini', 'gpt-5.4-nano': 'GPT-5.4 nano', 'gpt-4.1-mini': 'GPT-4.1 mini',
   basic: 'Mock model',
 }
+/**
+ * How a pull is named for people. A *group* (internally an "episode") is a
+ * fresh party that gets up to five pulls at the dungeon, learning between
+ * pulls; it's done when it clears in time. Numbered from 1 for people,
+ * though the data and URLs count groups from 0.
+ */
+export function pullLabel(episode: number | undefined, pull: number | undefined, maxPulls?: number | null): string {
+  return `group ${(episode ?? 0) + 1}, pull ${pull ?? 1}${maxPulls ? ` of ${maxPulls}` : ''}`
+}
+
 export function modelName(id: string): string {
   return MODEL_NAMES[id] ?? id
 }
@@ -47,13 +57,6 @@ export const ICONS: Record<string, LucideIcon> = {
 }
 
 /** Abilities shown on each party frame's cooldown tracker. */
-export const TRACKED_COOLDOWNS: Record<string, string[]> = {
-  guardian: ['rampart_bash', 'ironhide', 'challenging_roar'],
-  lightweaver: ['lumen_ward', 'radiant_hymn'],
-  berserker: ['throat_punch', 'cleaving_storm'],
-  shadowblade: ['quick_jab', 'fan_of_blades'],
-  ranger: ['silencing_arrow', 'wild_roar'],
-}
 
 /** Boss casts important enough to flash a raid warning. */
 export const WARN_CASTS: Record<string, string> = {
