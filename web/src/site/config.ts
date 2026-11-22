@@ -19,6 +19,9 @@ export const REFERENCE_PROVIDERS = ['mock', 'scripted']
 
 export const GITHUB_URL = 'https://github.com/aicho2023/MythicBench'
 export const SITE_URL = 'https://mythicbench.com'
+/** Donations fund runs on more and stronger models. */
+export const VENMO_HANDLE = 'ach1492'
+export const VENMO_URL = `https://venmo.com/u/${VENMO_HANDLE}`
 
 /**
  * The home page's clip until official results exist (then it's the top model's

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { GITHUB_URL, RESULTS_DIR } from '../site/config'
+import { GITHUB_URL, RESULTS_DIR, VENMO_HANDLE, VENMO_URL } from '../site/config'
 import { Page } from '../site/Layout'
 import { Link } from '../site/router'
 
@@ -23,45 +23,42 @@ export function About() {
         <header>
           <h1 className="text-[28px] font-normal leading-[1.15] text-fg sm:text-[32px]">About MythicBench</h1>
           <p className="mt-4 text-[17px] leading-7 text-fg-muted">
-            An open benchmark for one skill that matters for agents and for raid leaders alike: going into
-            something unknown, failing, working out why, and doing better on the next try.
+            An open benchmark for going into something unknown, failing, working out why, and doing better on the
+            next try.
           </p>
         </header>
 
         <Section title="For WoW players">
           <p>
-            Think of a fresh Mythic+ key in a dungeon you've never run, with no guide. Five AI agents are the
-            group: a tank, a healer and three dps, each with a real kit (a kick, a defensive, a cooldown), and a
-            party chat to call things out. They have to learn the trash and the boss by wiping, then talk it
-            over. <Link to="/party">The party page</Link> lists every character and ability.
+            A fresh key in a dungeon you've never run, with no guide. Five AI agents are the group (a tank, a healer
+            and three dps, each with a kick, a defensive and a cooldown), with a party chat to call things out. They
+            learn the trash and the boss by wiping and talking it over. <Link to="/party">The party page</Link> lists
+            every ability, and the <Link to="/watch">replay viewer</Link> shows unit frames, the combat log and every
+            order the agents gave.
           </p>
           <ul>
-            <li><strong>Oruth the Unburied</strong>: a cast you must kick, a tank buster, swirls to step out of, adds, and a hard enrage</li>
-            <li><strong>Two packs first</strong>: a caster to kick and a healer to kill first, on one 4:15 timer</li>
-            <li><strong>+10</strong> adds three affixes: graves that heal undead, stacking damage on every kill, and more adds</li>
+            <li><strong>Two packs</strong>: a caster to kick and a healer to kill first</li>
+            <li><strong>Oruth the Unburied</strong>: a cast to kick, a tank buster, pools, a soak, adds and a hard enrage</li>
+            <li><strong>+10</strong>: graves that heal undead, stacking damage on every kill, and more adds, on a 4:15 timer</li>
           </ul>
-          <p>
-            Everything is original (names, art, numbers), but the design is deliberately familiar. The{' '}
-            <Link to="/watch">replay viewer</Link> shows unit frames, the boss bar, a combat log, and every order the model gave.
-          </p>
+          <p>Names, numbers and art are original; the design is deliberately familiar.</p>
         </Section>
 
         <Section title="For ML people">
           <p>
             A multi-agent, in-context learning eval in a deterministic environment. Five copies of one model each
-            play one character through a text observation and a fixed order format, with a party chat between
-            them. They start blind: no guide to the boss or the trash, only what the affixes say. After each failure they all get the same factual combat log, talk it over in
-            turns, and each rewrite their own private notes, which are their only memory across attempts. The
-            prompts never say what to learn. Each attempt uses a new seed, so they have to learn mechanics, not timings.
+            play one character through a text observation and a fixed order format, with a party chat. They start
+            blind (no guide to the boss or the trash, only what the affixes say). After each failure they read the same
+            factual combat log, talk it over, and each rewrite their private notes, their only memory across
+            attempts. Each attempt uses a new seed, so they have to learn mechanics, not timings.
           </p>
           <ul>
-            <li>Every model gets the same prompt, effort, seeds, call interval and call budget</li>
-            <li>Every reply is recorded, so every run replays exactly and anyone can recompute every number from the published files</li>
-            <li>Memory-off controls separate learning from luck</li>
-            <li>A scripted commander, playing through the same interface with fixed rules, is the line a model has to beat</li>
-            <li>Scores come with 95% confidence intervals across groups (a group is a fresh party with up to five pulls)</li>
+            <li>The same prompt, effort, seeds, call interval and call budget for every model, fixed in a pre-registration</li>
+            <li>Every reply is recorded: every run replays exactly, and every number can be recomputed from the published files</li>
+            <li>Memory-off controls on the same seeds measure what carrying information across wipes is worth</li>
+            <li>Model-against-model claims rest on paired differences on the same seeds; the leaderboard order is descriptive</li>
           </ul>
-          <p>The <Link to="/commentary">commentary</Link> has the full protocol.</p>
+          <p>The <Link to="/report">report</Link> has the details.</p>
         </Section>
 
         <Section title="Run it yourself">
@@ -84,6 +81,17 @@ export function About() {
           <p>
             This site currently serves <code>{RESULTS_DIR}</code>.{' '}
             <a href={`/${RESULTS_DIR}/leaderboard.json`}>Download leaderboard.json</a>
+          </p>
+        </Section>
+
+        <Section id="support" title="Support MythicBench">
+          <p>
+            MythicBench is a personal project, and every run is paid for out of pocket: the official run of five
+            models costs several hundred dollars in API fees. Donations go straight into running more models,
+            stronger ones, and harder experiments.
+          </p>
+          <p>
+            <a href={VENMO_URL} target="_blank" rel="noopener noreferrer">Venmo @{VENMO_HANDLE}</a>
           </p>
         </Section>
 

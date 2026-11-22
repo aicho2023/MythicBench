@@ -1,6 +1,6 @@
-import { Github, Menu, X } from 'lucide-react'
+import { Github, Heart, Menu, X } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
-import { GITHUB_URL, SITE_URL } from './config'
+import { GITHUB_URL, SITE_URL, VENMO_HANDLE, VENMO_URL } from './config'
 import { metaFor } from './meta'
 import { Link, usePath } from './router'
 
@@ -8,7 +8,7 @@ const NAV = [
   { to: '/', label: 'Leaderboard' },
   { to: '/watch', label: 'Watch' },
   { to: '/party', label: 'Party' },
-  { to: '/commentary', label: 'Commentary' },
+  { to: '/report', label: 'Report' },
   { to: '/about', label: 'About' },
 ]
 
@@ -41,7 +41,9 @@ export function SiteHeader({ after, center, right, overlay = false }: { after?: 
     <header className={`pointer-events-auto relative z-20 border-b border-line ${overlay ? 'bg-[rgba(15,15,16,0.92)]' : 'bg-bg'}`}>
       <div className={`flex h-14 items-center gap-4 whitespace-nowrap ${overlay ? 'px-4' : 'mx-auto max-w-[1248px] px-4 sm:px-6'}`}>
         <div className="flex shrink-0 items-baseline gap-3">
-          <Link to="/" className="rounded text-[16px] font-medium text-fg">MythicBench</Link>
+          <Link to="/" className="flex items-center gap-2 rounded text-[16px] font-medium text-fg">
+            <span aria-hidden className="h-2 w-2 rotate-45 rounded-[1px] bg-accent" />MythicBench
+          </Link>
           {after}
         </div>
         <div className="mx-auto flex min-w-0 items-center gap-2">{center}</div>
@@ -77,15 +79,25 @@ export function SiteHeader({ after, center, right, overlay = false }: { after?: 
 export function SiteFooter() {
   return (
     <footer className="mt-24 border-t border-line">
-      <div className="mx-auto grid max-w-[1248px] gap-6 px-4 py-10 text-[13px] leading-5 text-fg-faint sm:px-6 md:grid-cols-[1fr_auto]">
-        <p className="max-w-[640px]">
-          MythicBench is an independent project. It is not affiliated with or endorsed by Blizzard Entertainment.
-          World of Warcraft and Mythic+ are trademarks of Blizzard Entertainment, Inc. Art: KayKit by Kay Lousberg (CC0).
-        </p>
-        <div className="flex gap-6 md:justify-end">
-          <Link to="/about#credits" className="transition-colors hover:text-fg">Credits</Link>
-          <a href={GITHUB_URL} className="transition-colors hover:text-fg">GitHub</a>
-          <a href={`${GITHUB_URL}/blob/main/LICENSE`} className="transition-colors hover:text-fg">MIT license</a>
+      <div className="mx-auto max-w-[1248px] px-4 sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line py-6">
+          <p className="text-[14px] leading-6 text-fg-muted">
+            Every run is paid for out of pocket. Support more models and harder experiments.
+          </p>
+          <a href={VENMO_URL} target="_blank" rel="noopener noreferrer" className="btn h-9 px-4 text-[13px]">
+            <Heart size={14} className="text-accent" /> Venmo @{VENMO_HANDLE}
+          </a>
+        </div>
+        <div className="grid gap-6 py-8 text-[13px] leading-5 text-fg-faint md:grid-cols-[1fr_auto]">
+          <p className="max-w-[640px]">
+            MythicBench is an independent project, not affiliated with or endorsed by Blizzard Entertainment. World of
+            Warcraft and Mythic+ are trademarks of Blizzard Entertainment, Inc. Art: KayKit by Kay Lousberg (CC0).
+          </p>
+          <div className="flex gap-6 md:justify-end">
+            <Link to="/about#credits" className="transition-colors hover:text-fg">Credits</Link>
+            <a href={GITHUB_URL} className="transition-colors hover:text-fg">GitHub</a>
+            <a href={`${GITHUB_URL}/blob/main/LICENSE`} className="transition-colors hover:text-fg">MIT license</a>
+          </div>
         </div>
       </div>
     </footer>
