@@ -180,6 +180,10 @@ python -m mythicsim campaign ../protocol/v1.json --workers 3   # the rest; safe 
 python -m mythicsim results ../protocol/v1.json --out ../results/v1
 ```
 
+To run a stage in a Claude Code cloud session (laptop closed, followed from the
+Claude app), see [docs/CLOUD_RUN.md](docs/CLOUD_RUN.md) and
+`scripts/cloud_stage.sh`.
+
 If stage 1 turns up a harness fault, the pre-registered restart is its own
 pinned protocol on the reserve seeds: run `protocol/v1-restart.json` the same
 way (`--first 1`, then the rest), after the fix and a version bump.
