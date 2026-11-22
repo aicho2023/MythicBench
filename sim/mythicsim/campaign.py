@@ -700,9 +700,14 @@ def build_results(proto: dict, out_dir: Path, runs_dir: Path | None = None) -> d
             base = scores.get((_spec_of(base_row, proto), tier, True)) if base_row else None
             same = [base[e] for e in cell["episode_ids"] if base and e in base]
             if base and len(same) == len(cell["episode_ids"]):
+                bcell = base_row["tiers"].get(tier) or {}
+                eps = [e for e in (bcell.get("episode_list") or []) + (bcell.get("paired_episode_list") or [])
+                       if e["episode"] in cell["episode_ids"]]
+                usd = sum(pl.get("usd") or 0.0 for e in eps for pl in e["pulls"])
                 cell["default_effort_same_groups"] = {"effort": base_row.get("effort"), "episodes": cell["episode_ids"],
                                                       "progression_score": round(st.mean(same), 1),
-                                                      "progression_score_ci95": _ci(same)}
+                                                      "progression_score_ci95": _ci(same),
+                                                      "usd_per_episode": round(usd / len(same), 4)}
     tiers = [C.tier(t).id for t in proto["tiers"]]
     head = headline_tier(proto)
     for row in rows.values():

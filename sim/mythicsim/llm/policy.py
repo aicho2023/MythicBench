@@ -387,8 +387,14 @@ class LLMPolicy:
         moving = me["moving"]
         if st.order.move_to and not st.move_done:
             st.move_done = True
-            dest = (self.safe_destination(obs, st) if st.order.move_to == "safe"
-                    else self.next_waypoint(obs) if st.order.move_to == "next" else st.order.move_to)
+            if st.order.move_to == "stop":
+                if me["moving"]:  # halt where it is now
+                    out.append(Action("move", to=tuple(me["pos"]), reason=self.say(st)))
+                moving = False
+                dest = None
+            else:
+                dest = (self.safe_destination(obs, st) if st.order.move_to == "safe"
+                        else self.next_waypoint(obs) if st.order.move_to == "next" else st.order.move_to)
             # Ordering a character to the spot it already stands on is a no-op:
             # don't send it, so it doesn't show up as a "Move" decision.
             if dest is not None and dist(me["pos"], dest) > 0.3:

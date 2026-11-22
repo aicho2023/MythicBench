@@ -30,8 +30,12 @@ export interface TierCell {
   learning_effect?: number; learning_effect_ci95?: CI
   first_pull_score_mean: number | null
   curve_mean: number[] | null
+  /** effort sweeps: the default effort on this sweep's own groups (a like-for-like comparison) */
+  default_effort_same_groups?: { effort: string; episodes: number[]; progression_score: number; progression_score_ci95: CI; usd_per_episode: number }
   cost_usd: number; usd_per_pull: number | null; tokens_per_pull: [number, number] | null
   refusals: number; unusable_replies: number; truncated_replies?: number; api_errors?: number; pulls_out_of_calls?: number
+  /** model calls made (the denominator for the reply-problem counts), and entries dropped from usable replies */
+  calls?: number; invalid_entries?: number
   harness_versions: string[]
   episode_list: EpisodeResult[]
   usd_per_episode?: number | null
@@ -53,7 +57,11 @@ export interface LeaderboardRow {
   rank?: number | null; complete?: boolean
 }
 
-export interface ControlRow extends TierCell { model: string; tier: string; memory: false }
+export interface ControlRow extends TierCell {
+  model: string; tier: string; memory: false
+  /** the memory-on curve over the control's own (paired) groups */
+  paired_on_curve_mean?: number[] | null
+}
 
 export interface Results {
   protocol: {
@@ -208,4 +216,15 @@ export function parseWatchPath(path: string): (Partial<PullAddress> & { model: s
 /** A model's per-episode headline scores: its episodes on the headline tier. */
 export function episodeHeadlines(r: Results, row: LeaderboardRow): number[] {
   return row.tiers[headlineTier(r)]?.episode_scores ?? []
+}
+
+/** Replies that gave no usable orders (refused, cut off, or unreadable), as a share of calls, with the breakdown. */
+export function replyProblems(cell: TierCell | undefined): { text: string; title: string } {
+  if (!cell?.calls) return { text: '–', title: 'Not recorded' }
+  const bad = (cell.refusals ?? 0) + (cell.truncated_replies ?? 0) + (cell.unusable_replies ?? 0)
+  return {
+    text: `${((100 * bad) / cell.calls).toFixed(1)}%`,
+    title: `${cell.calls.toLocaleString()} calls: ${cell.refusals ?? 0} refused, ${cell.truncated_replies ?? 0} cut off at the token limit, `
+      + `${cell.unusable_replies ?? 0} unreadable; ${cell.invalid_entries ?? 0} entries dropped from usable replies`,
+  }
 }

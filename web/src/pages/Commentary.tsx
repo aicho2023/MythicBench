@@ -114,9 +114,8 @@ export function Commentary() {
           <p>
             Between calls each character follows its standing orders, and two shortcuts do the walking (step out
             of pools, walk the route). A <strong>scripted commander</strong> plays through exactly the same
-            interface with fixed, obvious rules (kick every cast, step out of every pool) and never learns. A model
-            has to beat it for its own decisions to matter. Its common sense is exactly what Oruth punishes: it
-            scores about 34 on +10 and wipes every time. +10 itself is tuned against real models, so that the best
+            interface with fixed, obvious rules (kick every cast, step out of every pool) and never learns. It's one fixed policy: a reference point for what obvious rules do, not a ceiling or a floor. Its common sense is exactly what Oruth punishes: it
+            scores about 33 on +10 and never clears. +10 itself is tuned against real models, so that the best
             of today's clear it only some of the time.
           </p>
         </Section>

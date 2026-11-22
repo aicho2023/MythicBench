@@ -478,3 +478,7 @@ def test_a_reply_recorded_by_another_process_is_reused_not_asked_again(tmp_path)
                             "input_tokens": 1, "output_tokens": 1}) + "\n")
     assert client.complete("sys", "user", "t").text == '{"say": "theirs"}' and Counting.calls == 0
     cl._RECORDINGS.clear()
+
+
+def test_stop_is_a_move_order():
+    assert parse_reply('{"move_to": "stop"}', "brask", {"brask"}).orders["brask"].move_to == "stop"

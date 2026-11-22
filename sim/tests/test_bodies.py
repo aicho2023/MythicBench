@@ -117,3 +117,11 @@ def test_soul_rend_waits_for_its_target_instead_of_being_skipped():
         enc.t += 100
         enc.step()
     assert any(e["type"] == "cast_start" and e["ability"] == "soul_rend" for e in enc.events)
+
+
+def test_a_move_stops_at_the_wall_instead_of_walking_through_it():
+    room = C.ROOMS[0]
+    inside = (room.center[0], room.center[1])
+    beyond = (room.center[0] + room.radius + 20.0, room.center[1])  # straight through the room's wall
+    stop = DungeonRun.straight_line_reach(inside, beyond)
+    assert C.walkable(stop) and dist(stop, inside) < room.radius

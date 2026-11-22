@@ -31,7 +31,7 @@ The protocol file is `protocol/v1.json`.
 | --- | --- |
 | Dungeon | The Hollow Vault: two trash packs, then Oruth the Unburied, on a 4:15 timer |
 | Ranked tier | +10 (0.98x enemy health, 1.15x damage, Restless Graves, Marrowburst, Hollow Tyrant) |
-| Knowledge | Blind: the party knows its own abilities and the affixes, nothing about the enemies |
+| Knowledge | Blind: no encounter guide and no boss timers. The party knows its own abilities, the map, the enemies' names, health and pack makeup, the affixes (as the game shows them), and how Oruth moves |
 | Groups per model | 6, each up to 5 pulls; a group ends at its first timed clear |
 | Reasoning effort | medium, for every model |
 | Calls | every 4 s of game time and on triggers; at most 300 calls per agent per pull; 8,000 output tokens per call |
@@ -50,7 +50,7 @@ Also played, none of them ranked:
 - **Normal** (sanity check): Haiku, Luna and the commander, 3 groups each.
 - **Effort sweeps**: Haiku and Luna at low and high effort, 3 groups each.
 
-Code versions: harness 1.0.0 (1.0.0-rc.1 until the review is done), sim 0.6.0, content 1.6.0. Every replay records
+Code versions: harness 1.0.0 (1.0.0-rc.2 until the review is done), sim 0.7.0, content 1.6.0. Every replay records
 them, and the campaign refuses to mix results from different versions.
 
 ## Metrics
@@ -68,7 +68,8 @@ and `campaign.py`.
 - **MythicBench score**: a model's mean group score on +10, with a 95%
   Student-t interval across its groups.
 - **Learning effect**: the mean paired difference, memory on minus memory
-  off, across the 12 matched groups, with a 95% Student-t interval.
+  off, across the 12 matched groups, with a 95% Student-t interval. It
+  measures talk and notes together: with memory off there is neither.
 - **Clear rate** (share of groups with a timed clear), **pulls to clear**, and
   **cost per group** (list prices at the time of the run, thinking included).
 
@@ -82,7 +83,19 @@ and `campaign.py`.
 - A learning effect is claimed only if its 95% interval excludes zero.
 - Every finished group counts. A group is finished when it has pulls 1..*n*
   with no gaps, ending at its first timed clear or at pull 5. Bad replies,
-  refusals and dropped entries count against the model, and are reported.
+  refusals and dropped entries count against the model, and are reported per
+  pull, with the number of calls, for the fight and for the talk and notes
+  separately.
+- How a reply is read, in every phase: the answer is the last complete JSON
+  object that is either orders or `{}` (`{}` means no change). A reply cut
+  off at the token limit is read the same way (any complete object in it
+  counts) and is counted as cut off. A refused reply changes nothing (old
+  orders and old notes stay) and is counted. Nothing in a reply can crash a
+  run: huge numbers, deep nesting or garbage are an unusable reply.
+- Recordings are keyed by the seed, group, pull and agent, and (from pull 2)
+  by memory on or off: a memory-off group shares only pull 1 with its twin.
+  They're stored per protocol and code version, so a rerun under other rules
+  never replays them.
 - A group stopped by infrastructure (an API outage, a crash) is replayed from
   its recorded replies and continued; recorded calls are never asked again.
   If a provider fails a whole group repeatedly, that cell is reported short,
@@ -92,27 +105,38 @@ and `campaign.py`.
 ## Running it in two stages
 
 1. **Stage 1**: each model and configuration plays its first group
-   (`campaign protocol/v1.json --first 1`, worst case about $92). Then we
+   (`campaign protocol/v1.json --first 1`, about $92 at full length). Then we
    stop and read replays, looking only for **harness faults**: the game or the
    harness doing something other than what the rules say (a crash, an order
    applied wrongly, a prompt bug). Scores are not looked at to decide anything.
 2. If there's no fault, **stage 2** plays the rest under the same protocol and
    code (`campaign protocol/v1.json`). Stage 1's groups count.
 3. If there is a fault, it's fixed, the version goes up, stage 1 is reported as
-   a pilot and not counted, and both stages run again on the new version.
+   a pilot and not counted, and the whole protocol runs again on the new
+   version and on the reserve seeds (`restart_seed_base` 80000, set now), so
+   nothing seen while inspecting stage 1 can help.
 
 ## Budget
 
-The worst case is about $551 (every group playing all five pulls). The
-campaign stops cleanly at the project cap (`MYTHICBENCH_TOTAL_BUDGET_USD`);
-whatever finished by then is reported, with what didn't.
+The estimate is about $551 if every group plays all five pulls at each
+model's average cost per pull in the pilots (an estimate, not a bound). The
+hard limits are a campaign budget set at launch (`--budget-usd`) and the
+project cap (`MYTHICBENCH_TOTAL_BUDGET_USD`). Every call holds its worst case
+(input at the dearest rate, the full output cap) before it's sent; a request
+that times out counts as spent at its worst case; one paid process runs at a
+time. The campaign stops cleanly at a limit; whatever finished by then is
+reported, with what didn't.
 
 ## What gets published
 
-The leaderboard and every group's replays, the recorded replies, and the
-agents' notes and talk. Anyone can rebuild every number offline for free
-(`campaign protocol/v1.json --verify`). Results are reported whatever they
-show, including a learning effect of zero.
+The leaderboard and every scored group's replays (including the extra
+memory-on groups behind the learning effect), the recorded replies, and the
+agents' notes and talk. Anyone can check every number offline, for free, from
+the published folder alone: `python -m mythicsim verify <folder>` rescores
+every pull from its replay, checks every seed against the schedule, rebuilds
+the leaderboard and compares it, checks each cell has exactly the groups the
+protocol calls for, and replays every group from the recordings. Results are
+reported whatever they show, including a learning effect of zero.
 
 ## Known limitations
 

@@ -48,7 +48,11 @@ Pieces:
 #          lists each detonation and who stood inside
 #   1.0.0-rc.1 the freeze candidate for the v1 run (docs/PREREGISTRATION.md);
 #          becomes 1.0.0, unchanged otherwise, once the review is done
-HARNESS_VERSION = "1.0.0-rc.1"
+#   1.0.0-rc.2 after review: rules text says "safe" handles only the pools known to
+#          hurt, adds "stop" and says what null does; replies can't crash the
+#          reader; refusals ignored in talk and notes too; a final {} is no change;
+#          calls keyed by seed and memory; recordings per freeze
+HARNESS_VERSION = "1.0.0-rc.2"
 
 
 def prompt_hash(knowledge: str = "full", tier: str = "plus10", mode: str = "boss") -> str:

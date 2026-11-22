@@ -24,7 +24,8 @@ from . import content as C
 TICK_MS = 100
 SIM_VERSION = "0.7.0"  # 0.3.0: bodies collide where they stop; 0.4.0: a run ends at its timer;
 # 0.5.0: enemies keep their space too, and the boss walks after his target;
-# 0.6.0: Bone Pyre, a soak; 0.7.0: a due boss mechanic waits until it can happen (never skipped)
+# 0.6.0: Bone Pyre, a soak; 0.7.0: a due boss mechanic waits until it can happen (never skipped),
+# and walls block a move (it stops at the wall)
 
 
 # ---------------------------------------------------------------------------

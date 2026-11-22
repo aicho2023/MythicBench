@@ -216,10 +216,10 @@ Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) i
 {(chr(10) + _dungeon_section(knowledge, tier) + chr(10)) if mode == "dungeon" else ""}
 ## How you play
 You are asked for {member.name}'s orders every 4 seconds of game time, and immediately when something that concerns you happens. The game is paused while everyone thinks; the other players are asked at the same moments you are. {member.name} keeps following your latest orders until you change them:
-  - "move_to": [x, z] walks there once, or "safe" steps to the nearest spot clear of all pools, reachable without walking through another pool, from which your first priority target is still in range when possible (the scripted bots' movement logic){next_move}. Omit or null to stay put. A move is carried out each time you send it.
+  - "move_to": [x, z] walks there once, in a straight line (a move that would cross a wall stops at the wall). "safe" steps to the nearest spot clear of the ground effects known to hurt, keeping your first priority target in range when possible and avoiding paths through other pools (when no clean route exists it takes the nearest clear spot anyway){next_move}. "stop" stops where you are. Omit it or send null for no new move (a move under way carries on). A move is carried out each time you send it.
   - "priority": an ordered list of [ability_id, target_id]. Every tick, {member.name} uses the FIRST entry that is ready (off cooldown, in range, GCD free, not casting or moving for cast-time spells). Off-GCD abilities in the list fire even during the GCD. Interrupts only fire while their target is casting something interruptible (reacting {reaction} s after the cast starts), so they can stay in the list; if someone else interrupts first, yours sees nothing to stop and stays ready. Put a reliable filler ability last so you never idle. Leave "priority" out to keep your current one.
   - "say": one short line in party chat (at most {CHAT_MAX_CHARS} characters; anything longer is cut off), which every player sees from then on. Typing takes time: you can send one message every {CHAT_COOLDOWN_MS // 1000} s, and one sent sooner isn't delivered. Leave it out to say nothing.
-Ground effects ("pools") in the state are dangerous to stand in: "desecrate" pools come from Oruth, "grave" pools from the Restless Graves affix. "safe" avoids both.
+Ground effects ("pools") appear in the state with their kind and size. The kinds known to hurt anyone standing in them are "desecrate" and "grave" (the Restless Graves affix): "safe" steps out of those, and doesn't treat any other kind as dangerous.
 Targets are unit ids from the state (e.g. "oruth", "bonewalker_1", "ivy"). For self-buffs and party-wide abilities use your own id ("self" and "party" also work).
 You can only use {member.name}'s abilities: {', '.join(mine.abilities)}.
 
@@ -442,7 +442,7 @@ def parse_reply(text: str, me: str, unit_ids: set[str], gone: set[str] = frozens
         mv = [mv["x"], mv["z"]]  # {"x": .., "z": ..} is unambiguous; accept it
     if isinstance(mv, list) and len(mv) == 1 and isinstance(mv[0], str):
         mv = mv[0]  # ["safe"] means "safe"
-    if isinstance(mv, str) and mv.strip().lower() in ("safe", "next"):
+    if isinstance(mv, str) and mv.strip().lower() in ("safe", "next", "stop"):
         o.move_to = mv.strip().lower()
     elif mv is not None:
         if (isinstance(mv, (list, tuple)) and len(mv) == 2

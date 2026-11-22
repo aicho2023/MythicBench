@@ -96,7 +96,7 @@ damage applies). Generic MMO sense says step out of glowing circles, so it
 has to be learned from the combat log; that's the point. The "safe" move and
 the in-pool alarm ignore it, every agent is woken when one appears, and the
 debrief lists each detonation with who stood inside. The scripted commander
-never soaks: 34.1 on +10 (wipes every time), 56.2 on Normal, over 60 seeds.
+never soaks: 32.5 on +10 (no clears), 55.4 on Normal, over 60 seeds (sim 0.7.0).
 
 The scripted bots (expert, competent, sloppy) are gone. Their dodge planner
 lives on in `dodge.py` (the "safe" move); tests and the viewer's reference

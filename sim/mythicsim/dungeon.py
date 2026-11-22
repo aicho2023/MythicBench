@@ -70,6 +70,28 @@ class DungeonRun(Encounter):
     def clamp(self, to):
         return clamp_to_walkable(to)
 
+    def start_move(self, u, to, *, exact=False):
+        # Walls are solid: a player's move goes in a straight line and stops at
+        # the last walkable point before a wall (the "next" route never needs to).
+        if u.kind == "player" and not exact:
+            to = self.straight_line_reach(u.pos, self.clamp(to))
+        super().start_move(u, to, exact=exact)
+
+    @staticmethod
+    def straight_line_reach(frm, to):
+        steps = max(1, int(dist(frm, to) / 0.25))
+        inside = C.walkable(frm)
+        last = frm
+        for i in range(1, steps + 1):
+            f = i / steps
+            p = (frm[0] + (to[0] - frm[0]) * f, frm[1] + (to[1] - frm[1]) * f)
+            if C.walkable(p):
+                inside = True
+            elif inside:
+                return (r2(last[0]), r2(last[1]))
+            last = p
+        return to
+
     # ----- pulling -------------------------------------------------------------
     def in_combat(self) -> bool:
         return (self.boss.alive and self.boss.engaged) or any(
