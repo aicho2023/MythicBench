@@ -59,6 +59,16 @@ def test_campaign_plays_every_combo_then_resumes_nothing(sandbox, capsys):
     assert "0 episodes still to play" in capsys.readouterr().out
 
 
+def test_a_staged_campaign_adds_up_to_the_full_one(sandbox):
+    tmp, proto = sandbox
+    K.run_campaign(proto, first=1)  # stage 1: each cell's first episode only
+    for c in K.combos(proto):
+        assert set(K.finished_episodes(c.key(proto), tmp / "runs")) == {0}
+    K.run_campaign(proto)  # stage 2: the rest, same protocol
+    for c in K.combos(proto):
+        assert set(K.finished_episodes(c.key(proto), tmp / "runs")) == {0, 1}
+
+
 def test_campaign_only_plays_missing_episodes(sandbox):
     tmp, proto = sandbox
     small = dict(proto, episodes=1)

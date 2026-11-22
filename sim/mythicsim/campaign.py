@@ -191,7 +191,10 @@ def dirty_files() -> list[str]:
 
 def run_campaign(proto: dict, *, only: str | None = None, dry_run: bool = False, workers: int = 1,
                  budget_usd: float | None = None, offline: bool = False, allow_dirty: bool = False,
-                 cells: int = 1) -> None:
+                 cells: int = 1, first: int | None = None) -> None:
+    """Play what's left of the protocol. ``first``: a staged run plays only each
+    cell's first N episodes (ids below N); running again without it plays the
+    rest under the same protocol, so the stages add up to one dataset."""
     paid = not offline and any(c.model["provider"] not in FREE_PROVIDERS for c in combos(proto, only))
     dirty = dirty_files()
     if paid and dirty and not dry_run and not allow_dirty:
@@ -200,10 +203,11 @@ def run_campaign(proto: dict, *, only: str | None = None, dry_run: bool = False,
     todo = []
     for c in combos(proto, only):
         done = finished_episodes(c.key(proto), max_pulls=proto["max_pulls"])
-        missing = [e for e in episode_ids(proto, c) if e not in done]
+        missing = [e for e in episode_ids(proto, c) if e not in done and (first is None or e < first)]
         todo.append((c, missing))
     print(f"protocol {proto['name']}: {len(todo)} model x tier runs, "
-          f"{sum(len(m) for _, m in todo)} episodes still to play (up to {proto['max_pulls']} pulls each)")
+          + (f"stage: each run's first {first} episode(s) only, " if first is not None else "")
+          + f"{sum(len(m) for _, m in todo)} episodes still to play (up to {proto['max_pulls']} pulls each)")
     total_est = 0.0
     for c, missing in todo:
         price = spend.price_for(c.spec) or spend.FREE

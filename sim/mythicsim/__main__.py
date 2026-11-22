@@ -484,6 +484,8 @@ def main() -> None:
                     help="release check: replay every counted episode from the recordings alone and compare; "
                          "exits nonzero on any difference")
     cp.add_argument("--allow-dirty", action="store_true", help="allow a paid campaign from uncommitted code (pilots only)")
+    cp.add_argument("--first", type=int,
+                    help="a staged run: play only each cell's first N episodes (rerun without it for the rest)")
     cp.add_argument("--cells", type=int, default=1,
                     help="model x tier cells to play at once (each plays --workers episodes at once); default 1")
     rr = sub.add_parser("results", help="collect the protocol's finished episodes into a results dataset")
@@ -509,7 +511,8 @@ def main() -> None:
         if args.verify:
             raise SystemExit(verify_campaign(load_protocol(args.protocol)))
         run_campaign(load_protocol(args.protocol), only=args.only, dry_run=args.dry_run, workers=args.workers,
-                     budget_usd=args.budget_usd, offline=args.offline, allow_dirty=args.allow_dirty, cells=args.cells)
+                     budget_usd=args.budget_usd, offline=args.offline, allow_dirty=args.allow_dirty, cells=args.cells,
+                     first=args.first)
     elif args.cmd == "results":
         from .campaign import build_results, load_protocol
         res = build_results(load_protocol(args.protocol), args.out)

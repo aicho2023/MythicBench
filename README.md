@@ -166,11 +166,14 @@ they are independent, so this only saves time.
 Sonnet and Opus 5.5; GPT-6 Luna and GPT-6.2 Sol) at one shared effort, six
 blind groups each on +10 (a group is a fresh party with up to five pulls),
 paired memory-off controls on the two cheapest models, Normal as a sanity
-check, and low/high effort sweeps for cost curves.
+check, and low/high effort sweeps for cost curves. The questions, metrics,
+analysis and stopping rules were fixed before the run, in
+[docs/PREREGISTRATION.md](docs/PREREGISTRATION.md).
 
 ```bash
 python -m mythicsim campaign ../protocol/v1.json --dry-run     # what's left and the worst-case cost
-python -m mythicsim campaign ../protocol/v1.json --workers 3   # play it; safe to stop and rerun
+python -m mythicsim campaign ../protocol/v1.json --first 1     # stage 1: each cell's first group
+python -m mythicsim campaign ../protocol/v1.json --workers 3   # the rest; safe to stop and rerun
 python -m mythicsim results ../protocol/v1.json --out ../results/v1
 ```
 

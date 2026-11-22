@@ -46,7 +46,9 @@ Pieces:
 #   0.14.0 Bone Pyre: a circle on the floor wakes every agent and shows when
 #          it goes off; "safe" and the in-pool alarm ignore it; the debrief
 #          lists each detonation and who stood inside
-HARNESS_VERSION = "0.14.0"
+#   1.0.0-rc.1 the freeze candidate for the v1 run (docs/PREREGISTRATION.md);
+#          becomes 1.0.0, unchanged otherwise, once the review is done
+HARNESS_VERSION = "1.0.0-rc.1"
 
 
 def prompt_hash(knowledge: str = "full", tier: str = "plus10", mode: str = "boss") -> str:
