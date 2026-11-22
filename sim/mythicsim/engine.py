@@ -145,6 +145,7 @@ class Unit:
     pack: str | None = None  # dungeon trash: which pack this enemy belongs to
     asked_to: Vec | None = None  # last destination asked for, before free_spot moved it
     path: list = field(default_factory=list)  # the legs after the current move (around obstacles)
+    victim: str | None = None  # Oruth: who he's fighting right now (his target if he can reach it)
     engaged: bool = True  # dungeon trash/boss: has it been pulled yet?
 
     def __post_init__(self) -> None:
@@ -792,6 +793,7 @@ class Encounter:
             return
         if self.t - self.boss_engaged_t >= C.BOSS.rise_ms:
             tank = self.reachable_victim(b, tank)
+        b.victim = tank.id  # who he's fighting now (b.target stays the one he'll go back to)
         # Priority: Summon the Restless > Soul Rend > Requiem > Grave Mark > Desecrate > Bone Pyre.
         # A mechanic that is due stays due until it actually happens: Oruth
         # stops walking to cast, and a cast he can't start yet (Soul Rend on a
@@ -995,6 +997,8 @@ class Encounter:
             legs = self.route(frm, spot, e.radius)
             if legs[-1] != spot:
                 return None
+            if dist(spot, tgt.pos) - e.radius - tgt.radius > reach + 1e-6:
+                return None  # a legal spot that leaves the target out of reach is no way to fight it
             if e.kind == "boss" and not all(self.in_leash(q) for q in legs):
                 return None  # a straight leg between two points in his (round) room stays in it
             return legs
@@ -1094,7 +1098,7 @@ class Encounter:
             "id": u.id, "name": u.name, "role": u.role, "class": u.cls, "alive": u.alive,
             "hp": u.hp, "max_hp": u.max_hp, "hp_pct": round(100 * u.hp / u.max_hp, 1),
             "absorb": u.absorb, "pos": [r2(u.pos[0]), r2(u.pos[1])], "moving": u.move is not None,
-            "target": u.target,
+            "target": u.victim or u.target,  # Oruth: who he's fighting right now
             "auras": {aid: au.t0 + au.dur - self.t for aid, au in u.auras.items()},
             "casting": None,
         }

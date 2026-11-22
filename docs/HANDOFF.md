@@ -138,6 +138,11 @@ can (`reachable_victim`); "safe" hands the sim ranked candidates
 (`Action.options`) and it takes the first whose real move (wall clip, taken
 spot, obstacles) ends clear of every pool, keeping reach and a clean route
 where promised (`pick_option`). Commander: 32.4 on +10, 54.6 on Normal.
+Seventh review: a chase endpoint must be in attack reach of the target (a
+legal spot at the room's edge out of reach of a tank in the corridor isn't a
+way to fight it), so Oruth turns on someone he can reach; the state shows who
+he's fighting (`Unit.victim`) while `target` stays the tank he goes back to.
+Commander: 32.7 on +10, 54.5 on Normal.
 
 The scripted bots (expert, competent, sloppy) are gone. Their dodge planner
 lives on in `dodge.py` (the "safe" move); tests and the viewer's reference

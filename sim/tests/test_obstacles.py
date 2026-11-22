@@ -192,3 +192,32 @@ def test_oruth_goes_back_to_his_target_once_he_can_reach_it():
         run.t += 100
     swings = [e for e in run.events[n:] if e["type"] == "cast_success" and e["ability"] == "hollow_strike"]
     assert swings and swings[-1]["target"] == "rook"
+
+
+def test_oruth_never_parks_out_of_reach_at_an_open_doorway():
+    """Codex's case: the tank out in the corridor, the doorway open, allies in
+    the room. The room's edge is a legal spot but out of reach of the tank, so
+    Oruth turns on someone he can reach, and the agents see who that is."""
+    class Still:
+        def act(self, obs):
+            return []
+    run = DungeonRun(3, {m.id: Still() for m in C.PARTY}, "test", "normal")
+    for u in run.units.values():
+        if u.pack:
+            u.alive = False
+    boss = run.boss
+    run.units["rook"].pos = (0.0, 18.0)
+    for uid, pos in (("ivy", (-6.0, 4.0)), ("brask", (4.0, 2.0)), ("kit", (-3.0, -4.0)), ("wren", (6.0, 6.0))):
+        run.units[uid].pos = pos
+    boss.engaged, run.boss_engaged_t, boss.pos = True, -10_000, (0.0, 0.0)
+    run.boss_next["soul_rend"] = 0  # due now: it must not wait on a tank he can't reach
+    for _ in range(100):
+        run.step()
+        run.t += 100
+    hits = [e for e in run.events if e.get("unit") == "oruth" and e["type"] in ("cast_success", "cast_start")]
+    victims = {e["target"] for e in hits if e["ability"] in ("hollow_strike", "soul_rend")}
+    assert victims and "rook" not in victims
+    assert any(e["ability"] == "soul_rend" for e in hits)
+    assert boss.target == "rook"  # the one he goes back to
+    seen = next(u for u in run.observe(run.units["kit"])["enemies"] if u["id"] == "oruth")
+    assert seen["target"] == boss.victim != "rook"
