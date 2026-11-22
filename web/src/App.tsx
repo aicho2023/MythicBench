@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { BossFrame } from './hud/BossFrame'
+import { TipLayer } from './hud/AbilityTip'
 import { AboutPanel, EndBanner, ReplayControls, TimelineLegend, TopBar } from './hud/Controls'
 import { DamageMeter, DecisionLog, RaidWarnings, Scorecard } from './hud/Panels'
 import { PartyFrames } from './hud/PartyFrames'
@@ -51,8 +51,7 @@ export default function App({ path = '/watch' }: { path?: string }) {
         <div className="hud-top absolute inset-x-4 top-[72px]">
           <div className="hud-s justify-self-start [grid-area:party]"><PartyFrames /></div>
           <div className="hud-s relative justify-self-center [grid-area:boss]">
-            <BossFrame />
-            <div className="absolute left-1/2 top-full mt-14 -translate-x-1/2"><RaidWarnings /></div>
+            <RaidWarnings />
           </div>
           <div className="hud-s hud-side flex flex-col gap-2 justify-self-end [grid-area:side]">
             <Scorecard />
@@ -73,6 +72,7 @@ export default function App({ path = '/watch' }: { path?: string }) {
         <div className="absolute left-1/2 top-[28%] z-10 -translate-x-1/2"><div className="hud-s"><EndBanner /></div></div>
         {about && <AboutPanel onClose={closeAbout} />}
         <CallInspector />
+        <TipLayer />
         {runs && <RunBrowser onClose={closeRuns} initialQuery={modelOnly ? modelName(modelOnly) : ''} />}
       </div>
       {!ready && !error && (

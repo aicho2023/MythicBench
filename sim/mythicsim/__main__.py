@@ -26,7 +26,7 @@ from .policies import PROFILES, make_policies
 
 # The showcase replays shipped with the viewer: three reference skill levels on
 # one seed, so the only difference between them is decision quality.
-SHOWCASE_SEED = 10
+SHOWCASE_SEED = 24
 SHOWCASE = [
     {"id": "expert-clear", "policy": "expert", "seed": SHOWCASE_SEED, "mode": "dungeon", "tier": "plus10",
      "label": "Expert bots", "blurb": "Clean pulls, casters first, every kick lands. Clears the +10 in time."},

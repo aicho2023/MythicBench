@@ -17,7 +17,6 @@ const MAX_TEXT = 44
 const MAX_PLATES = 16
 const MAX_BUBBLES = 5
 const BUBBLE_MS = 4000 // a chat bubble stays up this long
-const BUBBLE_CHARS = 140
 const ABILITY_MS = 1200 // how long an instant ability's name shows under the caster's name
 const TEXT_MS = 1100
 
@@ -55,6 +54,7 @@ export function WorldOverlay() {
   const texts = useRef<HTMLDivElement[]>([])
   const plates = useRef<HTMLDivElement[]>([])
   const bubbles = useRef<HTMLDivElement[]>([])
+  const bossPlate = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let raf = 0
@@ -123,6 +123,31 @@ export function WorldOverlay() {
       }
       for (let i = p; i < MAX_PLATES; i++) if (plates.current[i]) plates.current[i].style.display = 'none'
 
+      // ---- the boss's nameplate: health and cast bar over his head, as in the game
+      const bp = bossPlate.current
+      const boss = s.units.mortisar
+      const bsp = boss?.alive ? (() => { const bpos = posAt(boss, t); return project(bpos[0], HEAD.boss, bpos[1]) })() : null
+      if (bp && boss && bsp) {
+        bp.style.display = 'block'
+        placed.push({ el: bp, x: bsp[0], y: bsp[1] })
+        const q = (k: string) => bp.querySelector(`[data-k="${k}"]`) as HTMLElement
+        const pct = `${((100 * boss.hp) / boss.info.max_hp).toFixed(1)}%`
+        if (q('pct').textContent !== pct) q('pct').textContent = pct
+        q('hp').style.width = `${(100 * boss.hp) / boss.info.max_hp}%`
+        q('fury').style.display = boss.auras.hollow_fury ? 'inline' : 'none'
+        const cast = s.ended ? null : boss.cast
+        const castInfo = cast ? engine.replay.abilities[cast.ability] : null
+        q('cast').style.display = cast && castInfo ? 'block' : 'none'
+        if (cast && castInfo) {
+          const fill = q('castfill')
+          fill.style.width = `${Math.min(100, (100 * (t - cast.t0)) / cast.castMs)}%`
+          fill.style.background = cast.interruptible ? 'rgba(251,191,36,0.9)' : 'rgba(161,161,170,0.75)'
+          const label = `${castInfo.name}${cast.interruptible ? ' (kick)' : ''}`
+          if (q('castname').textContent !== label) q('castname').textContent = label
+          q('casttime').textContent = `${Math.max(0, (cast.t0 + cast.castMs - t) / 1000).toFixed(1)}`
+        }
+      } else if (bp) bp.style.display = 'none'
+
       // ---- chat bubbles: each player's latest party-chat line, over its head
       const said: Record<string, string> = {}
       for (const { e } of engine.eventsBetween(t - BUBBLE_MS, t)) if (e.type === 'chat') said[e.unit] = e.text
@@ -135,8 +160,7 @@ export function WorldOverlay() {
         const sp = project(pos[0], HEAD.player + 0.9, pos[1])
         if (!sp) continue
         b++
-        const shown = text.length > BUBBLE_CHARS ? `${text.slice(0, BUBBLE_CHARS - 1)}…` : text
-        if (el.textContent !== shown) el.textContent = shown
+        if (el.textContent !== text) el.textContent = text
         el.style.display = 'block'
         placed.push({ el, x: sp[0], y: sp[1] })
       }
@@ -161,7 +185,7 @@ export function WorldOverlay() {
           const text = heal ? `+${fmtNum(e.amount)}` : fmtNum(e.amount)
           const crit = e.crit
           items.push({
-            i, x: pos[0], y: HEAD[tgt.info.kind] - (toPlayer ? 0.2 : 0.6), z: pos[1], age,
+            i, x: pos[0], y: HEAD[tgt.info.kind] - (toPlayer ? 0.2 : tgt.info.kind === 'boss' ? 2.6 : 0.6), z: pos[1], age,
             text,
             color: heal ? '#4ade80' : toPlayer ? '#f87171' : crit ? '#fbbf24' : '#ffffff',
             size: (toPlayer || heal ? 13 : 15) * (crit ? 1.45 : 1),
@@ -170,7 +194,7 @@ export function WorldOverlay() {
           const u = s.units[e.unit]
           if (!u) continue
           const pos = posAt(u, t)
-          items.push({ i, x: pos[0], y: 5.4, z: pos[1], age, text: 'Interrupted', color: '#7dd3fc', size: 20 })
+          items.push({ i, x: pos[0], y: u.info.kind === 'boss' ? 3.6 : 5.4, z: pos[1], age, text: 'Interrupted', color: '#7dd3fc', size: 20 })
         }
       }
       const shown = items.slice(-MAX_TEXT)
@@ -217,9 +241,27 @@ export function WorldOverlay() {
           </div>
         </div>
       ))}
+      <div ref={bossPlate} className="absolute left-0 top-0 hidden w-[240px] font-sans [text-shadow:0_1px_2px_#000,0_0_3px_#000]">
+        <div className="flex items-baseline justify-between gap-2 text-[13px] font-medium">
+          <span className="text-[#fca5a5]">Mortisar <span data-k="fury" className="hidden text-[11px] text-bad">Enraged</span></span>
+          <span data-k="pct" className="num font-mono text-[12px] text-white" />
+        </div>
+        <div className="mt-0.5 h-[9px] overflow-hidden rounded-sm bg-black/80 ring-1 ring-black">
+          <div data-k="hp" className="h-full bg-[#e5484d]" />
+        </div>
+        <div data-k="cast" className="mt-1 hidden">
+          <div className="relative h-[16px] overflow-hidden rounded-sm bg-black/80 ring-1 ring-black">
+            <div data-k="castfill" className="absolute inset-y-0 left-0" />
+            <div className="absolute inset-0 flex items-center justify-between gap-2 px-1.5 text-[11px] font-medium text-white">
+              <span data-k="castname" className="truncate" />
+              <span data-k="casttime" className="num font-mono" />
+            </div>
+          </div>
+        </div>
+      </div>
       {Array.from({ length: MAX_BUBBLES }, (_, i) => (
         <div key={`b${i}`} ref={(el) => { if (el) bubbles.current[i] = el }}
-          className="absolute left-0 top-0 hidden w-max max-w-[220px] rounded-lg bg-[rgba(12,12,14,0.86)] px-2 py-1 text-left font-sans text-[12px] leading-4 text-[#c9cfff] ring-1 ring-white/10" />
+          className="absolute left-0 top-0 hidden w-max max-w-[240px] rounded-lg bg-[rgba(12,12,14,0.86)] px-2 py-1 text-left font-sans text-[12px] leading-4 text-[#c9cfff] ring-1 ring-white/10" />
       ))}
       {Array.from({ length: MAX_TEXT }, (_, i) => (
         <div key={`t${i}`} ref={(el) => { if (el) texts.current[i] = el }}

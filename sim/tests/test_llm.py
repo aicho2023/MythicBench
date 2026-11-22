@@ -421,3 +421,14 @@ def test_chat_is_limited_to_one_message_every_ten_seconds():
     assert times and all(b - a >= 10_000 for a, b in zip(times, times[1:]))
     assert party.agents["bramble"].stats.chat_dropped > 0
     assert any("You can type in party chat again in" in p for p in fake.prompts["bramble"])
+
+
+def test_chat_is_cut_to_a_short_line_at_a_word_or_sentence():
+    from mythicsim.llm.prompt import CHAT_MAX_CHARS, fit_chat
+    assert fit_chat("  Kick   the chanter. ") == "Kick the chanter."
+    long = "Grokka, kick Requiem this time. " + "Bao has the next one and Nyx the one after that, then back to me " * 3
+    out = fit_chat(long)
+    assert len(out) <= CHAT_MAX_CHARS and long.startswith(out) and not out.endswith("…")
+    words = "word " * 60
+    cut = fit_chat(words)
+    assert len(cut) <= CHAT_MAX_CHARS and cut.endswith("word")
