@@ -1,7 +1,7 @@
 import { Pause, Play, RotateCcw } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CLASS_COLORS, dungeonProgress, dungeonScore, fmtNum, fmtTime, runScore } from '../content/display'
-import { ReplayEngine, posAt, type ReplayState } from '../replay/engine'
+import { ReplayEngine, posAt, type ReplayState, bossOf } from '../replay/engine'
 import { usePlayback } from '../replay/store'
 import type { Replay, ReplayIndexEntry } from '../replay/types'
 import { Page } from '../site/Layout'
@@ -57,7 +57,7 @@ function Side({ entry, engine, t }: { entry: ReplayIndexEntry; engine: ReplayEng
   const s = engine.stateAt(t)
   const m = engine.replay.meta
   const dungeon = m.mode === 'dungeon'
-  const boss = s.units.mortisar
+  const boss = bossOf(s)
   const progress = dungeon ? dungeonProgress(s.units) : 100 * (1 - (boss?.hp ?? 0) / (boss?.info.max_hp ?? 1))
   const score = dungeon
     ? dungeonScore(s.ended?.outcome ?? null, (s.ended?.t ?? t) + s.penaltyMs, progress, m.time_limit_ms)

@@ -12,7 +12,7 @@ from mythicsim.llm.clients import CachedClient, ClientError, MockClient, Reply
 from mythicsim.llm.policy import INTERRUPTERS, LLMPolicy, Party, make_llm_policies
 from mythicsim.llm.prompt import parse_reply, render_state, system_prompt
 
-IDS = {m.id for m in C.PARTY} | {"mortisar"}
+IDS = {m.id for m in C.PARTY} | {"oruth"}
 
 
 def digest(rep: dict) -> str:
@@ -41,73 +41,73 @@ class Scripted:
 
 
 def hew(**extra) -> str:
-    return json.dumps({"priority": [["savage_hew", "mortisar"]], **extra})
+    return json.dumps({"priority": [["savage_hew", "oruth"]], **extra})
 
 
 def test_parse_valid_and_drops_invalid_entries():
-    reply = json.dumps({"move_to": [1, 2], "priority": [["savage_hew", "mortisar"], ["fireball", "mortisar"],
+    reply = json.dumps({"move_to": [1, 2], "priority": [["savage_hew", "oruth"], ["fireball", "oruth"],
                                                         ["ravage", "nobody"]], "say": "hi"})
-    p = parse_reply("Sure! " + reply, "grokka", IDS)
+    p = parse_reply("Sure! " + reply, "brask", IDS)
     assert p.ok
-    o = p.orders["grokka"]
-    assert o.priority == [("savage_hew", "mortisar")] and o.move_to == (1.0, 2.0) and o.say == "hi"
+    o = p.orders["brask"]
+    assert o.priority == [("savage_hew", "oruth")] and o.move_to == (1.0, 2.0) and o.say == "hi"
     assert len(p.problems) == 2  # fireball, unknown target
 
 
 def test_parse_accepts_orders_nested_under_the_character():
-    p = parse_reply(json.dumps({"grokka": {"priority": [["ravage", "mortisar"]]}}), "grokka", IDS)
-    assert p.ok and p.orders["grokka"].priority == [("ravage", "mortisar")]
+    p = parse_reply(json.dumps({"brask": {"priority": [["ravage", "oruth"]]}}), "brask", IDS)
+    assert p.ok and p.orders["brask"].priority == [("ravage", "oruth")]
 
 
 def test_parse_missing_priority_means_keep_it():
-    p = parse_reply(json.dumps({"move_to": "safe"}), "lumi", IDS)
-    assert p.orders["lumi"].priority is None and p.orders["lumi"].move_to == "safe"
+    p = parse_reply(json.dumps({"move_to": "safe"}), "ivy", IDS)
+    assert p.orders["ivy"].priority is None and p.orders["ivy"].move_to == "safe"
 
 
 def test_another_characters_abilities_are_refused():
-    p = parse_reply(json.dumps({"priority": [["mending_light", "bramble"]]}), "grokka", IDS)
-    assert p.orders["grokka"].priority == [] and p.problems == ["cannot use 'mending_light'"]
+    p = parse_reply(json.dumps({"priority": [["mending_light", "rook"]]}), "brask", IDS)
+    assert p.orders["brask"].priority == [] and p.problems == ["cannot use 'mending_light'"]
 
 
 @pytest.mark.parametrize("text", ["no json here", "{not json}", '{"plan": {}}'])
 def test_unusable_replies(text):
-    assert not parse_reply(text, "bramble", IDS).ok
+    assert not parse_reply(text, "rook", IDS).ok
 
 
 def test_state_flags_pools_under_a_character():
     enc = Encounter(1, {}, "x")
-    obs = enc.observe(enc.units["bramble"])
-    lumi = next(p for p in obs["party"] if p["id"] == "lumi")
-    obs["ground"] = [{"id": "desecrate_9", "kind": "desecrate", "pos": list(lumi["pos"]), "radius": 2.2,
+    obs = enc.observe(enc.units["rook"])
+    ivy = next(p for p in obs["party"] if p["id"] == "ivy")
+    obs["ground"] = [{"id": "desecrate_9", "kind": "desecrate", "pos": list(ivy["pos"]), "radius": 2.2,
                       "age_ms": 200, "armed": False}]
-    text = render_state(obs, "bramble", 0, None)
-    line = next(l for l in text.splitlines() if l.strip().startswith("lumi"))
+    text = render_state(obs, "rook", 0, None)
+    line = next(l for l in text.splitlines() if l.strip().startswith("ivy"))
     assert "STANDING IN POOL desecrate_9 (arming, 0.0 m from its centre" in line
 
 
 def test_state_shows_only_your_own_cooldowns_and_the_chat():
     enc = Encounter(1, {}, "x")
-    obs = enc.observe(enc.units["grokka"])
-    text = render_state(obs, "grokka", 0, None, chat=[(1500, "bramble", "I kick first.")])
-    me = next(l for l in text.splitlines() if l.strip().startswith("grokka"))
-    other = next(l for l in text.splitlines() if l.strip().startswith("bramble"))
+    obs = enc.observe(enc.units["brask"])
+    text = render_state(obs, "brask", 0, None, chat=[(1500, "rook", "I kick first.")])
+    me = next(l for l in text.splitlines() if l.strip().startswith("brask"))
+    other = next(l for l in text.splitlines() if l.strip().startswith("rook"))
     assert "(YOU)" in me and "Ready:" in me
     assert "Ready:" not in other
-    assert "[1.5s] Bramble: I kick first." in text
+    assert "[1.5s] Rook: I kick first." in text
 
 
 def test_move_to_accepts_safe_in_a_list_and_xz_object():
-    assert parse_reply(json.dumps({"move_to": ["safe"]}), "lumi", IDS).orders["lumi"].move_to == "safe"
-    assert parse_reply(json.dumps({"move_to": {"x": 3, "z": -1.5}}), "bao", IDS).orders["bao"].move_to == (3.0, -1.5)
+    assert parse_reply(json.dumps({"move_to": ["safe"]}), "ivy", IDS).orders["ivy"].move_to == "safe"
+    assert parse_reply(json.dumps({"move_to": {"x": 3, "z": -1.5}}), "wren", IDS).orders["wren"].move_to == (3.0, -1.5)
 
 
 def test_move_safe_leaves_the_pool_and_stays_in_melee():
     from mythicsim.engine import dist
-    reply = json.dumps({"move_to": "safe", "priority": [["savage_hew", "mortisar"]]})
-    party = Party(Scripted({"grokka": [reply]}))
-    pol = LLMPolicy("grokka", party)
+    reply = json.dumps({"move_to": "safe", "priority": [["savage_hew", "oruth"]]})
+    party = Party(Scripted({"brask": [reply]}))
+    pol = LLMPolicy("brask", party)
     enc = Encounter(1, {}, "x")
-    obs = enc.observe(enc.units["grokka"])
+    obs = enc.observe(enc.units["brask"])
     me = obs["self"]["pos"]
     obs["ground"] = [{"id": "desecrate_1", "kind": "desecrate", "pos": list(me), "radius": 2.2, "age_ms": 0, "armed": False}]
     acts = pol.act(obs)
@@ -127,10 +127,10 @@ def test_safe_move_does_not_walk_through_another_pool():
 
 
 def test_self_and_party_target_aliases():
-    assert parse_reply(json.dumps({"priority": [["radiant_hymn", "party"]]}), "lumi", IDS).orders["lumi"].priority \
-        == [("radiant_hymn", "lumi")]
-    assert parse_reply(json.dumps({"priority": [["wild_roar", "self"]]}), "bao", IDS).orders["bao"].priority \
-        == [("wild_roar", "bao")]
+    assert parse_reply(json.dumps({"priority": [["radiant_hymn", "party"]]}), "ivy", IDS).orders["ivy"].priority \
+        == [("radiant_hymn", "ivy")]
+    assert parse_reply(json.dumps({"priority": [["wild_roar", "self"]]}), "wren", IDS).orders["wren"].priority \
+        == [("wild_roar", "wren")]
 
 
 def test_each_agent_gets_its_own_rules():
@@ -158,18 +158,18 @@ def test_mock_party_plays_a_full_fight_deterministically():
 
 
 def test_party_chat_reaches_the_other_agents():
-    fake = Scripted({"bramble": [hew(say="Grokka kicks first, I take the second.")]})
+    fake = Scripted({"rook": [hew(say="Brask kicks first, I take the second.")]})
     pols, party = make_llm_policies(fake, interval_ms=1000)
     Encounter(4, pols, "x").run(max_ms=3000)
-    assert party.chat and party.chat[0][1] == "bramble"
-    later = fake.prompts["grokka"][1:]  # the first call happened at the same tick
-    assert any("Grokka kicks first, I take the second." in p for p in later)
+    assert party.chat and party.chat[0][1] == "rook"
+    later = fake.prompts["brask"][1:]  # the first call happened at the same tick
+    assert any("Brask kicks first, I take the second." in p for p in later)
 
 
 def test_kickable_casts_only_wake_the_kickers():
     pols, party = make_llm_policies(MockClient(), interval_ms=60_000)
     Encounter(4, pols, "x").run(max_ms=40_000)
-    assert "lumi" not in INTERRUPTERS
+    assert "ivy" not in INTERRUPTERS
     kick_calls = [c for c in party.calls if any("requiem_of_bones" in w for w in c["why"])]
     assert kick_calls and all(c["agent"] in INTERRUPTERS for c in kick_calls)
 
@@ -194,9 +194,9 @@ def test_same_prompt_in_another_episode_is_a_new_sample(tmp_path):
             self.n += 1
             return Reply(str(self.n), 1, 1)
     c = CachedClient(Counter(), tmp_path / "c.jsonl")
-    a = c.complete("rules", "same opening state", tag="e0p1|play|bramble|1")
-    b = c.complete("rules", "same opening state", tag="e1p1|play|bramble|1")
-    again = c.complete("rules", "same opening state", tag="e0p1|play|bramble|1")
+    a = c.complete("rules", "same opening state", tag="e0p1|play|rook|1")
+    b = c.complete("rules", "same opening state", tag="e1p1|play|rook|1")
+    again = c.complete("rules", "same opening state", tag="e0p1|play|rook|1")
     assert a.text != b.text and again.text == a.text and again.cached
 
 
@@ -208,21 +208,21 @@ def test_offline_cache_miss_is_fatal(tmp_path):
 
 
 def test_interrupt_only_fires_on_an_interruptible_cast():
-    reply = json.dumps({"priority": [["throat_punch", "mortisar"], ["savage_hew", "mortisar"]]})
-    pols, _ = make_llm_policies(Scripted({"grokka": [reply]}))
+    reply = json.dumps({"priority": [["throat_punch", "oruth"], ["savage_hew", "oruth"]]})
+    pols, _ = make_llm_policies(Scripted({"brask": [reply]}))
     rep = Encounter(4, pols, "x").run(max_ms=30_000)
     kicks = [e for e in rep["events"] if e["type"] == "cast_success" and e["ability"] == "throat_punch"]
     starts = {e["t"] for e in rep["events"] if e["type"] == "cast_start" and e.get("interruptible")}
-    assert kicks, "Grokka should have kicked something in 30s"
+    assert kicks, "Brask should have kicked something in 30s"
     for k in kicks:  # every kick lands while an interruptible cast is in progress
         assert any(s <= k["t"] <= s + 3000 for s in starts)
 
 
 def test_unusable_reply_keeps_previous_orders():
-    party = Party(Scripted({"grokka": [hew(), "garbage", "garbage"]}), interval_ms=1000)
+    party = Party(Scripted({"brask": [hew(), "garbage", "garbage"]}), interval_ms=1000)
     pols = {m.id: LLMPolicy(m.id, party) for m in C.PARTY}
     rep = Encounter(4, pols, "x").run(max_ms=6000)
-    assert party.agents["grokka"].stats.unusable_replies >= 1
+    assert party.agents["brask"].stats.unusable_replies >= 1
     hews = [e for e in rep["events"] if e["type"] == "cast_success" and e["ability"] == "savage_hew"]
     assert any(e["t"] > 3000 for e in hews)  # still following the first orders
 
@@ -275,13 +275,13 @@ def test_refusal_keeps_previous_orders_and_is_counted():
     class Refuses(Scripted):
         def complete(self, system, user, tag=""):
             r = super().complete(system, user, tag)
-            first = len(self.prompts.get("grokka", [])) <= 1
-            return r if agent_of(system) != "grokka" or first else Reply("", 100, 0, refused=True)
+            first = len(self.prompts.get("brask", [])) <= 1
+            return r if agent_of(system) != "brask" or first else Reply("", 100, 0, refused=True)
 
-    party = Party(Refuses({"grokka": [hew()]}), interval_ms=1000)
+    party = Party(Refuses({"brask": [hew()]}), interval_ms=1000)
     pols = {m.id: LLMPolicy(m.id, party) for m in C.PARTY}
     rep = Encounter(4, pols, "x").run(max_ms=6000)
-    g = party.agents["grokka"].stats
+    g = party.agents["brask"].stats
     assert g.refusals >= 1 and g.unusable_replies == 0
     hews = [e for e in rep["events"] if e["type"] == "cast_success" and e["ability"] == "savage_hew"]
     assert any(e["t"] > 3000 for e in hews)
@@ -336,7 +336,7 @@ def test_one_call_is_recorded_once_even_when_asked_twice_at_once(tmp_path):
     inner = _Counting(delay=0.05)
     a, b = CachedClient(inner, tmp_path / "c.jsonl"), CachedClient(inner, tmp_path / "c.jsonl")
     with ThreadPoolExecutor(2) as pool:
-        ra, rb = pool.map(lambda c: c.complete("rules", "same", tag="e0p1|play|bramble|1"), (a, b))
+        ra, rb = pool.map(lambda c: c.complete("rules", "same", tag="e0p1|play|rook|1"), (a, b))
     assert inner.calls == 1 and ra.text == rb.text  # memory on/off share one recorded pull 1
     assert len((tmp_path / "c.jsonl").read_text().splitlines()) == 1
 
@@ -379,54 +379,54 @@ def test_a_transport_failure_stops_the_episode_unrecorded():
 
 def test_finite_and_in_range_coordinates_only():
     for bad in ([1e309, 0], [float("nan"), 1], [5000, 0]):
-        p = parse_reply(json.dumps({"move_to": bad}), "bao", IDS)
-        assert p.orders["bao"].move_to is None and p.problems, bad
+        p = parse_reply(json.dumps({"move_to": bad}), "wren", IDS)
+        assert p.orders["wren"].move_to is None and p.problems, bad
 
 
 def test_attacks_go_on_enemies_and_heals_on_allies():
-    p = parse_reply(json.dumps({"priority": [["mending_light", "mortisar"], ["mending_light", "bramble"]]}), "lumi", IDS)
-    assert p.orders["lumi"].priority == [("mending_light", "bramble")] and len(p.problems) == 1
-    p = parse_reply(json.dumps({"priority": [["savage_hew", "grokka"], ["savage_hew", "mortisar"]]}), "grokka", IDS)
-    assert p.orders["grokka"].priority == [("savage_hew", "mortisar")] and len(p.problems) == 1
+    p = parse_reply(json.dumps({"priority": [["mending_light", "oruth"], ["mending_light", "rook"]]}), "ivy", IDS)
+    assert p.orders["ivy"].priority == [("mending_light", "rook")] and len(p.problems) == 1
+    p = parse_reply(json.dumps({"priority": [["savage_hew", "brask"], ["savage_hew", "oruth"]]}), "brask", IDS)
+    assert p.orders["brask"].priority == [("savage_hew", "oruth")] and len(p.problems) == 1
     enc = Encounter(1, {}, "x")
-    assert not enc.begin_cast(enc.units["lumi"], "mending_light", "mortisar")  # the engine refuses it too
-    assert not enc.begin_cast(enc.units["grokka"], "savage_hew", "grokka")
+    assert not enc.begin_cast(enc.units["ivy"], "mending_light", "oruth")  # the engine refuses it too
+    assert not enc.begin_cast(enc.units["brask"], "savage_hew", "brask")
 
 
 def test_thinking_out_loud_before_the_json_is_fine():
-    text = 'I am at {x: 1, z: 2}, out of range {sort of}. So: {"move_to": [0, 51.5], "priority": [["savage_hew", "mortisar"]]}'
-    p = parse_reply(text, "grokka", IDS)
-    assert p.ok and p.orders["grokka"].move_to == (0.0, 51.5) and not p.problems
+    text = 'I am at {x: 1, z: 2}, out of range {sort of}. So: {"move_to": [0, 51.5], "priority": [["savage_hew", "oruth"]]}'
+    p = parse_reply(text, "brask", IDS)
+    assert p.ok and p.orders["brask"].move_to == (0.0, 51.5) and not p.problems
 
 
 def test_the_last_orders_object_is_the_answer():
-    text = 'Draft: {"priority": [["ravage", "mortisar"]]} Final: {"priority": [["savage_hew", "mortisar"]]}'
-    assert parse_reply(text, "grokka", IDS).orders["grokka"].priority == [("savage_hew", "mortisar")]
+    text = 'Draft: {"priority": [["ravage", "oruth"]]} Final: {"priority": [["savage_hew", "oruth"]]}'
+    assert parse_reply(text, "brask", IDS).orders["brask"].priority == [("savage_hew", "oruth")]
 
 
 def test_an_empty_object_means_no_change():
-    p = parse_reply("{}", "grokka", IDS)
-    assert p.ok and p.orders["grokka"].priority is None and p.orders["grokka"].move_to is None
+    p = parse_reply("{}", "brask", IDS)
+    assert p.ok and p.orders["brask"].priority is None and p.orders["brask"].move_to is None
 
 
 def test_trailing_garbage_without_orders_is_still_unusable():
-    assert not parse_reply('thinking... <invoke name="x"></invoke> Error: unknown tool', "grokka", IDS).ok
+    assert not parse_reply('thinking... <invoke name="x"></invoke> Error: unknown tool', "brask", IDS).ok
 
 
 def test_chat_is_limited_to_one_message_every_ten_seconds():
-    fake = Scripted({"bramble": [hew(say="Kick the chanter.")]})
+    fake = Scripted({"rook": [hew(say="Kick the chanter.")]})
     pols, party = make_llm_policies(fake, interval_ms=1000)
     Encounter(4, pols, "x").run(max_ms=25_000)
-    times = [t for t, who, _ in party.chat if who == "bramble"]
+    times = [t for t, who, _ in party.chat if who == "rook"]
     assert times and all(b - a >= 10_000 for a, b in zip(times, times[1:]))
-    assert party.agents["bramble"].stats.chat_dropped > 0
-    assert any("You can type in party chat again in" in p for p in fake.prompts["bramble"])
+    assert party.agents["rook"].stats.chat_dropped > 0
+    assert any("You can type in party chat again in" in p for p in fake.prompts["rook"])
 
 
 def test_chat_is_cut_to_a_short_line_at_a_word_or_sentence():
     from mythicsim.llm.prompt import CHAT_MAX_CHARS, fit_chat
     assert fit_chat("  Kick   the chanter. ") == "Kick the chanter."
-    long = "Grokka, kick Requiem this time. " + "Bao has the next one and Nyx the one after that, then back to me " * 3
+    long = "Brask, kick Requiem this time. " + "Wren has the next one and Kit the one after that, then back to me " * 3
     out = fit_chat(long)
     assert len(out) <= CHAT_MAX_CHARS and long.startswith(out) and not out.endswith("…")
     words = "word " * 60

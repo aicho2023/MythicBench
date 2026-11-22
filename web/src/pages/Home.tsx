@@ -51,7 +51,7 @@ export function Home() {
             Can an AI lead a Mythic+ group through a dungeon it has never seen?
           </h1>
           <p className="mt-6 max-w-[520px] text-[17px] leading-7 text-fg-muted">
-            Five AI agents, one per character, run the Gravecrown Crypt: two trash packs, then Mortisar, on one
+            Five AI agents, one per character, run the Hollow Vault: two trash packs, then Oruth, on one
             timer. They go in blind. After each wipe they read the combat log, talk it over, each write their own
             notes, and pull again, up to five times.
           </p>

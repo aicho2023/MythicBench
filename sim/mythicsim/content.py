@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-CONTENT_VERSION = "1.4.0"
+CONTENT_VERSION = "1.5.0"
 
 GCD_MS = 1000
 MELEE_RANGE = 3.0
@@ -160,9 +160,9 @@ _ABILITIES = [
             description="Interrupt the target's spellcasting."),
     Ability("wild_roar", "Wild Roar", "buff", "wild", cooldown_ms=300000, range=40.0,
             aura="wild_roar", description="Increase the party's haste by 30% for 30 sec."),
-    # --- Mortisar, the Hollow King (boss) ---------------------------------
+    # --- Oruth the Unburied (boss) ---------------------------------
     Ability("hollow_strike", "Hollow Strike", "boss", "sword", school="frost", amount=3200,
-            description="Mortisar strikes his current target."),
+            description="Oruth strikes his current target."),
     Ability("soul_rend", "Soul Rend", "boss", "rend", school="shadow", cast_ms=2000,
             amount=30000, aura="rent_soul",
             description="Tank buster. Massive damage plus a lingering wound. Use a defensive!"),
@@ -247,22 +247,22 @@ class PartyMember:
 BOSS_POS = (0.0, -2.0)
 
 PARTY: tuple[PartyMember, ...] = (
-    PartyMember("bramble", "Bramble", "guardian", (0.0, 0.9)),
-    PartyMember("lumi", "Lumi", "lightweaver", (0.0, 8.5)),
-    PartyMember("grokka", "Grokka", "berserker", (-1.9, -4.9)),
-    PartyMember("nyx", "Nyx", "shadowblade", (1.9, -4.9)),
-    PartyMember("bao", "Bao", "ranger", (5.5, 7.0)),
+    PartyMember("rook", "Rook", "guardian", (0.0, 0.9)),
+    PartyMember("ivy", "Ivy", "lightweaver", (0.0, 8.5)),
+    PartyMember("brask", "Brask", "berserker", (-1.9, -4.9)),
+    PartyMember("kit", "Kit", "shadowblade", (1.9, -4.9)),
+    PartyMember("wren", "Wren", "ranger", (5.5, 7.0)),
 )
 
 # The order in which the party takes turns interrupting. A real team agrees
 # on this before the pull; our scripted bots do the same.
-KICK_ORDER = ("grokka", "nyx", "bao", "bramble")
+KICK_ORDER = ("brask", "kit", "wren", "rook")
 
 
 @dataclass(frozen=True)
 class BossDef:
-    id: str = "mortisar"
-    name: str = "Mortisar, the Hollow King"
+    id: str = "oruth"
+    name: str = "Oruth the Unburied"
     max_hp: int = 1_500_000
     radius: float = 1.6
     # He walks after whoever he's attacking until they're back in his reach,
@@ -331,14 +331,14 @@ class Affix:
 
 AFFIXES: dict[str, Affix] = {a.id: a for a in (
     Affix("restless_graves", "Restless Graves",
-          "When an undead enemy other than Mortisar dies, it leaves a Restless Grave on the ground for 12 sec. "
+          "When an undead enemy other than Oruth dies, it leaves a Restless Grave on the ground for 12 sec. "
           "The grave heals other undead standing in it by 5% of their health every second, and hurts players "
           "standing in it. Fight enemies away from graves."),
     Affix("marrowburst", "Marrowburst",
-          "When an undead enemy other than Mortisar dies, every player gains a stack of Marrow Shards: shadow "
+          "When an undead enemy other than Oruth dies, every player gains a stack of Marrow Shards: shadow "
           "damage every second for 4 sec, for each stack. Many kills at once stack it high: stagger kills."),
     Affix("hollow_tyrant", "Hollow Tyrant",
-          "Mortisar Summons the Restless three times (at 80%, 50% and 25% health), Desecrates four players "
+          "Oruth Summons the Restless three times (at 80%, 50% and 25% health), Desecrates four players "
           "instead of three, and every ~24 sec brands a player with a Grave Mark: after 6 sec it detonates, "
           "hitting the marked player and, much harder, every ally within 6 m of them. Spread out."),
 )}
@@ -356,7 +356,10 @@ class Tier:
 
 TIERS: dict[str, Tier] = {t.id: t for t in (
     Tier("normal", "Normal", 0.95, 0.9, (), 255_000),
-    Tier("plus10", "+10", 0.85, 1.15, ("restless_graves", "marrowburst", "hollow_tyrant"), 255_000),
+    # +10 is tuned against real models, not the bots: the best of today's
+    # models clear it blind only sometimes (a clean pull clears; a death
+    # usually costs the timer), leaving room for better models to come.
+    Tier("plus10", "+10", 0.98, 1.15, ("restless_graves", "marrowburst", "hollow_tyrant"), 255_000),
 )}
 DEFAULT_TIER = "plus10"
 TIER_ALIASES = {"normal": "normal", "n": "normal", "plus10": "plus10", "+10": "plus10", "10": "plus10"}
@@ -388,7 +391,7 @@ TIME_LIMIT_MS = BOSS.enrage_ms
 
 
 # ---------------------------------------------------------------------------
-# The dungeon run: entrance -> Pack 1 -> corridor -> Pack 2 -> Mortisar
+# The dungeon run: entrance -> Pack 1 -> corridor -> Pack 2 -> Oruth
 # ---------------------------------------------------------------------------
 # The boss room is the original arena (centre (0, 0), radius ARENA_RADIUS). The
 # party starts at the far end of the crypt (large +z) and walks toward it.
@@ -431,7 +434,7 @@ class PackDef:
 
 
 ROOMS: tuple[Room, ...] = (
-    Room("boss", "Throne of the Hollow King", (0.0, 0.0), ARENA_RADIUS),
+    Room("boss", "Throne of the Unburied", (0.0, 0.0), ARENA_RADIUS),
     Room("ossuary", "Ossuary", (0.0, 30.0), 9.0),
     Room("chapel", "Bone Chapel", (0.0, 54.0), 9.0),
     Room("entrance", "Crypt Entrance", (0.0, 84.0), 5.0),
@@ -486,7 +489,7 @@ PACKS: tuple[PackDef, ...] = (
     )),
 )
 AGGRO_RADIUS = 9.0  # a pack attacks when any player comes this close to any member
-BOSS_ENGAGE_RADIUS = 13.0  # Mortisar wakes when a player is this close to him
+BOSS_ENGAGE_RADIUS = 13.0  # Oruth wakes when a player is this close to him
 DUNGEON_LIMIT_MS = 270_000  # default run timer; each tier sets its own (Tier.limit_ms)
 DEATH_PENALTY_MS = 10_000  # each revive costs this much on the timer (like an M+ death)
 REVIVE_AFTER_MS = 3_000  # out of combat this long, fallen allies get back up

@@ -199,7 +199,7 @@ function collectBursts(): Burst[] {
         const p = at(e.target, 1)
         if (p) out.push({ kind: 'spark', pos: p, k: age / 600, color: '#ff3b5c', size: 2.6 })
       } else if (MELEE.has(e.ability) && age < 260 && e.target) {
-        const p = at(e.target, e.target === 'mortisar' ? 2.2 : 0.9)
+        const p = at(e.target, f.s.units[e.target]?.info.kind === 'boss' ? 2.2 : 0.9)
         if (p) out.push({ kind: 'spark', pos: p, k: age / 260, color: e.ability === 'hollow_strike' ? '#8fe8ff' : '#fff2c4', size: e.ability === 'hollow_strike' ? 1.4 : 0.8 })
       }
     } else if (e.type === 'cast_interrupted' && e.reason === 'interrupt' && age < 600) {

@@ -29,7 +29,7 @@ export function TopBar({ onAbout, onRuns }: { onAbout: () => void; onRuns: () =>
       overlay
       after={
         <span className="hidden items-baseline gap-2 text-[13px] text-fg-muted lg:flex">
-          Gravecrown Crypt
+          The Hollow Vault
           {tierName && <span className="num font-mono text-meta text-fg-faint">{tierName}</span>}
           {affixes.length > 0 && (
             <span className="hidden truncate text-meta text-fg-faint 2xl:inline" title={affixes.map((a) => `${a.name}: ${a.description}`).join('\n\n')}>
@@ -169,9 +169,9 @@ export function EndBanner() {
       </div>
       <div className="mt-2 text-[13px] text-fg-muted">
         {dungeonRun
-          ? win ? `Mortisar fell at ${fmtTime((m?.duration_s ?? 0) * 1000)}${m?.penalty_s ? ` (+${m.penalty_s}s revive penalties)` : ''}.`
+          ? win ? `Oruth fell at ${fmtTime((m?.duration_s ?? 0) * 1000)}${m?.penalty_s ? ` (+${m.penalty_s}s revive penalties)` : ''}.`
             : `The party got ${m?.progress_pct ?? 0}% of the way through the crypt.`
-          : win ? `Mortisar fell in ${fmtTime((m?.duration_s ?? 0) * 1000)}.` : `Mortisar survived with ${m?.boss_hp_pct_remaining}% health.`}
+          : win ? `Oruth fell in ${fmtTime((m?.duration_s ?? 0) * 1000)}.` : `Oruth survived with ${m?.boss_hp_pct_remaining}% health.`}
       </div>
       {m && (
         <div className="mt-4 grid grid-cols-5 gap-px overflow-hidden rounded-lg border border-line bg-line max-sm:grid-cols-3">
@@ -256,7 +256,7 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
 
         <Section n="1" title="The task">
           Clear the crypt like a Mythic+ key: two trash packs (a caster to <b>kick</b>, a healer to <b>kill first</b>), then
-          Mortisar, on one 4:30 timer; resting and reviving between pulls costs time. Each boss ability tests one skill: an <b>interruptible cast</b> (react in time),
+          Oruth, on one 4:30 timer; resting and reviving between pulls costs time. Each boss ability tests one skill: an <b>interruptible cast</b> (react in time),
           a <b>tank buster</b> (use defensives), <b>pools on the ground</b> (move out), and <b>adds</b> (switch targets).
         </Section>
         <Section n="2" title="The agent under test">
@@ -265,7 +265,7 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
           internals, so a scripted bot and a language model compete on equal terms.
         </Section>
         <Section n="3" title="The score">
-          One number per pull, from <b>0 to 100</b>. A clear (Mortisar and every pack dead within the timer) earns
+          One number per pull, from <b>0 to 100</b>. A clear (Oruth and every pack dead within the timer) earns
           <b>70 plus up to 30 for speed</b>; otherwise, a wipe or the timer running out, up to <b>70</b> for
           progress. The run ends at the timer. Win/loss alone would tie every team that wins, so the score keeps
           separating them. Interrupts, deaths, and pool damage explain where points went. Difficulty comes in two

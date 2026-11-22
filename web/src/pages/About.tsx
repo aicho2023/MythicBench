@@ -36,7 +36,7 @@ export function About() {
             over. <Link to="/party">The party page</Link> lists every character and ability.
           </p>
           <ul>
-            <li><strong>Mortisar, the Hollow King</strong>: a cast you must kick, a tank buster, swirls to step out of, adds, and a hard enrage</li>
+            <li><strong>Oruth the Unburied</strong>: a cast you must kick, a tank buster, swirls to step out of, adds, and a hard enrage</li>
             <li><strong>Two packs first</strong>: a caster to kick and a healer to kill first, on one 4:15 timer</li>
             <li><strong>+10</strong> adds three affixes: graves that heal undead, stacking damage on every kill, and more adds</li>
           </ul>

@@ -85,6 +85,12 @@ export function initialState(replay: Replay): ReplayState {
 }
 
 /** Position of a unit at time t — identical formula to the Python engine. */
+/** The boss, found by role so replays from any content version work. */
+export function bossOf(s: { units: Record<string, UnitState> }): UnitState | undefined {
+  for (const id in s.units) if (s.units[id].info.kind === 'boss') return s.units[id]
+  return undefined
+}
+
 export function posAt(u: UnitState, t: number): Vec2 {
   const m = u.move
   if (!m) return u.basePos
@@ -300,7 +306,7 @@ export class ReplayEngine {
       else if (e.type === 'encounter_end') out.push({ t: e.t, kind: 'end', label: e.outcome === 'victory' ? 'Victory' : 'Wipe' })
       else if (e.type === 'pull') {
         const pack = this.replay.arena.packs?.find((p) => p.id === e.pack)
-        out.push({ t: e.t, kind: 'pull', label: e.pack === 'boss' ? 'Mortisar pulled' : `${pack?.name ?? e.pack} pulled` })
+        out.push({ t: e.t, kind: 'pull', label: e.pack === 'boss' ? 'Oruth pulled' : `${pack?.name ?? e.pack} pulled` })
       }
     }
     for (const [t, [marked, ...hit]] of Object.entries(markHits)) {

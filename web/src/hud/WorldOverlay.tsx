@@ -8,7 +8,7 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { CLASS_COLORS, SCHOOL_COLORS, fmtNum } from '../content/display'
-import { posAt } from '../replay/engine'
+import { posAt, bossOf } from '../replay/engine'
 import { frameState } from '../replay/store'
 import { sceneBridge } from '../scene/Scene'
 import { ROLE_ICON, ROLE_TINT } from './bits'
@@ -125,12 +125,13 @@ export function WorldOverlay() {
 
       // ---- the boss's nameplate: health and cast bar over his head, as in the game
       const bp = bossPlate.current
-      const boss = s.units.mortisar
+      const boss = bossOf(s)
       const bsp = boss?.alive ? (() => { const bpos = posAt(boss, t); return project(bpos[0], HEAD.boss, bpos[1]) })() : null
       if (bp && boss && bsp) {
         bp.style.display = 'block'
         placed.push({ el: bp, x: bsp[0], y: bsp[1] })
         const q = (k: string) => bp.querySelector(`[data-k="${k}"]`) as HTMLElement
+        if (q('name').textContent !== boss.info.name) q('name').textContent = boss.info.name
         const pct = `${((100 * boss.hp) / boss.info.max_hp).toFixed(1)}%`
         if (q('pct').textContent !== pct) q('pct').textContent = pct
         q('hp').style.width = `${(100 * boss.hp) / boss.info.max_hp}%`
@@ -243,7 +244,7 @@ export function WorldOverlay() {
       ))}
       <div ref={bossPlate} className="absolute left-0 top-0 hidden w-[240px] font-sans [text-shadow:0_1px_2px_#000,0_0_3px_#000]">
         <div className="flex items-baseline justify-between gap-2 text-[13px] font-medium">
-          <span className="text-[#fca5a5]">Mortisar <span data-k="fury" className="hidden text-[11px] text-bad">Enraged</span></span>
+          <span className="text-[#fca5a5]"><span data-k="name" /> <span data-k="fury" className="hidden text-[11px] text-bad">Enraged</span></span>
           <span data-k="pct" className="num font-mono text-[12px] text-white" />
         </div>
         <div className="mt-0.5 h-[9px] overflow-hidden rounded-sm bg-black/80 ring-1 ring-black">

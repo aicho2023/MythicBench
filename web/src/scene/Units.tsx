@@ -2,7 +2,7 @@ import { useFrame } from '@react-three/fiber'
 import { Suspense, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { CLASS_COLORS, SCHOOL_COLORS } from '../content/display'
-import { posAt } from '../replay/engine'
+import { posAt, bossOf } from '../replay/engine'
 import { frameState, usePlayback } from '../replay/store'
 import {
   BossModel, Bubble, CLASS_STYLE, ChibiModel, SkeletonModel, animateBoss, animateHumanoid,
@@ -84,8 +84,8 @@ function UnitActor({ id }: { id: string }) {
     } else if (u.alive && !walking) {
       const tid = u.cast?.target ?? u.target
       const tgt = tid ? s.units[tid] : undefined
-      const enemyFacing = info.kind === 'player' && (!tgt || tgt.info.kind === 'player') && s.units.mortisar
-      const look = enemyFacing ? s.units.mortisar : tgt
+      const enemyFacing = info.kind === 'player' && (!tgt || tgt.info.kind === 'player') && bossOf(s)
+      const look = enemyFacing ? bossOf(s) : tgt
       if (look && look !== u) {
         const tp = posAt(look, t)
         desired = Math.atan2(tp[0] - p[0], tp[1] - p[1])

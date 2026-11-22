@@ -23,7 +23,7 @@ from . import content as C
 
 TICK_MS = 100
 SIM_VERSION = "0.5.0"  # 0.3.0: bodies collide where they stop; 0.4.0: a run ends at its timer;
-# 0.5.0: enemies keep their space too, and Mortisar walks after his target
+# 0.5.0: enemies keep their space too, and Oruth walks after his target
 
 
 # ---------------------------------------------------------------------------
@@ -205,7 +205,7 @@ class Encounter:
         self.units[b.id] = Unit(b.id, b.name, "boss", "boss", "boss", boss_hp, b.radius, b.speed,
                                 b.model, C.BOSS_POS, target=C.PARTY[0].id)
         self.boss = self.units[b.id]
-        self.boss_engaged_t = 0  # when Mortisar was pulled (the dungeon run pulls him later)
+        self.boss_engaged_t = 0  # when Oruth was pulled (the dungeon run pulls him later)
 
     def jitter(self, key: str, base: float, spread: float) -> int:
         """``base`` +/- ``spread`` ms from this ability's stream, snapped to a tick."""
@@ -408,7 +408,7 @@ class Encounter:
             self.on_undead_death(u)
 
     def on_undead_death(self, u: Unit) -> None:
-        """Affixes that trigger when an undead (not Mortisar) dies."""
+        """Affixes that trigger when an undead (not Oruth) dies."""
         if "restless_graves" in self.affixes:
             self.ground_count += 1
             gid = f"grave_{self.ground_count}"
@@ -580,7 +580,7 @@ class Encounter:
         # Priority: Summon the Restless > Soul Rend > Requiem > Desecrate
         if self.raise_queued:
             self.raise_queued = False
-            self.emit("emote", unit=b.id, style="warning", text="Mortisar begins to Summon the Restless!")
+            self.emit("emote", unit=b.id, style="warning", text="Oruth begins to Summon the Restless!")
             self.begin_cast(b, "raise_dead", None)
             return
         for key in ("soul_rend", "requiem_of_bones", "grave_mark", "desecrate"):
@@ -615,7 +615,7 @@ class Encounter:
             return False
         p = self.rng.choice(candidates)
         self.emit("cast_success", unit=b.id, ability="grave_mark", target=p.id)
-        self.emit("emote", unit=b.id, style="warning", text=f"Mortisar brands {p.name} with a Grave Mark!")
+        self.emit("emote", unit=b.id, style="warning", text=f"Oruth brands {p.name} with a Grave Mark!")
         self.apply_aura(p, "grave_mark", b)
         return True
 
@@ -683,7 +683,7 @@ class Encounter:
         self.start_move(e, dest)
 
     def leash(self, spot: Vec) -> Vec:
-        """Mortisar never leaves his throne room (the arena circle)."""
+        """Oruth never leaves his throne room (the arena circle)."""
         d = dist(spot, (0.0, 0.0))
         lim = C.ARENA_RADIUS - 2.5
         return (spot[0] * lim / d, spot[1] * lim / d) if d > lim else spot
@@ -865,9 +865,9 @@ class Encounter:
         return self.t >= max_ms
 
     def intro(self) -> None:
-        self.emit("encounter_start", encounter="gravecrown_crypt", boss=self.boss.id)
+        self.emit("encounter_start", encounter="hollow_vault", boss=self.boss.id)
         self.emit("emote", unit=self.boss.id, style="yell",
-                  text="You trespass in the Hollow King's tomb. Your bones will serve me!")
+                  text="You trespass in my vault. Your bones will serve me!")
 
     def to_replay(self) -> dict:
         abilities = {k: a.to_json() for k, a in C.ABILITIES.items()}
@@ -877,8 +877,8 @@ class Encounter:
         return {
             "schema_version": "0.1.0",
             "meta": {
-                "encounter": "gravecrown_crypt",
-                "title": "Gravecrown Crypt: Mortisar, the Hollow King",
+                "encounter": "hollow_vault",
+                "title": "The Hollow Vault: Oruth the Unburied",
                 "seed": self.seed,
                 "policy": self.policy_label,
                 "sim_version": SIM_VERSION,

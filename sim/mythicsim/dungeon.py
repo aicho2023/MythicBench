@@ -1,9 +1,9 @@
-"""The dungeon run: entrance -> Chapel pack -> Ossuary pack -> Mortisar.
+"""The dungeon run: entrance -> Chapel pack -> Ossuary pack -> Oruth.
 
 ``DungeonRun`` extends the boss ``Encounter`` with what a Mythic+ key adds
 around a boss: a route to walk, trash packs that attack when you get close,
 resting and reviving between pulls (each revive costs time), and one timer
-for the whole run. The boss fight itself is unchanged; Mortisar just sleeps
+for the whole run. The boss fight itself is unchanged; Oruth just sleeps
 until the party walks into his room.
 
 Everything is still deterministic and event-logged, and policies still only
@@ -101,7 +101,7 @@ class DungeonRun(Encounter):
         b.swing_at = self.t + 1500
         self.emit("pull", pack="boss", by=by)
         self.emit("emote", unit=b.id, style="yell",
-                  text="You trespass in the Hollow King's tomb. Your bones will serve me!")
+                  text="You trespass in my vault. Your bones will serve me!")
 
     def check_aggro(self) -> None:
         players = self.players()
@@ -241,12 +241,12 @@ class DungeonRun(Encounter):
 
     # ----- run -------------------------------------------------------------------
     def intro(self) -> None:
-        self.emit("encounter_start", encounter="gravecrown_crypt_run", boss=self.boss.id)
+        self.emit("encounter_start", encounter="hollow_vault_run", boss=self.boss.id)
         self.emit("emote", unit=self.boss.id, style="warning",
-                  text="The Gravecrown Crypt: clear the way to the Hollow King.")
+                  text="The Hollow Vault: clear the way to Oruth.")
 
     def cleared(self) -> bool:
-        """A Mythic+-style clear: Mortisar dead and every pack dead."""
+        """A Mythic+-style clear: Oruth dead and every pack dead."""
         return not self.boss.alive and all(s == "dead" for s in self.pack_state.values())
 
     def time_up(self, max_ms: int) -> bool:
@@ -263,8 +263,8 @@ class DungeonRun(Encounter):
                                        "cast_ms": 0, "cooldown_ms": 0, "interruptible": False,
                                        "description": "Out-of-combat health regeneration."}
         rep["meta"].update({
-            "mode": MODE, "encounter": "gravecrown_crypt_run",
-            "title": "Gravecrown Crypt: full run", "time_limit_ms": self.tier.limit_ms,
+            "mode": MODE, "encounter": "hollow_vault_run",
+            "title": "The Hollow Vault: full run", "time_limit_ms": self.tier.limit_ms,
             "penalty_ms": self.penalty_ms, "revives": self.revives,
             "boss_engaged_ms": self.boss_engaged_t if self.boss.engaged else None,
         })

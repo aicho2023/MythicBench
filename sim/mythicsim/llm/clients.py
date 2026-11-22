@@ -209,12 +209,12 @@ class OpenAIClient:
 
 
 MOCK_ORDERS = {
-    "bramble": [["rampart_bash", "mortisar"], ["bulwark_slam", "mortisar"], ["rampart_strike", "mortisar"]],
-    "lumi": [["bloomward", "bramble"], ["mending_light", "bramble"]],
-    "grokka": [["throat_punch", "mortisar"], ["ravage", "mortisar"], ["savage_hew", "mortisar"]],
-    "nyx": [["quick_jab", "mortisar"], ["venom_burst", "mortisar"], ["twin_fang", "mortisar"]],
-    "bao": [["silencing_arrow", "mortisar"], ["wild_roar", "bao"], ["piercing_shot", "mortisar"],
-            ["steady_arrow", "mortisar"]],
+    "rook": [["rampart_bash", "oruth"], ["bulwark_slam", "oruth"], ["rampart_strike", "oruth"]],
+    "ivy": [["bloomward", "rook"], ["mending_light", "rook"]],
+    "brask": [["throat_punch", "oruth"], ["ravage", "oruth"], ["savage_hew", "oruth"]],
+    "kit": [["quick_jab", "oruth"], ["venom_burst", "oruth"], ["twin_fang", "oruth"]],
+    "wren": [["silencing_arrow", "oruth"], ["wild_roar", "wren"], ["piercing_shot", "oruth"],
+            ["steady_arrow", "oruth"]],
 }
 
 
@@ -229,7 +229,7 @@ class MockClient:
 
     def complete(self, system: str, user: str, tag: str = "") -> Reply:
         me = re.search(r"\((\w+)\), the ", system)
-        uid = me.group(1) if me else "bramble"
+        uid = me.group(1) if me else "rook"
         n = (len(system) + len(user)) // 4
         if "WRITE YOUR NOTES" in user:
             pull = re.search(r"THE PULL \(PULL (\d+)\)", user)
@@ -240,8 +240,8 @@ class MockClient:
             return Reply(json.dumps({"message": "" if spoken else f"{uid} here: kick more, stand in less.",
                                      "ready": spoken}), n, 20, 0.0)
         fighting = re.search(r"ENEMIES FIGHTING YOU: (\w+) \(", user)
-        target = fighting.group(1) if fighting else "mortisar"
-        order = {"priority": [[ab, target if t == "mortisar" else t] for ab, t in MOCK_ORDERS.get(uid, [])],
+        target = fighting.group(1) if fighting else "oruth"
+        order = {"priority": [[ab, target if t == "oruth" else t] for ab, t in MOCK_ORDERS.get(uid, [])],
                  "say": ""}
         if "Out of combat" in user:
             order["move_to"] = "next"

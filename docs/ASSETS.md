@@ -25,7 +25,7 @@ library drives heroes and skeletons alike. Characters are picked by the
 | --- | --- | --- |
 | Character Pack: Adventurers | the five party members | https://kaylousberg.itch.io/kaykit-adventurers |
 | Character Animations | shared walk / attack / cast / death clips | https://kaylousberg.itch.io/kaykit-character-animations |
-| Character Pack: Skeletons | Mortisar (scaled-up Skeleton Warrior) + Bonewalkers + statues | https://kaylousberg.itch.io/kaykit-skeletons |
+| Character Pack: Skeletons | Oruth (scaled-up Skeleton Warrior) + Bonewalkers + statues | https://kaylousberg.itch.io/kaykit-skeletons |
 | Dungeon Remastered Pack | floors, walls, pillars, doors, props | https://kaylousberg.itch.io/kaykit-dungeon-remastered |
 
 (The original *Dungeon Pack* — https://kaylousberg.itch.io/kaykit-dungeon-pack —

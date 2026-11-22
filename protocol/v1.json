@@ -1,6 +1,6 @@
 {
   "name": "v1",
-  "description": "MythicBench v1. Five agents (copies of one model, one per character) play a 5-person party through the Gravecrown Crypt, blind, learning over up to 5 pulls per episode. Ranked on +10 only, 6 episodes per model on a fresh seed schedule. Memory-off controls for the two cheap models (12 paired episodes each), Normal as an unranked sanity check, and low/high effort sweeps for cost curves.",
+  "description": "MythicBench v1. Five agents (copies of one model, one per character) play a 5-person party through the Hollow Vault, blind, learning over up to 5 pulls per episode. Ranked on +10 only, 6 episodes per model on a fresh seed schedule. Memory-off controls for the two cheap models (12 paired episodes each), Normal as an unranked sanity check, and low/high effort sweeps for cost curves.",
   "mode": "dungeon",
   "knowledge": "blind",
   "tiers": ["plus10"],

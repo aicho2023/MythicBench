@@ -35,9 +35,9 @@ def test_blind_prompt_hides_the_boss_but_keeps_the_party_kit():
 
 def test_blind_state_has_no_boss_timers():
     enc = Encounter(1, {}, "x")
-    obs = enc.observe(enc.units["bramble"])
-    assert "Next boss abilities" in render_state(obs, "bramble", 0, None, "full")
-    blind = render_state(obs, "bramble", 0, None, "blind")
+    obs = enc.observe(enc.units["rook"])
+    assert "Next boss abilities" in render_state(obs, "rook", 0, None, "full")
+    blind = render_state(obs, "rook", 0, None, "blind")
     assert "Next boss abilities" not in blind and "enrage" not in blind and "time limit" in blind
 
 
@@ -71,7 +71,7 @@ def test_debrief_matches_the_metrics():
 def test_debrief_of_a_clean_kill():
     rep = _boss_replay("expert")
     text = debrief_text(rep)
-    assert text.startswith("RESULT: Mortisar defeated") and "DEATHS: none." in text
+    assert text.startswith("RESULT: Oruth defeated") and "DEATHS: none." in text
 
 
 class Recorder:
@@ -101,14 +101,14 @@ def test_each_agent_carries_only_its_own_notes():
     assert [p.seed for p in ep.pulls] == [pull_seed(0, k) for k in (1, 2, 3)]
     assert all(v == "" for v in ep.pulls[0].notes_before.values())
     assert ep.pulls[1].notes_before == {m.id: f"LESSON-{m.id}-1" for m in C.PARTY}
-    assert ep.pulls[2].notes_before["nyx"] == "LESSON-nyx-2"
+    assert ep.pulls[2].notes_before["kit"] == "LESSON-kit-2"
     for system in rec.play_systems():
         if "this is pull 2" in system:
             mine = re.search(r"\((\w+)\), the ", system).group(1)
             assert f"LESSON-{mine}-1" in system
             assert not any(f"LESSON-{m.id}-1" in system for m in C.PARTY if m.id != mine)
     prog = ep.pulls[1].replay["meta"]["progress"]
-    assert prog["notes_before"]["lumi"] == "LESSON-lumi-1" and prog["agents"] == "per-character"
+    assert prog["notes_before"]["ivy"] == "LESSON-ivy-1" and prog["agents"] == "per-character"
     assert "RESULT:" in ep.pulls[0].debrief
 
 
@@ -120,9 +120,9 @@ def test_party_talks_in_turn_until_everyone_is_ready():
     assert all(x["ready"] for x in talk[-5:]) and len(talk) == 10  # mock: speaks once, then ready
     # Later speakers see what earlier ones said; notes see the whole talk.
     talk_prompts = [u for s, u in rec.calls if "PARTY TALK" in u]
-    assert "bramble here" in talk_prompts[1]
+    assert "rook here" in talk_prompts[1]
     notes_prompts = [u for s, u in rec.calls if "WRITE YOUR NOTES" in u]
-    assert len(notes_prompts) == 5 and all("bao here" in u for u in notes_prompts)
+    assert len(notes_prompts) == 5 and all("wren here" in u for u in notes_prompts)
     assert ep.pulls[1].stats["calls"] >= 5 and ep.pulls[0].stats["between_pulls"]["calls"] == 15
 
 
@@ -152,7 +152,7 @@ def test_notes_failure_keeps_old_notes():
         spec = "fake:junk"
         def complete(self, system, user, tag=""):
             return Reply("I think we should try harder", 1, 1)
-    notes, problem = write_notes(Junk(), Agent("lumi", system_prompt(me="lumi")), "old notes", "debrief", [], 1, "t")
+    notes, problem = write_notes(Junk(), Agent("ivy", system_prompt(me="ivy")), "old notes", "debrief", [], 1, "t")
     assert notes == "old notes" and problem
 
 
@@ -257,5 +257,5 @@ def test_ready_must_be_json_true_and_notes_are_capped_exactly():
     agents = {m.id: Agent(m.id, system_prompt(me=m.id)) for m in C.PARTY}
     talk = team_talk(Says(), agents, {}, "log", 1, "t", [])
     assert not any(x["ready"] for x in talk) and len(talk) == 15  # "false" is not ready: all three rounds
-    notes, _ = write_notes(Says(), agents["lumi"], "", "log", talk, 1, "t")
+    notes, _ = write_notes(Says(), agents["ivy"], "", "log", talk, 1, "t")
     assert len(notes.split()) == NOTES_WORD_CAP + 1  # 350 words and the trailing ellipsis

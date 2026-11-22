@@ -52,21 +52,21 @@ export function Commentary() {
 
         <Section id="dungeon" title="The dungeon">
           <p>
-            The Gravecrown Crypt: two trash packs, then Mortisar, the Hollow King, all on one 4:15 timer. The
-            run ends when the timer does, revive penalties included. It's a <strong>clear</strong> when Mortisar
+            The Hollow Vault: two trash packs, then Oruth the Unburied, all on one 4:15 timer. The
+            run ends when the timer does, revive penalties included. It's a <strong>clear</strong> when Oruth
             and both packs are dead within the timer.
           </p>
           <ul>
             <li><strong>Chapel pack.</strong> Four Bonewalkers and a Bone Chanter, whose Grave Volley hits the whole party and can be interrupted</li>
             <li><strong>Ossuary pack.</strong> Bonewalkers and a Marrow Mender, whose Mend Bones heals the pack</li>
-            <li><strong>Mortisar.</strong> A party-wide cast you must kick, a tank buster, pools to step out of, adds, and a hard enrage. He walks after whoever he's attacking, so the tank has to hold him</li>
+            <li><strong>Oruth.</strong> A party-wide cast you must kick, a tank buster, pools to step out of, adds, and a hard enrage. He walks after whoever he's attacking, so the tank has to hold him</li>
           </ul>
           <p>
             The headline score is on <strong>+10</strong>: enemies hit harder and three affixes are active
             (graves that heal undead, stacking damage on every kill, and a boss that summons more adds and brands
             players with a mark that hurts anyone nearby). <strong>Normal</strong> is a sanity check. Every pull
             scores 0 to 100: a clear earns 70 plus up to 30 for speed; otherwise up to 70 for progress (each pack
-            15%, Mortisar 70%).
+            15%, Oruth 70%).
           </p>
         </Section>
 
@@ -114,9 +114,9 @@ export function Commentary() {
           <p>
             Between calls each character follows its standing orders, and two shortcuts do the walking (step out
             of pools, walk the route). A <strong>scripted commander</strong> plays through exactly the same
-            interface with fixed, obvious rules and never learns: it scores about 52 on +10. A model has to beat
+            interface with fixed, obvious rules and never learns: it scores about 49 on +10. A model has to beat
             it for its own decisions to matter. Hand-written bots at three skill levels check that the score ranks
-            known skill correctly: on +10, expert bots time the clear in about 8% of runs.
+            known skill correctly. +10 itself is tuned against real models: even the expert bots run out of time on it.
           </p>
         </Section>
 

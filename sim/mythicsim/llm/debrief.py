@@ -112,16 +112,16 @@ def debrief_text(replay: dict) -> str:
     out = []
     meta = replay["meta"]
     if d["outcome"] == "victory":
-        out.append(f"RESULT: cleared at {_t(d['duration_ms'])}: Mortisar and every pack dead within the timer."
-                   if meta.get("mode") == "dungeon" else f"RESULT: Mortisar defeated at {_t(d['duration_ms'])}.")
+        out.append(f"RESULT: cleared at {_t(d['duration_ms'])}: Oruth and every pack dead within the timer."
+                   if meta.get("mode") == "dungeon" else f"RESULT: Oruth defeated at {_t(d['duration_ms'])}.")
     elif d["outcome"] == "timeout":
         timer = meta["duration_ms"] + meta.get("penalty_ms", 0)
         out.append(f"RESULT: time ran out (the run timer reached {_t(timer)}, the limit, revive penalties included) "
-                   f"with Mortisar at {d['boss_hp_pct_left']}% health. The run ends there.")
+                   f"with Oruth at {d['boss_hp_pct_left']}% health. The run ends there.")
     else:
-        out.append(f"RESULT: party wiped at {_t(d['duration_ms'])} with Mortisar at {d['boss_hp_pct_left']}% health.")
+        out.append(f"RESULT: party wiped at {_t(d['duration_ms'])} with Oruth at {d['boss_hp_pct_left']}% health.")
     if d["enraged_at"] is not None:
-        out.append(f"At {_t(d['enraged_at'])} Mortisar gained Hollow Fury (enraged).")
+        out.append(f"At {_t(d['enraged_at'])} Oruth gained Hollow Fury (enraged).")
 
     out.append("\nDEATHS:" if d["deaths"] else "\nDEATHS: none.")
     for x in d["deaths"]:
@@ -197,7 +197,7 @@ def dungeon_lines(replay: dict) -> str:
         took = f"cleared at {_t(clears[pid])} ({(clears[pid] - pulls[pid]) / 1000:.0f} s)" if pid in clears else "not cleared"
         out.append(f"  {p['name']}: pulled at {_t(pulls[pid])}, {took}.")
     if "boss" in pulls:
-        out.append(f"  Mortisar pulled at {_t(pulls['boss'])}.")
+        out.append(f"  Oruth pulled at {_t(pulls['boss'])}.")
     casts: dict[str, list] = {}
     open_c = {}
     for e in ev:

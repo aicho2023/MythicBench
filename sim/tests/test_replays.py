@@ -77,9 +77,11 @@ def test_no_actions_after_death(replay):
 
 
 def test_showcase_outcomes():
-    # The showcase as shipped: the full dungeon run on +10.
+    # The showcase as shipped: the full dungeon run on +10, which is tuned so
+    # that even the expert bots run out of time (without a single death).
     scores = {p: score(simulate(p, SHOWCASE_SEED, "plus10", "dungeon")) for p in ("expert", "competent", "sloppy")}
-    assert scores["expert"]["outcome"] == "victory" and scores["expert"]["score"] >= 70  # in time
+    assert scores["expert"]["outcome"] == "timeout" and not scores["expert"]["deaths"]
+    assert scores["competent"]["outcome"] == "wipe"
     assert scores["sloppy"]["outcome"] == "wipe"
     assert scores["expert"]["score"] > scores["competent"]["score"] > scores["sloppy"]["score"]
 
@@ -90,7 +92,7 @@ def test_boss_script_is_the_same_for_every_policy():
     def first_casts(policy):
         seen = {}
         for e in simulate(policy, 21)["events"]:
-            if e["type"] in ("cast_start", "cast_success") and e["unit"] == "mortisar" \
+            if e["type"] in ("cast_start", "cast_success") and e["unit"] == "oruth" \
                     and e["ability"] in ("requiem_of_bones", "soul_rend", "desecrate"):
                 seen.setdefault(e["ability"], e["t"])
         return seen
@@ -146,7 +148,7 @@ def test_tiers_scale_enemies_and_add_affixes():
 
 
 def test_plus10_affixes_fire_on_undead_deaths():
-    """Every undead death (not Mortisar) leaves a grave and stacks Marrow Shards."""
+    """Every undead death (not Oruth) leaves a grave and stacks Marrow Shards."""
     rep = simulate("expert", 3, "plus10", "dungeon")
     ev = rep["events"]
     undead_deaths = [e for e in ev if e["type"] == "death" and e["unit"] not in
@@ -209,7 +211,7 @@ def test_dungeon_is_deterministic_and_pulls_in_order():
 def test_dungeon_bosses_sleep_until_pulled():
     rep = simulate("expert", 9, "plus10", "dungeon")
     pull = next(e["t"] for e in rep["events"] if e["type"] == "pull" and e["pack"] == "boss")
-    first = next(e["t"] for e in rep["events"] if e.get("unit") == "mortisar" and e["type"] in ("cast_start", "cast_success"))
+    first = next(e["t"] for e in rep["events"] if e.get("unit") == "oruth" and e["type"] in ("cast_start", "cast_success"))
     assert first >= pull
 
 
@@ -218,12 +220,12 @@ def test_dungeon_revives_cost_time():
     from mythicsim.dungeon import DungeonRun
     from mythicsim.policies import make_dungeon_policies
     run = DungeonRun(3, make_dungeon_policies("expert", 3), "x")
-    nyx = run.units["nyx"]
-    run.kill(nyx, run.units["bramble"], "test")
+    kit = run.units["kit"]
+    run.kill(kit, run.units["rook"], "test")
     for _ in range(40):
         run.step()
         run.t += 100
-    assert nyx.alive and run.penalty_ms == 10_000 and run.revives == 1
+    assert kit.alive and run.penalty_ms == 10_000 and run.revives == 1
 
 
 def test_dungeon_reference_bots_rank_in_order():
@@ -246,7 +248,7 @@ def test_grave_mark_detonates_on_nearby_allies():
             if boom:
                 found = True
                 assert boom[0]["target"] == m["unit"]  # the marked player is hit first
-                assert all(e["source"] == "mortisar" for e in boom)
+                assert all(e["source"] == "oruth" for e in boom)
     assert found
     assert not any(e["aura"] == "grave_mark" for e in simulate("expert", 3, "normal", "boss")["events"]
                    if e["type"] == "aura_apply")
@@ -303,7 +305,7 @@ def _kill_at(enc, ms, packs=True):
         if enc.t == ms:
             for u in list(enc.units.values()):
                 if u.kind != "player" and u.alive and (packs or not u.pack):
-                    enc.kill(u, enc.units["bramble"], "test")
+                    enc.kill(u, enc.units["rook"], "test")
     enc.step = step
 
 
