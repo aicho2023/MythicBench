@@ -22,11 +22,12 @@ from typing import Callable, Protocol
 from . import content as C
 
 TICK_MS = 100
-SIM_VERSION = "0.8.0"  # 0.3.0: bodies collide where they stop; 0.4.0: a run ends at its timer;
+SIM_VERSION = "0.9.0"  # 0.3.0: bodies collide where they stop; 0.4.0: a run ends at its timer;
 # 0.5.0: enemies keep their space too, and the boss walks after his target;
 # 0.6.0: Bone Pyre, a soak; 0.7.0: a due boss mechanic waits until it can happen (never skipped),
 # and walls block a move (it stops at the wall); 0.8.0: two summon thresholds crossed
-# together are two summons
+# together are two summons; 0.9.0: a melee spot that's taken shifts to a free spot
+# still in reach of the foe it was asked for (melee reach is now 1.5 m, content 1.7.0)
 
 
 # ---------------------------------------------------------------------------
@@ -69,6 +70,8 @@ BODY_GAP = 0.2
 # Enemies swing when their target is this close, edge to edge (m).
 ENEMY_REACH = 1.2
 SPOT_RINGS = (0.5, 1.0, 1.5, 2.0, 2.5, 3.0)
+# How deep into melee reach a shifted spot may be (shares of MELEE_RANGE, edge to edge).
+REACH_DEPTHS = (0.2, 0.5, 0.8)
 SPOT_DIRS = ((1.0, 0.0), (0.7071067811865476, 0.7071067811865476), (0.0, 1.0),
              (-0.7071067811865476, 0.7071067811865476), (-1.0, 0.0),
              (-0.7071067811865476, -0.7071067811865476), (0.0, -1.0),
@@ -254,7 +257,7 @@ class Encounter:
         return dist(a.pos, b.pos) - a.radius - b.radius
 
     # ----- movement --------------------------------------------------------
-    def start_move(self, u: Unit, to: Vec, *, exact: bool = False) -> None:
+    def start_move(self, u: Unit, to: Vec, *, exact: bool = False, foe: Unit | None = None) -> None:
         to = self.clamp(to)
         to = (r2(to[0]), r2(to[1]))
         if u.kind == "player" and not exact:
@@ -269,7 +272,7 @@ class Encounter:
             to = self.free_spot(u, to)
         elif not exact:
             u.asked_to = to
-            to = self.free_spot(u, to)
+            to = self.free_spot(u, to, foe)
         if u.move and dist(u.move.to, to) < 0.05:
             return
         if not u.move and dist(u.pos, to) < 0.05:
@@ -313,9 +316,11 @@ class Encounter:
         return any(dist(spot, g["pos"]) <= g["radius"] + u.radius * 0.5 + 0.2 for g in self.ground.values()
                    if g["kind"] in C.HAZARD_POOLS)
 
-    def free_spot(self, u: Unit, to: Vec) -> Vec:
+    def free_spot(self, u: Unit, to: Vec, foe: Unit | None = None) -> Vec:
         """Nearest spot to ``to`` where u's body fits: walkable, not inside
-        another unit, and not in a pool unless ``to`` itself was."""
+        another unit, and not in a pool unless ``to`` itself was. ``foe``: the
+        unit it's walking up to fight (an enemy's chase target); a player's is
+        the nearest foe in melee reach of ``to``."""
         if not self.taken(u, to):
             return to
         pool_ok = self.in_pool(u, to)
@@ -323,6 +328,25 @@ class Encounter:
         # fight it: shift around that foe, not away from it.
         foes = [o for o in self.units.values() if (o.kind == "player") != (u.kind == "player") and o.alive
                 and dist(to, o.pos) - o.radius - u.radius <= C.MELEE_RANGE]
+        if foe is None and foes:
+            foe = min(foes, key=lambda o: dist(to, o.pos) - o.radius)
+        if foe is not None:
+            # The foe it came to fight: the free spot in its reach of it that's
+            # nearest the one asked for (16 directions, three depths).
+            reach = C.MELEE_RANGE if u.kind in ("player", "boss") else ENEMY_REACH
+            best = None
+            for depth in REACH_DEPTHS:
+                ring = foe.radius + u.radius + depth * reach
+                for dx, dz in COMPASS16:
+                    c = (r2(foe.pos[0] + dx * ring), r2(foe.pos[1] + dz * ring))
+                    w = self.clamp(c)
+                    if dist(w, c) > 0.01 or self.taken(u, c) or (not pool_ok and self.in_pool(u, c)):
+                        continue
+                    key = dist(c, to)
+                    if best is None or key < best[0]:
+                        best = (key, c)
+            if best:
+                return best[1]
         for ring in SPOT_RINGS:
             best = None
             for dx, dz in SPOT_DIRS:
@@ -752,7 +776,7 @@ class Encounter:
         # Re-plan only when the target has moved on (re-planning every tick = jitter).
         if e.move and e.asked_to is not None and dist(e.asked_to, dest) <= 1.0:
             return
-        self.start_move(e, dest)
+        self.start_move(e, dest, foe=tgt)
 
     def leash(self, spot: Vec) -> Vec:
         """Oruth never leaves his throne room (the arena circle)."""

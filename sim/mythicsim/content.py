@@ -17,10 +17,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-CONTENT_VERSION = "1.6.0"
+CONTENT_VERSION = "1.7.0"  # 1.7.0: melee reach 1.5 m and kicks 2.5 m (were 3 m and 4 m)
 
 GCD_MS = 1000
-MELEE_RANGE = 3.0
+MELEE_RANGE = 1.5  # from the target's edge: close enough to look like a hit
+KICK_RANGE = 2.5
+# How far a melee target may drift (edge to edge) before a character in melee
+# with it stops following it on its own: past this, it's the agent's call.
+FOLLOW_M = 3.0
 RANGED_RANGE = 30.0
 ARENA_RADIUS = 15.0
 
@@ -126,7 +130,7 @@ _ABILITIES = [
     Ability("ironhide", "Ironhide", "buff", "shield_star", cooldown_ms=25000, on_gcd=False,
             aura="ironhide", description="Reduce damage taken by 60% for 8 sec."),
     Ability("rampart_bash", "Rampart Bash", "interrupt", "shield_bash", cooldown_ms=15000,
-            on_gcd=False, range=4.0, description="Interrupt the target's spellcasting."),
+            on_gcd=False, range=KICK_RANGE, description="Interrupt the target's spellcasting."),
     Ability("challenging_roar", "Challenging Roar", "taunt", "roar", cooldown_ms=20000,
             range=40.0, radius=40.0,
             description="Force all nearby enemies to attack you."),
@@ -152,7 +156,7 @@ _ABILITIES = [
     Ability("cleaving_storm", "Cleaving Storm", "aoe_damage", "whirl", cooldown_ms=8000,
             radius=8.0, amount=2600, description="Spin, striking all nearby enemies."),
     Ability("throat_punch", "Throat Punch", "interrupt", "fist", cooldown_ms=15000,
-            on_gcd=False, range=4.0, description="Interrupt the target's spellcasting."),
+            on_gcd=False, range=KICK_RANGE, description="Interrupt the target's spellcasting."),
     # --- Shadowblade (melee dps) ------------------------------------------
     Ability("twin_fang", "Twin Fang", "damage", "daggers", amount=1600,
             description="Strike twice with your daggers."),
@@ -161,7 +165,7 @@ _ABILITIES = [
     Ability("fan_of_blades", "Scatterblades", "aoe_damage", "fan", cooldown_ms=6000,
             radius=8.0, amount=1700, description="Throw blades at all nearby enemies."),
     Ability("quick_jab", "Quick Jab", "interrupt", "jab", cooldown_ms=15000, on_gcd=False,
-            range=4.0, description="Interrupt the target's spellcasting."),
+            range=KICK_RANGE, description="Interrupt the target's spellcasting."),
     # --- Ranger (ranged dps) ----------------------------------------------
     Ability("steady_arrow", "Steady Arrow", "damage", "arrow", cast_ms=1500,
             range=RANGED_RANGE, amount=2100, projectile_ms=400,

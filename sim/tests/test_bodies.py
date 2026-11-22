@@ -77,7 +77,7 @@ def test_oruth_walks_after_a_target_out_of_reach():
     enc = Encounter(3, {m.id: Stand() for m in C.PARTY}, "test", "normal")
     tank = enc.units["rook"]
     tank.pos = (0.0, 10.0)  # far out of his reach
-    settle(enc, 6000)
+    settle(enc, 9000)  # rise, walk, and any cast he stops for on the way
     assert enc.edge_dist(enc.boss, tank) <= C.MELEE_RANGE
     assert dist(enc.boss.pos, C.BOSS_POS) > 3.0
 

@@ -98,6 +98,19 @@ the in-pool alarm ignore it, every agent is woken when one appears, and the
 debrief lists each detonation with who stood inside. The scripted commander
 never soaks: 32.5 on +10 (no clears), 55.4 on Normal, over 60 seeds (sim 0.7.0).
 
+Content 1.7.0 / sim 0.9.0 / harness 1.0.0-rc.6: melee reach 1.5 m and kicks
+2.5 m (were 3 m and 4 m), so a hit looks like one in the viewer. At 3 m,
+melee hit from a median 1.3 m between bodies. Three reflexes keep it
+playable at a call every few seconds:
+- a melee character in reach of its target follows it if it drifts (up to
+  3 m, `C.FOLLOW_M`), never into or through a pool; any ordered move ends
+  this until it's back in reach;
+- "safe" keeps the reach of the first attack, not of a standing kick;
+- a taken melee spot shifts to a free spot still in reach of that foe, and
+  Oruth's chase does the same for his target.
+Commander: 32.4 on +10 and 54.9 on Normal over 60 seeds, against 32.5 and
+55.4 before. At 1 m reach, Normal fell to about 50.
+
 The scripted bots (expert, competent, sloppy) are gone. Their dodge planner
 lives on in `dodge.py` (the "safe" move); tests and the viewer's reference
 replays use the scripted commander instead.

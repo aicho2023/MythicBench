@@ -59,7 +59,10 @@ Pieces:
 #          pinned to the Standard tier; oversized prompts refused; v1 pin checked at launch
 #   1.0.0-rc.5 fourth review: every nested field and billing count in a provider's
 #          answer is checked; anything off is a possibly billed malformed answer
-HARNESS_VERSION = "1.0.0-rc.5"
+#   1.0.0-rc.6 shorter melee reach (content 1.7.0): a melee character in reach
+#          of its target follows it a little on its own (never into a pool), and
+#          "safe" keeps the reach of the first attack, not of a standing kick
+HARNESS_VERSION = "1.0.0-rc.6"
 
 
 def prompt_hash(knowledge: str = "full", tier: str = "plus10", mode: str = "boss") -> str:

@@ -70,12 +70,12 @@ class DungeonRun(Encounter):
     def clamp(self, to):
         return clamp_to_walkable(to)
 
-    def start_move(self, u, to, *, exact=False):
+    def start_move(self, u, to, *, exact=False, foe=None):
         # Walls are solid: a player's move goes in a straight line and stops at
         # the last walkable point before a wall (the "next" route never needs to).
         if u.kind == "player" and not exact:
             to = self.straight_line_reach(u.pos, self.clamp(to))
-        super().start_move(u, to, exact=exact)
+        super().start_move(u, to, exact=exact, foe=foe)
 
     @staticmethod
     def straight_line_reach(frm, to):

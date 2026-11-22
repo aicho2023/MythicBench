@@ -28,6 +28,9 @@ export function Units() {
   )
 }
 
+/** How long a healer keeps facing the ally she just healed (the heal beam lasts 600 ms). */
+const HEAL_FACE_MS = 900
+
 function dampAngle(cur: number, target: number, lambda: number, dt: number) {
   let d = target - cur
   while (d > Math.PI) d -= Math.PI * 2
@@ -82,9 +85,17 @@ function UnitActor({ id }: { id: string }) {
     if (walking && m && Math.hypot(m.to[0] - m.from[0], m.to[1] - m.from[1]) > 1e-3) {
       desired = Math.atan2(m.to[0] - m.from[0], m.to[1] - m.from[1])
     } else if (u.alive && !walking) {
-      const tid = u.cast?.target ?? u.target
+      // Casting on someone (a heal on an ally included), or a heal that just
+      // landed (its beam is still showing): face them, so the beam leaves her front.
+      const la = u.lastAction
+      const healKind = la ? engine.replay.abilities[la.ability]?.kind : undefined
+      const healing = la && la.target && la.target !== id && t - la.t < HEAL_FACE_MS
+        && (healKind === 'heal' || healKind === 'hot' || healKind === 'absorb')
+      const tid = u.cast?.target ?? (healing ? la!.target : null) ?? u.target
       const tgt = tid ? s.units[tid] : undefined
-      const enemyFacing = info.kind === 'player' && (!tgt || tgt.info.kind === 'player') && bossOf(s)
+      // Otherwise a player whose target is an ally (or nobody) watches the boss.
+      const aimed = !!u.cast?.target || !!healing
+      const enemyFacing = info.kind === 'player' && !aimed && (!tgt || tgt.info.kind === 'player') && bossOf(s)
       const look = enemyFacing ? bossOf(s) : tgt
       if (look && look !== u) {
         const tp = posAt(look, t)

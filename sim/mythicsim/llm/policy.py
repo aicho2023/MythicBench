@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 
 from .. import content as C
 from ..engine import Action, dist
-from ..dodge import find_safe_spot, hazards, unsafe, walk_check
+from ..dodge import crosses_pool, find_safe_spot, hazards, unsafe, walk_check
 from .clients import ChatClient, ClientError
 from .prompt import CHAT_COOLDOWN_MS, POOL_HIT_PAD, Order, Parsed, parse_reply, render_state, system_prompt
 
@@ -372,6 +372,9 @@ class LLMPolicy:
         self.uid = unit_id
         self.party = party
         self.name = f"llm:{party.client.spec}"
+        # In melee with its target since its last ordered move: then it keeps
+        # in reach of a target that drifts a little (see keep_in_reach).
+        self.engaged = False
 
     def act(self, obs: dict) -> list[Action]:
         me = obs["self"]
@@ -400,14 +403,54 @@ class LLMPolicy:
             if dest is not None and dist(me["pos"], dest) > 0.3:
                 out.append(Action("move", to=dest, reason=self.say(st)))
                 moving = True
+            self.engaged = False  # an ordered move (stop included) is the agent placing itself
         if me["casting"]:
             return out
         units = {u["id"]: u for u in obs["party"] + obs["enemies"]}
+        if not moving:
+            step = self.keep_in_reach(obs, st, units)
+            if step is not None:
+                out.append(Action("move", to=step))
+                moving = True
         for ab_id, tgt_id in st.order.priority or []:
             if self.usable(ab_id, tgt_id, me, units, moving):
                 out.append(Action("cast", ab_id, tgt_id, reason=self.say(st)))
                 break
         return out
+
+    def keep_in_reach(self, obs: dict, st: Standing, units: dict):
+        """A melee character fighting its target follows it when it drifts a
+        little, as any player would: if the first melee entry's target is out
+        of melee reach but within C.FOLLOW_M, step back into reach. Only while
+        engaged (it has been in melee reach since its last ordered move, so a
+        deliberate step away is never undone), and never into or through a pool.
+        Returns where to step, or None."""
+        me = obs["self"]
+        enemies = {u["id"] for u in obs["enemies"]}
+        melee = [(a, t) for a, t in st.order.priority or []
+                 if C.ABILITIES[a].kind in ("damage", "interrupt") and C.ABILITIES[a].range <= C.KICK_RANGE and t in enemies]
+        melee.sort(key=lambda e: C.ABILITIES[e[0]].kind == "interrupt")  # the target it's hitting, else kicking
+        if not melee:
+            return None
+        tgt_id = melee[0][1]
+        tgt = units[tgt_id]
+        if not tgt["alive"]:
+            return None
+        radius = C.BOSS.radius if tgt["role"] == "boss" else C.ADD.radius
+        pos, tp = tuple(me["pos"]), tuple(tgt["pos"])
+        d = dist(pos, tp)
+        gap = d - PLAYER_RADIUS - radius
+        if gap <= C.MELEE_RANGE:
+            self.engaged = True
+            return None
+        if not self.engaged or gap > C.FOLLOW_M or d < 1e-6:
+            return None
+        c = radius + PLAYER_RADIUS + C.MELEE_RANGE * 0.5
+        dest = (round(tp[0] + (pos[0] - tp[0]) / d * c, 2), round(tp[1] + (pos[1] - tp[1]) / d * c, 2))
+        g = obs["ground"]
+        if unsafe(dest, g, 0.3) or crosses_pool(pos, dest, g):
+            return None
+        return dest
 
     def next_waypoint(self, obs: dict):
         """'next': the next route waypoint toward the boss (a walking shortcut, like 'safe')."""
@@ -425,9 +468,15 @@ class LLMPolicy:
         pos = tuple(me["pos"])
         units = {u["id"]: u for u in obs["party"] + obs["enemies"]}
         reach = None
-        for ab_id, tgt_id in st.order.priority or []:
+        # The range to keep: the first entry that attacks or heals, an interrupt
+        # only if there's nothing else (a standing kick reaches farther than a
+        # melee swing, and would park a melee character out of its swing's reach).
+        entries = [(ab_id, tgt_id) for ab_id, tgt_id in st.order.priority or []
+                   if C.ABILITIES[ab_id].kind not in ("taunt", "buff", "raid_heal", "aoe_damage")]
+        entries.sort(key=lambda e: C.ABILITIES[e[0]].kind == "interrupt")  # stable: list order otherwise
+        for ab_id, tgt_id in entries:
             tgt, ab = units.get(tgt_id), C.ABILITIES[ab_id]
-            if tgt and tgt["alive"] and tgt_id != self.uid and ab.kind not in ("taunt", "buff", "raid_heal", "aoe_damage"):
+            if tgt and tgt["alive"] and tgt_id != self.uid:
                 radius = C.BOSS.radius if tgt["role"] == "boss" else C.ADD.radius if tgt["role"] == "add" else PLAYER_RADIUS
                 reach = (tuple(tgt["pos"]), radius, ab.range - 0.2)
                 break
