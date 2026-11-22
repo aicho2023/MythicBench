@@ -186,16 +186,44 @@ class Guard:
             self.spent += cost
 
 
+_PAID_LOCK = None
+
+
+def claim_paid_lock(runs_dir: Path | None = None) -> None:
+    """One process at a time may spend money on this project: two at once
+    would each check the cap without seeing the other's calls in flight.
+    (Threads in one process share the guards below, so a campaign's parallel
+    cells are fine.) Held until the process exits."""
+    global _PAID_LOCK
+    if _PAID_LOCK is not None:
+        return
+    import fcntl
+    d = runs_dir or RUNS_DIR
+    d.mkdir(parents=True, exist_ok=True)
+    f = open(d / ".paid-run.lock", "w")
+    try:
+        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        f.close()
+        raise SystemExit("another paid run is in progress on this machine (runs/.paid-run.lock): "
+                         "run one at a time; a campaign plays its cells in parallel itself") from None
+    _PAID_LOCK = f
+
+
 PROJECT = Guard("project")  # MYTHICBENCH_TOTAL_BUDGET_USD, across everything ever spent
 CAMPAIGN = Guard("campaign")  # campaign --budget-usd, across all of a campaign's cells
 ProjectGuard = Guard  # older name
 
 
 def worst_case_usd(price: Price, system: str, user: str) -> float:
-    """An upper bound for one call: every input token uncached (about 3
-    characters a token, generous) and the full output cap used."""
+    """An upper bound for one call: a token for every 2 characters of input
+    (real text runs 3 to 4), all of it priced at the dearest input rate
+    (Anthropic bills prompt-cache writes above the plain input rate), and the
+    full output cap used."""
     from .llm.clients import MAX_OUTPUT_TOKENS
-    return price.cost((len(system) + len(user)) // 3 + 1, MAX_OUTPUT_TOKENS)
+    tokens_in = (len(system) + len(user)) // 2 + 1
+    rate_in = max(price.input, price.write if price.write is not None else price.input)
+    return (tokens_in * rate_in + MAX_OUTPUT_TOKENS * price.output) / 1e6
 
 
 @dataclass
@@ -245,15 +273,57 @@ class CostMeter:
         else:
             held = []
         cost = 0.0
+        # Attempts that timed out or lost their connection may have been billed:
+        # each counts as spent at its worst case. Each resend holds money first.
+        timed_out = 0
+        extra_held = 0
+
+        def before_resend() -> None:
+            nonlocal timed_out, extra_held
+            timed_out += 1
+            if not metered:
+                return
+            with self._lock:
+                if self.limit_usd is not None and self.usd + self.reserved + est > self.limit_usd:
+                    raise BudgetExceeded(f"budget of ${self.limit_usd:.2f} reached (spent ${self.usd:.2f})")
+                self.reserved += est
+            got = []
+            try:
+                for g in held:
+                    g.reserve(est)
+                    got.append(g)
+            except BudgetExceeded:
+                for g in got:
+                    g.settle(est, 0.0)
+                with self._lock:
+                    self.reserved -= est
+                raise
+            extra_held += 1
+
+        from .llm import clients as _clients
+        _clients._RESEND.hook = before_resend
         try:
             reply = self.inner.complete(system, user, tag=tag)
             cost = self.price.reply_cost(reply)
+        except ClientError as err:
+            if getattr(err, "maybe_billed", False):
+                timed_out += 1  # the final attempt timed out as well
+            raise
         finally:
+            _clients._RESEND.hook = None
+            lost = est * timed_out if metered else 0.0
+            spent = cost + lost
             for g in held:
-                g.settle(est, cost)
+                g.settle(est * (1 + extra_held), spent)
             with self._lock:
-                self.reserved -= est
-                self.usd += cost
+                self.reserved -= est * (1 + extra_held)
+                self.usd += spent
+            if lost and self.ledger is not None:
+                with self._lock, self.ledger.open("a") as f:
+                    f.write(json.dumps({
+                        "t": datetime.now(timezone.utc).isoformat(timespec="seconds"), "run_id": self.run_id,
+                        "spec": self.spec, "usd": round(lost, 6), "in": 0, "out": 0, "cache_read": 0,
+                        "cache_write": 0, "assumed": f"{timed_out} timed-out attempt(s), counted at worst case"}) + "\n")
         with self._lock:
             self.calls += 1
             if self.ledger is not None:

@@ -22,9 +22,9 @@ from typing import Callable, Protocol
 from . import content as C
 
 TICK_MS = 100
-SIM_VERSION = "0.6.0"  # 0.3.0: bodies collide where they stop; 0.4.0: a run ends at its timer;
+SIM_VERSION = "0.7.0"  # 0.3.0: bodies collide where they stop; 0.4.0: a run ends at its timer;
 # 0.5.0: enemies keep their space too, and the boss walks after his target;
-# 0.6.0: Bone Pyre, a soak
+# 0.6.0: Bone Pyre, a soak; 0.7.0: a due boss mechanic waits until it can happen (never skipped)
 
 
 # ---------------------------------------------------------------------------
@@ -588,30 +588,34 @@ class Encounter:
             b.target = tank.id
         if b.cast:
             return
-        # Priority: Summon the Restless > Soul Rend > Requiem > Desecrate
+        # Priority: Summon the Restless > Soul Rend > Requiem > Grave Mark > Desecrate > Bone Pyre.
+        # A mechanic that is due stays due until it actually happens: Oruth
+        # stops walking to cast, and a cast he can't start yet (Soul Rend on a
+        # target out of reach) waits while he closes in. Nothing is ever skipped.
         if self.raise_queued:
-            self.raise_queued = False
-            self.emit("emote", unit=b.id, style="warning", text="Oruth begins to Summon the Restless!")
-            self.begin_cast(b, "raise_dead", None)
-            return
+            if self.boss_cast(b, "raise_dead", None):
+                self.raise_queued = False
+                self.emit("emote", unit=b.id, style="warning", text="Oruth begins to Summon the Restless!")
+                return
         for key in ("soul_rend", "requiem_of_bones", "grave_mark", "desecrate", "bone_pyre"):
             if key not in self.boss_next or self.t < self.boss_next[key]:
                 continue
-            if self.t >= self.boss_next[key]:
-                every = C.GRAVE_MARK_EVERY_MS if key == "grave_mark" else C.BOSS.timers[key][1]
-                self.boss_next[key] = self.t + self.jitter(key, every, every * C.BOSS.timer_jitter)
-                if key == "grave_mark":
-                    if not self.cast_grave_mark(b):
-                        continue
-                elif key == "soul_rend":
-                    self.begin_cast(b, key, tank.id)
-                elif key == "requiem_of_bones":
-                    self.begin_cast(b, key, None)
-                elif key == "bone_pyre":
-                    self.cast_bone_pyre(b)
-                else:
-                    self.cast_desecrate(b)
-                return
+            if key == "grave_mark":
+                if not self.cast_grave_mark(b):
+                    continue  # nobody to brand: try again next tick
+            elif key == "soul_rend":
+                if not self.boss_cast(b, key, tank.id):
+                    continue
+            elif key == "requiem_of_bones":
+                if not self.boss_cast(b, key, None):
+                    continue
+            elif key == "bone_pyre":
+                self.cast_bone_pyre(b)
+            else:
+                self.cast_desecrate(b)
+            every = C.GRAVE_MARK_EVERY_MS if key == "grave_mark" else C.BOSS.timers[key][1]
+            self.boss_next[key] = self.t + self.jitter(key, every, every * C.BOSS.timer_jitter)
+            return
         if self.edge_dist(b, tank) > C.MELEE_RANGE:
             if self.t - self.boss_engaged_t >= C.BOSS.rise_ms:
                 self.chase(b, tank)
@@ -620,6 +624,17 @@ class Encounter:
             b.swing_at = self.t + C.BOSS.melee[1]
             self.emit("cast_success", unit=b.id, ability="hollow_strike", target=tank.id)
             self.damage(b, tank, "hollow_strike", C.BOSS.melee[0])
+
+    def boss_cast(self, b: Unit, ability_id: str, target_id: str | None) -> bool:
+        """Start one of Oruth's cast-time abilities if he can: in reach of its
+        target, he stops walking and casts. False (and nothing changes) if not."""
+        ab = C.ABILITIES[ability_id]
+        tgt = self.units.get(target_id) if target_id else None
+        if tgt is not None and (not tgt.alive or self.edge_dist(b, tgt) > ab.range):
+            return False
+        if b.move:
+            self.stop_move(b)
+        return self.begin_cast(b, ability_id, target_id)
 
     def cast_grave_mark(self, b: Unit) -> bool:
         """Hollow Tyrant: brand a random non-tank player; it detonates in 6 s."""

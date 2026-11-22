@@ -99,7 +99,7 @@ def test_dry_run_plays_nothing(sandbox, capsys):
     tmp, proto = sandbox
     K.run_campaign(proto, dry_run=True)
     assert not (tmp / "runs").exists() or not list((tmp / "runs").glob("*/manifest.json"))
-    assert "worst case" in capsys.readouterr().out
+    assert "if every group plays all" in capsys.readouterr().out
 
 
 def test_campaign_key_names_the_code_versions():
@@ -267,10 +267,92 @@ def test_verify_replays_the_campaign_from_recordings(sandbox, capsys):
     proto = dict(proto, tiers=["plus10"], episodes=1, controls=[])
     K.run_campaign(proto)
     assert K.verify_campaign(proto, tmp / "runs") == 0
-    rec = next((tmp / "runs" / "cache" / proto["name"]).glob("*.jsonl"))
+    rec = next(K.recordings_dir(proto, tmp / "runs").glob("*.jsonl"))
     lines = rec.read_text().splitlines()
     rec.write_text("\n".join(lines[: len(lines) // 2]) + "\n")  # lose half the recording
     from mythicsim.llm import clients
     clients._RECORDINGS.clear()
     assert K.verify_campaign(proto, tmp / "runs") == 1
     assert "FAIL" in capsys.readouterr().out
+
+
+def _tamper_checkpoint(tmp, proto, **changes):
+    m = next(m for m in R.load_manifests(tmp / "runs") if m.get("campaign_key"))
+    mark = tmp / "runs" / m["run_id"] / "episodes" / str(m["episodes"][0]) / "episode.json"
+    ck = json.loads(mark.read_text())
+    ck["items"][0].update(changes)
+    mark.write_text(json.dumps(ck))
+
+
+@pytest.mark.parametrize("changes", [{"score": 99.9}, {"seed": 99999}])
+def test_verify_catches_a_doctored_checkpoint(sandbox, capsys, changes):
+    tmp, proto = sandbox
+    K.run_campaign(proto)
+    assert K.verify_campaign(proto, tmp / "runs") == 0
+    _tamper_checkpoint(tmp, proto, **changes)
+    assert K.verify_campaign(proto, tmp / "runs") == 1
+    assert "the replay says" in capsys.readouterr().out
+
+
+def test_verify_wants_every_group_unless_told_it_is_a_stage(sandbox):
+    tmp, proto = sandbox
+    K.run_campaign(proto, first=1)
+    assert K.verify_campaign(proto, tmp / "runs") == 1  # groups 1 are missing
+    assert K.verify_campaign(proto, tmp / "runs", first=1) == 0
+
+
+def test_a_published_dataset_verifies_on_its_own(sandbox, capsys):
+    tmp, proto = sandbox
+    K.run_campaign(proto)
+    out = tmp / "published"
+    K.build_results(proto, out, tmp / "runs")
+    import shutil
+    shutil.rmtree(tmp / "runs")  # nothing local left: the folder must stand alone
+    from mythicsim.llm import clients
+    clients._RECORDINGS.clear()
+    assert K.verify_results(out) == 0, capsys.readouterr().out
+    assert K.verify_results(out, first=1) == 1  # it has more than stage 1
+
+
+@pytest.mark.parametrize("where", ["score", "seed", "aggregate"])
+def test_a_doctored_dataset_fails(sandbox, capsys, where):
+    tmp, proto = sandbox
+    K.run_campaign(proto)
+    out = tmp / "published"
+    K.build_results(proto, out, tmp / "runs")
+    board = json.loads((out / "leaderboard.json").read_text())
+    cell = board["leaderboard"][0]["tiers"]["plus10"]
+    if where == "score":
+        cell["episode_list"][0]["pulls"][0]["score"] = 99.9
+    elif where == "seed":
+        cell["episode_list"][0]["pulls"][0]["seed"] = 99999
+    else:
+        cell["progression_score"] = 99.9
+    (out / "leaderboard.json").write_text(json.dumps(board, indent=1) + "\n")
+    assert K.verify_results(out, replay=False) == 1
+    assert "differs from a rebuild" in capsys.readouterr().out
+
+
+def test_paired_memory_on_groups_are_published(sandbox):
+    tmp, proto = sandbox
+    proto = dict(proto, controls=[{"model": "basic", "memory": False, "tiers": ["plus10"], "episodes": 3}])
+    K.run_campaign(proto)
+    out = tmp / "published"
+    board = K.build_results(proto, out, tmp / "runs")
+    cell = board["leaderboard"][0]["tiers"]["plus10"]
+    assert [e["episode"] for e in cell["paired_episode_list"]] == [2]  # beyond the 2 ranked groups
+    assert (out / cell["paired_episode_list"][0]["pulls"][0]["file"]).exists()
+    ctl = board["controls"][0]
+    assert ctl["paired_on_curve_mean"] and len(cell["learning_pairs"]) == 3
+
+
+def test_memory_twins_share_pull_one_only(sandbox):
+    """A memory-off group replays its memory-on twin's first pull, never a later one."""
+    tmp, proto = sandbox
+    proto = dict(proto, tiers=["plus10"], episodes=1, controls=[{"model": "basic", "memory": False, "tiers": ["plus10"]}])
+    K.run_campaign(proto)  # memory on plays first, then the control
+    off = next(m for m in R.load_manifests(tmp / "runs") if m.get("memory") is False)
+    stats = [json.loads((tmp / "runs" / off["run_id"] / "episodes" / "0" / f"pull-{k}.stats.json").read_text())
+             for k in (1, 2)]
+    assert stats[0]["cached_calls"] == stats[0]["calls"] > 0  # pull 1: the twin's, replayed
+    assert stats[1]["cached_calls"] == 0  # pull 2: its own calls

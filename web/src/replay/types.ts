@@ -75,7 +75,7 @@ export interface ReplayMeta {
   /** Model runs: which run produced this replay. */
   run?: {
     run_id: string; name: string | null; label: string; model: string; effort: string | null; harness_version: string; prompt_hash: string
-    git_commit?: string | null; knowledge?: string | null; tier?: string | null; dungeon_mode?: string | null; max_pulls?: number | null; campaign?: string | null
+    git_commit?: string | null; knowledge?: string | null; tier?: string | null; dungeon_mode?: string | null; max_pulls?: number | null; campaign?: string | null; seed_base?: number | null
   }
   /** Progression runs: this pull's place in its episode and what the agents knew. */
   progress?: {

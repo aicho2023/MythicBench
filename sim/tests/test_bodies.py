@@ -80,3 +80,40 @@ def test_oruth_walks_after_a_target_out_of_reach():
     settle(enc, 6000)
     assert enc.edge_dist(enc.boss, tank) <= C.MELEE_RANGE
     assert dist(enc.boss.pos, C.BOSS_POS) > 3.0
+
+
+def _walking_oruth(tier="plus10"):
+    class Stand:
+        def act(self, obs):
+            return []
+    enc = Encounter(3, {m.id: Stand() for m in C.PARTY}, "test", tier)
+    enc.roster = [enc.unit_json(u) for u in enc.units.values()]
+    enc.boss_next = {}  # only what the test arms
+    enc.t = C.BOSS.rise_ms
+    return enc
+
+
+def test_a_summon_is_never_lost_while_oruth_walks():
+    enc = _walking_oruth()
+    b = enc.boss
+    enc.start_move(b, (0.0, 8.0))  # walking when he crosses the threshold
+    b.hp = int(b.max_hp * 0.79)
+    for _ in range(5):
+        enc.step()
+        enc.t += 100
+    casts = [e for e in enc.events if e["type"] == "cast_start" and e["ability"] == "raise_dead"]
+    assert len(casts) == 1 and b.move is None
+
+
+def test_soul_rend_waits_for_its_target_instead_of_being_skipped():
+    enc = _walking_oruth()
+    tank = enc.units["rook"]
+    tank.pos = (0.0, 12.0)  # out of his reach when it comes due
+    enc.boss_next = {"soul_rend": enc.t}
+    enc.step()
+    assert "soul_rend" in enc.boss_next and enc.boss_next["soul_rend"] <= enc.t  # still due
+    assert not any(e["type"] == "cast_start" for e in enc.events)
+    for _ in range(80):  # he walks over, then casts it
+        enc.t += 100
+        enc.step()
+    assert any(e["type"] == "cast_start" and e["ability"] == "soul_rend" for e in enc.events)

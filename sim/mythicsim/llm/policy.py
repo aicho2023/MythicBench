@@ -31,7 +31,7 @@ from .. import content as C
 from ..engine import Action, dist
 from ..dodge import find_safe_spot, hazards, unsafe, walk_check
 from .clients import ChatClient, ClientError
-from .prompt import CHAT_COOLDOWN_MS, POOL_HIT_PAD, Order, parse_reply, render_state, system_prompt
+from .prompt import CHAT_COOLDOWN_MS, POOL_HIT_PAD, Order, Parsed, parse_reply, render_state, system_prompt
 
 PLAYER_RADIUS = C.PLAYER_RADIUS
 LOW_HP_PCT = 40.0
@@ -331,7 +331,10 @@ class Party:
             s.truncated_replies += 1
             a.note(f"t={obs['t']}: reply cut off at the output-token limit")
             rec["truncated"] = True
-        parsed = parse_reply(reply.text, a.uid, ids, gone)
+        try:
+            parsed = parse_reply(reply.text, a.uid, ids, gone)
+        except Exception as err:  # noqa: BLE001 - nothing a model writes may crash a run
+            parsed = Parsed({}, [f"unreadable reply ({type(err).__name__})"], False)
         if not parsed.ok:
             s.unusable_replies += 1
         s.invalid_entries += len(parsed.problems)

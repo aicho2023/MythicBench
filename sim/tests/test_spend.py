@@ -146,3 +146,51 @@ def test_offline_and_mock_runs_skip_the_guard(sandbox):
     m = manifest(sandbox)
     assert m["status"] == "done" and m["budget_usd"] is None
     assert spend.total_spent() == 0
+
+
+def test_the_reservation_covers_cache_write_pricing():
+    """Anthropic bills prompt-cache writes above the input rate: the hold must cover it."""
+    p = spend.Price(input=3.0, output=15.0, cached=0.3, write=3.75)
+    system, user = "x" * 30_000, "y" * 3_000
+    est = spend.worst_case_usd(p, system, user)
+    # A real reply could be every input token a cache write (3-4 chars a token) plus the full output cap.
+    from mythicsim.llm.clients import MAX_OUTPUT_TOKENS
+    worst_real = p.cost(len(system + user) // 3, MAX_OUTPUT_TOKENS, 0, len(system + user) // 3)
+    assert est >= worst_real
+
+
+def test_a_timed_out_attempt_is_counted_and_held_for(monkeypatch, tmp_path):
+    """A request that timed out may have been billed: the meter counts it at its
+    worst case and holds money for the resend, so the cap still can't be crossed."""
+    from mythicsim.llm import clients as cl
+    p = spend.Price(input=1.0, output=1.0, cached=1.0)
+
+    class Flaky:
+        spec = "fake:flaky"
+
+        def complete(self, system, user, tag=""):
+            cl._before_resend()  # one attempt timed out; the client is about to resend
+            return cl.Reply('{"say": "ok"}', 100, 10)
+
+    m = spend.CostMeter(Flaky(), p, limit_usd=10.0, ledger=tmp_path / "ledger.jsonl")
+    m.complete("s" * 100, "u")
+    est = spend.worst_case_usd(p, "s" * 100, "u")
+    assert abs(m.usd - (p.cost(100, 10) + est)) < 1e-12 and m.reserved == 0
+    assert "assumed" in (tmp_path / "ledger.jsonl").read_text()
+    tight = spend.CostMeter(Flaky(), p, limit_usd=est * 1.5, ledger=tmp_path / "l2.jsonl")
+    with pytest.raises(spend.BudgetExceeded):  # no room to hold the resend: stop, don't overspend
+        tight.complete("s" * 100, "u")
+    assert tight.usd <= est * 1.5 and tight.reserved == 0
+
+
+def test_only_one_paid_process_at_a_time(tmp_path, monkeypatch):
+    import subprocess
+    import sys
+    monkeypatch.setattr(spend, "_PAID_LOCK", None)
+    spend.claim_paid_lock(tmp_path)
+    code = ("import sys; from pathlib import Path; from mythicsim import spend\n"
+            f"spend.claim_paid_lock(Path({str(tmp_path)!r}))")
+    r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    assert r.returncode != 0 and "another paid run" in r.stderr + r.stdout
+    spend._PAID_LOCK.close()
+    monkeypatch.setattr(spend, "_PAID_LOCK", None)

@@ -369,16 +369,33 @@ class Parsed:
 ORDER_KEYS = ("move_to", "priority", "say")
 
 
+# Numbers in a reply are bounded before Python converts them: an integer with
+# hundreds of digits would overflow a float, and thousands would trip the
+# decoder's own limit. Either way it's an invalid value, never a crash.
+MAX_NUMBER_CHARS = 32
+
+
+def _bounded_int(s: str) -> float | int:
+    return int(s) if len(s) <= MAX_NUMBER_CHARS else math.inf
+
+
+def _bounded_float(s: str) -> float:
+    return float(s) if len(s) <= MAX_NUMBER_CHARS else math.inf
+
+
+_DECODER = json.JSONDecoder(parse_int=_bounded_int, parse_float=_bounded_float)
+
+
 def json_objects(text: str) -> list[dict]:
     """Every complete JSON object in a reply, in order. A model that thinks out
     loud before answering (braces in its prose and all) still gets its final,
-    well-formed answer read; nothing malformed is ever repaired or guessed."""
-    dec = json.JSONDecoder()
+    well-formed answer read; nothing malformed is ever repaired or guessed, and
+    nothing in a reply (huge numbers, deep nesting) can crash the reader."""
     out, i = [], text.find("{")
     while i != -1:
         try:
-            obj, end = dec.raw_decode(text, i)
-        except json.JSONDecodeError:
+            obj, end = _DECODER.raw_decode(text, i)
+        except (ValueError, RecursionError):  # malformed, or nested too deep
             i = text.find("{", i + 1)
             continue
         if isinstance(obj, dict):
@@ -405,15 +422,17 @@ def parse_reply(text: str, me: str, unit_ids: set[str], gone: set[str] = frozens
     objs = json_objects(text)
     if not objs:
         return Parsed({}, ["no complete JSON object in reply"], False)
-    # The last object that carries orders is the answer. An empty object {}
-    # means "no change" (every field left out keeps its value, as the rules
-    # say); an object of some other shape is a wrong reply.
-    cands = [d for d in (_orders_in(o, me) for o in objs) if any(k in d for k in ORDER_KEYS)]
-    if cands:
-        data = cands[-1]
-    elif any(o == {} for o in objs):
-        data = {}
-    else:
+    # The answer is the last object that is either orders or an empty {} ("no
+    # change": every field left out keeps its value, as the rules say). Drafts
+    # before it don't count, and neither do objects of some other shape. A
+    # reply cut off at the token limit is read the same way: any complete
+    # object in it counts.
+    data = None
+    for o in objs:
+        d = _orders_in(o, me)
+        if d == {} or any(k in d for k in ORDER_KEYS):
+            data = d
+    if data is None:
         return Parsed({}, ["reply has none of move_to, priority, say"], False)
     member = next(x for x in C.PARTY if x.id == me)
     problems: list[str] = []
@@ -427,8 +446,8 @@ def parse_reply(text: str, me: str, unit_ids: set[str], gone: set[str] = frozens
         o.move_to = mv.strip().lower()
     elif mv is not None:
         if (isinstance(mv, (list, tuple)) and len(mv) == 2
-                and all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
-                        and abs(v) <= COORD_LIMIT for v in mv)):
+                and all(isinstance(v, (int, float)) and not isinstance(v, bool)
+                        and abs(v) <= COORD_LIMIT and math.isfinite(v) for v in mv)):
             o.move_to = (float(mv[0]), float(mv[1]))
         else:
             problems.append(f"bad move_to {mv!r}")

@@ -63,7 +63,10 @@ def _cap(text: str, words: int) -> str:
 
 def _json(text: str) -> dict | None:
     """The last complete JSON object in a reply (see prompt.json_objects)."""
-    objs = json_objects(text)
+    try:
+        objs = json_objects(text)
+    except Exception:  # noqa: BLE001 - nothing a model writes may crash a run
+        return None
     return objs[-1] if objs else None
 
 
@@ -134,6 +137,9 @@ def team_talk(client: ChatClient, agents: dict[str, Agent], notes: dict[str, str
             reply = client.complete(TALK_SYSTEM.format(**_who(uid)) + _rules_of(agents[uid]), user,
                                     tag=f"{scope}|talk|{rnd}|{uid}")
             _count(acc, reply)
+            if reply.refused:  # as in combat: a refusal says nothing, and is counted
+                problems.append(f"talk {uid} round {rnd}: the provider refused to answer")
+                continue
             d = _json(reply.text)
             if d is None:
                 problems.append(f"talk {uid} round {rnd}: no usable JSON")
@@ -164,6 +170,8 @@ def write_notes(client: ChatClient, agent: Agent, notes: str, debrief: str, talk
     reply = client.complete(NOTES_SYSTEM.format(**_who(agent.uid)) + _rules_of(agent), user,
                             tag=f"{scope}|notes|{agent.uid}")
     _count(acc, reply)
+    if reply.refused:  # as in combat: a refusal changes nothing (the old notes stay), and is counted
+        return notes, f"notes {agent.uid}: the provider refused to answer"
     d = _json(reply.text)
     new = d.get("notes") if d else None
     if not isinstance(new, str) or not new.strip():
@@ -217,7 +225,11 @@ def run_episode(client: ChatClient, episode: int, *, max_pulls: int = 5, memory:
     notes: dict[str, str] = {uid: "" for uid in PARTY_IDS}
     for k in range(1, max_pulls + 1):
         seed = pull_seed(episode, k, seed_base)
-        tag = f"{scope}e{episode}p{k}"
+        # Where each call is made: the seed, group and pull, and (after pull 1)
+        # whether memory is on. A memory-on group and its memory-off twin play
+        # the same first pull, so they share it; from pull 2 they're separate
+        # samples even when no notes happen to carry over.
+        tag = f"{scope}s{seed}e{episode}p{k}" + ("" if k == 1 else "m1" if memory else "m0")
         notes_in = dict(notes) if memory else {uid: "" for uid in PARTY_IDS}
         policies, party = make_llm_policies(client, interval_ms=interval_ms, max_calls=max_calls,
                                             knowledge=knowledge, notes=notes_in, pull=k, tier=tier,
@@ -248,7 +260,10 @@ def run_episode(client: ChatClient, episode: int, *, max_pulls: int = 5, memory:
         rep["agents"] = {uid: {"system": a.system} for uid, a in party.agents.items()}
         rep["calls"] = party.calls
         stats = party.stats_dict()
-        stats["in_pull"] = {k_: stats[k_] for k_ in ("calls", "input_tokens", "output_tokens")}
+        # Per phase, with denominators: the fight's calls, and the talk and notes between pulls.
+        stats["in_pull"] = {k_: stats[k_] for k_ in ("calls", "input_tokens", "output_tokens", "refusals",
+                                                     "unusable_replies", "truncated_replies", "invalid_entries",
+                                                     "api_errors")}
         stats["between_pulls"] = {k_: v for k_, v in between.as_dict().items() if k_ not in ("problems", "triggers")}
         for k_ in ("calls", "input_tokens", "output_tokens", "cache_read_tokens", "cache_write_tokens", "cached_calls",
                    "unusable_replies", "truncated_replies", "api_errors", "refusals"):

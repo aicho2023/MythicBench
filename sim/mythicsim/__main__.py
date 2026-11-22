@@ -95,6 +95,7 @@ def build_client(args, n_fights: int):
         price = spend.FREE
     meter = None
     if paid:
+        spend.claim_paid_lock()
         cap, spent = spend.project_cap(), spend.total_spent()
         left = cap - spent
         if left <= 0:
@@ -258,7 +259,7 @@ def run_progress(args) -> dict:
         d.mkdir(parents=True, exist_ok=True)
         pr.replay["meta"]["run"] = {k: run.manifest.get(k) for k in
                                     ("run_id", "name", "label", "model", "effort", "harness_version", "prompt_hash", "git_commit",
-                                     "knowledge", "tier", "dungeon_mode", "max_pulls", "campaign")}
+                                     "knowledge", "tier", "dungeon_mode", "max_pulls", "campaign", "seed_base")}
         (d / f"pull-{pr.pull}.json").write_text(json.dumps(pr.replay, separators=(",", ":")))
         pr.stats["usd"] = cost_fields(price, pr.stats)
         (d / f"pull-{pr.pull}.stats.json").write_text(json.dumps(pr.stats, indent=2))
@@ -491,6 +492,11 @@ def main() -> None:
     rr = sub.add_parser("results", help="collect the protocol's finished episodes into a results dataset")
     rr.add_argument("protocol", type=Path)
     rr.add_argument("--out", type=Path, required=True, help="e.g. ../results/v1")
+    vr = sub.add_parser("verify", help="check a published results folder on its own: rescore every pull, "
+                                       "rebuild the leaderboard, replay every group from the recordings")
+    vr.add_argument("results", type=Path, help="e.g. ../web/public/results/v1")
+    vr.add_argument("--first", type=int, help="the dataset is stage 1 of a staged run: expect each cell's first N groups")
+    vr.add_argument("--no-replay", action="store_true", help="skip replaying from the recordings (faster)")
     g = sub.add_parser("generate", help="write the showcase replays for the viewer")
     g.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
@@ -509,7 +515,7 @@ def main() -> None:
     elif args.cmd == "campaign":
         from .campaign import load_protocol, run_campaign, verify_campaign
         if args.verify:
-            raise SystemExit(verify_campaign(load_protocol(args.protocol)))
+            raise SystemExit(verify_campaign(load_protocol(args.protocol), first=args.first))
         run_campaign(load_protocol(args.protocol), only=args.only, dry_run=args.dry_run, workers=args.workers,
                      budget_usd=args.budget_usd, offline=args.offline, allow_dirty=args.allow_dirty, cells=args.cells,
                      first=args.first)
@@ -521,6 +527,9 @@ def main() -> None:
                               for t, c in row["tiers"].items())
             print(f"{row['name']:<28} score {row['mythicbench_score'] if row['mythicbench_score'] is not None else '-':>5}  {tiers}")
         print(f"wrote {args.out}/leaderboard.json")
+    elif args.cmd == "verify":
+        from .campaign import verify_results
+        raise SystemExit(verify_results(args.results, first=args.first, replay=not args.no_replay))
     elif args.cmd == "generate":
         args.out.mkdir(parents=True, exist_ok=True)
         index = []

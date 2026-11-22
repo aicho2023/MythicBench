@@ -36,6 +36,13 @@ class Reply:
     cache_write_tokens: int = 0  # input tokens written to the provider's prompt cache (Anthropic bills these higher)
     refused: bool = False  # the provider's safety system declined to answer (no orders this call)
     thinking: str = ""  # the provider's summary of the model's reasoning, when it gives one
+    # For auditing (recorded with the reply): the model the provider actually
+    # served (an alias can move), why it stopped, its request id, and how many
+    # output tokens were reasoning, when the provider says.
+    model: str = ""
+    stop_reason: str = ""
+    request_id: str = ""
+    reasoning_tokens: int | None = None
 
 
 class ChatClient(Protocol):
@@ -84,6 +91,20 @@ def _key(name: str) -> str:
 # HTTP
 # ---------------------------------------------------------------------------
 
+# A request that timed out or lost its connection may still have been billed.
+# Before such a request is sent again, the spend meter (spend.CostMeter) is
+# told through this per-thread hook, so it holds money for the extra attempt
+# and counts the lost one as spent. Rate limits and server errors (429, 5xx)
+# are refused before any work, so they're not billed and need no hook.
+_RESEND = threading.local()
+
+
+def _before_resend() -> None:
+    hook = getattr(_RESEND, "hook", None)
+    if hook is not None:
+        hook()
+
+
 def _post(url: str, headers: dict, body: dict, timeout: float = 180.0, retries: int = 6) -> dict:
     data = json.dumps(body).encode()
     delay = 2.0
@@ -105,12 +126,16 @@ def _post(url: str, headers: dict, body: dict, timeout: float = 180.0, retries: 
             fatal = out_of_credit or err.code in (400, 401, 403, 404)
             raise ClientError(f"HTTP {err.code} from {url}: {detail}", fatal=fatal) from None
         except (urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError, OSError) as err:
-            # Dropped connections, resets, and timeouts: transient, so retry.
+            # Dropped connections, resets, and timeouts: transient, so retry,
+            # but the lost attempt may have been billed (see _before_resend).
             if attempt < retries:
+                _before_resend()
                 time.sleep(delay)
                 delay *= 2
                 continue
-            raise ClientError(f"network error calling {url}: {err}") from None
+            out = ClientError(f"network error calling {url}: {err}")
+            out.maybe_billed = True  # the last attempt timed out too: it may have been billed
+            raise out from None
     raise ClientError("unreachable")
 
 
@@ -160,7 +185,9 @@ class AnthropicClient:
         total_in = (u.get("input_tokens", 0) or 0) + write + read
         return Reply(text, total_in, u.get("output_tokens", 0), time.monotonic() - t0, cache_read_tokens=read,
                      truncated=out.get("stop_reason") == "max_tokens", cache_write_tokens=write,
-                     refused=out.get("stop_reason") == "refusal", thinking=thinking[:4000])
+                     refused=out.get("stop_reason") == "refusal", thinking=thinking[:4000],
+                     model=str(out.get("model") or ""), stop_reason=str(out.get("stop_reason") or ""),
+                     request_id=str(out.get("id") or ""))
 
     def effort_params(self) -> dict:
         if self.effort == "none":
@@ -204,8 +231,11 @@ class OpenAIClient:
         refused = bool(msg.get("refusal")) or choices[0].get("finish_reason") == "content_filter"
         usage = out.get("usage", {})
         read = (usage.get("prompt_tokens_details") or {}).get("cached_tokens", 0) or 0
+        reasoning = (usage.get("completion_tokens_details") or {}).get("reasoning_tokens")
         return Reply(text, usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0),
-                     time.monotonic() - t0, cache_read_tokens=read, truncated=truncated, refused=refused)
+                     time.monotonic() - t0, cache_read_tokens=read, truncated=truncated, refused=refused,
+                     model=str(out.get("model") or ""), stop_reason=str(choices[0].get("finish_reason") or ""),
+                     request_id=str(out.get("id") or ""), reasoning_tokens=reasoning)
 
 
 MOCK_ORDERS = {
@@ -301,6 +331,12 @@ class _Recording:
         self.mem: dict[str, dict] = {}
         self.inflight: dict[str, threading.Event] = {}
         self._lockfile = None
+        self._load()
+
+    def _load(self) -> None:
+        """Read the file into memory (again, after taking the writer lock: another
+        process may have recorded more since this one first read it)."""
+        path = self.path
         gz = path.with_name(path.name + ".gz")  # a published dataset ships recordings gzipped
         text = path.read_text() if path.exists() else gzip.decompress(gz.read_bytes()).decode() if gz.exists() else ""
         for line in text.splitlines():
@@ -327,6 +363,7 @@ class _Recording:
             raise ClientError(f"another process is recording into {self.path}; run one campaign at a time",
                               fatal=True) from None
         self._lockfile = f
+        self._load()  # now nobody else can write it: catch up on anything recorded before we got here
 
     def append(self, rec: dict) -> None:
         self.mem[rec["key"]] = rec
@@ -381,7 +418,8 @@ class CachedClient:
         return Reply(r["text"], r["input_tokens"], r["output_tokens"], 0.0, cached=True,
                      cache_read_tokens=r.get("cache_read_tokens", 0), truncated=r.get("truncated", False),
                      cache_write_tokens=r.get("cache_write_tokens", 0), refused=r.get("refused", False),
-                     thinking=r.get("thinking", ""))
+                     thinking=r.get("thinking", ""), model=r.get("model", ""), stop_reason=r.get("stop_reason", ""),
+                     request_id=r.get("request_id", ""), reasoning_tokens=r.get("reasoning_tokens"))
 
     def complete(self, system: str, user: str, tag: str = "") -> Reply:
         k = self.key(system, user, tag)
@@ -397,6 +435,8 @@ class CachedClient:
                 waiting = rec.inflight.get(k)
                 if waiting is None:
                     rec.claim_writer()
+                    if k in rec.mem:  # recorded by another process before we held the lock
+                        return self._reply(rec.mem[k])
                     rec.inflight[k] = threading.Event()
                     break
             waiting.wait()  # the same call is being made right now: use its reply
@@ -407,7 +447,9 @@ class CachedClient:
                             "input_tokens": reply.input_tokens, "output_tokens": reply.output_tokens,
                             "cache_read_tokens": reply.cache_read_tokens,
                             "cache_write_tokens": reply.cache_write_tokens,
-                            "truncated": reply.truncated, "refused": reply.refused, "thinking": reply.thinking})
+                            "truncated": reply.truncated, "refused": reply.refused, "thinking": reply.thinking,
+                            "model": reply.model, "stop_reason": reply.stop_reason, "request_id": reply.request_id,
+                            "reasoning_tokens": reply.reasoning_tokens})
             return reply
         finally:
             with rec.lock:
