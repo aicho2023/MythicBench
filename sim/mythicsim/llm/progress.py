@@ -30,7 +30,6 @@ from __future__ import annotations
 
 import json
 import math
-import re
 import statistics as st
 from dataclasses import dataclass, field
 
@@ -40,7 +39,7 @@ from ..metrics import score
 from .clients import ChatClient, ClientError
 from .debrief import debrief_text
 from .policy import PARTY_IDS, Agent, BrainStats, add_chat_events, make_llm_policies
-from .prompt import NOTES_HEADER, ORDER_FORMAT_MARK
+from .prompt import NOTES_HEADER, ORDER_FORMAT_MARK, json_objects
 
 NOTES_WORD_CAP = 350
 MESSAGE_WORD_CAP = 150
@@ -63,12 +62,9 @@ def _cap(text: str, words: int) -> str:
 
 
 def _json(text: str) -> dict | None:
-    m = re.search(r"\{.*\}", text, re.S)
-    try:
-        d = json.loads(m.group(0)) if m else None
-    except json.JSONDecodeError:
-        return None
-    return d if isinstance(d, dict) else None
+    """The last complete JSON object in a reply (see prompt.json_objects)."""
+    objs = json_objects(text)
+    return objs[-1] if objs else None
 
 
 def _talk_lines(talk: list[dict]) -> str:
