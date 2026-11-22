@@ -67,14 +67,17 @@ class DungeonRun(Encounter):
         self.revives = 0
 
     # ----- map ---------------------------------------------------------------
-    def clamp(self, to):
-        return clamp_to_walkable(to)
+    def clamp(self, to, radius=C.PLAYER_RADIUS):
+        return self.clear_of_obstacles(clamp_to_walkable(to), radius)
+
+    def walk_ok(self, p):
+        return C.walkable(p)
 
     def start_move(self, u, to, *, exact=False, foe=None):
         # Walls are solid: a player's move goes in a straight line and stops at
         # the last walkable point before a wall (the "next" route never needs to).
         if u.kind == "player" and not exact:
-            to = self.straight_line_reach(u.pos, self.clamp(to))
+            to = self.straight_line_reach(u.pos, self.clamp(to, u.radius))
         super().start_move(u, to, exact=exact, foe=foe)
 
     @staticmethod

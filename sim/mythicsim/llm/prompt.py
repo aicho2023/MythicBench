@@ -109,12 +109,17 @@ def _trash_line(aid: str, blind: bool) -> str:
     return f"      - {a.name} ({aid}): {', '.join(bits)}. {a.description}"
 
 
+_THRONE = next(o for o in C.OBSTACLES if o.id == "throne")
+_PILLAR_R = next(o.radius for o in C.OBSTACLES if o.half is None)
+
+
 def _dungeon_section(knowledge: str, tier: str = C.DEFAULT_TIER) -> str:
     """The run before the boss: map, packs, pulling, resting, the timer."""
     blind = knowledge == "blind"
     rooms = "\n".join(f"  - {r.name} ({r.id}): circle centred ({r.center[0]:g}, {r.center[1]:g}), radius {r.radius:g} m"
                        for r in C.ROOMS)
     cors = "; ".join(f"|x| <= {c.x_half:g} for z {c.z_min:g}..{c.z_max:g}" for c in C.CORRIDORS)
+    pillars = ", ".join(f"({o.center[0]:g}, {o.center[1]:g})" for o in C.OBSTACLES if o.half is None)
     packs = []
     for p in C.PACKS:
         comp: dict[str, int] = {}
@@ -132,6 +137,7 @@ This is a full Mythic+-style run, not just the boss: walk from the entrance, cle
 Map (positions are (x, z); the entrance is at large z, Oruth's room at the origin):
 {rooms}
   - Corridors join them: {cors}. You can only walk inside rooms and corridors.
+  - Solid pillars (radius {_PILLAR_R:g} m; moves go around them): {pillars}.
 Route, entrance to boss: {', '.join(f'({w[0]:g}, {w[1]:g})' for w in C.ROUTE)}.
 Packs:
 {chr(10).join(packs)}
@@ -214,7 +220,7 @@ def system_prompt(knowledge: str = "full", notes: str | None = None, pull: int |
 {_tier_section(tier)}
 
 ## Arena
-Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) in metres. Oruth starts on his throne at ({C.BOSS_POS[0]:g}, {C.BOSS_POS[1]:g}), with a body radius of {b.radius:g} m. Once pulled, he takes {b.rise_ms / 1000:g} s to rise from it; after that he walks after whoever he is attacking ({b.speed:g} m/s) whenever they're out of his melee reach, but never leaves this room. Characters move at 5 m/s, have a body radius of {C.PLAYER_RADIUS:g} m, and can't stand inside one another. Moving cancels a cast in progress, and spells with a cast time cannot be started while moving. Melee range is {C.MELEE_RANGE:g} m from the target's edge (interrupts {C.KICK_RANGE:g} m). While you're in melee reach of the enemy your first melee ability targets, you follow it if it drifts away (up to {C.FOLLOW_M:g} m), unless that step would take you into or through a pool; a move you order ends this until you're back in reach. Global cooldown (GCD): {C.GCD_MS / 1000:g}s after most abilities.
+Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) in metres. Oruth starts on his dais at ({C.BOSS_POS[0]:g}, {C.BOSS_POS[1]:g}), with a body radius of {b.radius:g} m. His throne stands behind it against the back wall: solid, a box from x {-_THRONE.half[0]:g} to {_THRONE.half[0]:g} and z {_THRONE.center[1] - _THRONE.half[1]:g} to {_THRONE.center[1] + _THRONE.half[1]:g}. Nobody walks through solid things; a move goes around them on its own. Once pulled, he takes {b.rise_ms / 1000:g} s to rise from his dais; after that he walks after whoever he is attacking ({b.speed:g} m/s) whenever they're out of his melee reach, but never leaves this room. Characters move at 5 m/s, have a body radius of {C.PLAYER_RADIUS:g} m, and can't stand inside one another. Moving cancels a cast in progress, and spells with a cast time cannot be started while moving. Melee range is {C.MELEE_RANGE:g} m from the target's edge (interrupts {C.KICK_RANGE:g} m). While you're in melee reach of the enemy your first melee ability targets, you follow it if it drifts away (up to {C.FOLLOW_M:g} m), unless that step would take you into or through a pool; a move you order ends this until you're back in reach. Global cooldown (GCD): {C.GCD_MS / 1000:g}s after most abilities.
 
 ## The party
 {chr(10).join(party)}
@@ -300,7 +306,7 @@ def render_state(obs: dict, me: str, gcd_ms: int, orders_age_s: float | None, kn
             lines.append(f"PACK {p['name']} ({p['room']}): {p['state'].upper()}"
                          + (f", {len(p['alive'])} left" if p["state"] != "dead" else ""))
         if not dg["boss_engaged"]:
-            lines.append("BOSS oruth is asleep on his throne at (0.0, -2.0); he wakes when someone comes within "
+            lines.append("BOSS oruth is asleep on his dais at (0.0, -2.0); he wakes when someone comes within "
                          f"{C.BOSS_ENGAGE_RADIUS:g} m.")
     else:
         lines = [f"Time {obs['t'] / 1000:.1f}s ({'time limit' if blind else 'enrage at'} {limit})."]

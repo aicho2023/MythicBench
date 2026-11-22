@@ -61,7 +61,8 @@ Pieces:
 #          answer is checked; anything off is a possibly billed malformed answer
 #   1.0.0-rc.6 shorter melee reach (content 1.7.0): a melee character in reach
 #          of its target follows it a little on its own (never into a pool), and
-#          "safe" keeps the reach of the first attack, not of a standing kick
+#          "safe" keeps the reach of the first attack, not of a standing kick;
+#          the rules describe the solid throne and pillars (sim 0.10.0)
 HARNESS_VERSION = "1.0.0-rc.6"
 
 

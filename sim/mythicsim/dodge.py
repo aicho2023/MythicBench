@@ -55,7 +55,8 @@ def find_safe_spot(ground: list[dict], arena_radius: float, near: tuple, anchor:
     for ring in (1.5, 2.5, 3.5, 4.5, 6.0, 8.0):
         for cx, cz in _DIRS:
             cand = (near[0] + ring * cx, near[1] + ring * cz)
-            if not (inside(cand) if inside else dist(cand, (0.0, 0.0)) <= lim) or unsafe(cand, ground, 0.9):
+            if not (inside(cand) if inside else dist(cand, (0.0, 0.0)) <= lim) or unsafe(cand, ground, 0.9) \
+                    or C.in_obstacle(cand, C.PLAYER_RADIUS):
                 continue
             if reach and dist(cand, reach[0]) - C.PLAYER_RADIUS - reach[1] > reach[2]:
                 continue

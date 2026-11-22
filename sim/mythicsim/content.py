@@ -15,10 +15,13 @@ recognise what is going on.
 
 from __future__ import annotations
 
+import math
+
 from dataclasses import dataclass, field
 
 CONTENT_VERSION = "1.7.0"  # 1.7.0: melee reach 1.5 m and kicks 2.5 m (were 3 m and 4 m);
-# the entrance corridor joins its room across its full width (it was blocked off-centre)
+# the entrance corridor joins its room across its full width (it was blocked off-centre);
+# the throne and the rooms' pillars are solid (moves route around them)
 
 GCD_MS = 1000
 MELEE_RANGE = 1.5  # from the target's edge: close enough to look like a hit
@@ -524,6 +527,75 @@ PROGRESS_WEIGHTS = {"pack1": 0.15, "pack2": 0.15, "boss": 0.70}
 
 
 CORRIDOR_LIP = 1.0
+
+
+# ---------------------------------------------------------------------------
+# Solid obstacles on the floor (the viewer draws them in the same places):
+# nobody walks through them; moves route around them (engine.route).
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class Obstacle:
+    id: str
+    name: str
+    center: tuple[float, float]
+    half: tuple[float, float] | None = None  # a box: half its width (x) and depth (z)
+    radius: float = 0.0  # else a circle
+
+    def gap(self, p: tuple[float, float]) -> float:
+        """Distance from p to the obstacle's edge (negative inside)."""
+        dx, dz = p[0] - self.center[0], p[1] - self.center[1]
+        if self.half is None:
+            return math.sqrt(dx * dx + dz * dz) - self.radius
+        ox, oz = abs(dx) - self.half[0], abs(dz) - self.half[1]
+        if ox <= 0 and oz <= 0:
+            return max(ox, oz)
+        return math.sqrt(max(ox, 0.0) ** 2 + max(oz, 0.0) ** 2)
+
+
+OBSTACLES = (
+    # Oruth's throne against the back wall of his room, steps included, and
+    # the space behind it to the wall (too narrow for Oruth: nobody hides there).
+    Obstacle("throne", "Oruth's throne", (0.0, -12.2), half=(3.0, 2.8)),
+    # Two pillars in each of the other rooms, near their side walls.
+    Obstacle("ossuary_pillar_w", "pillar", (-7.8, 30.0), radius=0.7),
+    Obstacle("ossuary_pillar_e", "pillar", (7.8, 30.0), radius=0.7),
+    Obstacle("chapel_pillar_w", "pillar", (-7.8, 54.0), radius=0.7),
+    Obstacle("chapel_pillar_e", "pillar", (7.8, 54.0), radius=0.7),
+    Obstacle("entrance_pillar_w", "pillar", (-3.8, 84.0), radius=0.7),
+    Obstacle("entrance_pillar_e", "pillar", (3.8, 84.0), radius=0.7),
+)
+
+
+def in_obstacle(p: tuple[float, float], margin: float = 0.0) -> Obstacle | None:
+    """The obstacle a body of radius ``margin`` at p would overlap, if any."""
+    return next((o for o in OBSTACLES if o.gap(p) < margin), None)
+
+
+def push_out(p: tuple[float, float], margin: float) -> tuple[float, float]:
+    """Nearest spot to p where a body of radius ``margin`` overlaps no obstacle."""
+    for _ in range(4):
+        o = in_obstacle(p, margin)
+        if o is None:
+            return p
+        m = margin + 0.05
+        dx, dz = p[0] - o.center[0], p[1] - o.center[1]
+        if o.half is None:
+            d = math.sqrt(dx * dx + dz * dz)
+            ux, uz = (dx / d, dz / d) if d > 1e-9 else (0.0, 1.0)
+            p = (round(o.center[0] + ux * (o.radius + m), 2), round(o.center[1] + uz * (o.radius + m), 2))
+        else:
+            # Out through the nearest side (outside a corner: away from it).
+            ox, oz = abs(dx) - o.half[0], abs(dz) - o.half[1]
+            sx, sz = (1.0 if dx >= 0 else -1.0), (1.0 if dz >= 0 else -1.0)
+            if ox > 0 and oz > 0:
+                d = math.sqrt(ox * ox + oz * oz)
+                p = (round(p[0] + sx * ox / d * (m - d), 2), round(p[1] + sz * oz / d * (m - d), 2))
+            elif ox >= oz:
+                p = (round(o.center[0] + sx * (o.half[0] + m), 2), p[1])
+            else:
+                p = (p[0], round(o.center[1] + sz * (o.half[1] + m), 2))
+    return p
 
 
 def walkable(p: tuple[float, float], margin: float = 0.0) -> bool:

@@ -330,8 +330,16 @@ class _Soak:
     def act(self, obs):
         from mythicsim.engine import Action
         pyre = next((g for g in obs["ground"] if g["kind"] == "pyre"), None)
-        if self.soaks and pyre and not obs["self"]["moving"]:
+        if not pyre or obs["self"]["moving"]:
+            return []
+        if self.soaks:
             return [Action("move", to=tuple(pyre["pos"]))]
+        # Everyone else keeps well clear of it (whoever happens to stand there steps away).
+        me, c = obs["self"]["pos"], pyre["pos"]
+        d = ((me[0] - c[0]) ** 2 + (me[1] - c[1]) ** 2) ** 0.5
+        if d < pyre["radius"] + 1.5:
+            ux, uz = ((me[0] - c[0]) / d, (me[1] - c[1]) / d) if d > 1e-6 else (1.0, 0.0)
+            return [Action("move", to=(c[0] + ux * (pyre["radius"] + 3), c[1] + uz * (pyre["radius"] + 3)))]
         return []
 
 

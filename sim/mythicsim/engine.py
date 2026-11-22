@@ -22,12 +22,13 @@ from typing import Callable, Protocol
 from . import content as C
 
 TICK_MS = 100
-SIM_VERSION = "0.9.0"  # 0.3.0: bodies collide where they stop; 0.4.0: a run ends at its timer;
+SIM_VERSION = "0.10.0"  # 0.3.0: bodies collide where they stop; 0.4.0: a run ends at its timer;
 # 0.5.0: enemies keep their space too, and the boss walks after his target;
 # 0.6.0: Bone Pyre, a soak; 0.7.0: a due boss mechanic waits until it can happen (never skipped),
 # and walls block a move (it stops at the wall); 0.8.0: two summon thresholds crossed
 # together are two summons; 0.9.0: a melee spot that's taken shifts to a free spot
 # still in reach of the foe it was asked for (melee reach is now 1.5 m, content 1.7.0)
+# 0.10.0: solid obstacles (the throne, the rooms' pillars): moves route around them
 
 
 # ---------------------------------------------------------------------------
@@ -139,6 +140,7 @@ class Unit:
     auras: dict[str, Aura] = field(default_factory=dict)
     pack: str | None = None  # dungeon trash: which pack this enemy belongs to
     asked_to: Vec | None = None  # last destination asked for, before free_spot moved it
+    path: list = field(default_factory=list)  # the legs after the current move (around obstacles)
     engaged: bool = True  # dungeon trash/boss: has it been pulled yet?
 
     def __post_init__(self) -> None:
@@ -257,15 +259,20 @@ class Encounter:
         return dist(a.pos, b.pos) - a.radius - b.radius
 
     # ----- movement --------------------------------------------------------
+    @staticmethod
+    def dest(u: Unit) -> Vec:
+        """Where a unit is headed in the end (its last leg), or where it stands."""
+        return u.path[-1] if u.path else u.move.to if u.move else u.pos
+
     def start_move(self, u: Unit, to: Vec, *, exact: bool = False, foe: Unit | None = None) -> None:
-        to = self.clamp(to)
+        to = self.clamp(to, u.radius)
         to = (r2(to[0]), r2(to[1]))
         if u.kind == "player" and not exact:
             # Asking again for the spot it was already sent to (and shifted
             # away from) is not a new order, as long as where it was shifted
             # to is still free and no worse for pools.
             if u.asked_to is not None and dist(u.asked_to, to) < 0.05:
-                here = u.move.to if u.move else u.pos
+                here = self.dest(u)
                 if not self.taken(u, here) and (self.in_pool(u, to) or not self.in_pool(u, here)):
                     return
             u.asked_to = to
@@ -273,10 +280,17 @@ class Encounter:
         elif not exact:
             u.asked_to = to
             to = self.free_spot(u, to, foe)
-        if u.move and dist(u.move.to, to) < 0.05:
+        if u.move and dist(self.dest(u), to) < 0.05:
             return
         if not u.move and dist(u.pos, to) < 0.05:
             return
+        frm = (r2(u.pos[0]), r2(u.pos[1]))
+        legs = [to] if exact else self.route(frm, to, u.radius)
+        u.path = legs[1:]
+        self.leg(u, legs[0])
+
+    def leg(self, u: Unit, to: Vec) -> None:
+        """Walk one straight leg of a move."""
         frm = (r2(u.pos[0]), r2(u.pos[1]))
         dur = int(round(dist(frm, to) / u.speed * 1000))
         u.pos = frm
@@ -287,18 +301,103 @@ class Encounter:
             u.cast = None
         self.emit("move", unit=u.id, **{"from": list(frm)}, to=list(to), duration_ms=dur)
 
-    def clamp(self, to: Vec) -> Vec:
-        """Keep a destination inside the playable area (here: the arena circle)."""
+    def walk_ok(self, p: Vec) -> bool:
+        """Is p on the floor (here: inside the arena circle)?"""
+        return dist(p, (0.0, 0.0)) <= C.ARENA_RADIUS - 1.0 + 1e-9
+
+    def clamp(self, to: Vec, radius: float = C.PLAYER_RADIUS) -> Vec:
+        """Keep a destination inside the playable area (here: the arena circle),
+        and clear of the obstacles for a body of this radius."""
         d = dist(to, (0.0, 0.0))
         lim = C.ARENA_RADIUS - 1.0
         if d > lim:
             to = (to[0] * lim / d, to[1] * lim / d)
-        return to
+        return self.clear_of_obstacles(to, radius)
+
+    def clear_of_obstacles(self, p: Vec, radius: float) -> Vec:
+        """p, or the nearest spot on the floor where the body overlaps no obstacle."""
+        if C.in_obstacle(p, radius) is None:
+            return p
+        for k in range(1, 25):
+            ring = 0.25 * k
+            for dx, dz in COMPASS16:
+                c = (r2(p[0] + dx * ring), r2(p[1] + dz * ring))
+                if self.walk_ok(c) and C.in_obstacle(c, radius) is None:
+                    return c
+        return p
+
+    def route(self, a: Vec, b: Vec, radius: float) -> list[Vec]:
+        """The legs of a walk from a to b around the obstacles: [b] when the
+        straight line is clear, else the shortest way through waypoints around
+        them (never through a wall). With no way round, it stops short of the
+        obstacle, as a move stops at a wall."""
+        # An obstacle it already overlaps (it was pushed there) doesn't hold it in.
+        live = [o for o in C.OBSTACLES if o.gap(a) >= radius]
+
+        def blocked(p: Vec, q: Vec, walls: bool) -> bool:
+            n = max(1, int(dist(p, q) / 0.2))
+            for i in range(1, n + 1):
+                f = i / n
+                x = (p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f)
+                if any(o.gap(x) < radius for o in live) or (walls and not self.walk_ok(x)):
+                    return True
+            return False
+
+        if not blocked(a, b, walls=False):
+            return [b]
+        nodes: list[Vec] = []
+        for o in live:
+            if o.half is not None:
+                m = radius + 0.25
+                pts = [(o.center[0] + sx * (o.half[0] + m), o.center[1] + sz * (o.half[1] + m))
+                       for sx in (-1, 1) for sz in (-1, 1)]
+            else:
+                ring = (o.radius + radius) / 0.92 + 0.1  # an octagon whose sides clear the circle
+                pts = [(o.center[0] + dx * ring, o.center[1] + dz * ring) for dx, dz in COMPASS16[::2]]
+            nodes += [(r2(p[0]), r2(p[1])) for p in pts
+                      if self.walk_ok(p) and C.in_obstacle(p, radius) is None]
+        # Dijkstra over start, waypoints and goal (index 0 = start, 1 = goal).
+        pts = [a, b] + nodes
+        best = {0: 0.0}
+        prev: dict[int, int] = {}
+        done: set[int] = set()
+        while True:
+            open_ = [(d, i) for i, d in best.items() if i not in done]
+            if not open_:
+                break
+            d, i = min(open_)
+            if i == 1:
+                break
+            done.add(i)
+            for j in range(1, len(pts)):
+                if j in done or j == i:
+                    continue
+                nd = d + dist(pts[i], pts[j])
+                if nd < best.get(j, float("inf")) - 1e-9 and not blocked(pts[i], pts[j], walls=i != 0 or j != 1):
+                    best[j] = nd
+                    prev[j] = i
+        if 1 not in prev:
+            # No way round: walk up to the obstacle and stop, as at a wall.
+            n = max(1, int(dist(a, b) / 0.2))
+            last = a
+            for k in range(1, n + 1):
+                f = k / n
+                x = (a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f)
+                if any(o.gap(x) < radius for o in live):
+                    break
+                last = x
+            return [(r2(last[0]), r2(last[1]))]
+        legs, j = [], 1
+        while j != 0:
+            legs.append(pts[j])
+            j = prev[j]
+        return legs[::-1]
 
     def stop_move(self, u: Unit) -> None:
         if u.move:
             self.start_move(u, u.pos, exact=True)
             u.move = None
+        u.path = []
         u.asked_to = None
 
     def taken(self, u: Unit, spot: Vec) -> bool:
@@ -306,7 +405,7 @@ class Encounter:
         for o in self.units.values():
             if o is u or not o.alive:
                 continue
-            there = o.move.to if o.move else o.pos
+            there = self.dest(o)
             if dist(spot, there) < u.radius + o.radius + BODY_GAP:
                 return True
         return False
@@ -339,7 +438,7 @@ class Encounter:
                 ring = foe.radius + u.radius + depth * reach
                 for dx, dz in COMPASS16:
                     c = (r2(foe.pos[0] + dx * ring), r2(foe.pos[1] + dz * ring))
-                    w = self.clamp(c)
+                    w = self.clamp(c, u.radius)
                     if dist(w, c) > 0.01 or self.taken(u, c) or (not pool_ok and self.in_pool(u, c)):
                         continue
                     key = dist(c, to)
@@ -351,7 +450,7 @@ class Encounter:
             best = None
             for dx, dz in SPOT_DIRS:
                 c = (r2(to[0] + dx * ring), r2(to[1] + dz * ring))
-                w = self.clamp(c)
+                w = self.clamp(c, u.radius)
                 if dist(w, c) > 0.01 or self.taken(u, c) or (not pool_ok and self.in_pool(u, c)):
                     continue
                 # Same ring: prefer staying close to the enemy it came to
@@ -436,6 +535,7 @@ class Encounter:
         if u.move:
             u.pos = u.move.pos_at(self.t)
             u.move = None
+        u.path = []
         u.asked_to = None
         self.emit("death", unit=u.id, killer=killer.id, ability=ability)
         for aid in list(u.auras):
@@ -708,7 +808,7 @@ class Encounter:
             dx, dz = self.pyre_rng.choice(COMPASS16)
             r = self.pyre_rng.uniform(C.PYRE_MIN_DIST, C.PYRE_MAX_DIST)
             c = (r2(b.pos[0] + r * dx), r2(b.pos[1] + r * dz))
-            if dist(c, (0.0, 0.0)) > lim:
+            if dist(c, (0.0, 0.0)) > lim or C.in_obstacle(c, 1.2):
                 continue
             pos = c
             if not any(dist(c, g["pos"]) < g["radius"] + C.PYRE_RADIUS for g in self.ground.values()):
@@ -910,6 +1010,8 @@ class Encounter:
                 if self.t >= u.move.t0 + u.move.dur:
                     u.pos = u.move.to
                     u.move = None
+                    if u.path:  # on round an obstacle: the next leg
+                        self.leg(u, u.path.pop(0))
         # 2. delayed effects (projectiles landing)
         due = sorted([p for p in self.pending if p[0] <= self.t], key=lambda p: (p[0], p[1]))
         self.pending = [p for p in self.pending if p[0] > self.t]
@@ -989,7 +1091,10 @@ class Encounter:
                 "affixes": list(self.tier.affixes),
                 "time_limit_ms": C.TIME_LIMIT_MS,
             },
-            "arena": {"radius": C.ARENA_RADIUS, "doors": [list(d) for d in C.CRYPT_DOORS]},
+            "arena": {"radius": C.ARENA_RADIUS, "doors": [list(d) for d in C.CRYPT_DOORS],
+                      "obstacles": [{"id": o.id, "name": o.name, "center": list(o.center),
+                                     **({"half": list(o.half)} if o.half else {"radius": o.radius})}
+                                    for o in C.OBSTACLES]},
             "classes": {k: {"name": c.name, "role": c.role, "interrupt": c.interrupt,
                             "abilities": list(c.abilities)} for k, c in C.CLASSES.items()},
             "abilities": abilities,

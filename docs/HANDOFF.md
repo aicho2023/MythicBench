@@ -111,6 +111,15 @@ playable at a call every few seconds:
 Commander: 32.4 on +10 and 54.9 on Normal over 60 seeds, against 32.5 and
 55.4 before. At 1 m reach, Normal fell to about 50.
 
+Sim 0.10.0: solid obstacles (`C.OBSTACLES`): Oruth's throne (with the strip
+behind it, too narrow for him, so nobody hides there) and two pillars in each
+side room, where the viewer draws them. A move routes around them through
+corner waypoints (`Encounter.route`, multi-leg moves in `Unit.path`), for
+players and enemies alike; a destination inside one is pushed out; Bone Pyre
+never lands on the throne. The entrance corridor also now joins its room
+across its full width (it was a wall off-centre, and Sol's melee got stuck
+there in every pull of the first reach check).
+
 The scripted bots (expert, competent, sloppy) are gone. Their dodge planner
 lives on in `dodge.py` (the "safe" move); tests and the viewer's reference
 replays use the scripted commander instead.

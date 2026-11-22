@@ -28,8 +28,8 @@ export function Units() {
   )
 }
 
-/** How long a healer keeps facing the ally she just healed (the heal beam lasts 600 ms). */
-const HEAL_FACE_MS = 900
+/** How long a healer keeps facing the ally she just healed: as long as the heal beam shows (Effects BEAM_MS). */
+const HEAL_FACE_MS = 600
 
 function dampAngle(cur: number, target: number, lambda: number, dt: number) {
   let d = target - cur
@@ -91,7 +91,8 @@ function UnitActor({ id }: { id: string }) {
       const healKind = la ? engine.replay.abilities[la.ability]?.kind : undefined
       const healing = la && la.target && la.target !== id && t - la.t < HEAL_FACE_MS
         && (healKind === 'heal' || healKind === 'hot' || healKind === 'absorb')
-      const tid = u.cast?.target ?? (healing ? la!.target : null) ?? u.target
+      // The heal that just landed wins until its beam fades, then the next cast's target.
+      const tid = (healing ? la!.target : null) ?? u.cast?.target ?? u.target
       const tgt = tid ? s.units[tid] : undefined
       // Otherwise a player whose target is an ally (or nobody) watches the boss.
       const aimed = !!u.cast?.target || !!healing
