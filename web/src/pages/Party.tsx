@@ -91,7 +91,9 @@ export function Party() {
           {g && (
             <nav aria-label="On this page" className="mt-6 flex flex-wrap gap-2 text-[13px]">
               {g.party.map((m) => (
-                <a key={m.id} href={`#${m.id}`} className="rounded-lg border border-line px-3 py-1.5 transition-colors hover:border-white/20" style={{ color: CLASS_COLORS[m.class] }}>{m.name}</a>
+                <a key={m.id} href={`#${m.id}`} className="flex items-center gap-2 rounded-lg border border-line py-1 pl-1 pr-3 transition-colors hover:border-white/20" style={{ color: CLASS_COLORS[m.class] }}>
+                  <img src={`${import.meta.env.BASE_URL}portraits/${m.id}.png`} alt="" width={24} height={24} className="h-6 w-6" />{m.name}
+                </a>
               ))}
               <a href="#enemies" className="rounded-lg border border-line px-3 py-1.5 text-fg-muted transition-colors hover:text-fg">Enemies</a>
               <a href="#difficulty" className="rounded-lg border border-line px-3 py-1.5 text-fg-muted transition-colors hover:text-fg">Difficulty and affixes</a>
@@ -109,16 +111,21 @@ export function Party() {
               <div className="space-y-10">
                 {g.party.map((m) => (
                   <article key={m.id} id={m.id} className="scroll-mt-20 rounded-xl border border-line p-5 sm:p-6">
-                    <header className="flex flex-wrap items-baseline justify-between gap-2">
-                      <h3 className="flex items-center gap-2 text-[20px] font-medium" style={{ color: CLASS_COLORS[m.class] }}>
-                        <RoleIcon role={m.role} size={16} />{m.name}
-                      </h3>
-                      <span className="text-[13px] text-fg-faint">
-                        {m.class_name}, {ROLE_LABEL[m.role] ?? m.role}, {fmtNum(m.max_hp)} health
-                        {m.auto_attack && `, melee swing ${fmtNum(m.auto_attack.amount)} every ${m.auto_attack.every_s} s`}
-                      </span>
+                    <header className="grid grid-cols-[96px_1fr] items-center gap-4 sm:grid-cols-[120px_1fr]">
+                      <img src={`${import.meta.env.BASE_URL}portraits/${m.id}.png`} alt={`${m.name}, the ${m.class_name}`} width={120} height={120}
+                        className="aspect-square w-full rounded-lg"
+                        style={{ background: `radial-gradient(circle at 50% 60%, ${CLASS_COLORS[m.class]}26, transparent 70%)` }} />
+                      <div className="min-w-0">
+                        <h3 className="flex items-center gap-2 text-[20px] font-medium" style={{ color: CLASS_COLORS[m.class] }}>
+                          <RoleIcon role={m.role} size={16} />{m.name}
+                        </h3>
+                        <div className="mt-0.5 text-[13px] text-fg-faint">
+                          {m.class_name}, {ROLE_LABEL[m.role] ?? m.role}, {fmtNum(m.max_hp)} health
+                          {m.auto_attack && `, melee swing ${fmtNum(m.auto_attack.amount)} every ${m.auto_attack.every_s} s`}
+                        </div>
+                        <p className="mt-2 text-[14px] leading-6 text-fg-muted">{BLURB[m.id]}</p>
+                      </div>
                     </header>
-                    <p className="mt-2 text-[14px] leading-6 text-fg-muted">{BLURB[m.id]}</p>
                     <ul className="mt-2 divide-y divide-line">
                       {m.abilities.map((a) => <AbilityRow key={a.id} a={a} />)}
                     </ul>

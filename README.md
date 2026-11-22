@@ -15,7 +15,7 @@ attempt in a 3D replay viewer and recompute every score yourself.
 ![Mortisar, the Hollow King, fighting the expert bots in the replay viewer](docs/media/hero.jpg)
 
 The simulator, the dungeon, the model harness and the viewer are working. The
-official run across seven models is next, followed by a public site with the
+official run across five models is next, followed by a public site with the
 leaderboard and a write-up.
 
 ## Watch a replay
@@ -171,9 +171,11 @@ they are independent, so this only saves time.
 
 ### The official protocol
 
-`protocol/v1.json` defines the leaderboard run: seven models at one shared
-effort, both tiers, three blind episodes of up to five attempts each, and
-memory-off controls on the two cheapest models.
+`protocol/v1.json` defines the leaderboard run: five models (Claude Haiku,
+Sonnet and Opus 5.5; GPT-6 Luna and GPT-6.2 Sol) at one shared effort, six
+blind groups each on +10 (a group is a fresh party with up to five pulls),
+paired memory-off controls on the two cheapest models, Normal as a sanity
+check, and low/high effort sweeps for cost curves.
 
 ```bash
 python -m mythicsim campaign ../protocol/v1.json --dry-run     # what's left and the worst-case cost

@@ -13,10 +13,11 @@ import { usePageMeta } from './site/Layout'
 import { usePath } from './site/router'
 import './index.css'
 
-// The viewer (three.js) and the paper (MDX) load on demand.
+// The viewer (three.js) loads on demand.
 const Watch = lazy(() => import('./App'))
-const Paper = lazy(() => import('./pages/Paper').then((m) => ({ default: m.Paper })))
+const Commentary = lazy(() => import('./pages/Commentary').then((m) => ({ default: m.Commentary })))
 const Compare = lazy(() => import('./pages/Compare').then((m) => ({ default: m.Compare })))
+const DevPortraits = lazy(() => import('./pages/DevPortraits'))
 
 // Links from before the site existed opened the viewer at the root: /?replay=<id>, /?run=<id>.
 {
@@ -30,10 +31,12 @@ function Site() {
   let page
   if (path === '/') page = <Home />
   else if (path === '/watch' || path.startsWith('/watch/')) page = <div className="viewer h-full"><Watch path={path} /></div>
-  else if (path === '/paper') page = <Paper />
+  else if (path === '/commentary') page = <Commentary />
+  else if (path === '/paper') { history.replaceState(null, '', '/commentary'); page = <Commentary /> }  // the old name
   else if (path === '/party') page = <Party />
   else if (path === '/about') page = <About />
   else if (path === '/compare') page = <Compare />
+  else if (import.meta.env.DEV && path === '/dev/portraits') page = <DevPortraits />
   else page = <NotFound />
   return <Suspense fallback={<div className="grid h-full place-items-center text-[13px] text-fg-faint">Loading…</div>}>{page}</Suspense>
 }

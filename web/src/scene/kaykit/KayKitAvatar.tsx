@@ -141,7 +141,7 @@ const BOSS_CAST_COLORS: Record<string, string> = {
 
 const FADE_MS = 150
 
-export function KayKitAvatar({ id, info }: { id: string; info: UnitInfo }) {
+export function KayKitAvatar({ id, info, still }: { id: string; info: UnitInfo; still?: { clip: string; at: number } }) {
   const gltf = useGLTF(CHARACTER_URL[info.model] ?? CHARACTER_URL.Knight) as unknown as GLTF
   const gearList = useGLTF(ALL_GEAR_URLS) as unknown as GLTF[]
   const clips = useClipLibrary()
@@ -245,6 +245,17 @@ export function KayKitAvatar({ id, info }: { id: string; info: UnitInfo }) {
   }
 
   useFrame(() => {
+    if (still) {
+      // A fixed pose, no replay (portraits): one clip held at one moment.
+      const a = action(`${still.clip}#0`)
+      if (a) {
+        a.play()
+        a.time = still.at
+        a.setEffectiveWeight(1)
+        rig.mixer.update(0)
+      }
+      return
+    }
     const f = frameState()
     const u = f?.s.units[id]
     if (!f || !u) return

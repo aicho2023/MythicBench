@@ -1,12 +1,12 @@
 // Global playback state (zustand = a tiny state library; components can
 // subscribe to just the slice they need, so the HUD doesn't re-render the 3D scene).
-import { modelName } from '../content/display'
+import { modelName, pullLabel } from '../content/display'
 import { create } from 'zustand'
 import { ReplayEngine } from './engine'
 import type { Catalog, CatalogItem, CatalogRun, Replay, ReplayIndexEntry } from './types'
 import { fetchMaybeGzipJson, fetchResults, parseWatchPath, watchPath, type Results } from '../site/results'
 import { resultsCatalogRuns, resultsIndexEntries } from '../site/watchData'
-import { REFERENCE_PROVIDERS, SHOW_REFERENCE_RUNS } from '../site/config'
+import { FEATURED, REFERENCE_PROVIDERS, SHOW_REFERENCE_RUNS } from '../site/config'
 
 /** Index id for one item (seed, or episode+pull) of a model run. */
 export const runItemId = (runId: string, it: Pick<CatalogItem, 'seed' | 'episode' | 'pull'>) =>
@@ -48,7 +48,7 @@ function runEntries(run: CatalogRun): ReplayIndexEntry[] {
   const who = modelName(run.model)
   return run.items.map((it) => ({
     id: runItemId(run.run_id, it), policy: `llm:${run.label}`, seed: it.seed,
-    label: it.pull !== undefined ? `${who}, episode ${it.episode} pull ${it.pull}` : `${who}, seed ${it.seed}`,
+    label: it.pull !== undefined ? `${who}, ${pullLabel(it.episode, it.pull)}` : `${who}, seed ${it.seed}`,
     blurb: `${run.label}, run ${run.run_id}`,
     file: `local/${it.file}`, outcome: it.outcome, duration_s: it.duration_s, score: it.score,
     local: true, runId: run.run_id,
@@ -123,6 +123,12 @@ export const usePlayback = create<Playback>((set, get) => ({
           ? { current_harness_version: local?.current_harness_version ?? results!.harness_version, runs: [...fromResults, ...(local?.runs ?? [])] }
           : null
         const entries = [...(results ? resultsIndexEntries(results) : []), ...(local?.runs ?? []).flatMap(runEntries)]
+        // The home page's featured clip (a real model's pull), loadable by id but not listed.
+        const featured: ReplayIndexEntry = {
+          id: FEATURED.id, policy: 'llm', seed: 0, label: FEATURED.label, blurb: FEATURED.caption,
+          file: FEATURED.file, url: `${base}${FEATURED.file}`, outcome: 'timeout', duration_s: 0,
+        }
+        entries.push(featured)
         set({ index: [...index, ...entries], catalog })
       } catch (err) {
         set({ error: `Could not load replays: ${String(err)}. Run \`npm run replays\`.` })
@@ -141,7 +147,8 @@ export const usePlayback = create<Playback>((set, get) => ({
       // Plain /watch: the leaderboard's top model on +10 if there is one, else (only
       // when references are on) the first showcase. Visitors never land on a bot run.
       const models = index.filter((e) => e.local)
-      const top = models.find((e) => e.path?.includes('/plus10/')) ?? models[0] ?? (SHOW_REFERENCE_RUNS ? index[0] : undefined)
+      const top = models.find((e) => e.path?.includes('/plus10/')) ?? models[0]
+        ?? index.find((e) => e.id === FEATURED.id) ?? (SHOW_REFERENCE_RUNS ? index[0] : undefined)
       if (top) await get().load(top.id, { deepLink: true })
       else set({ error: 'No model runs to watch yet. The official results are coming soon.' })
     }

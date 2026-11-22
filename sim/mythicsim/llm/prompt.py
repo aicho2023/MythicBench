@@ -20,6 +20,8 @@ from ..engine import dist
 # message: 255 characters, WoW's chat limit.
 CHAT_SHOWN = 12
 CHAT_MAX_CHARS = 255
+# Typing takes time: one party-chat message per character every 10 s of game time.
+CHAT_COOLDOWN_MS = 10_000
 
 # Coordinates beyond this are nonsense (the map spans about -20..95 m); a
 # non-finite or huge number is dropped, never passed to the engine.
@@ -202,7 +204,7 @@ Circular, radius {C.ARENA_RADIUS:g} m, centred on (0, 0). Positions are (x, z) i
 You are asked for {member.name}'s orders every 4 seconds of game time, and immediately when something that concerns you happens. The game is paused while everyone thinks; the other players are asked at the same moments you are. {member.name} keeps following your latest orders until you change them:
   - "move_to": [x, z] walks there once, or "safe" steps to the nearest spot clear of all pools, reachable without walking through another pool, from which your first priority target is still in range when possible (the scripted bots' movement logic){next_move}. Omit or null to stay put. A move is carried out each time you send it.
   - "priority": an ordered list of [ability_id, target_id]. Every tick, {member.name} uses the FIRST entry that is ready (off cooldown, in range, GCD free, not casting or moving for cast-time spells). Off-GCD abilities in the list fire even during the GCD. Interrupts only fire while their target is casting something interruptible (reacting {reaction} s after the cast starts), so they can stay in the list; if someone else interrupts first, yours sees nothing to stop and stays ready. Put a reliable filler ability last so you never idle. Leave "priority" out to keep your current one.
-  - "say": a message in party chat (at most {CHAT_MAX_CHARS} characters, as in the game), which every player sees from then on. Leave it out to say nothing.
+  - "say": a message in party chat (at most {CHAT_MAX_CHARS} characters, as in the game), which every player sees from then on. Typing takes time: you can send one message every {CHAT_COOLDOWN_MS // 1000} s, and one sent sooner isn't delivered. Leave it out to say nothing.
 Ground effects ("pools") in the state are dangerous to stand in: "desecrate" pools come from Mortisar, "grave" pools from the Restless Graves affix. "safe" avoids both.
 Targets are unit ids from the state (e.g. "mortisar", "bonewalker_1", "lumi"). For self-buffs and party-wide abilities use your own id ("self" and "party" also work).
 You can only use {member.name}'s abilities: {', '.join(mine.abilities)}.
@@ -253,7 +255,7 @@ def _auras(a: dict, stacks: dict | None = None) -> str:
 
 
 def render_state(obs: dict, me: str, gcd_ms: int, orders_age_s: float | None, knowledge: str = "full",
-                 chat: list[tuple[int, str, str]] | None = None) -> str:
+                 chat: list[tuple[int, str, str]] | None = None, chat_ready_in_ms: int = 0) -> str:
     """Compact text snapshot of the fight as one character sees it.
 
     Like party frames in the game: everyone's health, position, auras and
@@ -317,6 +319,8 @@ def render_state(obs: dict, me: str, gcd_ms: int, orders_age_s: float | None, kn
     if chat:
         lines.append("PARTY CHAT (oldest first):")
         lines.extend(f"  [{t / 1000:.1f}s] {names.get(who, who)}: {text}" for t, who, text in chat[-CHAT_SHOWN:])
+    if chat_ready_in_ms > 0:
+        lines.append(f"You can type in party chat again in {chat_ready_in_ms / 1000:.1f}s.")
     if orders_age_s is not None:
         lines.append(f"Your current orders were given {orders_age_s:.1f}s ago.")
     return "\n".join(lines)

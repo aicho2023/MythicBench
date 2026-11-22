@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { CLASS_COLORS, fmtNum } from '../content/display'
+import { CLASS_COLORS, fmtNum, pullLabel } from '../content/display'
 import { runItemId, usePlayback } from '../replay/store'
 import type { CatalogItem } from '../replay/types'
 import { Link } from '../site/router'
@@ -92,7 +92,7 @@ export function LearningPanel({ onShowMeter }: { onShowMeter: () => void }) {
         <button onClick={onShowMeter} className="text-meta text-fg-faint transition-colors hover:text-fg">Show meter</button>
       </div>
       <div className="mt-1 px-3 text-meta leading-5 text-fg-faint">
-        Pull {prog.pull}{run?.max_pulls ? ` of ${run.max_pulls}` : ''} in episode {prog.episode}, {engine?.replay.meta.tier_name ?? `+${engine?.replay.meta.sigil_level}`}
+        {(() => { const l = pullLabel(prog.episode, prog.pull, run?.max_pulls); return l[0].toUpperCase() + l.slice(1) })()}, {engine?.replay.meta.tier_name ?? `+${engine?.replay.meta.sigil_level}`}
         <br />
         {prog.knowledge === 'blind' ? 'Blind start' : 'Full boss guide'}, memory {prog.memory ? 'on' : 'off'}{perAgent ? ', one agent per character' : ''}
       </div>
@@ -133,7 +133,7 @@ export function LearningPanel({ onShowMeter }: { onShowMeter: () => void }) {
             </div>
           ) : (
             <p className="text-[12px] leading-[18px] text-fg-faint">
-              {prog.memory ? 'No talk after this pull (it ended the episode).' : 'Memory off: no talk and no notes between pulls.'}
+              {prog.memory ? "No talk after this pull (it was this group's last)." : 'Memory off: no talk and no notes between pulls.'}
             </p>
           )
         ) : (

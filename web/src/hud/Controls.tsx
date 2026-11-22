@@ -43,7 +43,7 @@ export function TopBar({ onAbout, onRuns }: { onAbout: () => void; onRuns: () =>
         <button onClick={onRuns} className="btn min-w-0 max-w-[420px] shrink" title="Choose a run">
           <ListTree size={16} className="shrink-0 text-fg-muted" />
           <span className="truncate">{watching ? watching.label : 'Choose a run'}</span>
-          {watching && !watching.local && <span className="shrink-0 text-meta text-fg-faint">reference</span>}
+          {watching && !watching.local && !watching.id.startsWith('featured:') && <span className="shrink-0 text-meta text-fg-faint">reference</span>}
           {catalogSize > 0 && <span className="num hidden shrink-0 font-mono text-meta text-fg-faint sm:inline">{catalogSize} runs</span>}
         </button>
       }
@@ -147,20 +147,22 @@ export function TimelineLegend() {
 // ---------------------------------------------------------------------------
 export function EndBanner() {
   const h = useHud()
-  const index = usePlayback((p) => p.index)
-  const current = usePlayback((p) => p.currentId)
-  const { load, seek, setPlaying } = usePlayback.getState()
+  const { seek, setPlaying } = usePlayback.getState()
   if (!h || !h.s.ended || h.t < h.s.ended.t + 1500) return null
   const m = h.engine.replay.meta.metrics
   const win = h.s.ended.outcome === 'victory'
   const dungeonRun = h.engine.replay.meta.mode === 'dungeon'
-  const i = index.findIndex((r) => r.id === current)
-  const other = index.length > 1 ? index[(i + 1) % index.length] : undefined
   const players = h.engine.replay.units.filter((u) => u.kind === 'player')
-  const top = players.map((u) => ({ u, v: h.s.damageDone[u.id] ?? 0 })).sort((a, b) => b.v - a.v)[0]
+  // Damage taken (absorbed included), from the event log.
+  const taken: Record<string, number> = {}
+  for (const e of h.engine.replay.events) {
+    if (e.type === 'damage' && e.t <= h.s.ended.t && players.some((p) => p.id === e.target)) {
+      taken[e.target] = (taken[e.target] ?? 0) + e.amount + (e.absorbed ?? 0)
+    }
+  }
   const avoidable = m ? Object.values(m.avoidable_damage_taken).reduce((a, b) => a + b, 0) : 0
   return (
-    <div className="card pointer-events-auto w-[480px] max-w-[calc(100vw-32px)] animate-[fadein_400ms_cubic-bezier(0.22,1,0.36,1)] p-5">
+    <div className="card pointer-events-auto w-[600px] max-w-[calc(100vw-32px)] animate-[fadein_400ms_cubic-bezier(0.22,1,0.36,1)] p-5">
       <div className="label">Result</div>
       <div className="mt-1 flex items-baseline gap-3">
         <span className={`text-[28px] font-medium leading-tight ${win ? 'text-good' : 'text-bad'}`}>{win ? (dungeonRun ? 'Crypt cleared' : 'Boss defeated') : h.s.ended.outcome === 'timeout' ? 'Time ran out' : 'Party wiped'}</span>
@@ -180,16 +182,37 @@ export function EndBanner() {
           <Stat label="Pool damage" value={fmtNum(avoidable)} bad={avoidable > 0} />
         </div>
       )}
-      {top && (
-        <div className="mt-3 text-[12px] text-fg-muted">
-          Top damage: <span style={{ color: CLASS_COLORS[top.u.class] }}>{top.u.name}</span> <span className="num font-mono">{fmtNum(top.v)}</span>
-        </div>
-      )}
+      <div className="mt-4 grid grid-cols-3 gap-4 max-sm:grid-cols-1">
+        <Breakdown title="Damage done" players={players} values={h.s.damageDone} />
+        <Breakdown title="Healing done" players={players} values={h.s.healingDone} />
+        <Breakdown title="Damage taken" players={players} values={taken} />
+      </div>
       <div className="mt-4 flex gap-2">
-        {other && <button onClick={() => load(other.id)} className="btn btn-primary">Compare with {other.label.toLowerCase()}</button>}
         <button onClick={() => { seek(0); setPlaying(true) }} className="btn">Watch again</button>
       </div>
     </div>
+  )
+}
+
+/** One end-of-run chart: a bar per character, largest first, in class colours. */
+function Breakdown({ title, players, values }: { title: string; players: { id: string; name: string; class: string }[]; values: Record<string, number> }) {
+  const rows = players.map((p) => ({ p, v: values[p.id] ?? 0 })).sort((a, b) => b.v - a.v)
+  const max = Math.max(1, ...rows.map((r) => r.v))
+  return (
+    <figure className="m-0">
+      <figcaption className="text-meta text-fg-faint">{title}</figcaption>
+      <ul className="mt-1.5 space-y-1">
+        {rows.map(({ p, v }) => (
+          <li key={p.id} className="grid grid-cols-[52px_1fr_44px] items-center gap-2 text-[12px]">
+            <span className="truncate" style={{ color: CLASS_COLORS[p.class] }}>{p.name}</span>
+            <span className="h-2 overflow-hidden rounded-sm bg-white/[0.06]">
+              <span className="block h-full rounded-sm" style={{ width: `${(100 * v) / max}%`, background: CLASS_COLORS[p.class] }} />
+            </span>
+            <span className="num text-right font-mono text-fg-muted">{fmtNum(v)}</span>
+          </li>
+        ))}
+      </ul>
+    </figure>
   )
 }
 

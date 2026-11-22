@@ -16,7 +16,7 @@ import { ROLE_ICON, ROLE_TINT } from './bits'
 const MAX_TEXT = 44
 const MAX_PLATES = 16
 const MAX_BUBBLES = 5
-const BUBBLE_MS = 5000 // a chat bubble stays up this long, as in the game
+const BUBBLE_MS = 4000 // a chat bubble stays up this long
 const BUBBLE_CHARS = 140
 const ABILITY_MS = 1200 // how long an instant ability's name shows under the caster's name
 const TEXT_MS = 1100
@@ -98,13 +98,16 @@ export function WorldOverlay() {
         const name = row.lastElementChild as HTMLElement
         const bar = el.lastElementChild as HTMLElement
         const doing = el.children[1] as HTMLElement
-        const casting = u.cast && u.info.kind === 'player' ? u.cast.ability : null
-        const ab = casting ?? (u.info.kind === 'player' ? used[id] : undefined)
+        const player = u.info.kind === 'player'
+        const casting = u.cast && !s.ended ? u.cast.ability : null
+        const ab = casting ?? (player ? used[id] : undefined)
         const abInfo = ab ? engine.replay.abilities[ab] : undefined
-        const doingText = abInfo ? (casting ? `Casting ${abInfo.name}` : abInfo.name) : ''
+        // Players: what they're casting or just used. Enemies: their cast, marked when it can be kicked.
+        const doingText = !abInfo ? '' : player ? (casting ? `Casting ${abInfo.name}` : abInfo.name)
+          : `${abInfo.name}${u.cast?.interruptible ? ' (kick)' : ''}`
         if (doing.textContent !== doingText) doing.textContent = doingText
         doing.style.display = doingText ? 'block' : 'none'
-        if (abInfo) doing.style.color = SCHOOL_COLORS[abInfo.school] ?? '#ededef'
+        if (abInfo) doing.style.color = player ? SCHOOL_COLORS[abInfo.school] ?? '#ededef' : u.cast?.interruptible ? '#fbbf24' : '#fca5a5'
         const label = u.info.kind === 'player' ? u.info.name : ''
         if (name.textContent !== label) name.textContent = label
         const role = u.info.kind === 'player' ? u.info.role : ''
