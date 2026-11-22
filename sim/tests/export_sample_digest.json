@@ -4,7 +4,7 @@
  "calls.jsonl": "afc899716c7179ab9458dc531e9f48a724a360dfc4ec84a1ae1a45aa64f7f366",
  "damage_taken.csv": "f145ffea8b012fccd5fb8cc54c5714d55b19143837f35cb0ee24407f64972e77",
  "deaths.csv": "1d5955a9f9751211a449ea902bd2b1de8a97a14597b76e84a6f0b4a8fbee384e",
- "groups.csv": "0bb11baa696de32d8df98e7294a1b8dfdb5dfbc0c1a9281ad9126da07a5b6033",
+ "groups.csv": "7aa171eae8f4322baab4d1eb9de3dd4b0fd84ca1717be231727346ccb8ff88d5",
  "groups/basic@medium_normal/ranked-g0.md": "5471c17be5371bcb5422e8a62ebd58225b9664b65a9ee85ddd0a52fb34c9c91c",
  "groups/basic@medium_normal/ranked-g1.md": "323ad255eb55be6a78e9ecfa4ec23124a939abdbfc4e268240fad8ebff242c86",
  "groups/basic@medium_plus10/control-off-g0.md": "41f092cb634540230b8ac9fb4f271c09b4fc37342ade3b73ad36f5826f37f536",
@@ -17,5 +17,5 @@
  "groups/commander_plus10/baseline-g1.md": "5d7c8feb022997a65d49733108a1ce895a413c8d0a8051daad1251ab5dee27c3",
  "mechanics.csv": "b0234a76bd3d3a91d1e46994ba8754bc4177d9284fbf306054de929fe9ff5dae",
  "overview.md": "2e3120a5c74fa39bd3a8fcb2d20541e2e23cd9173bc73033aac4c231947c4ae3",
- "pulls.csv": "a8c74708aa9355718f4a7949f2a2af278f0c588367f4aee083ee9a796900c9db"
+ "pulls.csv": "66e65d888c30ef087afa4bc504f0d8097ad93aa32a4e869cd2afd9dc87060811"
 }

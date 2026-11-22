@@ -146,3 +146,19 @@ def test_two_thresholds_crossed_at_once_are_two_summons():
             b.cast = None  # finish the cast at once
     casts = [e for e in enc.events if e["type"] == "cast_start" and e["ability"] == "raise_dead"]
     assert len(casts) == 2
+
+
+def test_every_corridor_joins_its_rooms_across_its_width():
+    """Walls stop a move: so every corridor must open onto its rooms across its
+    whole width. (The entrance corridor once met its room only near the centre
+    line, and a character walking straight down it off-centre stopped dead.)"""
+    for c in C.CORRIDORS:
+        mid = (c.z_min + c.z_max) / 2
+        for r in C.ROOMS:
+            ends = (c.z_min, c.z_max)
+            if not any(abs(abs(r.center[1] - e) - r.radius) <= 1.5 for e in ends):
+                continue
+            x_max = c.x_half - C.PLAYER_RADIUS
+            for x in (-x_max, -x_max / 2, 0.0, x_max / 2, x_max):
+                assert DungeonRun.straight_line_reach((x, r.center[1]), (x, mid)) == (x, mid), (r.id, c, x)
+                assert DungeonRun.straight_line_reach((x, mid), (x, r.center[1])) == (x, r.center[1]), (r.id, c, x)

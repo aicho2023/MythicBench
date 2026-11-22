@@ -17,7 +17,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-CONTENT_VERSION = "1.7.0"  # 1.7.0: melee reach 1.5 m and kicks 2.5 m (were 3 m and 4 m)
+CONTENT_VERSION = "1.7.0"  # 1.7.0: melee reach 1.5 m and kicks 2.5 m (were 3 m and 4 m);
+# the entrance corridor joins its room across its full width (it was blocked off-centre)
 
 GCD_MS = 1000
 MELEE_RANGE = 1.5  # from the target's edge: close enough to look like a hit
@@ -522,9 +523,17 @@ OOC_REGEN_PCT_PER_S = 0.04  # out-of-combat health regeneration
 PROGRESS_WEIGHTS = {"pack1": 0.15, "pack2": 0.15, "boss": 0.70}
 
 
+CORRIDOR_LIP = 1.0
+
+
 def walkable(p: tuple[float, float], margin: float = 0.0) -> bool:
     for r in ROOMS:
         dx, dz = p[0] - r.center[0], p[1] - r.center[1]
         if dx * dx + dz * dz <= (r.radius - 1.0 - margin) ** 2:
             return True
-    return any(abs(p[0]) <= c.x_half - margin and c.z_min <= p[1] <= c.z_max for c in CORRIDORS)
+    # A corridor's floor runs CORRIDOR_LIP into the rooms at its ends (still
+    # inside their walls), so it joins a room's walkable floor across its full
+    # width: the rooms' floor stops 1 m short of their walls, and without the
+    # lip the entrance room met its corridor only near the centre line.
+    return any(abs(p[0]) <= c.x_half - margin and c.z_min - CORRIDOR_LIP <= p[1] <= c.z_max + CORRIDOR_LIP
+               for c in CORRIDORS)
