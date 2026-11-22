@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-import math
-
 from . import content as C
 from .engine import COMPASS16 as _DIRS, dist
 
@@ -39,6 +37,13 @@ def walk_check(obs: dict):
 
 def find_safe_spot(ground: list[dict], arena_radius: float, near: tuple, anchor: tuple,
                    reach=None, avoid_paths: bool = False, inside=None, path=None) -> tuple | None:
+    """The best spot of find_safe_spots, or None."""
+    spots = find_safe_spots(ground, arena_radius, near, anchor, reach, avoid_paths, inside, path)
+    return spots[0] if spots else None
+
+
+def find_safe_spots(ground: list[dict], arena_radius: float, near: tuple, anchor: tuple,
+                    reach=None, avoid_paths: bool = False, inside=None, path=None) -> list[tuple]:
     """Nearest spot clear of harmful pools (the "safe" move's planner).
 
     ``reach`` = (target_pos, target_radius, range): only consider spots from
@@ -52,7 +57,7 @@ def find_safe_spot(ground: list[dict], arena_radius: float, near: tuple, anchor:
     ground = hazards(ground)
     escaping = [g for g in ground if dist(near, g["pos"]) <= g["radius"] + 0.6]
     others = [g for g in ground if g not in escaping]
-    best, best_score = None, math.inf
+    scored = []
     lim = arena_radius - 1.5
     for ring in (1.5, 2.5, 3.5, 4.5, 6.0, 8.0):
         for cx, cz in _DIRS:
@@ -74,6 +79,6 @@ def find_safe_spot(ground: list[dict], arena_radius: float, near: tuple, anchor:
             # never get pinned against the wall). Without this tie-break the
             # choice between equal spots fell to floating-point noise.
             score = dist(cand, near) + 0.5 * dist(cand, anchor) + 0.05 * dist(cand, (0.0, 0.0))
-            if score < best_score:
-                best, best_score = cand, score
-    return best
+            scored.append((score, cand))
+    # Best first; ties keep the search order (rings, then compass directions).
+    return [c for _, c in sorted(scored, key=lambda sc: sc[0])]

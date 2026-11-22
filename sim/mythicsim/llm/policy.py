@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 
 from .. import content as C
 from ..engine import Action, dist, route_path
-from ..dodge import crosses_pool, find_safe_spot, hazards, unsafe, walk_check
+from ..dodge import crosses_pool, find_safe_spots, hazards, unsafe, walk_check
 from .clients import ChatClient, ClientError
 from .prompt import CHAT_COOLDOWN_MS, POOL_HIT_PAD, Order, Parsed, parse_reply, render_state, system_prompt
 
@@ -365,6 +365,10 @@ class Party:
         a.orders = Standing(order, obs["t"])
 
 
+# How many candidates of each kind "safe" hands the sim to choose from.
+SAFE_OPTIONS = 32
+
+
 class LLMPolicy:
     """Per-character adapter: follows its agent's standing orders each tick."""
 
@@ -396,9 +400,14 @@ class LLMPolicy:
                     out.append(Action("stop", reason=self.say(st)))
                 moving = False
                 dest = None
+            elif st.order.move_to == "safe":
+                dest = None
+                options = self.safe_destination(obs, st)  # None: already safe and in range
+                if options:
+                    out.append(Action("move", to=options[0]["to"], options=options, reason=self.say(st)))
+                    moving = True
             else:
-                dest = (self.safe_destination(obs, st) if st.order.move_to == "safe"
-                        else self.next_waypoint(obs) if st.order.move_to == "next" else st.order.move_to)
+                dest = self.next_waypoint(obs) if st.order.move_to == "next" else st.order.move_to
             # Ordering a character to the spot it already stands on is a no-op:
             # don't send it, so it doesn't show up as a "Move" decision.
             if dest is not None and dist(me["pos"], dest) > 0.3:
@@ -484,7 +493,7 @@ class LLMPolicy:
         me = obs["self"]
         pos = tuple(me["pos"])
         units = {u["id"]: u for u in obs["party"] + obs["enemies"]}
-        reach = None
+        reach, reach_id, reach_range = None, None, None
         # The range to keep: the first entry that attacks or heals, an interrupt
         # only if there's nothing else (a standing kick reaches farther than a
         # melee swing, and would park a melee character out of its swing's reach).
@@ -496,6 +505,7 @@ class LLMPolicy:
             if tgt and tgt["alive"] and tgt_id != self.uid:
                 radius = C.BOSS.radius if tgt["role"] == "boss" else C.ADD.radius if tgt["role"] == "add" else PLAYER_RADIUS
                 reach = (tuple(tgt["pos"]), radius, ab.range - 0.2)
+                reach_id, reach_range = tgt_id, ab.range
                 break
         in_reach = reach is None or dist(pos, reach[0]) - PLAYER_RADIUS - reach[1] <= reach[2]
         if not unsafe(pos, obs["ground"], 0.3) and in_reach:
@@ -505,10 +515,18 @@ class LLMPolicy:
 
         def path(a, b):  # the route the sim will really walk (round obstacles)
             return route_path(a, b, PLAYER_RADIUS, walk)
-        # Prefer: in range and a clean path; then a clean path; then just clear of pools.
-        return (find_safe_spot(g, r, pos, pos, reach, avoid_paths=True, inside=inside, path=path)
-                or find_safe_spot(g, r, pos, pos, avoid_paths=True, inside=inside, path=path)
-                or find_safe_spot(g, r, pos, pos, inside=inside))
+        # Candidates in order of preference: in range by a clean path; then by a
+        # clean path; then just clear of pools. The sim takes the first whose
+        # real move (wall, a taken spot, obstacles) ends clear of every pool and
+        # keeps its promise (in range, clean route): see Encounter.pick_option.
+        options = [{"to": c, "clean": True, "reach": (reach_id, reach_range)} for c in
+                   find_safe_spots(g, r, pos, pos, reach, avoid_paths=True, inside=inside, path=path)[:SAFE_OPTIONS]]
+        options += [{"to": c, "clean": True} for c in
+                    find_safe_spots(g, r, pos, pos, avoid_paths=True, inside=inside, path=path)[:SAFE_OPTIONS]]
+        options += [{"to": c} for c in find_safe_spots(g, r, pos, pos, inside=inside)[:SAFE_OPTIONS]]
+        if reach_id is None:
+            options = [o for o in options if "reach" not in o]
+        return options or None
 
     def say(self, st: Standing) -> str | None:
         if st.said or not st.order.say:

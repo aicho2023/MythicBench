@@ -90,7 +90,7 @@ Normal and +10 progression scores.
 The scripted commander plays through exactly the agents' interface (it reads
 the same state text and replies with the same orders) using fixed, obvious
 rules: kick every cast, kill casters first, heal the lowest ally, step out of
-every pool. It never learns. It's one fixed policy: a reference point for what obvious rules do, not a ceiling or a floor. Over 60 seeds it scores 32.4 on +10 (no clears) and 55.0 on Normal.
+every pool. It never learns. It's one fixed policy: a reference point for what obvious rules do, not a ceiling or a floor. Over 60 seeds it scores 32.4 on +10 (no clears) and 54.6 on Normal.
 
 That gap is by design. Oruth's Bone Pyre is a circle on the floor that two
 players must stand in, or it hits the whole party. Every generic instinct

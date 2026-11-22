@@ -85,7 +85,12 @@ same way for every model. That includes some movement:
 - "next" walks to the next waypoint of the route toward the boss; "safe" steps
   to the nearest spot clear of the pools known to hurt, keeping the target of
   the first attack or heal in range when it can, by a route that stays clear
-  of other pools (else the nearest clear spot anyway); "stop" halts.
+  of other pools (else the nearest clear spot anyway). Every candidate is
+  judged as the move would really go (a wall, a taken spot, obstacles), so it
+  never stops in a pool when a clear spot is reachable. "stop" halts.
+- Oruth never leaves his room; if he can't reach the player he's attacking
+  from inside it, he turns on the nearest player he can reach until he can.
+  The rules text tells the agents.
 - Stay in reach: a melee character that has been in reach of the target of its
   first melee ability, since its last ordered move and since it picked that
   target, follows that target if it drifts up to 3 m away, in a straight step

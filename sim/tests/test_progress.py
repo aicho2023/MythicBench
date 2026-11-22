@@ -48,7 +48,7 @@ def test_notes_are_appended_only_when_present():
 
 
 def _boss_replay(seed: int = 11, tier: str = "normal") -> dict:
-    """The scripted commander's boss fight (seed 11 on Normal is a clean kill)."""
+    """The scripted commander's boss fight."""
     from mythicsim.__main__ import simulate
     from mythicsim.metrics import score
     rep = simulate(seed, tier, "boss")
@@ -70,7 +70,9 @@ def test_debrief_matches_the_metrics():
 
 
 def test_debrief_of_a_clean_kill():
-    rep = _boss_replay()
+    # The commander's first clean kill on Normal (which seed it is moves with the sim).
+    rep = next(r for r in (_boss_replay(s) for s in range(1, 80))
+               if r["meta"]["metrics"]["outcome"] == "victory" and not r["meta"]["metrics"]["deaths"])
     text = debrief_text(rep)
     assert text.startswith("RESULT: Oruth defeated") and "DEATHS: none." in text
 

@@ -138,3 +138,57 @@ def test_oruth_never_stalls_behind_his_throne():
     hit = [e for e in enc.events if e.get("target") == "rook" and e["type"] in ("cast_start", "cast_success")]
     assert any(e["ability"] == "hollow_strike" for e in hit)
     assert any(e["ability"] == "soul_rend" for e in hit)
+
+
+def test_oruth_stays_in_his_room_when_the_doorway_is_crowded():
+    """Codex's case: the tank out in the corridor, allies crowding the doorway.
+    Oruth never leaves his room; he fights the nearest player he can reach."""
+    class Still:
+        def act(self, obs):
+            return []
+    run = DungeonRun(3, {m.id: Still() for m in C.PARTY}, "test", "normal")
+    for u in run.units.values():
+        if u.pack:
+            u.alive = False
+    boss = run.boss
+    run.units["rook"].pos = (0.0, 16.0)
+    for uid, pos in (("ivy", (-1.2, 13.3)), ("brask", (1.2, 13.3)), ("kit", (0.0, 12.4)), ("wren", (-2.0, 11.6))):
+        run.units[uid].pos = pos
+    boss.engaged, run.boss_engaged_t, boss.pos = True, -10_000, (0.0, 0.0)
+    for _ in range(150):
+        run.step()
+        run.t += 100
+        assert dist(boss.pos, (0.0, 0.0)) <= C.ARENA_RADIUS - 2.5 + 0.01
+    for e in run.events:
+        if e["type"] == "move" and e["unit"] == "oruth":
+            assert dist(e["to"], (0.0, 0.0)) <= C.ARENA_RADIUS - 2.5 + 0.01
+    swings = [e for e in run.events if e["type"] == "cast_success" and e["ability"] == "hollow_strike"]
+    assert swings and all(e["target"] != "rook" for e in swings)  # out of his reach, so someone else
+
+
+def test_oruth_goes_back_to_his_target_once_he_can_reach_it():
+    class Still:
+        def act(self, obs):
+            return []
+    run = DungeonRun(3, {m.id: Still() for m in C.PARTY}, "test", "normal")
+    for u in run.units.values():
+        if u.pack:
+            u.alive = False
+    boss, rook = run.boss, run.units["rook"]
+    rook.pos = (0.0, 16.0)
+    for uid, pos in (("ivy", (-1.2, 13.3)), ("brask", (1.2, 13.3)), ("kit", (0.0, 12.4)), ("wren", (-2.0, 11.6))):
+        run.units[uid].pos = pos
+    boss.engaged, run.boss_engaged_t, boss.pos = True, -10_000, (0.0, 0.0)
+    for _ in range(80):
+        run.step()
+        run.t += 100
+    # The tank steps back into the room and the crowd clears the doorway.
+    rook.pos = (0.0, 6.0)
+    for k, uid in enumerate(("ivy", "brask", "kit", "wren")):
+        run.units[uid].pos = (-9.0 + 2.0 * k, -6.0)
+    n = len(run.events)
+    for _ in range(60):
+        run.step()
+        run.t += 100
+    swings = [e for e in run.events[n:] if e["type"] == "cast_success" and e["ability"] == "hollow_strike"]
+    assert swings and swings[-1]["target"] == "rook"

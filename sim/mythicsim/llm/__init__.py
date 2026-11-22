@@ -67,7 +67,8 @@ Pieces:
 #          boss-only mode that every party copied as its boss-fight layout)
 #   1.0.0-rc.7 fifth review: stay-in-reach follows only the target it's in contact
 #          with, only straight, and the sim re-checks the step as it really resolves
-#          (route, pools, reach); "safe" judges the route it will really walk; "stop"
+#          (route, pools, reach); "safe" hands the sim ranked candidates and it takes
+#          the first whose real move (wall, taken spot, obstacles) ends clear; "stop"
 #          is a real halt; the rules and affix texts state mechanics, not tactics
 HARNESS_VERSION = "1.0.0-rc.7"
 

@@ -74,8 +74,9 @@ def test_safe_keeps_the_reach_of_the_attack_not_of_a_kick():
     # In kick reach but not in melee reach, and nothing to dodge: "safe" still steps in.
     obs = _obs((0.0, 0.0), (3.4, 0.0))
     assert C.MELEE_RANGE < gap((0.0, 0.0), (3.4, 0.0)) <= C.KICK_RANGE
-    dest = p.safe_destination(obs, st)
-    assert dest is not None and gap(dest, (3.4, 0.0)) <= C.MELEE_RANGE
+    options = p.safe_destination(obs, st)
+    assert options and options[0]["reach"] == ("w1", C.ABILITIES["ravage"].range)
+    assert gap(options[0]["to"], (3.4, 0.0)) <= C.MELEE_RANGE
 
 
 class _Stand:
@@ -180,3 +181,21 @@ def test_safe_needs_the_real_route_to_stay_clear():
         return [(6.0, 4.0), b]
     other = find_safe_spot(pool, C.ARENA_RADIUS, me, me, avoid_paths=True, path=detour)
     assert other is None
+
+
+def test_safe_never_stops_in_a_pool_when_a_clear_spot_is_reachable():
+    """Codex's case: at the Ossuary's doorway, the best-looking spot is in the
+    corridor, but the straight walk there hits the wall inside the grave. The
+    sim judges every candidate as the move would really go."""
+    from mythicsim.dungeon import DungeonRun
+    for side in (-1, 1):
+        run = DungeonRun(3, {m.id: _Stand() for m in C.PARTY}, "test", "normal")
+        brask = run.units["brask"]
+        brask.pos = (3.2 * side, 23.3)
+        run.ground["g1"] = {"id": "g1", "kind": "grave", "pos": [2.0 * side, 23.5], "radius": 2.5, "armed_at": 0,
+                            "spawned_at": 0, "expires_at": 10 ** 9, "next_tick": 10 ** 9, "tick_ms": 1000}
+        p = _policy()
+        options = p.safe_destination(run.observe(brask), _standing())
+        assert options
+        legs = run.pick_option(brask, options)
+        assert legs is not None and not run.in_pool(brask, legs[-1])

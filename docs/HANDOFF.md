@@ -130,6 +130,15 @@ route it will really walk (`route_path`, shared by the engine and the
 policy); "stop" is a real halt (`Action("stop")`); rules and affix texts
 state mechanics, not tactics. Commander: 32.4 on +10, 55.0 on Normal.
 
+Sixth review (same versions; nothing was recorded on them in between):
+Oruth's final spot and every point of his route stay inside his room
+(`reachable_route`, executed as checked by `walk_route`); if he can't reach
+his target from inside it, he fights the nearest player he can reach until he
+can (`reachable_victim`); "safe" hands the sim ranked candidates
+(`Action.options`) and it takes the first whose real move (wall clip, taken
+spot, obstacles) ends clear of every pool, keeping reach and a clean route
+where promised (`pick_option`). Commander: 32.4 on +10, 54.6 on Normal.
+
 The scripted bots (expert, competent, sloppy) are gone. Their dodge planner
 lives on in `dodge.py` (the "safe" move); tests and the viewer's reference
 replays use the scripted commander instead.
