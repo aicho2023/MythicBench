@@ -101,7 +101,7 @@ def build_client(args, n_fights: int):
         if left <= 0:
             raise SystemExit(f"project budget used up: ${spent:.2f} of ${cap:.2f} spent. "
                              "Raise MYTHICBENCH_TOTAL_BUDGET_USD in .env to allow more.")
-        limit = min(args.budget_usd, left)
+        limit = min(spend.finite_usd(args.budget_usd, "--budget-usd"), left)
         spend.PROJECT.arm(cap, spent)  # parallel runs in this process share the money left
         per_fight, basis = spend.estimate_fight_usd(price, args.mode, label)
         print(f"budget: this run may spend ${limit:.2f} (project: ${spent:.2f} of ${cap:.2f} used). "
@@ -496,7 +496,9 @@ def main() -> None:
                                        "rebuild the leaderboard, replay every group from the recordings")
     vr.add_argument("results", type=Path, help="e.g. ../web/public/results/v1")
     vr.add_argument("--first", type=int, help="the dataset is stage 1 of a staged run: expect each cell's first N groups")
-    vr.add_argument("--no-replay", action="store_true", help="skip replaying from the recordings (faster)")
+    vr.add_argument("--no-replay", action="store_true",
+                    help="skip replaying from the recordings (faster, but costs and reply counts go unchecked)")
+    vr.add_argument("--protocol", type=Path, help="also require the dataset's protocol to be this file")
     g = sub.add_parser("generate", help="write the showcase replays for the viewer")
     g.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
@@ -529,7 +531,8 @@ def main() -> None:
         print(f"wrote {args.out}/leaderboard.json")
     elif args.cmd == "verify":
         from .campaign import verify_results
-        raise SystemExit(verify_results(args.results, first=args.first, replay=not args.no_replay))
+        raise SystemExit(verify_results(args.results, first=args.first, replay=not args.no_replay,
+                                        official=args.protocol))
     elif args.cmd == "generate":
         args.out.mkdir(parents=True, exist_ok=True)
         index = []

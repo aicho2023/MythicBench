@@ -218,13 +218,15 @@ export function episodeHeadlines(r: Results, row: LeaderboardRow): number[] {
   return row.tiers[headlineTier(r)]?.episode_scores ?? []
 }
 
-/** Replies that gave no usable orders (refused, cut off, or unreadable), as a share of calls, with the breakdown. */
+/** Calls that gave no usable answer (refused, or nothing readable), as a share of calls. Replies cut off at
+ * the token limit are shown separately: their complete orders, if any, were still used. */
 export function replyProblems(cell: TierCell | undefined): { text: string; title: string } {
   if (!cell?.calls) return { text: '–', title: 'Not recorded' }
-  const bad = (cell.refusals ?? 0) + (cell.truncated_replies ?? 0) + (cell.unusable_replies ?? 0)
+  const none = (cell.refusals ?? 0) + (cell.unusable_replies ?? 0)
   return {
-    text: `${((100 * bad) / cell.calls).toFixed(1)}%`,
-    title: `${cell.calls.toLocaleString()} calls: ${cell.refusals ?? 0} refused, ${cell.truncated_replies ?? 0} cut off at the token limit, `
-      + `${cell.unusable_replies ?? 0} unreadable; ${cell.invalid_entries ?? 0} entries dropped from usable replies`,
+    text: `${((100 * none) / cell.calls).toFixed(1)}%`,
+    title: `${cell.calls.toLocaleString()} calls: ${none} gave no usable answer (${cell.refusals ?? 0} refused, `
+      + `${cell.unusable_replies ?? 0} unreadable). Separately, ${cell.truncated_replies ?? 0} were cut off at the token limit, `
+      + `and ${cell.invalid_entries ?? 0} entries were dropped from usable replies`,
   }
 }

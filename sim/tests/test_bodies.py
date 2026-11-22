@@ -125,3 +125,24 @@ def test_a_move_stops_at_the_wall_instead_of_walking_through_it():
     beyond = (room.center[0] + room.radius + 20.0, room.center[1])  # straight through the room's wall
     stop = DungeonRun.straight_line_reach(inside, beyond)
     assert C.walkable(stop) and dist(stop, inside) < room.radius
+
+
+def test_two_thresholds_crossed_at_once_are_two_summons():
+    from mythicsim.engine import Cast
+    enc = _walking_oruth()
+    b = enc.boss
+    b.cast = Cast("requiem_of_bones", None, enc.t, 3000)  # busy casting while the thresholds go by
+    b.hp = int(b.max_hp * 0.79)
+    enc.step()
+    enc.t += 100
+    b.hp = int(b.max_hp * 0.45)  # and the next one, still mid-cast
+    enc.step()
+    enc.t += 100
+    b.cast = None
+    for _ in range(200):
+        enc.step()
+        enc.t += 100
+        if b.cast and b.cast.ability == "raise_dead":
+            b.cast = None  # finish the cast at once
+    casts = [e for e in enc.events if e["type"] == "cast_start" and e["ability"] == "raise_dead"]
+    assert len(casts) == 2

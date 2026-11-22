@@ -22,10 +22,11 @@ from typing import Callable, Protocol
 from . import content as C
 
 TICK_MS = 100
-SIM_VERSION = "0.7.0"  # 0.3.0: bodies collide where they stop; 0.4.0: a run ends at its timer;
+SIM_VERSION = "0.8.0"  # 0.3.0: bodies collide where they stop; 0.4.0: a run ends at its timer;
 # 0.5.0: enemies keep their space too, and the boss walks after his target;
 # 0.6.0: Bone Pyre, a soak; 0.7.0: a due boss mechanic waits until it can happen (never skipped),
-# and walls block a move (it stops at the wall)
+# and walls block a move (it stops at the wall); 0.8.0: two summon thresholds crossed
+# together are two summons
 
 
 # ---------------------------------------------------------------------------
@@ -198,7 +199,7 @@ class Encounter:
             self.boss_next["grave_mark"] = self.jitter("grave_mark", C.GRAVE_MARK_FIRST_MS, C.BOSS.first_jitter_ms)
         self.tyrant = "hollow_tyrant" in self.affixes
         self.raise_dead_left = list(C.TYRANT_RAISE_AT if self.tyrant else C.BOSS.raise_dead_at)
-        self.raise_queued = False
+        self.raise_pending = 0  # summons due and not yet started (one per health threshold crossed)
         self.add_count = 0
         self.ground_count = 0
         self.enraged = False
@@ -577,9 +578,9 @@ class Encounter:
             self.emit("cast_success", unit=b.id, ability="hollow_fury", target=None)
             for p in self.players():
                 self.damage(b, p, "hollow_fury", amount, crit_ok=False)
-        if self.raise_dead_left and b.hp / b.max_hp <= self.raise_dead_left[0]:
+        while self.raise_dead_left and b.hp / b.max_hp <= self.raise_dead_left[0]:
             self.raise_dead_left.pop(0)
-            self.raise_queued = True
+            self.raise_pending += 1  # each threshold is its own summon, even two crossed at once
         tank = self.units.get(b.target)
         if not tank or not tank.alive:
             alive = self.players()
@@ -593,9 +594,9 @@ class Encounter:
         # A mechanic that is due stays due until it actually happens: Oruth
         # stops walking to cast, and a cast he can't start yet (Soul Rend on a
         # target out of reach) waits while he closes in. Nothing is ever skipped.
-        if self.raise_queued:
+        if self.raise_pending:
             if self.boss_cast(b, "raise_dead", None):
-                self.raise_queued = False
+                self.raise_pending -= 1
                 self.emit("emote", unit=b.id, style="warning", text="Oruth begins to Summon the Restless!")
                 return
         for key in ("soul_rend", "requiem_of_bones", "grave_mark", "desecrate", "bone_pyre"):

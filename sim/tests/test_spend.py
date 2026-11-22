@@ -17,7 +17,7 @@ from mythicsim.llm.clients import CachedClient, MockClient, Reply
 class Paid:
     """Looks like a paid model; answers like the mock, with fixed token counts."""
 
-    def __init__(self, spec="anthropic:claude-haiku-5-5", inp=1000, out=20_000):
+    def __init__(self, spec="anthropic:claude-haiku-5-5", inp=1000, out=8_000):  # at most the real output cap
         self.spec, self.inp, self.out, self.calls = spec, inp, out, 0
         self._mock = MockClient()
 
@@ -47,16 +47,20 @@ def test_price_lookup():
 
 def test_meter_stops_at_its_limit_and_logs_each_call(tmp_path):
     ledger = tmp_path / "spend.jsonl"
-    inner = Paid(inp=0, out=200_000)  # $0.10 per call on Haiku
-    m = spend.CostMeter(inner, spend.PRICES["claude-haiku-5-5"], limit_usd=0.25, ledger=ledger, run_id="r1")
-    for _ in range(3):
+    inner = Paid(inp=0, out=8_000)  # $0.10 per call at this price (the most a call can cost)
+    price = spend.Price(input=1.0, output=12.5, cached=1.0)
+    m = spend.CostMeter(inner, price, limit_usd=0.25, ledger=ledger, run_id="r1")
+    for _ in range(2):
         m.complete("s", "u")
-    with pytest.raises(spend.BudgetExceeded):
+    with pytest.raises(spend.BudgetExceeded):  # a third would be over: never overshoot
         m.complete("s", "u")
-    assert inner.calls == 3
+    assert inner.calls == 2
     rows = spend.read_ledger(ledger)
-    assert len(rows) == 3 and all(r["run_id"] == "r1" for r in rows)
-    assert spend.total_spent(ledger) == pytest.approx(0.30)
+    calls = [r for r in rows if r.get("kind") != "hold"]
+    holds = [r for r in rows if r.get("kind") == "hold"]
+    assert len(calls) == 2 and len(holds) == 2 and all(r["run_id"] == "r1" for r in rows)
+    assert all(h["hold"] in {x for r in calls for x in r["settles"]} for h in holds)  # every hold settled
+    assert spend.total_spent(ledger) == pytest.approx(0.20)
 
 
 def test_recorded_replies_are_free(tmp_path):
@@ -66,7 +70,7 @@ def test_recorded_replies_are_free(tmp_path):
     tally = spend.CostMeter(client, spend.PRICES["claude-haiku-5-5"])
     tally.complete("s", "same prompt")
     tally.complete("s", "same prompt")
-    assert meter.calls == 1 and len(spend.read_ledger(ledger)) == 1  # paid once
+    assert meter.calls == 1 and len(spend.counted(spend.read_ledger(ledger))) == 1  # paid once
     assert tally.calls == 2 and tally.usd == pytest.approx(2 * meter.usd)  # but costs count twice at list price
 
 
@@ -82,6 +86,8 @@ def sandbox(tmp_path, monkeypatch):
     monkeypatch.setattr(spend, "LEDGER", tmp_path / "spend.jsonl")
     monkeypatch.setenv("MYTHICBENCH_TOTAL_BUDGET_USD", "100")
     monkeypatch.setattr(cli, "make_client", lambda spec, effort=None: Paid(spec))
+    # $0.01 for a call's full output cap, so a fake call costs about $0.01
+    monkeypatch.setitem(spend.PRICES, "claude-haiku-5-5", spend.Price(input=0.1, output=1.25, cached=0.01))
     return runs_dir
 
 
@@ -131,8 +137,10 @@ def test_project_cap_limits_and_blocks_runs(sandbox, monkeypatch):
         run_cli("llm", "--model", "anthropic:claude-haiku-5-5", "--mode", "boss", "--seeds", "0", "--no-cache")
     assert manifest(sandbox)["budget_usd"] == pytest.approx(0.10)
     assert spend.total_spent() == pytest.approx(100.0, abs=0.011)
-    with pytest.raises(SystemExit, match="budget used up"):
+    # What's left is less than one call's worst case: the next run can't start a call.
+    with pytest.raises(SystemExit, match="budget used up|budget of \\$0\\.0[01] reached"):
         run_cli("llm", "--model", "anthropic:claude-haiku-5-5", "--mode", "boss", "--seeds", "1", "--no-cache")
+    assert spend.total_spent() <= 100.0
 
 
 def test_unpriced_models_are_refused(sandbox, monkeypatch):
@@ -192,5 +200,116 @@ def test_only_one_paid_process_at_a_time(tmp_path, monkeypatch):
             f"spend.claim_paid_lock(Path({str(tmp_path)!r}))")
     r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
     assert r.returncode != 0 and "another paid run" in r.stderr + r.stdout
+    spend._PAID_LOCK.close()
+    monkeypatch.setattr(spend, "_PAID_LOCK", None)
+
+
+
+def test_a_crash_mid_request_leaves_its_hold_counted(tmp_path):
+    """The hold is on disk before the request goes out: if the process dies
+    before settling, the next process counts it as spent (it may have been billed)."""
+    ledger = tmp_path / "spend.jsonl"
+    price = spend.Price(input=1.0, output=1.0, cached=1.0)
+
+    class Dies:
+        spec = "fake:dies"
+
+        def complete(self, system, user, tag=""):
+            # Simulate the process dying mid-request: read the ledger as the next process would.
+            raise SystemExit(f"{spend.total_spent(ledger):.6f}")
+
+    m = spend.CostMeter(Dies(), price, limit_usd=1.0, ledger=ledger)
+    with pytest.raises(SystemExit) as died:
+        m.complete("s" * 100, "u")
+    est = spend.worst_case_usd(price, "s" * 100, "u")
+    assert float(str(died.value)) == pytest.approx(est, abs=1e-6)  # counted while in flight
+
+
+@pytest.mark.parametrize("code,billed", [(504, True), (500, True), (429, False), (529, False), (400, False)])
+def test_http_failures_are_counted_by_whether_they_may_be_billed(monkeypatch, tmp_path, code, billed):
+    """A server error may come after the model ran: the resend gets a hold of its own and the
+    failed attempt counts as spent. A rate limit, overload or bad request was never run."""
+    import io
+    import urllib.error
+    from mythicsim.llm import clients as cl
+    sent = []
+
+    def fake_urlopen(req, timeout=0):
+        sent.append(1)
+        if len(sent) == 1:
+            raise urllib.error.HTTPError("u", code, "x", {}, io.BytesIO(b"{}"))
+        return io.BytesIO(b'{"content": [{"type": "text", "text": "{}"}], "usage": {"input_tokens": 1, "output_tokens": 1}}')
+
+    class Resp(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    monkeypatch.setattr(cl.urllib.request, "urlopen", lambda req, timeout=0: Resp(fake_urlopen(req).read()))
+    monkeypatch.setattr(cl.time, "sleep", lambda s: None)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test")
+    price = spend.Price(input=1.0, output=1.0, cached=1.0)
+    client = cl.AnthropicClient("claude-haiku-5-5", effort="low")
+    m = spend.CostMeter(client, price, limit_usd=10.0, ledger=tmp_path / "l.jsonl")
+    if code == 400:
+        with pytest.raises(cl.ClientError):
+            m.complete("s", "u")
+        assert m.usd == 0.0 and len(sent) == 1
+        return
+    m.complete("s", "u")
+    est = spend.worst_case_usd(price, "s", "u")
+    holds = [r for r in spend.read_ledger(tmp_path / "l.jsonl") if r.get("kind") == "hold"]
+    assert len(sent) == 2
+    assert len(holds) == (2 if billed else 1)
+    assert (m.usd >= est) == billed
+
+
+def test_an_unreadable_answer_counts_as_spent(monkeypatch, tmp_path):
+    import io
+    from mythicsim.llm import clients as cl
+
+    class Resp(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    monkeypatch.setattr(cl.urllib.request, "urlopen", lambda req, timeout=0: Resp(b"<html>oops</html>"))
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test")
+    price = spend.Price(input=1.0, output=1.0, cached=1.0)
+    m = spend.CostMeter(cl.AnthropicClient("claude-haiku-5-5", effort="low"), price, limit_usd=10.0,
+                        ledger=tmp_path / "l.jsonl")
+    with pytest.raises(cl.ClientError):
+        m.complete("s", "u")
+    assert m.usd == pytest.approx(spend.worst_case_usd(price, "s", "u"))
+
+
+@pytest.mark.parametrize("bad", ["inf", "nan", "-5"])
+def test_a_cap_must_be_finite(monkeypatch, bad):
+    monkeypatch.setenv("MYTHICBENCH_TOTAL_BUDGET_USD", bad)
+    with pytest.raises(SystemExit):
+        spend.project_cap()
+
+
+def test_threads_of_one_process_share_the_paid_lock(tmp_path, monkeypatch):
+    import threading
+    monkeypatch.setattr(spend, "_PAID_LOCK", None)
+    errors, go = [], threading.Barrier(8)
+
+    def claim():
+        go.wait()
+        try:
+            spend.claim_paid_lock(tmp_path)
+        except SystemExit as err:
+            errors.append(err)
+    ts = [threading.Thread(target=claim) for _ in range(8)]
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join()
+    assert not errors
     spend._PAID_LOCK.close()
     monkeypatch.setattr(spend, "_PAID_LOCK", None)

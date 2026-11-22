@@ -49,7 +49,7 @@ export function LeaderboardTable({ results }: { results: Results }) {
             <th className={`${TH} hidden text-right lg:table-cell`}>{tierName(results, hard)} clear rate</th>
             <th className={`${TH} hidden text-right lg:table-cell`}>Pulls to clear {tierName(results, hard)}</th>
             {hasEffect && <th className={`${TH} hidden text-right xl:table-cell`} title="Progression score with memory on minus memory off, same seeds">Learning effect {tierName(results, hard)}</th>}
-            <th className={`${TH} hidden text-right xl:table-cell`} title="Calls that gave no usable orders: refused, cut off at the token limit, or unreadable">Bad replies</th>
+            <th className={`${TH} hidden text-right xl:table-cell`} title="Calls that gave no usable answer: refused, or nothing readable (hover a value for cut-off replies and dropped entries)">No usable reply</th>
             <th className={`${TH} hidden pr-0 text-right sm:table-cell`}>Cost per {tierName(results, hard)} group</th>
             <th className="w-6" aria-hidden />
           </tr>

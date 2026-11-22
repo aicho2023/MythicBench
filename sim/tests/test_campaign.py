@@ -356,3 +356,65 @@ def test_memory_twins_share_pull_one_only(sandbox):
              for k in (1, 2)]
     assert stats[0]["cached_calls"] == stats[0]["calls"] > 0  # pull 1: the twin's, replayed
     assert stats[1]["cached_calls"] == 0  # pull 2: its own calls
+
+
+@pytest.mark.parametrize("field,value", [("usd", 123.45), ("refusals", 25)])
+def test_doctored_costs_and_reply_counts_fail_a_replay_check(sandbox, capsys, field, value):
+    tmp, proto = sandbox
+    K.run_campaign(proto)
+    out = tmp / "published"
+    K.build_results(proto, out, tmp / "runs")
+    board = json.loads((out / "leaderboard.json").read_text())
+    pl = board["leaderboard"][0]["tiers"]["plus10"]["episode_list"][0]["pulls"][0]
+    pl["stats"][field] = value
+    if field == "usd":
+        pl["usd"] = value
+    (out / "leaderboard.json").write_text(json.dumps(board, indent=1) + "\n")
+    from mythicsim.llm import clients
+    clients._RECORDINGS.clear()
+    assert K.verify_results(out) == 1
+    assert "differ" in capsys.readouterr().out
+
+
+def test_the_verifier_never_writes_where_the_dataset_says(sandbox, tmp_path):
+    """A published run id can't steer where the checker writes."""
+    tmp, proto = sandbox
+    K.run_campaign(proto)
+    out = tmp / "published"
+    K.build_results(proto, out, tmp / "runs")
+    board = json.loads((out / "leaderboard.json").read_text())
+    evil = "../../../../escaped-by-run-id"
+    for e in board["leaderboard"][0]["tiers"]["plus10"]["episode_list"]:
+        e["run_id"] = evil
+    (out / "leaderboard.json").write_text(json.dumps(board, indent=1) + "\n")
+    import tempfile as tf
+    before = set(Path(tf.gettempdir()).parent.glob("escaped-by-run-id*")) | set(tmp.parent.glob("escaped-by-run-id*"))
+    K.verify_results(out, replay=False)  # it may well fail; it must not write outside its sandbox
+    after = set(Path(tf.gettempdir()).parent.glob("escaped-by-run-id*")) | set(tmp.parent.glob("escaped-by-run-id*"))
+    assert after == before
+
+
+@pytest.mark.parametrize("bad", ["../escape", "a/b", "..", ""])
+def test_protocol_names_must_be_plain(tmp_path, bad):
+    p = tmp_path / "proto.json"
+    p.write_text(json.dumps(dict(PROTO, name=bad)))
+    with pytest.raises(SystemExit):
+        K.load_protocol(p)
+    p.write_text(json.dumps(dict(PROTO, models=[{"provider": "mock", "id": bad or "x/y"}])))
+    with pytest.raises(SystemExit):
+        K.load_protocol(p)
+
+
+def test_an_official_protocol_is_pinned(sandbox, monkeypatch, capsys):
+    tmp, proto = sandbox
+    K.run_campaign(proto)
+    out = tmp / "published"
+    K.build_results(proto, out, tmp / "runs")
+    monkeypatch.setitem(K.OFFICIAL_PROTOCOLS, proto["name"], "0" * 64)  # the real one differs
+    assert K.verify_results(out, replay=False) == 1
+    assert "pinned" in capsys.readouterr().out
+
+
+def test_v1_is_pinned_to_the_committed_protocol():
+    v1 = K.load_protocol(Path(__file__).parents[2] / "protocol" / "v1.json")
+    assert K.OFFICIAL_PROTOCOLS["v1"] == K.protocol_digest(v1)

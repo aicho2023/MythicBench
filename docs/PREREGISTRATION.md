@@ -50,7 +50,7 @@ Also played, none of them ranked:
 - **Normal** (sanity check): Haiku, Luna and the commander, 3 groups each.
 - **Effort sweeps**: Haiku and Luna at low and high effort, 3 groups each.
 
-Code versions: harness 1.0.0 (1.0.0-rc.2 until the review is done), sim 0.7.0, content 1.6.0. Every replay records
+Code versions: harness 1.0.0 (1.0.0-rc.3 until the review is done), sim 0.8.0, content 1.6.0. Every replay records
 them, and the campaign refuses to mix results from different versions.
 
 ## Metrics
@@ -120,12 +120,16 @@ and `campaign.py`.
 
 The estimate is about $551 if every group plays all five pulls at each
 model's average cost per pull in the pilots (an estimate, not a bound). The
-hard limits are a campaign budget set at launch (`--budget-usd`) and the
-project cap (`MYTHICBENCH_TOTAL_BUDGET_USD`). Every call holds its worst case
-(input at the dearest rate, the full output cap) before it's sent; a request
-that times out counts as spent at its worst case; one paid process runs at a
-time. The campaign stops cleanly at a limit; whatever finished by then is
-reported, with what didn't.
+spending limits are a campaign budget set at launch (`--budget-usd`) and the
+project cap (`MYTHICBENCH_TOTAL_BUDGET_USD`), both finite. They're enforced
+before each request: a request holds an upper bound on its cost (its input at
+one token per byte plus overhead, at the dearest input rate, and the full
+output cap), and the hold is written to the spend ledger before the request is
+sent. Any attempt that may have been billed (a timeout, a dropped connection, a
+server error, an unreadable answer) counts as spent at that bound, and a resend
+needs a hold of its own; a hold left unsettled by a crash counts as spent. One
+paid process runs at a time. The campaign stops cleanly at a limit; whatever
+finished by then is reported, with what didn't.
 
 ## What gets published
 
@@ -135,7 +139,10 @@ agents' notes and talk. Anyone can check every number offline, for free, from
 the published folder alone: `python -m mythicsim verify <folder>` rescores
 every pull from its replay, checks every seed against the schedule, rebuilds
 the leaderboard and compares it, checks each cell has exactly the groups the
-protocol calls for, and replays every group from the recordings. Results are
+protocol calls for, and replays every group from the recordings, recomputing
+each pull's reply counts, tokens and list-price cost from them. The v1
+protocol's fingerprint is pinned in the code, so a dataset can't pass against
+a different protocol under the same name. Results are
 reported whatever they show, including a learning effect of zero.
 
 ## Known limitations

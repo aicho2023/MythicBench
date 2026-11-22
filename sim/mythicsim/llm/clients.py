@@ -83,7 +83,9 @@ def _key(name: str) -> str:
     load_env()
     key = os.environ.get(name, "").strip()
     if not key:
-        raise ClientError(f"{name} is not set. Copy .env.example to .env and add your key.", fatal=True)
+        err = ClientError(f"{name} is not set. Copy .env.example to .env and add your key.", fatal=True)
+        err.not_billed = True  # nothing was sent
+        raise err
     return key
 
 
@@ -113,18 +115,26 @@ def _post(url: str, headers: dict, body: dict, timeout: float = 180.0, retries: 
                                      headers={"content-type": "application/json", **headers})
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
-                return json.loads(resp.read())
+                body = resp.read()
         except urllib.error.HTTPError as err:
             detail = err.read().decode(errors="replace")[:500]
             out_of_credit = "insufficient_quota" in detail or "credit" in detail.lower()
+            # Refused before any work (a 4xx, a rate limit, overload): not
+            # billed. A server error may have come after the model ran: treat
+            # it as possibly billed (the meter holds money for the resend).
+            refused = err.code < 500 or err.code == 529
             # Rate limits and server hiccups are worth retrying; billing, auth,
             # and malformed requests are not.
             if err.code in (429, 500, 502, 503, 504, 529) and not out_of_credit and attempt < retries:
+                if not refused:
+                    _before_resend()
                 time.sleep(delay)
                 delay *= 2
                 continue
             fatal = out_of_credit or err.code in (400, 401, 403, 404)
-            raise ClientError(f"HTTP {err.code} from {url}: {detail}", fatal=fatal) from None
+            out = ClientError(f"HTTP {err.code} from {url}: {detail}", fatal=fatal)
+            out.not_billed = refused
+            raise out from None
         except (urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError, OSError) as err:
             # Dropped connections, resets, and timeouts: transient, so retry,
             # but the lost attempt may have been billed (see _before_resend).
@@ -133,9 +143,13 @@ def _post(url: str, headers: dict, body: dict, timeout: float = 180.0, retries: 
                 time.sleep(delay)
                 delay *= 2
                 continue
-            out = ClientError(f"network error calling {url}: {err}")
-            out.maybe_billed = True  # the last attempt timed out too: it may have been billed
-            raise out from None
+            raise ClientError(f"network error calling {url}: {err}") from None  # may have been billed
+        try:
+            return json.loads(body)
+        except ValueError:
+            # A 200 whose body we can't read was answered (and billed): the
+            # meter counts it at its worst case. Not retried: that would pay twice.
+            raise ClientError(f"unreadable response from {url}: {body[:200]!r}") from None
     raise ClientError("unreachable")
 
 

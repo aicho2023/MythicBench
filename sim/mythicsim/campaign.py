@@ -100,11 +100,30 @@ def valid_episode(items: list[dict], max_pulls: int) -> bool:
     return len(pulls) == max_pulls
 
 
+_SAFE_NAME = __import__("re").compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
+
+
+def _safe_name(x, what: str, path) -> None:
+    """Protocol names and ids become folder names: plain characters only."""
+    if not isinstance(x, str) or not _SAFE_NAME.match(x) or ".." in x:
+        raise SystemExit(f"{path}: {what} {x!r} must be letters, digits, '.', '_' or '-'")
+
+
 def load_protocol(path: Path) -> dict:
     proto = json.loads(Path(path).read_text())
     missing = [k for k in REQUIRED if k not in proto]
     if missing:
         raise SystemExit(f"{path}: missing {', '.join(missing)}")
+    _safe_name(proto["name"], "name", path)
+    for m in proto["models"] + proto.get("baselines", []):
+        _safe_name(m.get("id"), "model id", path)
+        _safe_name(m.get("provider"), "provider", path)
+        if m.get("effort") is not None:
+            _safe_name(m["effort"], "effort", path)
+    _safe_name(proto["effort"], "effort", path)
+    for e in proto.get("efforts", []):
+        for x in e.get("efforts", []):
+            _safe_name(x, "effort", path)
     for t in proto["tiers"]:
         C.tier(t)
     for m in proto["models"]:
@@ -230,10 +249,12 @@ def run_campaign(proto: dict, *, only: str | None = None, dry_run: bool = False,
               f"{len(missing)} episodes to play, ~${est:,.2f} if every one plays all {proto['max_pulls']} pulls")
     print(f"estimate for everything left: ~${total_est:,.2f} if every group plays all {proto['max_pulls']} pulls, "
           "at each model's average cost per pull so far. An estimate, not a bound: a pull can cost more than "
-          "average. The hard limits are --budget-usd and MYTHICBENCH_TOTAL_BUDGET_USD")
+          "average. The spending limits are --budget-usd and MYTHICBENCH_TOTAL_BUDGET_USD")
     if dry_run:
         return
     jobs = [(c, missing) for c, missing in todo if missing]
+    if paid and jobs:
+        spend.claim_paid_lock()  # once, before any cell starts (cells run as threads of this process)
     if budget_usd is not None:
         # One campaign budget across every cell and call (reserved before each call).
         spend.CAMPAIGN.disarm()
@@ -370,27 +391,87 @@ def _rescore(rep: dict, ep: int, pull: int, proto: dict) -> tuple[dict, list[str
     return item, bad
 
 
-def verify_results(out_dir: Path, first: int | None = None, replay: bool = True) -> int:
+# The official protocols, pinned: a published dataset that names one of these
+# must carry exactly this protocol (its normalized JSON's SHA-256), or a
+# verifier pass would only prove it complete against some other protocol.
+OFFICIAL_PROTOCOLS: dict[str, str] = {
+    "v1": "8ff5337d414ceac9f4944bd23081d6058d459ed3d1f264fd0d7b695d6d0e6641",  # protocol/v1.json
+}
+
+
+def protocol_digest(proto: dict) -> str:
+    import hashlib
+    return hashlib.sha256(json.dumps(proto, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+# Stats that are a pure function of the recorded replies (so a replay must
+# reproduce them exactly). Latency and cache hits depend on the machine.
+_TIMING_KEYS = {"latency_s", "cached_calls"}
+
+
+def _deterministic_stats(st_: dict) -> dict:
+    out = {}
+    for k in STAT_KEYS:
+        if k == "usd" or k not in st_:
+            continue
+        v = st_[k]
+        out[k] = {kk: vv for kk, vv in v.items() if kk not in _TIMING_KEYS} if isinstance(v, dict) else v
+    return out
+
+
+def _with_checked(published: dict, replayed: dict | None) -> dict:
+    """The published stats with every checked field (counts, tokens, cost)
+    replaced by the replay's own; only timing fields stay as published."""
+    if replayed is None:
+        return published
+    out = dict(published)
+    for k, v in _deterministic_stats(replayed).items():
+        out[k] = {**(published.get(k) or {}), **v} if isinstance(v, dict) else v
+    out["usd"] = replayed["usd"]
+    return out
+
+
+def _inside(root: Path, p: Path) -> Path:
+    """``p``, refused unless it resolves inside ``root`` (no writing outside the sandbox)."""
+    rp = p.resolve()
+    if not rp.is_relative_to(root.resolve()):
+        raise SystemExit(f"refusing a path outside {root}: {p}")
+    return rp
+
+
+def verify_results(out_dir: Path, first: int | None = None, replay: bool = True,
+                   official: Path | None = None) -> int:
     """Release check on a published dataset, from its folder alone.
 
-    1. Every scored pull is rescored from its replay's event log, and its seed
+    1. The protocol is the official one when it names one (pinned digest), or
+       the one given with ``official``.
+    2. Every scored pull is rescored from its replay's event log, and its seed
        checked against the protocol's schedule.
-    2. The whole leaderboard is rebuilt from those rescored pulls with the same
-       code and compared with the published one: every score, interval, clear
-       rate, curve, paired learning effect, and cost total (costs are the
-       published per-pull figures; the check is that every total adds up).
-    3. Each cell has exactly the groups the protocol (or the stage, ``first``)
-       calls for: no fewer, no extra.
-    4. With ``replay``, every group is played again offline from the published
-       recordings and must match its published replays.
-    Returns a process exit code.
+    3. With ``replay`` (the default), every group is played again offline from
+       the published recordings and must match its published replays; each
+       pull's reply and token stats are recomputed from the recordings and
+       must match the published ones, and its cost is recomputed from those
+       tokens and the price table in this code.
+    4. The whole leaderboard is rebuilt from the recomputed pulls (and, with
+       ``replay``, the recomputed stats and costs) and must equal the published one.
+    5. Each cell has exactly the groups the protocol (or the stage, ``first``) calls for.
+
+    Nothing from the dataset names a path: the checker writes only inside its
+    own temporary folder, under folder names it makes up. Returns an exit code.
     """
     import tempfile
     from .llm.progress import cleared
-    out_dir = Path(out_dir)
+    out_dir = Path(out_dir).resolve()
     proto = load_protocol(out_dir / "protocol.json")
     published = json.loads((out_dir / "leaderboard.json").read_text())
     bad: list[str] = []
+    digest = protocol_digest(proto)
+    if official is not None and digest != protocol_digest(load_protocol(official)):
+        bad.append(f"the dataset's protocol isn't {official} (digest {digest[:12]})")
+    pinned = OFFICIAL_PROTOCOLS.get(proto["name"])
+    if pinned and digest != pinned:
+        bad.append(f"the dataset says it's protocol {proto['name']!r} but its protocol differs from the pinned "
+                   f"official one (digest {digest[:12]}, pinned {pinned[:12]})")
     for k, v in (("harness_version", HARNESS_VERSION), ("sim_version", SIM_VERSION), ("content_version", C.CONTENT_VERSION)):
         if published.get(k) != v:
             bad.append(f"dataset {k} {published.get(k)}, this code {v}: check out the tag the dataset names")
@@ -398,36 +479,51 @@ def verify_results(out_dir: Path, first: int | None = None, replay: bool = True)
         for b in bad:
             print("FAIL", b)
         return 1
-    # Which run each published group came from (kept, so the rebuild is comparable byte for byte).
-    run_of: dict[str, str] = {}
+
+    # Each published pull's group/run id and stats, by its replay file (comparison only).
+    pub: dict[str, tuple[str, dict]] = {}
 
     def lists(cell: dict):
         yield from cell.get("episode_list") or []
         yield from cell.get("paired_episode_list") or []
-    pulls_meta: dict[str, dict] = {}
-    for table in (published["leaderboard"], published.get("baselines") or []):
-        for row in table:
-            for cell in row["tiers"].values():
-                for e in lists(cell):
-                    for pl in e["pulls"]:
-                        run_of[pl["file"]] = e["run_id"]
-                        pulls_meta[pl["file"]] = pl
-    for group in (published.get("controls") or [], [{"tiers": cfg["tiers"]} for cfg in published.get("configs") or []]):
-        for x in group:
-            for cell in (x["tiers"].values() if "tiers" in x else [x]):
-                for e in lists(cell):
-                    for pl in e["pulls"]:
-                        run_of[pl["file"]] = e["run_id"]
-                        pulls_meta[pl["file"]] = pl
+    cells = [c for row in published["leaderboard"] + (published.get("baselines") or []) for c in row["tiers"].values()]
+    cells += list(published.get("controls") or [])
+    cells += [c for cfg in published.get("configs") or [] for c in cfg["tiers"].values()]
+    for cell in cells:
+        for e in lists(cell):
+            for pl in e["pulls"]:
+                pub[str(pl["file"])] = (str(e["run_id"]), pl.get("stats") or {})
+
+    # Replay first (when asked): it recomputes every pull's stats and cost.
+    derived: dict[str, dict] = {}
+    checked_replays = _replay_from_recordings(out_dir, proto, first, bad, derived) if replay else 0
+    if replay:
+        for rel, (_, st_pub) in pub.items():
+            got = derived.get(rel)
+            if got is None:
+                continue
+            if _deterministic_stats(st_pub) != _deterministic_stats(got):
+                bad.append(f"{rel}: published stats differ from a replay of the recordings "
+                           f"(at {', '.join(_diff(_deterministic_stats(st_pub), _deterministic_stats(got))[:4])})")
+            if st_pub.get("usd") is not None and abs(st_pub["usd"] - got["usd"]) > 5e-5:
+                bad.append(f"{rel}: published cost ${st_pub['usd']} but its tokens cost ${got['usd']} at list prices")
+
     checked = 0
-    with tempfile.TemporaryDirectory() as tmp:
-        runs_dir = Path(tmp) / "runs"
+    with tempfile.TemporaryDirectory() as tmpname:
+        tmp = Path(tmpname).resolve()
+        runs_dir = tmp / "runs"
+        internal: dict[str, str] = {}  # published run id -> a folder name we made up
         for c in combos(proto):
             sub = ("" if c.memory else "memory-off") if c.role != "effort" else f"effort-{c.model['effort']}"
-            folder = out_dir / "replays" / c.slug / c.tier / sub
+            folder = _inside(out_dir, out_dir / "replays" / c.slug / c.tier / sub) if sub else \
+                _inside(out_dir, out_dir / "replays" / c.slug / c.tier)
             found: dict[int, dict[int, Path]] = {}
-            for f in sorted(folder.glob("ep*-pull*.json.gz")) if folder.exists() else []:
-                ep, pull = (int(x) for x in f.name[2:-len(".json.gz")].split("-pull"))
+            for f in sorted(folder.glob("ep*-pull*.json.gz")) if folder.is_dir() else []:
+                try:
+                    ep, pull = (int(x) for x in f.name[2:-len(".json.gz")].split("-pull"))
+                except ValueError:
+                    bad.append(f"unexpected file {f.relative_to(out_dir)}")
+                    continue
                 found.setdefault(ep, {})[pull] = f
             want = _expected(proto, c, first)
             label = f"{c.spec} {c.tier} memory-{'on' if c.memory else 'off'}"
@@ -437,47 +533,53 @@ def verify_results(out_dir: Path, first: int | None = None, replay: bool = True)
                            + (f" (missing {missing})" if missing else "") + (f" (not in the protocol {extra})" if extra else ""))
             by_run: dict[str, dict] = {}
             for ep, pulls in sorted(found.items()):
-                items = []
+                items, rid = [], None
                 for pull, f in sorted(pulls.items()):
-                    rep = json.loads(gzip.decompress(f.read_bytes()))
-                    item, problems = _rescore(rep, ep, pull, proto)
+                    raw = gzip.decompress(f.read_bytes())
+                    item, problems = _rescore(json.loads(raw), ep, pull, proto)
                     bad += [f"{label} group {ep} pull {pull}: {p}" for p in problems]
                     rel = f.relative_to(out_dir).as_posix()
-                    rid = run_of.get(rel)
-                    if rid is None:
+                    if rel not in pub:
                         bad.append(f"{label} group {ep} pull {pull}: replay not in the leaderboard")
                         continue
-                    run = by_run.setdefault(rid, {"run_id": rid, "campaign_key": c.key(proto), "episodes": [],
-                                                  "created": "0", "items": [], "harness_version": HARNESS_VERSION})
-                    pdir = runs_dir / rid / "episodes" / str(ep)
+                    rid = pub[rel][0]
+                    folder_id = internal.setdefault(rid, f"run{len(internal):04d}")
+                    run = by_run.setdefault(folder_id, {"run_id": folder_id, "campaign_key": c.key(proto), "episodes": [],
+                                                        "created": "0", "items": [], "harness_version": HARNESS_VERSION})
+                    pdir = _inside(tmp, runs_dir / folder_id / "episodes" / str(ep))
                     pdir.mkdir(parents=True, exist_ok=True)
-                    (pdir / f"pull-{pull}.json").write_bytes(gzip.decompress(f.read_bytes()))
-                    (pdir / f"pull-{pull}.stats.json").write_text(json.dumps(pulls_meta[rel].get("stats") or {}))
+                    (pdir / f"pull-{pull}.json").write_bytes(raw)
+                    stats = _with_checked(pub[rel][1], derived.get(rel)) if replay else pub[rel][1]
+                    (pdir / f"pull-{pull}.stats.json").write_text(json.dumps(stats))
                     item["file"] = f"episodes/{ep}/pull-{pull}.json"
                     items.append(item)
                     checked += 1
                 if items and not valid_episode(items, proto["max_pulls"]):
                     bad.append(f"{label} group {ep}: pulls {[i['pull'] for i in items]} aren't a finished group")
                 if items:
-                    run = by_run[run_of[f"{(folder / f'ep{ep}-pull1.json.gz').relative_to(out_dir).as_posix()}"]]
+                    run = by_run[internal[rid]]
                     run["episodes"].append(ep)
                     run["items"] += items
-                    (runs_dir / run["run_id"] / "episodes" / str(ep) / "episode.json").write_text(
+                    (_inside(tmp, runs_dir / run["run_id"] / "episodes" / str(ep)) / "episode.json").write_text(
                         json.dumps({"items": items, "cleared_on": next((i["pull"] for i in items if cleared(i)), None)}))
             for run in by_run.values():
-                (runs_dir / run["run_id"]).mkdir(parents=True, exist_ok=True)
-                (runs_dir / run["run_id"] / "manifest.json").write_text(json.dumps(run))
-        rebuilt_dir = Path(tmp) / "rebuilt"
-        rebuilt = build_results(proto, rebuilt_dir, runs_dir)
-        mine = json.loads(json.dumps(rebuilt))
+                d = _inside(tmp, runs_dir / run["run_id"])
+                d.mkdir(parents=True, exist_ok=True)
+                (d / "manifest.json").write_text(json.dumps(run))
+        rebuilt = build_results(proto, tmp / "rebuilt", runs_dir)
+        back = {v: k for k, v in internal.items()}
+        mine = json.loads(json.dumps(rebuilt), object_hook=lambda o: {**o, "run_id": back.get(o["run_id"], o["run_id"])}
+                          if isinstance(o.get("run_id"), str) else o)
         if mine != published:
             for path in _diff(published, mine)[:20]:
                 bad.append(f"leaderboard.json differs from a rebuild at {path}")
-    if replay and not bad:
-        checked_replays = _replay_from_recordings(out_dir, proto, first, bad)
-        print(f"replayed {checked_replays} pulls offline from the published recordings")
     for b in bad:
         print("FAIL", b)
+    if replay:
+        print(f"replayed {checked_replays} pulls offline from the published recordings; stats and costs recomputed")
+    else:
+        print("not replayed: costs and reply counts were taken as published, not checked")
+    print(f"protocol {proto['name']} digest {digest[:16]}")
     print(f"verified {checked} pulls and the leaderboard built from them: {'OK' if not bad else f'{len(bad)} problems'}")
     return 1 if bad or not checked else 0
 
@@ -498,8 +600,11 @@ def _diff(a, b, path: str = "") -> list[str]:
     return [] if a == b else [path or "/"]
 
 
-def _replay_from_recordings(out_dir: Path, proto: dict, first: int | None, bad: list[str]) -> int:
-    """Play every published group again from the published recordings (no network)."""
+def _replay_from_recordings(out_dir: Path, proto: dict, first: int | None, bad: list[str],
+                            derived: dict | None = None) -> int:
+    """Play every published group again from the published recordings (no network).
+    ``derived`` gets each pull's stats as the replay produced them, with its
+    cost at list prices (keyed by the replay's path in the dataset)."""
     from .llm.clients import CachedClient, NoNetwork
     from .llm.progress import run_episode
     n = 0
@@ -518,8 +623,14 @@ def _replay_from_recordings(out_dir: Path, proto: dict, first: int | None, bad: 
             except Exception as err:  # noqa: BLE001 - any failure is a failed check
                 bad.append(f"{c.spec} {c.tier} group {ep}: can't replay from the recordings ({err})")
                 continue
+            price = spend.price_for(c.spec) or spend.FREE
             for p in again.pulls:
                 f = folder / f"ep{ep}-pull{p.pull}.json.gz"
+                if derived is not None:
+                    st_ = json.loads(json.dumps(p.stats))
+                    st_["usd"] = round(price.cost(st_["input_tokens"], st_["output_tokens"],
+                                                  st_.get("cache_read_tokens", 0), st_.get("cache_write_tokens", 0)), 4)
+                    derived[f.relative_to(out_dir).as_posix()] = st_
                 want = json.loads(gzip.decompress(f.read_bytes())) if f.exists() else None
                 got = json.loads(json.dumps(p.replay))
                 for r in (want, got):

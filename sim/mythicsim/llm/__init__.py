@@ -52,7 +52,9 @@ Pieces:
 #          hurt, adds "stop" and says what null does; replies can't crash the
 #          reader; refusals ignored in talk and notes too; a final {} is no change;
 #          calls keyed by seed and memory; recordings per freeze
-HARNESS_VERSION = "1.0.0-rc.2"
+#   1.0.0-rc.3 second review: spend holds on disk before each request and
+#          counted for every maybe-billed attempt; byte bound on input tokens
+HARNESS_VERSION = "1.0.0-rc.3"
 
 
 def prompt_hash(knowledge: str = "full", tier: str = "plus10", mode: str = "boss") -> str:
