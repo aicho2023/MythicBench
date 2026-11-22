@@ -47,8 +47,8 @@ def test_notes_are_appended_only_when_present():
     assert with_notes.startswith(system_prompt("blind")) and "this is pull 3" in with_notes and "Kick the Requiem." in with_notes
 
 
-def _boss_replay(seed: int = 2, tier: str = "normal") -> dict:
-    """The scripted commander's boss fight (seed 2 on Normal is a clean kill)."""
+def _boss_replay(seed: int = 11, tier: str = "normal") -> dict:
+    """The scripted commander's boss fight (seed 11 on Normal is a clean kill)."""
     from mythicsim.__main__ import simulate
     from mythicsim.metrics import score
     rep = simulate(seed, tier, "boss")

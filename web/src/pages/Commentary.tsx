@@ -73,8 +73,8 @@ export function Commentary() {
         <Section id="groups" title="Groups and pulls">
           <p>
             Each model plays as several <strong>groups</strong>. A group is a fresh party that gets up to five
-            <strong> pulls</strong> at the dungeon. It starts blind: it knows its own abilities and the affixes,
-            nothing about the enemies. After a pull that doesn't clear, everyone sees the same combat log, the
+            <strong> pulls</strong> at the dungeon. It starts blind: it knows its own abilities, the map and the affixes,
+            and nothing else about what the enemies do. After a pull that doesn't clear, everyone sees the same combat log, the
             party talks it over in turn, and each character writes its own notes, the only thing it carries into
             the next pull. Nothing tells them what to learn. A group is done when it clears in time or uses its
             five pulls.

@@ -22,13 +22,15 @@ from typing import Callable, Protocol
 from . import content as C
 
 TICK_MS = 100
-SIM_VERSION = "0.10.0"  # 0.3.0: bodies collide where they stop; 0.4.0: a run ends at its timer;
+SIM_VERSION = "0.11.0"  # 0.3.0: bodies collide where they stop; 0.4.0: a run ends at its timer;
 # 0.5.0: enemies keep their space too, and the boss walks after his target;
 # 0.6.0: Bone Pyre, a soak; 0.7.0: a due boss mechanic waits until it can happen (never skipped),
 # and walls block a move (it stops at the wall); 0.8.0: two summon thresholds crossed
 # together are two summons; 0.9.0: a melee spot that's taken shifts to a free spot
 # still in reach of the foe it was asked for (melee reach is now 1.5 m, content 1.7.0)
 # 0.10.0: solid obstacles (the throne, the rooms' pillars): moves route around them
+# 0.11.0: a chase checks its whole route (another spot in reach if an obstacle blocks it);
+# guarded moves and a real stop for the harness
 
 
 # ---------------------------------------------------------------------------
@@ -158,11 +160,82 @@ class Unit:
 
 @dataclass
 class Action:
-    type: str  # "cast" | "move"
+    type: str  # "cast" | "move" | "stop"
     ability: str | None = None
     target: str | None = None
     to: Vec | None = None
     reason: str | None = None  # optional; logged as a ``decision`` event
+    # A guarded move (the harness's stay-in-reach step): only if, as resolved,
+    # it's one straight leg, clear of pools, ending in melee reach of this unit.
+    keep_reach: str | None = None
+
+
+def route_path(a: Vec, b: Vec, radius: float, walk_ok) -> list[Vec]:
+    """The legs of a walk from a to b around the obstacles: [b] when the
+    straight line is clear, else the shortest way through waypoints around
+    them (never through a wall). With no way round, it stops short of the
+    obstacle, as a move stops at a wall."""
+    # An obstacle it already overlaps (it was pushed there) doesn't hold it in.
+    live = [o for o in C.OBSTACLES if o.gap(a) >= radius]
+
+    def blocked(p: Vec, q: Vec, walls: bool) -> bool:
+        n = max(1, int(dist(p, q) / 0.2))
+        for i in range(1, n + 1):
+            f = i / n
+            x = (p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f)
+            if any(o.gap(x) < radius for o in live) or (walls and not walk_ok(x)):
+                return True
+        return False
+
+    if not blocked(a, b, walls=False):
+        return [b]
+    nodes: list[Vec] = []
+    for o in live:
+        if o.half is not None:
+            m = radius + 0.25
+            pts = [(o.center[0] + sx * (o.half[0] + m), o.center[1] + sz * (o.half[1] + m))
+                   for sx in (-1, 1) for sz in (-1, 1)]
+        else:
+            ring = (o.radius + radius) / 0.92 + 0.1  # an octagon whose sides clear the circle
+            pts = [(o.center[0] + dx * ring, o.center[1] + dz * ring) for dx, dz in COMPASS16[::2]]
+        nodes += [(r2(p[0]), r2(p[1])) for p in pts
+                  if walk_ok(p) and C.in_obstacle(p, radius) is None]
+    # Dijkstra over start, waypoints and goal (index 0 = start, 1 = goal).
+    pts = [a, b] + nodes
+    best = {0: 0.0}
+    prev: dict[int, int] = {}
+    done: set[int] = set()
+    while True:
+        open_ = [(d, i) for i, d in best.items() if i not in done]
+        if not open_:
+            break
+        d, i = min(open_)
+        if i == 1:
+            break
+        done.add(i)
+        for j in range(1, len(pts)):
+            if j in done or j == i:
+                continue
+            nd = d + dist(pts[i], pts[j])
+            if nd < best.get(j, float("inf")) - 1e-9 and not blocked(pts[i], pts[j], walls=i != 0 or j != 1):
+                best[j] = nd
+                prev[j] = i
+    if 1 not in prev:
+        # No way round: walk up to the obstacle and stop, as at a wall.
+        n = max(1, int(dist(a, b) / 0.2))
+        last = a
+        for k in range(1, n + 1):
+            f = k / n
+            x = (a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f)
+            if any(o.gap(x) < radius for o in live):
+                break
+            last = x
+        return [(r2(last[0]), r2(last[1]))]
+    legs, j = [], 1
+    while j != 0:
+        legs.append(pts[j])
+        j = prev[j]
+    return legs[::-1]
 
 
 class Policy(Protocol):
@@ -301,6 +374,24 @@ class Encounter:
             u.cast = None
         self.emit("move", unit=u.id, **{"from": list(frm)}, to=list(to), duration_ms=dur)
 
+    def guarded_step_ok(self, u: Unit, to: Vec, target_id: str) -> bool:
+        """Would a move to ``to``, as it would really resolve (spot, route), be one
+        straight leg that never comes near a pool and ends in melee reach of
+        the target? (The harness's automatic follow takes no other step.)"""
+        tgt = self.units.get(target_id)
+        if tgt is None or not tgt.alive:
+            return False
+        spot = self.resolve_spot(u, to)
+        frm = (r2(u.pos[0]), r2(u.pos[1]))
+        if self.route(frm, spot, u.radius) != [spot]:
+            return False
+        n = max(1, int(dist(frm, spot) / 0.2))
+        for k in range(n + 1):
+            x = (frm[0] + (spot[0] - frm[0]) * k / n, frm[1] + (spot[1] - frm[1]) * k / n)
+            if self.in_pool(u, x):
+                return False
+        return dist(spot, tgt.pos) - u.radius - tgt.radius <= C.MELEE_RANGE
+
     def walk_ok(self, p: Vec) -> bool:
         """Is p on the floor (here: inside the arena circle)?"""
         return dist(p, (0.0, 0.0)) <= C.ARENA_RADIUS - 1.0 + 1e-9
@@ -327,71 +418,8 @@ class Encounter:
         return p
 
     def route(self, a: Vec, b: Vec, radius: float) -> list[Vec]:
-        """The legs of a walk from a to b around the obstacles: [b] when the
-        straight line is clear, else the shortest way through waypoints around
-        them (never through a wall). With no way round, it stops short of the
-        obstacle, as a move stops at a wall."""
-        # An obstacle it already overlaps (it was pushed there) doesn't hold it in.
-        live = [o for o in C.OBSTACLES if o.gap(a) >= radius]
-
-        def blocked(p: Vec, q: Vec, walls: bool) -> bool:
-            n = max(1, int(dist(p, q) / 0.2))
-            for i in range(1, n + 1):
-                f = i / n
-                x = (p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f)
-                if any(o.gap(x) < radius for o in live) or (walls and not self.walk_ok(x)):
-                    return True
-            return False
-
-        if not blocked(a, b, walls=False):
-            return [b]
-        nodes: list[Vec] = []
-        for o in live:
-            if o.half is not None:
-                m = radius + 0.25
-                pts = [(o.center[0] + sx * (o.half[0] + m), o.center[1] + sz * (o.half[1] + m))
-                       for sx in (-1, 1) for sz in (-1, 1)]
-            else:
-                ring = (o.radius + radius) / 0.92 + 0.1  # an octagon whose sides clear the circle
-                pts = [(o.center[0] + dx * ring, o.center[1] + dz * ring) for dx, dz in COMPASS16[::2]]
-            nodes += [(r2(p[0]), r2(p[1])) for p in pts
-                      if self.walk_ok(p) and C.in_obstacle(p, radius) is None]
-        # Dijkstra over start, waypoints and goal (index 0 = start, 1 = goal).
-        pts = [a, b] + nodes
-        best = {0: 0.0}
-        prev: dict[int, int] = {}
-        done: set[int] = set()
-        while True:
-            open_ = [(d, i) for i, d in best.items() if i not in done]
-            if not open_:
-                break
-            d, i = min(open_)
-            if i == 1:
-                break
-            done.add(i)
-            for j in range(1, len(pts)):
-                if j in done or j == i:
-                    continue
-                nd = d + dist(pts[i], pts[j])
-                if nd < best.get(j, float("inf")) - 1e-9 and not blocked(pts[i], pts[j], walls=i != 0 or j != 1):
-                    best[j] = nd
-                    prev[j] = i
-        if 1 not in prev:
-            # No way round: walk up to the obstacle and stop, as at a wall.
-            n = max(1, int(dist(a, b) / 0.2))
-            last = a
-            for k in range(1, n + 1):
-                f = k / n
-                x = (a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f)
-                if any(o.gap(x) < radius for o in live):
-                    break
-                last = x
-            return [(r2(last[0]), r2(last[1]))]
-        legs, j = [], 1
-        while j != 0:
-            legs.append(pts[j])
-            j = prev[j]
-        return legs[::-1]
+        """The legs of a walk from a to b around the obstacles (see route_path)."""
+        return route_path(a, b, radius, self.walk_ok)
 
     def stop_move(self, u: Unit) -> None:
         if u.move:
@@ -876,7 +904,42 @@ class Encounter:
         # Re-plan only when the target has moved on (re-planning every tick = jitter).
         if e.move and e.asked_to is not None and dist(e.asked_to, dest) <= 1.0:
             return
-        self.start_move(e, dest, foe=tgt)
+        spot = self.reachable_spot(e, dest, tgt)
+        if spot is None:
+            return  # no way to it from here (yet): stay put rather than walk into a dead end
+        self.start_move(e, spot, foe=tgt)
+        e.asked_to = dest  # what it was after, so a target that hasn't moved isn't re-planned
+
+    def resolve_spot(self, u: Unit, to: Vec, foe: Unit | None = None) -> Vec:
+        """Where a move to ``to`` would really end: on the floor, clear of
+        obstacles, at a free spot (as start_move resolves it)."""
+        to = self.clamp(to, u.radius)
+        to = (r2(to[0]), r2(to[1]))
+        return self.free_spot(u, to, foe)
+
+    def reachable_spot(self, e: Unit, dest: Vec, tgt: Unit) -> Vec | None:
+        """A spot in reach of ``tgt`` that ``e`` can actually walk to: the
+        straightforward one if its route gets there, else the nearest other
+        free spot in reach whose route does (an obstacle between them)."""
+        reach = C.MELEE_RANGE if e.kind == "boss" else ENEMY_REACH
+        first = self.resolve_spot(e, dest, tgt)
+        frm = (r2(e.pos[0]), r2(e.pos[1]))
+        if self.route(frm, first, e.radius)[-1] == first:
+            return first
+        cands = []
+        for depth in REACH_DEPTHS:
+            ring = tgt.radius + e.radius + depth * reach
+            for dx, dz in COMPASS16:
+                c = (r2(tgt.pos[0] + dx * ring), r2(tgt.pos[1] + dz * ring))
+                if e.kind == "boss" and self.leash(c) != c:
+                    continue
+                if self.clamp(c, e.radius) != c or self.taken(e, c):
+                    continue
+                cands.append(c)
+        for c in sorted(cands, key=lambda c: (dist(frm, c), c)):
+            if self.route(frm, c, e.radius)[-1] == c:
+                return c
+        return None
 
     def leash(self, spot: Vec) -> Vec:
         """Oruth never leaves his throne room (the arena circle)."""
@@ -989,14 +1052,19 @@ class Encounter:
             for act in pol.act(self.observe(p)):
                 ok = False
                 if act.type == "move" and act.to is not None:
+                    if act.keep_reach and not self.guarded_step_ok(p, act.to, act.keep_reach):
+                        continue
                     self.start_move(p, act.to)
+                    ok = True
+                elif act.type == "stop":
+                    self.stop_move(p)  # halt where it is: no new destination, no queued legs
                     ok = True
                 elif act.type == "cast" and act.ability:
                     if act.ability not in C.CLASSES[p.cls].abilities:
                         continue  # illegal action: silently ignored (and countable later)
                     ok = self.begin_cast(p, act.ability, act.target)
                 if ok and act.reason:
-                    label = act.ability and C.ABILITIES[act.ability].name or "Move"
+                    label = act.ability and C.ABILITIES[act.ability].name or ("Stop" if act.type == "stop" else "Move")
                     tname = self.units[act.target].name if act.target in self.units else None
                     self.emit("decision", unit=p.id,
                               action=f"{label} → {tname}" if tname else label, reason=act.reason)

@@ -19,7 +19,8 @@ import math
 
 from dataclasses import dataclass, field
 
-CONTENT_VERSION = "1.7.0"  # 1.7.0: melee reach 1.5 m and kicks 2.5 m (were 3 m and 4 m);
+CONTENT_VERSION = "1.8.0"  # 1.8.0: affix texts state mechanics only (no "stagger kills", "spread out")
+# 1.7.0: melee reach 1.5 m and kicks 2.5 m (were 3 m and 4 m);
 # the entrance corridor joins its room across its full width (it was blocked off-centre);
 # the throne and the rooms' pillars are solid (moves route around them)
 
@@ -360,14 +361,14 @@ AFFIXES: dict[str, Affix] = {a.id: a for a in (
     Affix("restless_graves", "Restless Graves",
           "When an undead enemy other than Oruth dies, it leaves a Restless Grave on the ground for 12 sec. "
           "The grave heals other undead standing in it by 5% of their health every second, and hurts players "
-          "standing in it. Fight enemies away from graves."),
+          "standing in it."),
     Affix("marrowburst", "Marrowburst",
           "When an undead enemy other than Oruth dies, every player gains a stack of Marrow Shards: shadow "
-          "damage every second for 4 sec, for each stack. Many kills at once stack it high: stagger kills."),
+          "damage every second for 4 sec, for each stack."),
     Affix("hollow_tyrant", "Hollow Tyrant",
           "Oruth Summons the Restless three times (at 80%, 50% and 25% health), Desecrates four players "
           "instead of three, and every ~24 sec brands a player with a Grave Mark: after 6 sec it detonates, "
-          "hitting the marked player and, much harder, every ally within 6 m of them. Spread out."),
+          "hitting the marked player and, much harder, every ally within 6 m of them."),
 )}
 
 

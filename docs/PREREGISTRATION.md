@@ -31,7 +31,7 @@ The protocol file is `protocol/v1.json`.
 | --- | --- |
 | Dungeon | The Hollow Vault: two trash packs, then Oruth the Unburied, on a 4:15 timer |
 | Ranked tier | +10 (0.98x enemy health, 1.15x damage, Restless Graves, Marrowburst, Hollow Tyrant) |
-| Knowledge | Blind: no encounter guide and no boss timers. The party knows its own abilities, the map, the enemies' names, health and pack makeup, the affixes (as the game shows them), and how Oruth moves |
+| Knowledge | Blind to the mechanics and timings of Oruth and the trash casters, beyond what the disclosed affixes say: no encounter guide, no ability list, no boss timers. The party knows its own abilities, the map and its obstacles, the enemies' names, health and pack makeup, how Oruth moves, and the affixes as the game shows them (Hollow Tyrant names Oruth's summon thresholds, 80/50/25%, and Grave Mark's ~24 s cadence) |
 | Groups per model | 6, each up to 5 pulls; a group ends at its first timed clear |
 | Reasoning effort | medium, for every model |
 | Calls | every 4 s of game time and on triggers; at most 300 calls per agent per pull; 8,000 output tokens per call |
@@ -50,7 +50,7 @@ Also played, none of them ranked:
 - **Normal** (sanity check): Haiku, Luna and the commander, 3 groups each.
 - **Effort sweeps**: Haiku and Luna at low and high effort, 3 groups each.
 
-Code versions: harness 1.0.0 (1.0.0-rc.6 until the review is done), sim 0.10.0, content 1.7.0. Every replay records
+Code versions: harness 1.0.0 (1.0.0-rc.7 until the review is done), sim 0.11.0, content 1.8.0. Every replay records
 them, and the campaign refuses to mix results from different versions.
 
 ## Metrics
@@ -72,6 +72,31 @@ and `campaign.py`.
   measures talk and notes together: with memory off there is neither.
 - **Clear rate** (share of groups with a timed clear), **pulls to clear**, and
   **cost per group** (list prices at the time of the run, thinking included).
+
+## What the harness does for the agents
+
+Agents give standing orders; between calls the harness carries them out the
+same way for every model. That includes some movement:
+
+- A move walks in a straight line and stops at a wall. It goes around a solid
+  obstacle (the throne, the rooms' pillars) on its own, and a spot asked for
+  inside one is moved just outside it. A spot taken by another body shifts to
+  the nearest free one (for a melee spot, one still in reach of that enemy).
+- "next" walks to the next waypoint of the route toward the boss; "safe" steps
+  to the nearest spot clear of the pools known to hurt, keeping the target of
+  the first attack or heal in range when it can, by a route that stays clear
+  of other pools (else the nearest clear spot anyway); "stop" halts.
+- Stay in reach: a melee character that has been in reach of the target of its
+  first melee ability, since its last ordered move and since it picked that
+  target, follows that target if it drifts up to 3 m away, in a straight step
+  that never enters or crosses a pool and ends in reach. It never closes a gap
+  the agent opened, never re-targets, and never goes round an obstacle. The
+  rules text tells the agents.
+- Interrupts in the priority list fire 0.35 s after an interruptible cast
+  starts, only while there's one to stop.
+
+Choosing targets, positioning the party, and deciding when to disengage are
+the agents' own.
 
 ## Analysis, fixed in advance
 

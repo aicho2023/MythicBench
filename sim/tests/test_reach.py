@@ -4,14 +4,14 @@ reflexes that make it playable at a few calls per second of game time."""
 from __future__ import annotations
 
 from mythicsim import content as C
-from mythicsim.engine import Encounter, dist
+from mythicsim.engine import Action, Encounter, dist
 from mythicsim.llm.policy import LLMPolicy, Standing
 from mythicsim.llm.prompt import Order
 
 
 def _policy() -> LLMPolicy:
     p = LLMPolicy.__new__(LLMPolicy)
-    p.uid, p.engaged = "brask", False
+    p.uid, p.contact = "brask", None
     return p
 
 
@@ -37,15 +37,15 @@ def test_a_melee_character_follows_a_target_that_drifts():
     p, st = _policy(), _standing(("ravage", "w1"))
     obs = _obs((0.0, 0.0), (1.8, 0.0))  # in reach: now engaged
     assert gap((0.0, 0.0), (1.8, 0.0)) <= C.MELEE_RANGE
-    assert p.keep_in_reach(obs, st, _units(obs)) is None and p.engaged
+    assert p.keep_in_reach(obs, st, _units(obs)) is None and p.contact == "w1"
     obs = _obs((0.0, 0.0), (4.0, 0.0))  # it stepped away
     step = p.keep_in_reach(obs, st, _units(obs))
-    assert step is not None and gap(step, (4.0, 0.0)) <= C.MELEE_RANGE
+    assert step is not None and step[1] == "w1" and gap(step[0], (4.0, 0.0)) <= C.MELEE_RANGE
 
 
 def test_it_never_follows_into_a_pool_or_too_far():
     p, st = _policy(), _standing(("ravage", "w1"))
-    p.engaged = True
+    p.contact = "w1"
     pool = {"id": "g", "kind": "desecrate", "pos": [3.0, 0.0], "radius": 2.2, "armed": True}
     obs = _obs((0.0, 0.0), (4.0, 0.0), [pool])
     assert p.keep_in_reach(obs, st, _units(obs)) is None
@@ -61,11 +61,11 @@ def test_a_deliberate_step_away_is_never_undone():
 
 def test_it_follows_the_target_it_hits_not_a_standing_kick():
     p, st = _policy(), _standing(("throat_punch", "w2"), ("ravage", "w1"))
-    p.engaged = True
+    p.contact = "w1"
     obs = _obs((0.0, 0.0), (4.0, 0.0))
     obs["enemies"].append({"id": "w2", "role": "add", "pos": [-2.5, 0.0], "alive": True})
     step = p.keep_in_reach(obs, st, _units(obs))
-    assert step is not None and gap(step, (4.0, 0.0)) <= C.MELEE_RANGE
+    assert step is not None and step[1] == "w1" and gap(step[0], (4.0, 0.0)) <= C.MELEE_RANGE
 
 
 def test_safe_keeps_the_reach_of_the_attack_not_of_a_kick():
@@ -104,3 +104,79 @@ def test_oruth_reaches_his_target_even_when_its_side_is_crowded():
     spot = boss.move.to if boss.move else boss.pos
     assert enc.edge_dist(boss, rook) > C.MELEE_RANGE  # he had to walk
     assert dist(spot, rook.pos) - boss.radius - rook.radius <= C.MELEE_RANGE
+
+
+def test_contact_with_one_enemy_never_authorizes_following_another():
+    p = _policy()
+    obs = _obs((0.0, 0.0), (1.8, 0.0))
+    obs["enemies"].append({"id": "w2", "role": "add", "pos": [-4.0, 0.0], "alive": True})
+    assert p.keep_in_reach(obs, _standing(("ravage", "w1")), _units(obs)) is None and p.contact == "w1"
+    # Only the priority changes, to an enemy it has never been in reach of: it stays put.
+    assert p.keep_in_reach(obs, _standing(("ravage", "w2")), _units(obs)) is None
+    assert p.contact is None
+
+
+def test_follow_never_goes_round_an_obstacle():
+    """Straight only: a step that would detour round the throne is the agent's call."""
+    p, st = _policy(), _standing(("ravage", "w1"))
+    p.contact = "w1"
+    obs = _obs((-4.2, -11.0), (-1.0, -8.0))  # the throne's corner between them
+    obs["arena_radius"] = C.ARENA_RADIUS
+    assert p.keep_in_reach(obs, st, _units(obs)) is None
+
+
+def _enc():
+    return Encounter(3, {m.id: _Stand() for m in C.PARTY}, "test", "normal")
+
+
+def _pool(enc, pos, r=2.2):
+    enc.ground["d1"] = {"id": "d1", "kind": "desecrate", "pos": list(pos), "radius": r, "armed_at": 0}
+
+
+def test_a_guarded_step_is_taken_only_straight_clear_and_in_reach():
+    enc = _enc()
+    brask, boss = enc.units["brask"], enc.boss
+    boss.pos = (0.0, 0.0)
+    brask.pos = (0.0, 5.0)
+    near = (0.0, boss.radius + C.PLAYER_RADIUS + 0.5)
+    assert enc.guarded_step_ok(brask, near, "oruth")
+    _pool(enc, (1.5, 3.6))  # the straight step passes through it
+    assert not enc.guarded_step_ok(brask, near, "oruth")
+    enc.ground.clear()
+    assert not enc.guarded_step_ok(brask, (0.0, 4.6), "oruth")  # clear, but not in reach
+    brask.pos = (-4.6, -11.0)  # the throne between it and the spot: a detour
+    assert not enc.guarded_step_ok(brask, (4.6, -11.0), "oruth")
+
+
+def test_stop_halts_where_it_is_with_no_new_destination():
+    enc = _enc()
+    brask, kit = enc.units["brask"], enc.units["kit"]
+    brask.pos, kit.pos = (0.0, 6.0), (0.0, 8.0)
+    enc.start_move(brask, (0.0, 12.0))  # walks through where Kit stands
+    for _ in range(4):
+        enc.t += 100
+        brask.pos = brask.move.pos_at(enc.t)
+
+    class StopNow:
+        def act(self, obs):
+            return [Action("stop")] if obs["self"]["id"] == "brask" else []
+    enc.policies = {m.id: StopNow() for m in C.PARTY}
+    here = brask.pos
+    n = len(enc.events)
+    enc.run_policies()
+    assert brask.move is None and brask.path == [] and dist(brask.pos, here) < 0.05
+    assert not any(e["type"] == "move" and dist(e["to"], here) > 0.05 for e in enc.events[n:])
+
+
+def test_safe_needs_the_real_route_to_stay_clear():
+    from mythicsim.dodge import find_safe_spot
+    pool = [{"id": "g", "kind": "desecrate", "pos": [0.0, 0.0], "radius": 2.0, "armed": True},
+            {"id": "h", "kind": "desecrate", "pos": [6.0, 4.0], "radius": 1.5, "armed": True}]
+    me = (0.0, 1.0)
+    straight = find_safe_spot(pool, C.ARENA_RADIUS, me, me, avoid_paths=True)
+    assert straight is not None
+
+    def detour(a, b):  # pretend an obstacle sends every walk past the second pool
+        return [(6.0, 4.0), b]
+    other = find_safe_spot(pool, C.ARENA_RADIUS, me, me, avoid_paths=True, path=detour)
+    assert other is None

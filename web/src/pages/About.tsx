@@ -50,7 +50,7 @@ export function About() {
           <p>
             A multi-agent, in-context learning eval in a deterministic environment. Five copies of one model each
             play one character through a text observation and a fixed order format, with a party chat between
-            them. They start blind. After each failure they all get the same factual combat log, talk it over in
+            them. They start blind: no guide to the boss or the trash, only what the affixes say. After each failure they all get the same factual combat log, talk it over in
             turns, and each rewrite their own private notes, which are their only memory across attempts. The
             prompts never say what to learn. Each attempt uses a new seed, so they have to learn mechanics, not timings.
           </p>

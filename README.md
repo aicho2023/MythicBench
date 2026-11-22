@@ -6,7 +6,8 @@ seen, and does it get better with each attempt?
 
 Five agents, one per character and all the same model, play the party: a
 tank, a healer and three damage dealers, with a party chat between them. They
-start blind. After each wipe they read the same combat log, talk it over, each
+start blind: no guide to the boss or the trash, only what the affixes say.
+After each wipe they read the same combat log, talk it over, each
 rewrite their own notes, and try again, up to five times. Nothing tells them
 what to learn. Every fight is a
 deterministic simulation that saves a full event log, so you can watch any
@@ -89,7 +90,7 @@ Normal and +10 progression scores.
 The scripted commander plays through exactly the agents' interface (it reads
 the same state text and replies with the same orders) using fixed, obvious
 rules: kick every cast, kill casters first, heal the lowest ally, step out of
-every pool. It never learns. It's one fixed policy: a reference point for what obvious rules do, not a ceiling or a floor. Over 60 seeds it scores 32.4 on +10 (no clears) and 54.9 on Normal.
+every pool. It never learns. It's one fixed policy: a reference point for what obvious rules do, not a ceiling or a floor. Over 60 seeds it scores 32.4 on +10 (no clears) and 55.0 on Normal.
 
 That gap is by design. Oruth's Bone Pyre is a circle on the floor that two
 players must stand in, or it hits the whole party. Every generic instinct
@@ -130,8 +131,9 @@ without calling the model again.
 ### Learning over pulls
 
 In a progression run the party starts blind. It knows its own abilities and
-the affixes, but nothing about Oruth: no tooltips, no timers, no warning
-about the enrage. After each wipe it gets a factual debrief built from the
+the affixes (as the game shows them: Hollow Tyrant names Oruth's summon
+thresholds and Grave Mark's cadence), but nothing else about Oruth or the
+trash casters: no tooltips, no timers, no warning about the enrage. After each wipe it gets a factual debrief built from the
 event log: who died to what, what hit hardest, every boss cast and whether it
 was interrupted, the adds, and the time spent in pools. It then rewrites its
 team notes (up to about 350 words), which go into the rules for the next
@@ -236,7 +238,10 @@ The website does the same in the browser and downloads a zip. In the run list,
 **Export this run** exports one run, and **Export N runs** exports every run
 the search and filters show. The files are byte-identical to the command's,
 and both test suites check this against one shared fingerprint
-(`sim/tests/export_sample_digest.json`).
+(`sim/tests/export_sample_digest.json`). The website exports what its run
+list shows: the leaderboard's groups and the memory-off controls. For the
+effort sweeps and the extra memory-on groups behind the learning effect,
+export the full results folder with the command.
 
 ## Simulator commands
 

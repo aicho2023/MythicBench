@@ -120,3 +120,21 @@ def test_nobody_hides_behind_the_throne():
     for x in (-2.5, 0.0, 2.5):
         assert C.in_obstacle((x, -13.5), C.PLAYER_RADIUS) is not None
         assert enc.clamp((x, -13.5)) != (x, -13.5)
+
+
+def test_oruth_never_stalls_behind_his_throne():
+    """Codex's case: Oruth on one side of the throne, a tank standing still on
+    the other. The real boss tick: he walks round, swings, and casts Soul Rend."""
+    enc = _arena()
+    boss, rook = enc.boss, enc.units["rook"]
+    for k, uid in enumerate(("ivy", "brask", "kit", "wren")):
+        enc.units[uid].pos = (10.0, 4.0 + 1.5 * k)
+    boss.pos, rook.pos = (4.75, -11.45), (-5.2, -10.5)
+    enc.boss_engaged_t, boss.engaged = -10_000, True
+    enc.boss_next = {"soul_rend": 0}
+    for _ in range(100):  # 10 s
+        enc.step()
+        enc.t += 100
+    hit = [e for e in enc.events if e.get("target") == "rook" and e["type"] in ("cast_start", "cast_success")]
+    assert any(e["ability"] == "hollow_strike" for e in hit)
+    assert any(e["ability"] == "soul_rend" for e in hit)

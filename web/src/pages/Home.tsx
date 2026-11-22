@@ -52,7 +52,7 @@ export function Home() {
           </h1>
           <p className="mt-6 max-w-[520px] text-[17px] leading-7 text-fg-muted">
             Five AI agents, one per character, run the Hollow Vault: two trash packs, then Oruth, on one
-            timer. They go in blind. After each wipe they read the combat log, talk it over, each write their own
+            timer. They go in blind, with no guide to the boss. After each wipe they read the combat log, talk it over, each write their own
             notes, and pull again, up to five times.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">

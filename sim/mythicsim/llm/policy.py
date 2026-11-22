@@ -28,7 +28,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
 from .. import content as C
-from ..engine import Action, dist
+from ..engine import Action, dist, route_path
 from ..dodge import crosses_pool, find_safe_spot, hazards, unsafe, walk_check
 from .clients import ChatClient, ClientError
 from .prompt import CHAT_COOLDOWN_MS, POOL_HIT_PAD, Order, Parsed, parse_reply, render_state, system_prompt
@@ -372,9 +372,10 @@ class LLMPolicy:
         self.uid = unit_id
         self.party = party
         self.name = f"llm:{party.client.spec}"
-        # In melee with its target since its last ordered move: then it keeps
-        # in reach of a target that drifts a little (see keep_in_reach).
-        self.engaged = False
+        # The enemy it has been in melee reach of since its last ordered move
+        # (and since it last picked a target): that one it follows a little
+        # if it drifts (see keep_in_reach).
+        self.contact: str | None = None
 
     def act(self, obs: dict) -> list[Action]:
         me = obs["self"]
@@ -391,8 +392,8 @@ class LLMPolicy:
         if st.order.move_to and not st.move_done:
             st.move_done = True
             if st.order.move_to == "stop":
-                if me["moving"]:  # halt where it is now
-                    out.append(Action("move", to=tuple(me["pos"]), reason=self.say(st)))
+                if me["moving"]:  # halt where it is now: no new destination, no queued legs
+                    out.append(Action("stop", reason=self.say(st)))
                 moving = False
                 dest = None
             else:
@@ -403,14 +404,16 @@ class LLMPolicy:
             if dest is not None and dist(me["pos"], dest) > 0.3:
                 out.append(Action("move", to=dest, reason=self.say(st)))
                 moving = True
-            self.engaged = False  # an ordered move (stop included) is the agent placing itself
+            self.contact = None  # an ordered move (stop included) is the agent placing itself
         if me["casting"]:
             return out
         units = {u["id"]: u for u in obs["party"] + obs["enemies"]}
         if not moving:
             step = self.keep_in_reach(obs, st, units)
             if step is not None:
-                out.append(Action("move", to=step))
+                # Guarded: the sim takes it only if, as it really resolves, it's one
+                # straight leg clear of pools ending in reach (else it stays put).
+                out.append(Action("move", to=step[0], keep_reach=step[1]))
                 moving = True
         for ab_id, tgt_id in st.order.priority or []:
             if self.usable(ab_id, tgt_id, me, units, moving):
@@ -421,10 +424,12 @@ class LLMPolicy:
     def keep_in_reach(self, obs: dict, st: Standing, units: dict):
         """A melee character fighting its target follows it when it drifts a
         little, as any player would: if the first melee entry's target is out
-        of melee reach but within C.FOLLOW_M, step back into reach. Only while
-        engaged (it has been in melee reach since its last ordered move, so a
-        deliberate step away is never undone), and never into or through a pool.
-        Returns where to step, or None."""
+        of melee reach but within C.FOLLOW_M, step back into reach. Only for
+        the target it has been in reach of since its last ordered move and
+        since it picked that target (so a deliberate step away is never undone,
+        and a new target is the agent's to reach), only straight (never round
+        an obstacle), and never into or through a pool; the sim re-checks the
+        step as it really resolves. Returns (where to step, target id) or None."""
         me = obs["self"]
         enemies = {u["id"] for u in obs["enemies"]}
         melee = [(a, t) for a, t in st.order.priority or []
@@ -436,21 +441,33 @@ class LLMPolicy:
         tgt = units[tgt_id]
         if not tgt["alive"]:
             return None
+        if self.contact is not None and self.contact != tgt_id:
+            self.contact = None  # a new target: it has to reach this one first
         radius = C.BOSS.radius if tgt["role"] == "boss" else C.ADD.radius
         pos, tp = tuple(me["pos"]), tuple(tgt["pos"])
         d = dist(pos, tp)
         gap = d - PLAYER_RADIUS - radius
         if gap <= C.MELEE_RANGE:
-            self.engaged = True
+            self.contact = tgt_id
             return None
-        if not self.engaged or gap > C.FOLLOW_M or d < 1e-6:
+        if self.contact != tgt_id or gap > C.FOLLOW_M or d < 1e-6:
             return None
         c = radius + PLAYER_RADIUS + C.MELEE_RANGE * 0.5
         dest = (round(tp[0] + (pos[0] - tp[0]) / d * c, 2), round(tp[1] + (pos[1] - tp[1]) / d * c, 2))
         g = obs["ground"]
         if unsafe(dest, g, 0.3) or crosses_pool(pos, dest, g):
             return None
-        return dest
+        if route_path(pos, dest, PLAYER_RADIUS, self.walk_fn(obs)) != [dest]:
+            return None  # round an obstacle: that's a choice for the agent
+        return dest, tgt_id
+
+    @staticmethod
+    def walk_fn(obs: dict):
+        """The floor, as the sim walks it (for planning routes round obstacles)."""
+        if obs.get("dungeon"):
+            return C.walkable
+        lim = C.ARENA_RADIUS - 1.0 + 1e-9
+        return lambda p: dist(p, (0.0, 0.0)) <= lim
 
     def next_waypoint(self, obs: dict):
         """'next': the next route waypoint toward the boss (a walking shortcut, like 'safe')."""
@@ -484,9 +501,13 @@ class LLMPolicy:
         if not unsafe(pos, obs["ground"], 0.3) and in_reach:
             return None
         g, r, inside = obs["ground"], obs["arena_radius"], walk_check(obs)
+        walk = self.walk_fn(obs)
+
+        def path(a, b):  # the route the sim will really walk (round obstacles)
+            return route_path(a, b, PLAYER_RADIUS, walk)
         # Prefer: in range and a clean path; then a clean path; then just clear of pools.
-        return (find_safe_spot(g, r, pos, pos, reach, avoid_paths=True, inside=inside)
-                or find_safe_spot(g, r, pos, pos, avoid_paths=True, inside=inside)
+        return (find_safe_spot(g, r, pos, pos, reach, avoid_paths=True, inside=inside, path=path)
+                or find_safe_spot(g, r, pos, pos, avoid_paths=True, inside=inside, path=path)
                 or find_safe_spot(g, r, pos, pos, inside=inside))
 
     def say(self, st: Standing) -> str | None:

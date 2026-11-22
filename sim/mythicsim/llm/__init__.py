@@ -65,7 +65,11 @@ Pieces:
 #          the rules describe the solid throne and pillars (sim 0.10.0); and they
 #          no longer give each character a "usual spot" (a leftover from the
 #          boss-only mode that every party copied as its boss-fight layout)
-HARNESS_VERSION = "1.0.0-rc.6"
+#   1.0.0-rc.7 fifth review: stay-in-reach follows only the target it's in contact
+#          with, only straight, and the sim re-checks the step as it really resolves
+#          (route, pools, reach); "safe" judges the route it will really walk; "stop"
+#          is a real halt; the rules and affix texts state mechanics, not tactics
+HARNESS_VERSION = "1.0.0-rc.7"
 
 
 def prompt_hash(knowledge: str = "full", tier: str = "plus10", mode: str = "boss") -> str:

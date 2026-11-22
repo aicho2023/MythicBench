@@ -120,6 +120,16 @@ never lands on the throne. The entrance corridor also now joins its room
 across its full width (it was a wall off-centre, and Sol's melee got stuck
 there in every pull of the first reach check).
 
+Fifth review (harness 1.0.0-rc.7, sim 0.11.0, content 1.8.0): a chase checks
+its whole route before committing (`reachable_spot`: another spot in reach if
+an obstacle blocks the first; Oruth had stalled behind his throne with Soul
+Rend pending); stay-in-reach follows only the target it's in contact with
+(`LLMPolicy.contact`), only straight, and the sim re-checks the step as it
+really resolves (`Action.keep_reach`, `guarded_step_ok`); "safe" judges the
+route it will really walk (`route_path`, shared by the engine and the
+policy); "stop" is a real halt (`Action("stop")`); rules and affix texts
+state mechanics, not tactics. Commander: 32.4 on +10, 55.0 on Normal.
+
 The scripted bots (expert, competent, sloppy) are gone. Their dodge planner
 lives on in `dodge.py` (the "safe" move); tests and the viewer's reference
 replays use the scripted commander instead.

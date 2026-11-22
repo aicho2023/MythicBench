@@ -38,7 +38,7 @@ def walk_check(obs: dict):
 
 
 def find_safe_spot(ground: list[dict], arena_radius: float, near: tuple, anchor: tuple,
-                   reach=None, avoid_paths: bool = False, inside=None) -> tuple | None:
+                   reach=None, avoid_paths: bool = False, inside=None, path=None) -> tuple | None:
     """Nearest spot clear of harmful pools (the "safe" move's planner).
 
     ``reach`` = (target_pos, target_radius, range): only consider spots from
@@ -46,6 +46,8 @@ def find_safe_spot(ground: list[dict], arena_radius: float, near: tuple, anchor:
     ``avoid_paths``: also reject spots whose straight path from ``near`` crosses
     another armed pool (the pool being escaped from is ignored).
     ``inside``: where a spot may be (default: within the boss arena).
+    ``path(a, b)``: the legs the walk there really takes (round obstacles);
+    with ``avoid_paths``, every leg must stay clear, and it must get there.
     """
     ground = hazards(ground)
     escaping = [g for g in ground if dist(near, g["pos"]) <= g["radius"] + 0.6]
@@ -60,8 +62,13 @@ def find_safe_spot(ground: list[dict], arena_radius: float, near: tuple, anchor:
                 continue
             if reach and dist(cand, reach[0]) - C.PLAYER_RADIUS - reach[1] > reach[2]:
                 continue
-            if avoid_paths and crosses_pool(near, cand, others):
-                continue
+            if avoid_paths:
+                legs = path(near, cand) if path else [cand]
+                if dist(legs[-1], cand) > 0.05:
+                    continue  # it wouldn't get there
+                pts = [near, *legs]
+                if any(crosses_pool(a, b, others) for a, b in zip(pts, pts[1:])):
+                    continue
             # Shortest escape, near where we want to be; among equally good
             # spots, prefer the middle of the room (stay with the group,
             # never get pinned against the wall). Without this tie-break the

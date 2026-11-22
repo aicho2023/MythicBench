@@ -73,6 +73,11 @@ class DungeonRun(Encounter):
     def walk_ok(self, p):
         return C.walkable(p)
 
+    def resolve_spot(self, u, to, foe=None):
+        if u.kind == "player":  # as start_move: a player's move stops at a wall
+            to = self.straight_line_reach(u.pos, self.clamp(to, u.radius))
+        return super().resolve_spot(u, to, foe)
+
     def start_move(self, u, to, *, exact=False, foe=None):
         # Walls are solid: a player's move goes in a straight line and stops at
         # the last walkable point before a wall (the "next" route never needs to).
