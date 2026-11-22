@@ -33,7 +33,8 @@ function setup(r: CatalogRun) {
 function outcome(r: CatalogRun) {
   if (r.mode === 'progression') {
     const eps = [...new Set(r.items.map((i) => i.episode ?? 0))]
-    const cleared = eps.filter((e) => r.items.some((i) => i.episode === e && i.outcome === 'victory')).length
+    // A clear is a timed clear (a kill after the timer is a depleted key).
+    const cleared = eps.filter((e) => r.items.some((i) => i.episode === e && i.outcome === 'victory' && i.in_time !== false)).length
     return { text: cleared ? `Cleared ${cleared} of ${eps.length}` : eps.length === 1 ? 'Not cleared' : `None of ${eps.length} cleared`, good: cleared > 0 }
   }
   const wins = r.items.filter((i) => i.outcome === 'victory').length

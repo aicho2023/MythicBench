@@ -274,10 +274,26 @@ export class ReplayEngine {
   }
 
   /** Interesting moments for the timeline (deaths, raises, big misses). */
-  markers(): { t: number; kind: 'death' | 'raise' | 'missed' | 'kick' | 'end' | 'pull'; label: string }[] {
+  markers(): { t: number; kind: 'death' | 'raise' | 'missed' | 'kick' | 'end' | 'pull' | 'pool' | 'mark'; label: string; unit?: string }[] {
     const out: ReturnType<ReplayEngine['markers']> = []
     const names: Record<string, string> = Object.fromEntries(this.replay.units.map((u) => [u.id, u.name]))
+    const players = new Set(this.replay.units.filter((u) => u.kind === 'player').map((u) => u.id))
+    const lastPoolHit: Record<string, number> = {}
+    const markHits: Record<number, string[]> = {}
     for (const e of this.replay.events) {
+      // Standing in a pool: one marker per stand (a gap of 2 s starts a new one).
+      if (e.type === 'damage' && POOL_ABILITIES.has(e.ability) && players.has(e.target)) {
+        if ((lastPoolHit[e.target] ?? -1e9) < e.t - 2000) {
+          out.push({ t: e.t, kind: 'pool', label: `${names[e.target]} stood in ${this.replay.abilities[e.ability]?.name ?? e.ability}`, unit: e.target })
+        }
+        lastPoolHit[e.target] = e.t
+        continue
+      }
+      if (e.type === 'damage' && e.ability === 'grave_mark' && players.has(e.target)) {
+        // A detonation: the marked player is hit first, then every ally in range.
+        ;(markHits[e.t] ??= []).push(e.target)
+        continue
+      }
       if (e.type === 'death' && names[e.unit]) out.push({ t: e.t, kind: 'death', label: `${names[e.unit]} died` })
       else if (e.type === 'cast_start' && e.ability === 'raise_dead') out.push({ t: e.t, kind: 'raise', label: 'Summon the Restless' })
       else if (e.type === 'cast_success' && e.ability === 'requiem_of_bones') out.push({ t: e.t, kind: 'missed', label: 'Requiem not interrupted!' })
@@ -287,6 +303,12 @@ export class ReplayEngine {
         out.push({ t: e.t, kind: 'pull', label: e.pack === 'boss' ? 'Mortisar pulled' : `${pack?.name ?? e.pack} pulled` })
       }
     }
-    return out
+    for (const [t, [marked, ...hit]] of Object.entries(markHits)) {
+      if (hit.length) out.push({ t: Number(t), kind: 'mark', label: `Grave Mark on ${names[marked]} hit ${hit.map((u) => names[u]).join(', ')}`, unit: marked })
+    }
+    return out.sort((a, b) => a.t - b.t)
   }
 }
+
+/** Ground effects that hurt players standing in them. */
+const POOL_ABILITIES = new Set(['desecrate', 'restless_grave'])

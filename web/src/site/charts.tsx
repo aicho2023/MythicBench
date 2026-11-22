@@ -44,13 +44,15 @@ const clamp100 = (x: number) => Math.max(0, Math.min(100, x))
 // ---------------------------------------------------------------------------
 // The signature: a 95% CI as a thin bar on a 0 to 100 track
 // ---------------------------------------------------------------------------
-export function CIBar({ mean, ci, accent = false, width = 120 }: { mean: number | null; ci?: CI; accent?: boolean; width?: number }) {
+export function CIBar({ mean, ci, accent = false, width = 120, dots = [] }: { mean: number | null; ci?: CI; accent?: boolean; width?: number; dots?: number[] }) {
   if (mean == null) return <span className="text-fg-faint">–</span>
   const x = (v: number) => (clamp100(v) / 100) * width
   const [lo, hi] = ci ?? [mean, mean]
   return (
     <svg width={width} height={12} className="block shrink-0" aria-hidden>
       <rect x={0} y={5} width={width} height={2} rx={1} fill="rgba(255,255,255,0.08)" />
+      {/* one dot per episode: the raw data behind the interval */}
+      {dots.map((d, i) => <circle key={i} cx={x(d)} cy={6} r={1.6} fill="rgba(237,237,239,0.55)" />)}
       <rect x={x(lo)} y={4} width={Math.max(2, x(hi) - x(lo))} height={4} rx={2} fill={accent ? 'rgba(230,211,163,0.45)' : 'rgba(237,237,239,0.28)'} />
       <rect x={x(mean) - 1} y={1} width={2} height={10} rx={1} fill={accent ? '#e6d3a3' : '#ededef'} />
     </svg>

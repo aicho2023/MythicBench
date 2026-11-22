@@ -303,3 +303,14 @@ def test_prompt_cache_key_follows_the_rules_text():
     from mythicsim.llm.clients import _cache_key
     a, b = system_prompt("blind"), system_prompt("blind", notes="kick the requiem", pull=2)
     assert _cache_key(a) == _cache_key(a) != _cache_key(b)
+
+
+def test_recordings_can_be_read_gzipped(tmp_path):
+    import gzip
+    path = tmp_path / "c.jsonl"
+    live = CachedClient(MockClient(), path)
+    first = live.complete("rules", "state", tag="t")
+    (tmp_path / "c.jsonl.gz").write_bytes(gzip.compress(path.read_bytes()))
+    path.unlink()
+    again = CachedClient(MockClient(), path, offline=True).complete("rules", "state", tag="t")
+    assert again.cached and again.text == first.text

@@ -230,16 +230,29 @@ Grokka → Nyx → Bao → Bramble. Full WoW-analogy table in `README.md`.
 
 - `sim/mythicsim/llm/`: `clients.py` (stdlib HTTP for Anthropic/OpenAI, a
   `mock` model, and `CachedClient`, which records replies to
-  `runs/cache/*.jsonl` so runs replay exactly; `--offline` makes a missing
-  recording an error), `prompt.py` (rules → system prompt, obs → state text,
-  strict reply parsing), `policy.py` (`PartyBrain`: one model drives all five
-  characters through standing orders).
-- **Call cadence:**
-  - every 4 s of game time (`ROUTINE_MS`), plus triggers: a cast start, new
-    pools, adds, a pack pulled or cleared, an ally under 40%, a death;
-  - a 0.5 s minimum gap, except for casts;
-  - capped at 300 calls per fight.
-  The game is paused while the model thinks.
+  `runs/cache/*.jsonl` (a campaign: `runs/cache/<protocol>/`) so runs replay
+  exactly; each recording is tagged by episode, pull, agent and call number,
+  so identical prompts in different episodes are sampled separately;
+  `--offline` makes a missing recording a fatal error), `prompt.py` (rules per
+  character → system prompt, obs → that character's state text with party
+  chat, strict reply parsing), `policy.py` (`Party`: five `Agent`s, one per
+  character, all the same model, each with its own rules, notes and orders),
+  `progress.py` (pulls; between pulls a party talk in turns until everyone is
+  ready, then private notes per agent; no guidance on what to learn).
+- **Call cadence (harness 0.9.0), per agent:**
+  - every 4 s of game time (`ROUTINE_MS`), plus triggers routed to who they
+    concern: kickable casts to the four interrupters, other boss casts to
+    everyone, a trash cast to its target and the healer, new pools to anyone
+    within 4 m, adds/pulls/deaths to everyone, low health to that character
+    and the healer, Grave Mark to the marked and those near them;
+  - a 0.5 s minimum gap, except for casts; same-tick calls run in parallel;
+  - capped at 300 calls per agent per pull.
+  The game is paused while the agents think.
+- **Audit fixes (Nov 22):** Student-t intervals; only timed kills are clears
+  (an over-time kill scores 70 and the episode goes on); learning effect =
+  memory on minus memory off on the same seeds; versions in the campaign key;
+  incomplete cells unranked; a paid campaign refuses uncommitted code
+  (`--allow-dirty` for pilots); no OpenAI JSON mode (one reply contract).
 - **Equal settings:**
   - an 8,000-token output cap per call (`MAX_OUTPUT_TOKENS`);
   - one effort for every model (`protocol/v1.json`);
@@ -381,7 +394,8 @@ Grokka → Nyx → Bao → Bramble. Full WoW-analogy table in `README.md`.
    - First real runs (Anthropic + OpenAI); read the replays, then iterate on
      the prompt and cadence.
    - Multi-seed evaluation with confidence intervals; held-out seeds.
-   - Compare one model controlling the party vs. five separate copies.
+   - Done (0.9.0): five separate agents with party chat replaced the single
+     commander.
    - Track illegal/invalid actions as a metric.
 4. **Phase 3:** expert trajectory generation → SFT a small open model (HF
    Transformers + TRL) → preference optimization / RL.

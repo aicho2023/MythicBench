@@ -6,6 +6,9 @@ export type CI = [number, number] | null
 
 export interface PullResult {
   pull: number; seed: number; score: number; outcome: string; duration_s: number
+  /** a kill only counts as a clear when it's within the timer */
+  in_time?: boolean
+  deaths?: number; kicks?: [number, number]; avoidable?: number
   /** path inside the dataset, e.g. replays/<model>/<tier>/ep0-pull1.json.gz */
   file: string
   usd: number | null
@@ -16,12 +19,20 @@ export interface EpisodeResult { episode: number; run_id: string; pulls: PullRes
 /** One model on one tier (or a memory-off control). */
 export interface TierCell {
   episodes: number; pulls: number
+  /** every planned episode finished (incomplete cells are shown, never ranked) */
+  complete?: boolean
   progression_score: number; progression_score_ci95: CI
-  clear_rate: number | null; pulls_to_clear_mean: number | null; pulls_to_clear: number[]
-  learning_gain_mean: number | null; learning_gain_ci95: CI; first_pull_score_mean: number | null
+  /** each episode's progression score (the unit the interval is over) */
+  episode_scores?: number[]
+  /** timed clears only. pulls_to_clear: the clearing pull, or null for an episode that didn't clear */
+  clear_rate: number | null; pulls_to_clear_mean: number | null; pulls_to_clear: (number | null)[]
+  /** memory on minus the memory-off control (same seeds), when the protocol has a control here */
+  learning_effect?: number; learning_effect_ci95?: CI
+  first_pull_score_mean: number | null
   curve_mean: number[] | null
   cost_usd: number; usd_per_pull: number | null; tokens_per_pull: [number, number] | null
-  refusals: number; unusable_replies: number; harness_versions: string[]
+  refusals: number; unusable_replies: number; truncated_replies?: number; api_errors?: number; pulls_out_of_calls?: number
+  harness_versions: string[]
   episode_list: EpisodeResult[]
 }
 
@@ -30,11 +41,13 @@ export interface LeaderboardRow {
   tiers: Record<string, TierCell>
   mythicbench_score: number | null; mythicbench_score_ci95?: CI
   cost_usd?: number
+  /** 1-based; null when a cell is incomplete (shown, not ranked) */
+  rank?: number | null; complete?: boolean
 }
 
 export interface ControlRow extends TierCell { model: string; tier: string; memory: false }
 
-export interface BotScore { progression_score_mean: number; progression_score_ci95: CI }
+export interface BotScore { progression_score_mean: number; progression_score_ci95: CI; episodes?: number }
 
 export interface Results {
   protocol: {
@@ -42,7 +55,7 @@ export interface Results {
     episodes: number; max_pulls: number; effort: string; models: string[]
     controls?: { model: string; memory: boolean; tiers?: string[] }[]
   }
-  harness_version: string; content_version: string
+  harness_version: string; content_version: string; sim_version?: string
   tiers: Record<string, { name: string; affixes: string[] }>
   leaderboard: LeaderboardRow[]
   controls: ControlRow[]
@@ -161,4 +174,12 @@ export function parseWatchPath(path: string): (Partial<PullAddress> & { model: s
   const rest = parts.slice(memory ? 3 : 4)
   const num = (s?: string) => (s !== undefined && /^\d+$/.test(s) ? Number(s) : undefined)
   return { model, tier, memory, episode: num(rest[0]), pull: num(rest[1]) }
+}
+
+/** A model's per-episode headline: the mean of its tier scores episode by episode (tiers share seeds). */
+export function episodeHeadlines(row: LeaderboardRow): number[] {
+  const cells = Object.values(row.tiers)
+  const n = Math.min(...cells.map((c) => c.episode_scores?.length ?? 0))
+  if (!cells.length || !isFinite(n) || n === 0) return []
+  return Array.from({ length: n }, (_, k) => cells.reduce((a, c) => a + c.episode_scores![k], 0) / cells.length)
 }

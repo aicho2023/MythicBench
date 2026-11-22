@@ -9,6 +9,7 @@ const SPEEDS = [0.5, 1, 2, 4]
 // Each hue is one kind of event. Adds spawn in the bone-walker class color.
 const MARKER_COLOR: Record<string, string> = {
   death: '#f87171', missed: '#fbbf24', raise: CLASS_COLORS.bonewalker, kick: '#7dd3fc', end: '#ededef', pull: '#a1a1aa',
+  pool: '#c084fc', mark: '#fb923c',
 }
 
 // ---------------------------------------------------------------------------
@@ -128,7 +129,8 @@ export function ReplayControls() {
 
 export function TimelineLegend() {
   const dungeon = usePlayback((p) => p.engine?.replay.meta.mode === 'dungeon')
-  const items = [['death', 'Death'], ['missed', 'Missed interrupt'], ['raise', 'Adds spawn'], ...(dungeon ? [['pull', 'Pull'] as const] : []), ['end', 'End']] as const
+  const hasMarks = usePlayback((p) => (p.engine?.replay.meta.affixes ?? []).includes('hollow_tyrant'))
+  const items = [['death', 'Death'], ['missed', 'Missed interrupt'], ['pool', 'Stood in a pool'], ...(hasMarks ? [['mark', 'Mark hit allies'] as const] : []), ['raise', 'Adds spawn'], ...(dungeon ? [['pull', 'Pull'] as const] : []), ['end', 'End']] as const
   return (
     <div className="pointer-events-auto flex w-fit flex-wrap justify-center gap-x-4 gap-y-1 rounded-lg bg-[rgba(17,17,19,0.8)] px-3 py-1 text-meta text-fg-muted">
       {items.map(([k, label]) => (

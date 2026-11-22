@@ -8,6 +8,7 @@ import { resultsRunId, tierName, watchPath, type Results, type TierCell } from '
 function cellRun(r: Results, model: string, provider: string, effort: string | null, tier: string, memory: boolean, cell: TierCell): CatalogRun {
   const items = cell.episode_list.flatMap((ep) => ep.pulls.map((p) => ({
     episode: ep.episode, pull: p.pull, seed: p.seed, file: p.file, outcome: p.outcome, score: p.score, duration_s: p.duration_s,
+    in_time: p.in_time, deaths: p.deaths, kicks: p.kicks, avoidable: p.avoidable,
   })))
   return {
     run_id: resultsRunId(model, tier, memory),
@@ -24,7 +25,6 @@ function cellRun(r: Results, model: string, provider: string, effort: string | n
     summary: {
       score_mean: cell.progression_score, score_ci95: cell.progression_score_ci95, win_rate: cell.clear_rate,
       reference_means: null, kill_rate: cell.clear_rate, pulls_to_kill_mean: cell.pulls_to_clear_mean,
-      learning_gain_mean: cell.learning_gain_mean, learning_gain_ci95: cell.learning_gain_ci95,
       curve_mean: cell.curve_mean, progression_score_mean: cell.progression_score,
       progression_score_ci95: cell.progression_score_ci95, cost_usd: cell.cost_usd, usd_per_fight: cell.usd_per_pull,
     },

@@ -123,3 +123,10 @@ def test_paid_campaign_refuses_uncommitted_code(sandbox, monkeypatch):
     monkeypatch.setattr(K, "dirty_files", lambda: ["sim/mythicsim/engine.py"])
     with pytest.raises(SystemExit, match="uncommitted"):
         K.run_campaign(paid)
+
+
+def test_results_ship_the_recordings(sandbox):
+    tmp, proto = sandbox
+    K.run_campaign(proto)
+    K.build_results(proto, tmp / "res", tmp / "runs", with_bots=False)
+    assert list((tmp / "res" / "recordings").glob("*.jsonl.gz"))

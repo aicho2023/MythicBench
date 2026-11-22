@@ -250,7 +250,8 @@ def build_results(proto: dict, out_dir: Path, runs_dir: Path | None = None, with
                     f.write(src.read_bytes())
                 ep_pulls.append({"pull": it["pull"], "seed": it["seed"], "score": it["score"],
                                  "outcome": it["outcome"], "in_time": it.get("in_time", it["outcome"] == "victory"),
-                                 "duration_s": it["duration_s"], "file": rel.as_posix(), "usd": stats.get("usd")})
+                                 "duration_s": it["duration_s"], "file": rel.as_posix(), "usd": stats.get("usd"),
+                                 **{k: it[k] for k in ("deaths", "kicks", "avoidable") if k in it}})
             episodes_out.append({"episode": ep, "run_id": m["run_id"], "pulls": ep_pulls})
         summ = summarize_items(items, max_pulls)
         eps_scores = [_episode_scores([i for i in items if i["episode"] == e], max_pulls) for e in sorted(done)]
@@ -315,6 +316,15 @@ def build_results(proto: dict, out_dir: Path, runs_dir: Path | None = None, with
     }
     if with_bots:
         result["bots"] = bot_reference(proto)
+    # The model-reply recordings: with them anyone can replay every pull
+    # offline, for free (python -m mythicsim progress ... --offline --cache-dir <this folder>).
+    rec_dir = runs_dir / "cache" / proto["name"]
+    if (out_dir / "recordings").exists():
+        shutil.rmtree(out_dir / "recordings")
+    for f in sorted(rec_dir.glob("*.jsonl")) if rec_dir.exists() else []:
+        (out_dir / "recordings").mkdir(parents=True, exist_ok=True)
+        with gzip.GzipFile(out_dir / "recordings" / (f.name + ".gz"), "wb", mtime=0) as g:
+            g.write(f.read_bytes())
     (out_dir / "leaderboard.json").write_text(json.dumps(result, indent=1) + "\n")
     (out_dir / "protocol.json").write_text(json.dumps(proto, indent=1) + "\n")
     return result

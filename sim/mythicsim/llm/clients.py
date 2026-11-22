@@ -7,6 +7,7 @@ or ``openai:<model-name>``. API keys come from the environment or from a
 
 from __future__ import annotations
 
+import gzip
 import hashlib
 import http.client
 import json
@@ -293,11 +294,14 @@ class CachedClient:
 
     def __post_init__(self) -> None:
         self.spec = self.inner.spec
-        if self.path.exists():
-            for line in self.path.read_text().splitlines():
-                if line.strip():
-                    rec = json.loads(line)
-                    self._mem[rec["key"]] = rec
+        # A published dataset ships recordings gzipped (<spec>.jsonl.gz); read either.
+        gz = self.path.with_name(self.path.name + ".gz")
+        text = (self.path.read_text() if self.path.exists()
+                else gzip.decompress(gz.read_bytes()).decode() if gz.exists() else "")
+        for line in text.splitlines():
+            if line.strip():
+                rec = json.loads(line)
+                self._mem[rec["key"]] = rec
 
     def key(self, system: str, user: str, tag: str = "") -> str:
         # ``tag`` says where the call was made (episode, pull, agent, call
