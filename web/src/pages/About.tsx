@@ -64,8 +64,10 @@ export function About() {
         <Section title="Run it yourself">
           <p>You need Node 18 or later and Python 3.10 or later. The viewer:</p>
           <Code>{'cd web\nnpm install\nnpm run dev'}</Code>
-          <p>The simulator and the scripted commander, free and offline:</p>
-          <Code>{'cd sim\npython -m mythicsim run --seed 7   # the scripted commander\npython -m mythicsim llm --model mock:basic --seeds 0-2   # the harness end to end, no API'}</Code>
+          <p>Check the published results, free and offline (every model reply is recorded):</p>
+          <Code>{'cd sim\npip install -e ".[dev]"\npython -m mythicsim verify ../web/public/results/v1   # replay all 465 pulls, rebuild the leaderboard'}</Code>
+          <p>The simulator, the expert script's +10 clear, and the harness end to end, all without an API key:</p>
+          <Code>{'python -m mythicsim run --policy expert --tier +10 --seed 10043\npython -m mythicsim llm --model mock:basic --seeds 0-2'}</Code>
           <p>The official protocol (this calls model APIs and costs money; <code>--dry-run</code> prints the worst case first):</p>
           <Code>{'python -m mythicsim campaign ../protocol/v1.json --dry-run\npython -m mythicsim campaign ../protocol/v1.json --workers 3\npython -m mythicsim results ../protocol/v1.json --out ../results/v1'}</Code>
           <p>More in the <a href={`${GITHUB_URL}#readme`}>README</a>.</p>

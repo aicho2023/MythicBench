@@ -1,16 +1,19 @@
-// Charts drawn as plain SVG: few marks, muted grid, mono labels, a direct label
-// on every series (seven hues can't all be told apart by color alone).
+// Charts drawn as plain SVG: few marks, muted grid, mono numbers, and a direct
+// label on every series. Axes zoom to the data (every score here sits between
+// about 20 and 55, so a 0-100 axis would flatten the differences that matter).
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { modelName } from '../content/display'
 import {
   costPerRun, fmtScore, fmtUsd, headlineTier, modelColor, tierName, type CI, type Results,
 } from './results'
 
-const GRID = 'rgba(255,255,255,0.06)'
+const GRID = 'rgba(255,255,255,0.07)'
 const AXIS = '#8b8b93'
-const BASELINE = '#6b6b73' // the scripted commander's dashed line
-/** A halo in the surface color behind chart labels, so rules never cut through text. */
-const HALO = { stroke: '#111113', strokeWidth: 4, paintOrder: 'stroke' as const, strokeLinejoin: 'round' as const }
+const LABEL = '#d4d4d8'
+const SURFACE = '#111113'
+/** A halo in the surface color behind chart labels, so lines never cut through text. */
+const HALO = { stroke: SURFACE, strokeWidth: 5, paintOrder: 'stroke' as const, strokeLinejoin: 'round' as const }
+const MONO = 'IBM Plex Mono'
 
 function useWidth<T extends HTMLElement>(): [React.RefObject<T>, number] {
   const ref = useRef<T>(null)
@@ -39,47 +42,67 @@ function spread(ys: number[], gap: number, lo: number, hi: number): number[] {
   return out
 }
 
-const clamp100 = (x: number) => Math.max(0, Math.min(100, x))
+/** A score axis that fits the data: multiples of `step`, with some room either side. */
+export function scoreDomain(values: number[], step = 10, pad = 3): [number, number] {
+  const v = values.filter((x) => Number.isFinite(x))
+  if (!v.length) return [0, 100]
+  const lo = Math.max(0, Math.floor((Math.min(...v) - pad) / step) * step)
+  const hi = Math.min(100, Math.ceil((Math.max(...v) + pad) / step) * step)
+  return [lo, hi > lo ? hi : lo + step]
+}
+const ticks = (lo: number, hi: number, step = 10) => Array.from({ length: Math.floor((hi - lo) / step) + 1 }, (_, i) => lo + i * step)
+const textW = (s: string, px = 13) => s.length * px * 0.56
 
 // ---------------------------------------------------------------------------
-// The signature: a 95% CI as a thin bar on a 0 to 100 track
+// A 95% CI as a bar on a score track, with a dot per group
 // ---------------------------------------------------------------------------
-export function CIBar({ mean, ci, accent = false, width = 120, dots = [] }: { mean: number | null; ci?: CI; accent?: boolean; width?: number; dots?: number[] }) {
+export function CIBar({ mean, ci, accent = false, width = 160, dots = [], lo = 0, hi = 100, color }: {
+  mean: number | null; ci?: CI; accent?: boolean; width?: number; dots?: number[]; lo?: number; hi?: number; color?: string
+}) {
   if (mean == null) return <span className="text-fg-faint">–</span>
-  const x = (v: number) => (clamp100(v) / 100) * width
-  const [lo, hi] = ci ?? [mean, mean]
+  const H = 18
+  const x = (v: number) => (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * (width - 8) + 4
+  const [a, b] = ci ?? [mean, mean]
+  const ink = color ?? (accent ? '#e6d3a3' : '#ededef')
   return (
-    <svg width={width} height={12} className="block shrink-0" aria-hidden>
-      <rect x={0} y={5} width={width} height={2} rx={1} fill="rgba(255,255,255,0.08)" />
-      {/* one dot per episode: the raw data behind the interval */}
-      {dots.map((d, i) => <circle key={i} cx={x(d)} cy={6} r={1.6} fill="rgba(237,237,239,0.55)" />)}
-      <rect x={x(lo)} y={4} width={Math.max(2, x(hi) - x(lo))} height={4} rx={2} fill={accent ? 'rgba(230,211,163,0.45)' : 'rgba(237,237,239,0.28)'} />
-      <rect x={x(mean) - 1} y={1} width={2} height={10} rx={1} fill={accent ? '#e6d3a3' : '#ededef'} />
+    <svg width={width} height={H} className="block shrink-0" aria-hidden>
+      <rect x={4} y={H / 2 - 1} width={width - 8} height={2} rx={1} fill="rgba(255,255,255,0.08)" />
+      <rect x={x(a)} y={H / 2 - 3} width={Math.max(2, x(b) - x(a))} height={6} rx={3} fill={ink} opacity={0.28} />
+      {dots.map((d, i) => <circle key={i} cx={x(d)} cy={H / 2} r={2.6} fill={ink} opacity={0.75} />)}
+      <rect x={x(mean) - 1.5} y={1} width={3} height={H - 2} rx={1.5} fill="#ededef" />
     </svg>
   )
 }
 
-function Tooltip({ x, y, w, children }: { x: number; y: number; w: number; children: ReactNode }) {
-  const left = Math.min(Math.max(8, x + 12), w - 228)
+/** Tick labels for a CIBar track, to sit in a table header above it. */
+export function CIAxis({ width = 160, lo, hi, step = 10 }: { width?: number; lo: number; hi: number; step?: number }) {
+  const x = (v: number) => (v - lo) / (hi - lo) * (width - 8) + 4
   return (
-    <div className="pointer-events-none absolute z-10 w-[220px] rounded-lg border border-line bg-surface-raised px-3 py-2 text-[12px] leading-5 shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
-      style={{ left, top: Math.max(0, y - 8) }}>
+    <svg width={width} height={12} className="block" aria-hidden>
+      {ticks(lo, hi, step).map((v) => (
+        <text key={v} x={x(v)} y={10} textAnchor="middle" fill={AXIS} fontSize={10} fontFamily={MONO}>{v}</text>
+      ))}
+    </svg>
+  )
+}
+
+function Tooltip({ x, y, w, width = 260, children }: { x: number; y: number; w: number; width?: number; children: ReactNode }) {
+  const left = x + 16 + width > w ? Math.max(8, x - 16 - width) : x + 16
+  return (
+    <div className="pointer-events-none absolute z-10 rounded-lg border border-line bg-surface-raised px-3 py-2 text-[13px] leading-5 shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
+      style={{ left, top: Math.max(0, y - 8), width }}>
       {children}
     </div>
   )
 }
 
-export function Legend({ items, hover, setHover }: {
-  items: { key: string; label: string; color: string; dashed?: boolean }[]
-  hover: string | null; setHover: (k: string | null) => void
-}) {
+function Legend({ items }: { items: { key: string; label: string; color: string; dashed?: boolean }[] }) {
   return (
-    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-fg-muted">
+    <ul className="mb-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[13px] text-fg-muted">
       {items.map((it) => (
-        <li key={it.key} onMouseEnter={() => setHover(it.key)} onMouseLeave={() => setHover(null)}
-          className={`flex cursor-default items-center gap-2 transition-opacity ${hover && hover !== it.key ? 'opacity-40' : ''}`}>
-          <svg width={16} height={8} aria-hidden>
-            <line x1={0} x2={16} y1={4} y2={4} stroke={it.color} strokeWidth={2} strokeDasharray={it.dashed ? '3 3' : undefined} />
+        <li key={it.key} className="flex items-center gap-2">
+          <svg width={18} height={8} aria-hidden>
+            <line x1={0} x2={18} y1={4} y2={4} stroke={it.color} strokeWidth={2.5} strokeDasharray={it.dashed ? '4 3' : undefined} />
           </svg>
           {it.label}
         </li>
@@ -89,90 +112,101 @@ export function Legend({ items, hover, setHover }: {
 }
 
 // ---------------------------------------------------------------------------
-// Learning curves: mean score at each pull, one line per model
+// Learning curves: mean score at each pull
 // ---------------------------------------------------------------------------
-interface Series { key: string; label: string; color: string; values: number[]; dashed?: boolean }
+interface Series { key: string; label: string; short: string; color: string; values: number[]; dashed?: boolean }
 
-export function LearningCurves({ results, tier }: { results: Results; tier: string }) {
+/**
+ * view "models": each ranked model over its six leaderboard groups.
+ * view "memory": the two models with a memory-off control, memory on and off
+ * over the same (paired) groups.
+ */
+export function LearningCurves({ results, tier, view = 'models' }: { results: Results; tier: string; view?: 'models' | 'memory' }) {
   const [ref, w] = useWidth<HTMLDivElement>()
   const [hover, setHover] = useState<string | null>(null)
   const [at, setAt] = useState<number | null>(null)
   const pulls = results.protocol.max_pulls
   const series: Series[] = useMemo(() => {
-    const out: Series[] = []
-    // A model with a memory-off control is drawn over the control's own groups,
-    // memory on and off alike, so the two lines compare the same seeds.
-    const paired = new Map(results.controls.filter((c) => c.tier === tier && c.paired_on_curve_mean?.length).map((c) => [c.model, c]))
-    for (const row of results.leaderboard) {
-      const ctl = paired.get(row.model)
-      const c = ctl ? ctl.paired_on_curve_mean! : row.tiers[tier]?.curve_mean
-      const label = ctl ? `${modelName(row.model)} (${ctl.episodes} groups)` : modelName(row.model)
-      if (c?.length) out.push({ key: row.model, label, color: modelColor(results, row.model), values: c })
+    if (view === 'memory') {
+      return results.controls.filter((c) => c.tier === tier && c.curve_mean?.length && c.paired_on_curve_mean?.length).flatMap((c) => {
+        const name = modelName(c.model)
+        const color = modelColor(results, c.model)
+        return [
+          { key: `${c.model}:on`, label: `${name}, memory on`, short: `${name}, on`, color, values: c.paired_on_curve_mean! },
+          { key: `${c.model}:off`, label: `${name}, memory off`, short: `${name}, off`, color, values: c.curve_mean!, dashed: true },
+        ]
+      })
     }
-    for (const b of results.baselines ?? []) {
-      const c = b.tiers[tier]?.curve_mean
-      if (c?.length) out.push({ key: b.model, label: b.name, color: BASELINE, values: c, dashed: true })
-    }
-    for (const c of results.controls.filter((c) => c.tier === tier && c.curve_mean?.length)) {
-      out.push({ key: `${c.model}:off`, label: `${modelName(c.model)}, memory off`, color: modelColor(results, c.model), values: c.curve_mean!, dashed: true })
-    }
-    return out
-  }, [results, tier])
+    return results.leaderboard.flatMap((row) => {
+      const c = row.tiers[tier]?.curve_mean
+      const name = modelName(row.model)
+      return c?.length ? [{ key: row.model, label: name, short: name, color: modelColor(results, row.model), values: c }] : []
+    })
+  }, [results, tier, view])
 
-  const narrow = w < 560
-  const H = narrow ? 260 : 340
-  const m = { l: 36, r: narrow ? 12 : 168, t: 12, b: 32 }
+  const [lo, hi] = scoreDomain(series.flatMap((s) => s.values))
+  const narrow = w < 620
+  const labelW = Math.max(0, ...series.map((s) => textW(`${s.short}  00.0`))) + 20
+  const H = narrow ? 280 : 340
+  const m = { l: 40, r: narrow ? 16 : labelW, t: 16, b: 36 }
   const iw = Math.max(1, w - m.l - m.r)
   const ih = H - m.t - m.b
   const x = (k: number) => m.l + (pulls === 1 ? iw / 2 : ((k - 1) / (pulls - 1)) * iw)
-  const y = (v: number) => m.t + ih - (clamp100(v) / 100) * ih
-  const ends = spread(series.map((s) => y(s.values[s.values.length - 1])), 16, m.t + 4, m.t + ih)
-  const legend = series.map((s) => ({ key: s.key, label: s.label, color: s.color, dashed: s.dashed }))
-  const dim = (k: string) => (hover && hover !== k ? 0.2 : 1)
+  const y = (v: number) => m.t + ih - ((Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo)) * ih
+  const ends = spread(series.map((s) => y(s.values[s.values.length - 1])), 18, m.t + 6, m.t + ih)
+  const dim = (k: string) => (hover && hover !== k ? 0.18 : 1)
 
   const onMove = (e: React.PointerEvent<SVGRectElement>) => {
     const r = (e.currentTarget.ownerSVGElement as SVGSVGElement).getBoundingClientRect()
-    const px = e.clientX - r.left
-    const k = pulls === 1 ? 1 : Math.round(((px - m.l) / iw) * (pulls - 1)) + 1
+    const k = pulls === 1 ? 1 : Math.round(((e.clientX - r.left - m.l) / iw) * (pulls - 1)) + 1
     setAt(Math.max(1, Math.min(pulls, k)))
   }
 
   return (
     <figure className="m-0">
-      <figcaption className="sr-only">Mean score at each pull on {tierName(results, tier)}, by model</figcaption>
-      <Legend items={legend} hover={hover} setHover={setHover} />
-      <div ref={ref} className="relative mt-4">
+      <figcaption className="sr-only">Mean score at each pull on {tierName(results, tier)}</figcaption>
+      {narrow && <Legend items={series} />}
+      <div ref={ref} className="relative">
         {w > 0 && (
-          <svg width={w} height={H} role="img" aria-label={`Learning curves on ${tierName(results, tier)}`}>
-            {[0, 25, 50, 70, 100].map((v) => (
+          <svg width={w} height={H} role="img" aria-label={`Mean score at each pull on ${tierName(results, tier)}`}>
+            {ticks(lo, hi).map((v) => (
               <g key={v}>
-                <line x1={m.l} x2={m.l + iw} y1={y(v)} y2={y(v)} stroke={v === 70 ? 'rgba(255,255,255,0.14)' : GRID} strokeDasharray={v === 70 ? '2 4' : undefined} />
-                <text x={m.l - 8} y={y(v)} dy="0.32em" textAnchor="end" fill={AXIS} fontSize={11} fontFamily="IBM Plex Mono">{v}</text>
+                <line x1={m.l} x2={m.l + iw} y1={y(v)} y2={y(v)} stroke={GRID} />
+                <text x={m.l - 10} y={y(v)} dy="0.32em" textAnchor="end" fill={AXIS} fontSize={11} fontFamily={MONO}>{v}</text>
               </g>
             ))}
             {Array.from({ length: pulls }, (_, i) => i + 1).map((k) => (
-              <text key={k} x={x(k)} y={H - 10} textAnchor={narrow && k === pulls && pulls > 1 ? 'end' : 'middle'} fill={AXIS} fontSize={11} fontFamily="IBM Plex Mono">Pull {k}</text>
+              <text key={k} x={x(k)} y={H - 12} textAnchor={narrow ? 'middle' : k === 1 ? 'start' : k === pulls ? 'end' : 'middle'} fill={AXIS} fontSize={11} fontFamily={MONO}>{narrow ? (k === 1 ? 'Pull 1' : k) : `Pull ${k}`}</text>
             ))}
+            {at !== null && <line x1={x(at)} x2={x(at)} y1={m.t} y2={m.t + ih} stroke="rgba(255,255,255,0.18)" />}
             {series.map((s, i) => {
               const d = s.values.map((v, k) => `${k ? 'L' : 'M'}${x(k + 1)},${y(v)}`).join('')
+              const last = s.values[s.values.length - 1]
               return (
-                <g key={s.key} opacity={dim(s.key)}>
-                  <path d={d} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={s.dashed ? '5 4' : undefined} />
-                  {s.values.map((v, k) => <circle key={k} cx={x(k + 1)} cy={y(v)} r={3} fill={s.color} stroke="#0a0a0c" strokeWidth={2} />)}
-                  {!narrow && <text x={m.l + iw + 12} y={ends[i]} dy="0.32em" fill="#a1a1aa" fontSize={12} {...HALO}>{s.label}</text>}
+                <g key={s.key} opacity={dim(s.key)} onPointerEnter={() => setHover(s.key)} onPointerLeave={() => setHover(null)}>
+                  <path d={d} fill="none" stroke={s.color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={s.dashed ? '6 5' : undefined} />
+                  {s.values.map((v, k) => <circle key={k} cx={x(k + 1)} cy={y(v)} r={3.5} fill={s.dashed ? SURFACE : s.color} stroke={s.color} strokeWidth={2} />)}
+                  {!narrow && (
+                    <text x={m.l + iw + 14} y={ends[i]} dy="0.32em" fontSize={13} {...HALO}>
+                      <tspan fill={LABEL}>{s.short}</tspan>
+                      <tspan fill={AXIS} fontFamily={MONO} fontSize={12} dx={8}>{fmtScore(last)}</tspan>
+                    </text>
+                  )}
                 </g>
               )
             })}
-            {at !== null && <line x1={x(at)} x2={x(at)} y1={m.t} y2={m.t + ih} stroke="rgba(255,255,255,0.2)" />}
             <rect x={m.l} y={m.t} width={iw} height={ih} fill="transparent" onPointerMove={onMove} onPointerLeave={() => setAt(null)} />
           </svg>
         )}
         {at !== null && (
           <Tooltip x={x(at)} y={m.t} w={w}>
-            <div className="text-fg">Pull {at}</div>
+            <div className="mb-1 text-fg">Pull {at}</div>
             {[...series].sort((a, b) => b.values[at - 1] - a.values[at - 1]).map((s) => (
               <div key={s.key} className="flex items-center justify-between gap-3 text-fg-muted">
-                <span className="flex min-w-0 items-center gap-2"><span className="h-2 w-2 shrink-0 rounded-full" style={{ background: s.color }} /><span className="truncate">{s.label}</span></span>
+                <span className="flex items-center gap-2">
+                  <svg width={14} height={8} aria-hidden><line x1={0} x2={14} y1={4} y2={4} stroke={s.color} strokeWidth={2.5} strokeDasharray={s.dashed ? '3 2' : undefined} /></svg>
+                  {s.label}
+                </span>
                 <span className="num font-mono text-fg">{fmtScore(s.values[at - 1])}</span>
               </div>
             ))}
@@ -184,89 +218,138 @@ export function LearningCurves({ results, tier }: { results: Results; tier: stri
 }
 
 // ---------------------------------------------------------------------------
-// Cost vs score: what a run costs against what it scores
+// Cost vs score
 // ---------------------------------------------------------------------------
+interface Box { x: number; y: number; w: number; h: number }
+const overlaps = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+
 export function CostScatter({ results }: { results: Results }) {
   const [ref, w] = useWidth<HTMLDivElement>()
   const [hover, setHover] = useState<string | null>(null)
   const pts = results.leaderboard
     .filter((r) => r.mythicbench_score != null)
-    .map((r) => ({ key: r.model, label: modelName(r.model), color: modelColor(results, r.model), cost: costPerRun(r, results) ?? 0, score: r.mythicbench_score! }))
-  // Effort sweeps: the same model at other reasoning efforts, joined into a
-  // score-vs-cost curve through its official (medium) point.
-  const head = headlineTier(results)
-  const ORDER = ['none', 'low', 'medium', 'high', 'xhigh', 'max']
-  const curves = results.leaderboard.flatMap((r) => {
-    const extra = (results.configs ?? []).filter((c) => c.model === r.model && c.tiers[head]?.progression_score != null)
-    if (!extra.length || r.mythicbench_score == null) return []
-    // The default-effort point on a sweep is that effort on the sweep's own groups,
-    // so the line compares like with like; the model's six-group dot stays separate.
-    const same = extra.map((c) => c.tiers[head].default_effort_same_groups).find(Boolean)
-    if (!same) return []
-    const points = [{ effort: same.effort, cost: same.usd_per_episode, score: same.progression_score },
-      ...extra.map((c) => ({ effort: c.effort, cost: c.tiers[head].usd_per_episode ?? 0, score: c.tiers[head].progression_score }))]
-      .sort((a, b) => ORDER.indexOf(a.effort) - ORDER.indexOf(b.effort))
-    return [{ key: r.model, color: modelColor(results, r.model), points }]
-  })
-  const paid = [...pts.map((p) => p.cost), ...curves.flatMap((c) => c.points.map((p) => p.cost))].filter((c) => c > 0)
-  const lo = paid.length ? Math.min(...paid) / 2 : 0.01
-  const hi = paid.length ? Math.max(...paid) * 2 : 100
-  const decades = []
-  for (let e = Math.floor(Math.log10(lo)); e <= Math.ceil(Math.log10(hi)); e++) decades.push(10 ** e)
-  const H = 300
-  const m = { l: 36, r: 16, t: 12, b: 32 }
+    .map((r) => ({ key: r.model, label: modelName(r.model), color: modelColor(results, r.model), cost: costPerRun(r, results) ?? 0, score: r.mythicbench_score!, ci: r.mythicbench_score_ci95 ?? null }))
+  const paid = pts.map((p) => p.cost).filter((c) => c > 0)
+  const cLo = paid.length ? Math.min(...paid) / 2 : 0.01
+  const cHi = paid.length ? Math.max(...paid) * 2 : 100
+  const xticks: number[] = []
+  for (let e = Math.floor(Math.log10(cLo)); e <= Math.ceil(Math.log10(cHi)); e++) {
+    for (const f of [1, 3]) { const v = f * 10 ** e; if (v >= cLo && v <= cHi) xticks.push(v) }
+  }
+  const [lo, hi] = scoreDomain(pts.flatMap((p) => p.ci ? [p.ci[0], p.ci[1]] : [p.score]), 10, 1)
+  const narrow = w < 520
+  const H = narrow ? 300 : 340
+  const m = { l: 40, r: 20, t: 16, b: 36 }
   const iw = Math.max(1, w - m.l - m.r)
   const ih = H - m.t - m.b
-  const [d0, d1] = [Math.log10(decades[0]), Math.log10(decades[decades.length - 1])]
-  // A free run (the mock model) sits on the left edge.
-  const x = (c: number) => m.l + (c <= 0 ? 0 : ((Math.log10(c) - d0) / Math.max(1e-9, d1 - d0)) * iw)
-  const y = (v: number) => m.t + ih - (clamp100(v) / 100) * ih
-  const labelY = spread(pts.map((p) => y(p.score)), 16, m.t + 4, m.t + ih)
-  const hp = pts.find((p) => p.key === hover)
-  const tick = (d: number) => '$' + d.toLocaleString('en-US', { maximumFractionDigits: 3 })
+  const x = (c: number) => m.l + ((Math.log10(Math.max(c, cLo)) - Math.log10(cLo)) / (Math.log10(cHi) - Math.log10(cLo))) * iw
+  const y = (v: number) => m.t + ih - ((Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo)) * ih
+  const tick = (d: number) => '$' + (d < 1 ? d.toFixed(d < 0.1 ? 2 : 1) : d.toLocaleString('en-US'))
+
+  // Each label beside its own dot: right, else left, else above, else below,
+  // whichever overlaps no other dot and no label already placed.
+  const placed: (Box & { anchor: 'start' | 'end' })[] = []
+  const dots: Box[] = pts.map((p) => ({ x: x(p.cost) - 7, y: y(p.score) - 7, w: 14, h: 14 }))
+  for (const [i, p] of pts.entries()) {
+    const cx = x(p.cost), cy = y(p.score)
+    const bw = Math.max(textW(p.label), textW(`${fmtScore(p.score)}  ${fmtUsd(p.cost)}`, 12)) + 4
+    const bh = 32
+    const tries: (Box & { anchor: 'start' | 'end' })[] = [
+      { x: cx + 12, y: cy - bh / 2, w: bw, h: bh, anchor: 'start' },
+      { x: cx - 12 - bw, y: cy - bh / 2, w: bw, h: bh, anchor: 'end' },
+      { x: cx - bw / 2, y: cy - 12 - bh, w: bw, h: bh, anchor: 'start' },
+      { x: cx - bw / 2, y: cy + 12, w: bw, h: bh, anchor: 'start' },
+    ]
+    const fits = (b: Box) => b.x >= m.l && b.x + b.w <= w - 4 && b.y >= 0 && b.y + b.h <= m.t + ih
+      && !dots.some((d, j) => j !== i && overlaps(b, d)) && !placed.some((q) => overlaps(b, q))
+    placed.push(tries.find(fits) ?? tries[0])
+  }
 
   return (
     <figure className="m-0">
-      <figcaption className="sr-only">MythicBench score against the cost of one run, by model</figcaption>
+      <figcaption className="sr-only">MythicBench score against the cost of one +10 group, by model</figcaption>
       <div ref={ref} className="relative">
         {w > 0 && (
-          <svg width={w} height={H} role="img" aria-label="Cost against score">
-            {[0, 25, 50, 75, 100].map((v) => (
+          <svg width={w} height={H} role="img" aria-label="Score against cost per group">
+            {ticks(lo, hi).map((v) => (
               <g key={v}>
                 <line x1={m.l} x2={m.l + iw} y1={y(v)} y2={y(v)} stroke={GRID} />
-                <text x={m.l - 8} y={y(v)} dy="0.32em" textAnchor="end" fill={AXIS} fontSize={11} fontFamily="IBM Plex Mono">{v}</text>
+                <text x={m.l - 10} y={y(v)} dy="0.32em" textAnchor="end" fill={AXIS} fontSize={11} fontFamily={MONO}>{v}</text>
               </g>
             ))}
-            {decades.map((d) => (
-              <text key={d} x={x(d)} y={H - 10} textAnchor="middle" fill={AXIS} fontSize={11} fontFamily="IBM Plex Mono">{tick(d)}</text>
-            ))}
-            {curves.map((c) => (
-              <g key={`curve-${c.key}`} opacity={hover && hover !== c.key ? 0.2 : 0.8}>
-                <path d={c.points.map((p, k) => `${k ? 'L' : 'M'}${x(p.cost)},${y(p.score)}`).join('')} fill="none" stroke={c.color} strokeWidth={1.5} strokeDasharray="4 3" />
-                {c.points.filter((p) => p.effort !== 'medium').map((p) => (
-                  <g key={p.effort}>
-                    <circle cx={x(p.cost)} cy={y(p.score)} r={3.5} fill="#0a0a0c" stroke={c.color} strokeWidth={1.5} />
-                    <text x={x(p.cost)} y={y(p.score) + 14} textAnchor="middle" fill={AXIS} fontSize={10} fontFamily="IBM Plex Mono" {...HALO}>{p.effort}</text>
-                  </g>
-                ))}
+            {xticks.map((d) => (
+              <g key={d}>
+                <line x1={x(d)} x2={x(d)} y1={m.t} y2={m.t + ih} stroke={GRID} />
+                <text x={x(d)} y={H - 12} textAnchor="middle" fill={AXIS} fontSize={11} fontFamily={MONO}>{tick(d)}</text>
               </g>
             ))}
-            {pts.map((p, i) => (
-              <g key={p.key} opacity={hover && hover !== p.key ? 0.25 : 1} onPointerEnter={() => setHover(p.key)} onPointerLeave={() => setHover(null)}>
-                <circle cx={x(p.cost)} cy={y(p.score)} r={12} fill="transparent" />
-                <circle cx={x(p.cost)} cy={y(p.score)} r={5} fill={p.color} stroke="#0a0a0c" strokeWidth={2} />
-                <text x={x(p.cost) + (x(p.cost) > m.l + iw - 120 ? -10 : 10)} y={labelY[i]} dy="0.32em"
-                  textAnchor={x(p.cost) > m.l + iw - 120 ? 'end' : 'start'} fill="#a1a1aa" fontSize={12} {...HALO}>{p.label}</text>
-              </g>
-            ))}
+            {pts.map((p, i) => {
+              const b = placed[i]
+              const tx = b.anchor === 'start' ? b.x : b.x + b.w
+              return (
+                <g key={p.key} opacity={hover && hover !== p.key ? 0.25 : 1} onPointerEnter={() => setHover(p.key)} onPointerLeave={() => setHover(null)}>
+                  {p.ci && <line x1={x(p.cost)} x2={x(p.cost)} y1={y(p.ci[0])} y2={y(p.ci[1])} stroke={p.color} strokeWidth={2} opacity={0.45} strokeLinecap="round" />}
+                  <circle cx={x(p.cost)} cy={y(p.score)} r={14} fill="transparent" />
+                  <circle cx={x(p.cost)} cy={y(p.score)} r={6} fill={p.color} stroke={SURFACE} strokeWidth={2} />
+                  <text x={tx} y={b.y + 12} textAnchor={b.anchor} fill={LABEL} fontSize={13} {...HALO}>{p.label}</text>
+                  <text x={tx} y={b.y + 28} textAnchor={b.anchor} fill={AXIS} fontSize={12} fontFamily={MONO} {...HALO}>{fmtScore(p.score)}  {fmtUsd(p.cost)}</text>
+                </g>
+              )
+            })}
           </svg>
         )}
-        {hp && (
-          <Tooltip x={x(hp.cost)} y={y(hp.score)} w={w}>
-            <div className="text-fg">{hp.label}</div>
-            <div className="flex justify-between text-fg-muted">Score <span className="num font-mono text-fg">{fmtScore(hp.score)}</span></div>
-            <div className="flex justify-between text-fg-muted">Cost per run <span className="num font-mono text-fg">{fmtUsd(hp.cost)}</span></div>
-          </Tooltip>
+      </div>
+    </figure>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Every group's score, by model: the raw data behind the leaderboard
+// ---------------------------------------------------------------------------
+export function GroupScores({ results }: { results: Results }) {
+  const [ref, w] = useWidth<HTMLDivElement>()
+  const head = headlineTier(results)
+  const rows = results.leaderboard.filter((r) => r.mythicbench_score != null).map((r) => ({
+    key: r.model, label: modelName(r.model), color: modelColor(results, r.model), mean: r.mythicbench_score!,
+    ci: r.mythicbench_score_ci95 ?? null, groups: r.tiers[head]?.episode_scores ?? [],
+  }))
+  const [lo, hi] = scoreDomain(rows.flatMap((r) => [...r.groups, ...(r.ci ?? [])]))
+  const narrow = w < 560
+  const rowH = 40
+  const m = { l: Math.max(...rows.map((r) => textW(r.label)), 60) + 22, r: narrow ? 12 : 132, t: 8, b: 30 }
+  const H = m.t + rows.length * rowH + m.b
+  const iw = Math.max(1, w - m.l - m.r)
+  const x = (v: number) => m.l + ((Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo)) * iw
+  return (
+    <figure className="m-0">
+      <figcaption className="sr-only">Each group's score on {tierName(results, head)}, with each model's mean and 95% interval</figcaption>
+      <div ref={ref}>
+        {w > 0 && (
+          <svg width={w} height={H} role="img" aria-label="Group scores by model">
+            {ticks(lo, hi).map((v) => (
+              <g key={v}>
+                <line x1={x(v)} x2={x(v)} y1={m.t} y2={H - m.b} stroke={GRID} />
+                <text x={x(v)} y={H - 10} textAnchor="middle" fill={AXIS} fontSize={11} fontFamily={MONO}>{v}</text>
+              </g>
+            ))}
+            {rows.map((r, i) => {
+              const cy = m.t + i * rowH + rowH / 2
+              return (
+                <g key={r.key}>
+                  <text x={m.l - 14} y={cy} dy="0.32em" textAnchor="end" fill={LABEL} fontSize={13}>{r.label}</text>
+                  {r.ci && <rect x={x(r.ci[0])} y={cy - 5} width={Math.max(2, x(r.ci[1]) - x(r.ci[0]))} height={10} rx={5} fill={r.color} opacity={0.22} />}
+                  {r.groups.map((g, k) => <circle key={k} cx={x(g)} cy={cy} r={4} fill={r.color} opacity={0.8} stroke={SURFACE} strokeWidth={1} />)}
+                  <rect x={x(r.mean) - 1.5} y={cy - 12} width={3} height={24} rx={1.5} fill="#ededef" />
+                  {!narrow && (
+                    <text x={w - 8} y={cy} dy="0.32em" textAnchor="end" fontSize={12} fontFamily={MONO}>
+                      <tspan fill="#ededef">{fmtScore(r.mean)}</tspan>
+                      <tspan fill={AXIS}>{r.ci ? `  ${fmtScore(r.ci[0])}–${fmtScore(r.ci[1])}` : ''}</tspan>
+                    </text>
+                  )}
+                </g>
+              )
+            })}
+          </svg>
         )}
       </div>
     </figure>

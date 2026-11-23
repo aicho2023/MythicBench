@@ -1,4 +1,4 @@
-import { Info, ListTree, Pause, Play, RotateCcw, SkipBack, SkipForward, X } from 'lucide-react'
+import { ChevronDown, Info, ListTree, Pause, Play, RotateCcw, SkipBack, SkipForward, X } from 'lucide-react'
 import { useEffect, useMemo, useRef } from 'react'
 import { CLASS_COLORS, fmtNum, fmtTime } from '../content/display'
 import { usePlayback, useHud } from '../replay/store'
@@ -40,11 +40,12 @@ export function TopBar({ onAbout, onRuns }: { onAbout: () => void; onRuns: () =>
       }
       center={
         // What's on screen; opens the run list. The scripted commander lives in that list as a reference, not up here.
-        <button onClick={onRuns} className="btn min-w-0 max-w-[420px] shrink" title="Choose a run">
+        <button onClick={onRuns} className="btn min-w-0 max-w-[520px] shrink" title="Choose a run">
           <ListTree size={16} className="shrink-0 text-fg-muted" />
           <span className="truncate">{watching ? watching.label : 'Choose a run'}</span>
-          {watching && !watching.local && !watching.id.startsWith('featured:') && <span className="shrink-0 text-meta text-fg-faint">reference</span>}
-          {catalogSize > 0 && <span className="num hidden shrink-0 font-mono text-meta text-fg-faint sm:inline">{catalogSize} {catalogSize === 1 ? 'run' : 'runs'}</span>}
+          {watching?.id.startsWith('expert-') && <span className="shrink-0 text-meta text-accent/80">golden standard</span>}
+          {watching && !watching.local && !watching.id.startsWith('featured:') && !watching.id.startsWith('expert-') && <span className="shrink-0 text-meta text-fg-faint">reference</span>}
+          {catalogSize > 0 && <span className="hidden shrink-0 items-center gap-1 border-l border-line pl-2 text-meta text-fg-muted sm:inline-flex">All runs <ChevronDown size={14} /></span>}
         </button>
       }
       right={
