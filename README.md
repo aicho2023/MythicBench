@@ -274,8 +274,9 @@ is the replay viewer (`/watch/<model>/<tier>/<episode>/<pull>` opens one
 pull), `/paper` is the write-up (`web/src/pages/paper.mdx`), and `/about`
 explains the project. The site reads only the dataset that `results` writes,
 from `web/public/results/<name>/`. `RESULTS_DIR` in `web/src/site/config.ts`
-(or the `VITE_RESULTS_DIR` variable) picks which one. It ships with
-`results/sample`, made with the mock model, which costs nothing:
+(or the `VITE_RESULTS_DIR` variable) picks which one. It ships with the
+official `results/v1`. `results/sample`, made with the mock model, costs nothing
+to rebuild:
 
 ```bash
 cd web && npm run sample    # protocol/sample.json: campaign, then results

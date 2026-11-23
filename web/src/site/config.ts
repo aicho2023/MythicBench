@@ -2,7 +2,7 @@
 // set RESULTS_DIR to 'results/v1' (or build with VITE_RESULTS_DIR=results/v1).
 
 /** Folder under web/public holding `python -m mythicsim results <protocol> --out <dir>`. */
-export const RESULTS_DIR: string = import.meta.env.VITE_RESULTS_DIR ?? 'results/sample'
+export const RESULTS_DIR: string = import.meta.env.VITE_RESULTS_DIR ?? 'results/v1'
 
 /** URL of a file inside the results dataset. */
 export const resultsUrl = (path: string) => `${import.meta.env.BASE_URL}${RESULTS_DIR}/${path}`

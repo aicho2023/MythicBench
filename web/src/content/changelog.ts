@@ -25,6 +25,19 @@ const V1: Versions = { harness: '1.0.0', sim: '0.11.0', content: '1.8.0' }
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 'v1-results',
+    date: '2026-11-23',
+    title: 'Official v1 results',
+    kind: 'protocol',
+    summary: 'Stage 2 finished and the v1 results are published: the leaderboard, every pull as a replay, and the recorded replies behind them.',
+    items: [
+      'All 93 planned groups played (84 by five models, 9 by the scripted bot); all 465 pulls replay exactly from the recordings.',
+      'Every call was served by the model asked for. No API errors or refusals.',
+      'One occurrence of the known throne fault in 127,071 moves, the one found in stage 1, listed in the report.',
+      'The pre-registration\'s stage 2 record discloses that interim scores were looked at during stage 2, and that the +10 calibration predates the freeze.',
+    ],
+  },
+  {
     id: 'expert-script',
     date: '2026-11-23',
     title: 'The expert script: proof a clear is possible',

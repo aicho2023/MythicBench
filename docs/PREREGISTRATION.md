@@ -212,6 +212,21 @@ sampled every 0.1 m, comes within the mover's body radius minus 1 cm of any
 obstacle (`content.OBSTACLES`). Every occurrence in the final dataset is listed
 in the report, with the model, group, pull and time.
 
+**Stage 2 record (2026-11-23).** Stage 2 played the other 78 groups on the same
+frozen code, in two cloud sessions (the first stopped at its 4-hour limit with
+72 done; the second resumed from the recordings and finished). All 93 groups
+are in, and all 465 pulls replay exactly from the recordings. No API errors or
+refusals. Every call was served by the model that was asked for
+(`served_models.json`). By the counting rule above there is one occurrence of
+the throne fault in the whole dataset, the one found in stage 1 (127,071
+moves checked). Two departures, disclosed: interim scores were looked at during
+stage 2 (nothing was changed or decided because of them), and the +10
+calibration in "Known limitations" was done on content 1.5.0; later content
+made the fight harder and the calibration was not re-run before the freeze. A
+scripted expert added afterwards (`llm/expert.py`, not part of the protocol)
+clears +10 on 4 of 1,000 practice seeds, so a clear exists but needs
+near-perfect play.
+
 ## Budget
 
 The estimate is about $551 if every group plays all five pulls at each

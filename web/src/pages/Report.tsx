@@ -1,6 +1,14 @@
 import type { ReactNode } from 'react'
+import { modelName } from '../content/display'
+import { MOMENTS, SOAKS } from '../content/findings'
 import { Page } from '../site/Layout'
 import { Link } from '../site/router'
+
+const A = 'underline decoration-accent/50 underline-offset-4 hover:decoration-accent'
+
+function Sub({ children }: { children: ReactNode }) {
+  return <h3 className="!mt-8 text-[16px] font-medium text-fg">{children}</h3>
+}
 
 const SECTIONS: [string, string][] = [
   ['results', 'Results'], ['question', 'The question'], ['dungeon', 'The dungeon'], ['groups', 'Groups and pulls'],
@@ -30,7 +38,7 @@ export function Report() {
         <header>
           <h1 className="text-[28px] font-normal leading-[1.15] text-fg sm:text-[32px]">Report</h1>
           <p className="mt-4 text-[17px] leading-7 text-fg-muted">
-            How MythicBench works and, once the official run is in, what the models did.
+            What five frontier models did in the Hollow Vault, and how MythicBench works.
           </p>
           <nav aria-label="On this page" className="mt-6 flex flex-wrap gap-2 text-[13px]">
             {SECTIONS.map(([id, label]) => (
@@ -41,10 +49,98 @@ export function Report() {
 
         <Section id="results">
           <p>
-            The official run is underway. This section will cover how the models compare, whether carrying
-            information across wipes helped, what a group cost, and the moments that decided pulls, each linked to
-            its replay.
+            Five models played 84 groups, 420 pulls in all, on the frozen v1 harness. <strong>Nobody cleared the
+            Hollow Vault</strong>, on +10 or on Normal. The two strongest models came within 9% of killing Oruth, and
+            what set them apart wasn't their first attempt but what they learned from one wipe.
           </p>
+
+          <Sub>Who is best</Sub>
+          <p>
+            On the pre-registered score, <strong>Claude Opus 5.5 (44.1)</strong> and <strong>GPT-6.2 Sol (42.9)</strong> lead,
+            and they are statistically tied. Opus beats GPT-6 Luna, Claude Sonnet 5.5 and Claude Haiku 5.5 on the same
+            seeds (by 11 to 12 points each); Sol beats Luna and Haiku (10 to 11 points). Sol's 10-point lead over Sonnet
+            falls just short after correcting for comparing every pair. Luna (32.8), Sonnet (32.7) and Haiku (32.1)
+            can't be told apart, and none of them beats a scripted bot that kicks every cast and steps out of every
+            pool (32.5). The <Link to="/" className={A}>leaderboard</Link> has every group as a dot.
+          </p>
+
+          <Sub>One wipe makes the difference</Sub>
+          <p>
+            On a first attempt, every model scores between 31 and 37: about what the scripted bot gets. They all walk
+            in blind and wipe. The gap opens after the debrief. Claude Opus 5.5 averages 37 on its first pull and 52 on
+            its second; GPT-6.2 Sol climbs from 37 to 47 by its fourth. The other three stay flat.
+          </p>
+          <p>
+            The clearest single reason is <strong>Bone Pyre</strong>: a circle Oruth marks on the floor that has to be
+            stood in by two players, or it hits the whole party hard. Every gamer instinct says to step out of the glowing
+            circle, and on the first pull every party does. Afterwards, everyone sees the same thing in the combat log:
+            nobody stood in it, and everyone got hit. What they make of it:
+          </p>
+          <div className="not-prose my-4 overflow-x-auto rounded-xl border border-line">
+            <table className="w-full text-left text-[13px]">
+              <thead className="border-b border-line text-fg-faint">
+                <tr><th className="px-3 py-2 font-normal">Model (+10)</th><th className="px-3 py-2 font-normal">Groups that learned to soak</th><th className="px-3 py-2 font-normal">Pyres soaked, pulls 2-5</th></tr>
+              </thead>
+              <tbody className="text-fg-muted">
+                {SOAKS.map((r) => (
+                  <tr key={r.model} className="border-b border-line last:border-0">
+                    <td className="px-3 py-2 text-fg">{modelName(r.model)}</td>
+                    <td className="px-3 py-2">{r.groups}{r.note ? <span className="text-fg-faint">, {r.note}</span> : null}</td>
+                    <td className="px-3 py-2">{r.soaked}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Opus wrote "EVERYONE STACK INSIDE THE CIRCLE"; Sol, "BONE PYRE is a soak, not a pool to dodge". Luna, from
+            the same evidence: "the floor circle is NOT the danger". Knowing isn't doing, either: Sol names the soak in
+            every group after its first wipe, but gets five agents into a 2.5 m circle within six seconds on three
+            Pyres in four.
+          </p>
+          <p>
+            The pre-registered test of memory (the same seeds with the debrief, talk and notes switched off) was run on
+            the two cheapest models, Haiku and Luna, and found nothing: −0.8 and −0.2 points, both well within noise.
+            That fits: those two never learned the mechanic, so there was nothing to carry. The models that did learn
+            weren't part of that test, so their gains are shown as before and after, not as a controlled effect.
+          </p>
+
+          <Sub>Pulls worth watching</Sub>
+          <ul>
+            {MOMENTS.map((m) => (
+              <li key={m.path}><Link to={m.path} className={A}>{m.title}</Link>. {m.text}</li>
+            ))}
+          </ul>
+
+          <Sub>What it costs</Sub>
+          <p>
+            The whole official run cost about $357 at list prices. Opus was $221 of it: $37 a group, against $7 for Sol,
+            which scores the same. Sol is also the most economical writer: about 44,000 output tokens a pull, against
+            roughly 210,000 for Opus and 225,000 for Haiku. Raising the cheap models' reasoning effort didn't help: on the
+            same groups, Haiku scored 25 at low, 30 at medium and 32 at high (where 16 replies ran into the output cap);
+            Luna scored about 33 at every level.
+          </p>
+
+          <Sub>How the parties played</Sub>
+          <p>
+            Every party organised its own interrupts. Opus and Sol stopped 82% of the casts that can be kicked; the
+            other three 68% to 74%. Talking more isn't the same as learning: Opus's party sent about 76 chat lines a pull and
+            Haiku's 66, while Luna's sent 16 and Sol's 49. Nearly every pull ended in a wipe (4.6 to 5.3 deaths a pull).
+          </p>
+
+          <Sub>Checks on the data</Sub>
+          <ul>
+            <li>All 93 planned groups were played (84 by the models, 9 by the scripted bot), and all 465 pulls replay exactly from the recorded replies, so anyone can recompute every number for free.</li>
+            <li>Each provider served exactly the model that was asked for, on every call.</li>
+            <li>No API errors and no refusals. Replies that were unusable or cut off were the models' own: about 0.6% of Sonnet's calls, and Haiku's at high effort when it ran out of output tokens.</li>
+            <li>
+              One known harness fault, kept as pre-registered and counted by the rule fixed before stage 2: <strong>one
+              occurrence</strong> in 127,071 moves. Claude Haiku 5.5, Normal, group 1, pull 4, at 3:44.7, Wren walks through
+              the corner of Oruth's throne (a floating-point edge case; it saves about a second and can't trap or harm
+              anyone). <Link to="/watch/claude-haiku-5-5/normal/0/4" className={A}>Watch it</Link>.
+            </li>
+            <li>Interim scores were looked at while stage 2 was playing. Nothing was changed or decided because of them.</li>
+          </ul>
         </Section>
 
         <Section id="question">
