@@ -40,7 +40,7 @@ export function References() {
       {sorted.map((r) => (
         <li key={r.key} id={`ref-${r.key}`}>
           {r.full}{' '}
-          <a href={r.url} target="_blank" rel="noopener noreferrer" className="break-all">{r.url.replace(/^https?:\/\//, '')}</a>
+          <a href={r.url} target="_blank" rel="noopener noreferrer">{r.url.replace(/^https?:\/\//, '')}</a>
         </li>
       ))}
     </ol>

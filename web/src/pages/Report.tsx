@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { modelName } from '../content/display'
 import { BEHAVIOUR, EXPERT, MOMENTS, SOAKS } from '../content/findings'
 import { GroupScores, LearningCurves } from '../site/charts'
+import { Cite, References } from '../site/Cite'
 import { GITHUB_URL } from '../site/config'
 import { Page } from '../site/Layout'
 import { bestPull } from '../site/Leaderboard'
@@ -19,15 +20,28 @@ const TOC: [string, string, string][] = [
   ['cases', '6', 'Three pulls, up close'],
   ['ceiling', '7', 'How hard is +10?'],
   ['validity', '8', 'Validity'],
-  ['limits', '9', 'Limitations'],
-  ['conclusion', '10', 'Conclusion'],
+  ['related', '9', 'Related work'],
+  ['limits', '10', 'Limitations'],
+  ['conclusion', '11', 'Conclusion'],
+  ['references', '', 'References'],
   ['reproduce', 'A', 'Reproducing the results'],
   ['cite', 'B', 'Citing'],
 ]
 
+/** Table 8: [name, reference key or null for MythicBench, game world, unseen, improvement, team, time limit]. */
+const COMPARE: [string, string | null, boolean, boolean, boolean, boolean, boolean][] = [
+  ['SWE-bench', 'swebench', false, false, false, false, false],
+  ['BALROG', 'balrog', true, false, false, false, false],
+  ['ARC-AGI-3', 'arc-agi-3', true, true, false, false, false],
+  ['J-TTL', 'evotest', true, false, true, false, false],
+  ['Hanabi Challenge', 'hanabi', true, false, false, true, false],
+  ['Overcooked-AI', 'overcooked-ai', true, false, false, true, true],
+  ['MythicBench', null, true, true, true, true, true],
+]
+
 function H2({ id, children }: { id: string; children: ReactNode }) {
   const n = TOC.find(([a]) => a === id)?.[1]
-  return <h2 id={id}><span className="n">{n}</span>{children}</h2>
+  return <h2 id={id}>{n && <span className="n">{n}</span>}{children}</h2>
 }
 function H3({ id, n, children }: { id?: string; n: string; children: ReactNode }) {
   return <h3 id={id}><span className="n">{n}</span>{children}</h3>
@@ -128,10 +142,23 @@ export function Report() {
             </p>
             <p>
               That loop is hard to test with most agent benchmarks, which score a single attempt at a task of known
-              shape. MythicBench tests it directly. It is a deterministic simulation of a Mythic+-style dungeon, the
+              shape: fixing a GitHub issue, or finishing a task on a website or a desktop{' '}
+              <Cite k={['swebench', 'webarena', 'osworld', 'agentbench']} />. Newer work stretches how long an agent
+              can keep going <Cite k={['metr-horizon', 'vending-bench']} />, but still asks for one try. MythicBench
+              tests the loop directly. It is a deterministic simulation of a Mythic+-style dungeon, the
               format World of Warcraft players know: a fixed route of enemies and a boss, on one timer. Five agents play
               it, one per character, all the same model. They start blind to everything about the enemies, and between
               attempts nothing tells them what to learn.
+            </p>
+            <p>
+              Learning from failure has mostly been studied one agent at a time. Reflexion and ExpeL showed that a model
+              can do better on a second try by writing down, in plain language, what went wrong on the first{' '}
+              <Cite k={['reflexion', 'expel']} />, and recent work scores a single agent on how much it improves when it
+              replays the same text game <Cite k="evotest" />. Teamwork has its own benchmarks, from Hanabi to
+              Overcooked <Cite k={['hanabi', 'overcooked-ai']} />. To our knowledge no public benchmark asks for both at
+              once: five agents who must draw the same lesson from the same failure, agree on it in conversation, and
+              carry it out together under a timer, in a fight built so that their prior knowledge points the wrong way.
+              Section 9 places MythicBench among this work.
             </p>
             <p>This report makes four contributions:</p>
             <ul>
@@ -242,8 +269,9 @@ export function Report() {
             <p>
               The unit of analysis is the group. Each model's score comes with a 95% Student-t interval over its six
               groups. Two models are called different only where their scores on the same seeds, group by group, differ
-              clearly: a paired t-test, with Holm's correction for comparing every pair. Clear rates get exact
-              (Clopper-Pearson) intervals. The effect of memory is the paired difference between the same seeds played
+              clearly: a paired t-test, with Holm's correction for comparing every pair <Cite k="holm" />, following
+              the case for paired comparisons on shared items in <Cite k="error-bars" t />. Clear rates get exact
+              (Clopper-Pearson) intervals <Cite k="clopper-pearson" />. The effect of memory is the paired difference between the same seeds played
               with and without the debrief, talk and notes.
             </p>
 
@@ -294,6 +322,88 @@ export function Report() {
               <li>Two departures, disclosed. Interim scores were looked at while stage 2 was playing; nothing was changed or decided because of them. And +10 was calibrated in pilots on an earlier version of the fight, where GPT-6.2 Sol cleared some pulls. Later changes made the fight harder, and the calibration was not re-run before the freeze.</li>
             </ul>
 
+            <H2 id="related">Related work</H2>
+            <H3 n="9.1">Agent benchmarks score one attempt</H3>
+            <p>
+              The best-known agent benchmarks give a model a task and score whether it succeeds: resolving real GitHub
+              issues <Cite k="swebench" />, completing tasks on self-hosted websites <Cite k="webarena" /> or in a real
+              operating system <Cite k="osworld" />, or a mix of eight such environments <Cite k="agentbench" />. METR
+              measures how long a task agents can finish, and finds that length doubling roughly every seven
+              months <Cite k="metr-horizon" />. Vending-Bench has an agent run a simulated vending business and finds that
+              agents lose coherence over long horizons <Cite k="vending-bench" />. In all of these the unit is one
+              attempt. Benchmarks of that kind also tend to saturate quickly, which is why efforts like Humanity's Last
+              Exam exist at all <Cite k="hle" />. MythicBench's score is a learning curve: the first, blind pull counts,
+              but so does every pull after it.
+            </p>
+
+            <H3 n="9.2">Learning across attempts</H3>
+            <p>
+              Reflexion has an agent write a verbal reflection after each failed trial and read it on the next, and
+              improves on text games, question answering and coding <Cite k="reflexion" />. ExpeL distils insights from
+              many trials and reuses them on new tasks <Cite k="expel" />. Without outside feedback, though, models are
+              poor at correcting their own reasoning <Cite k="no-self-correct" />, which is why MythicBench gives every
+              agent the same factual combat log after each wipe. Algorithm Distillation shows a transformer improving
+              across episodes purely in context <Cite k="algorithm-distillation" />. Closest to our setting is J-TTL,
+              where one agent replays the same Jericho text game over several episodes and is scored on how much it
+              improves; reflection and memory baselines struggle there too <Cite k="evotest" />. MythicBench differs in
+              three ways: each pull uses a new seed, so a party cannot replay a script; the lesson must be shared and
+              agreed among five agents who each keep their own notes; and the plan has to be carried out in real time.
+            </p>
+
+            <H3 n="9.3">Games as testbeds</H3>
+            <p>
+              Games have long served as AI benchmarks, from text adventures <Cite k="textworld" /> and NetHack{' '}
+              <Cite k="nle" /> to suites built for language models, such as BALROG and SmartPlay{' '}
+              <Cite k={['balrog', 'smartplay']} />. Language-model agents have explored Minecraft with a growing skill
+              library <Cite k="voyager" />, played commercial games from screenshots <Cite k="cradle" />, and attempted
+              1990s video games in real time <Cite k="videogamebench" />. Long, public runs of Pokémon made the
+              same point to a wide audience: Claude 3.7 Sonnet earned three gym badges in Pokémon Red{' '}
+              <Cite k="claude-pokemon" />, and Gemini 2.5 Pro later finished Pokémon Blue <Cite k="gemini-pokemon" />.
+              ARC-AGI-3 moves abstract reasoning into turn-based games with no instructions, scored on how efficiently
+              an agent learns each one compared with people <Cite k="arc-agi-3" />. At the other extreme, reinforcement
+              learning reached champion level in team games like Dota 2 and StarCraft II{' '}
+              <Cite k={['openai-five', 'alphastar']} />, after training on vast numbers of games. MythicBench asks the
+              opposite question: what a team can learn from four wipes.
+            </p>
+
+            <H3 n="9.4">Teams of agents</H3>
+            <p>
+              Cooperative games test whether agents can coordinate with partners they cannot read directly: Hanabi
+              hides each player's own cards from them <Cite k="hanabi" />, and Overcooked-AI asks two cooks to share a
+              kitchen against the clock <Cite k="overcooked-ai" />. Both have been adapted for language models{' '}
+              <Cite k={['llm-coordination', 'collab-overcooked']} />, and MindAgent studies an LLM planner
+              directing several agents in a cooking game <Cite k="mindagent" />. Groups of language-model agents
+              produce believable social behaviour <Cite k="generative-agents" />, and debate between copies of one model
+              can improve its answers <Cite k="debate" />. Multi-agent systems also fail in characteristic ways,
+              including agents ignoring one another's input <Cite k="mast" />; the case in Section 6.2, where a
+              correct lesson is argued away, is one of them. In competitive settings, CICERO reached human-level play in
+              Diplomacy by combining a language model with planning <Cite k="cicero" />, and Clocktower Bench pits
+              models against each other in a game of social deduction <Cite k="clocktower-bench" />.
+            </p>
+
+            <H3 n="9.5">What is new here</H3>
+            <p>
+              Each of the properties MythicBench combines has been studied before. What has not, to our knowledge, is
+              all of them in one benchmark: an unseen world learned by playing it, a score that rewards improvement
+              across attempts, a team that has to agree on what it learned, and a time limit (Table 8). That
+              combination is what lets the results separate models that play equally well on the first try.
+            </p>
+            <Table n="8" caption="MythicBench next to related benchmarks. Game: an interactive game world. Unseen: the agent has to learn the world by playing it. Learning scored: the score rewards improvement across attempts. Team: several agents must coordinate. Timer: play runs against a time limit. A tick is a statement about design, not about difficulty or quality.">
+              <table>
+                <thead>
+                  <tr><th>Benchmark</th><th className="r">Game</th><th className="r">Unseen</th><th className="r">Learning scored</th><th className="r">Team</th><th className="r">Timer</th></tr>
+                </thead>
+                <tbody>
+                  {COMPARE.map(([name, key, ...flags]) => (
+                    <tr key={name}>
+                      <td>{key ? <a href={`#ref-${key}`} className="cite">{name}</a> : <strong>{name}</strong>}</td>
+                      {flags.map((f, i) => <td key={i} className={`r ${f ? 'yes' : 'no'}`}>{f ? '✓' : '–'}</td>)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Table>
+
             <H2 id="limits">Limitations</H2>
             <ul>
               <li><strong>One dungeon, one boss.</strong> The results are about this task, not a general ranking of models.</li>
@@ -313,6 +423,16 @@ export function Report() {
               almost never did, and played no better than fixed rules. No model cleared. The gap that matters is not what
               a model knows on the first attempt, but what it can make of the second.
             </p>
+            <p>
+              Benchmarks that score one attempt are being saturated within a few years of release <Cite k="hle" />.
+              MythicBench starts a long way from that: no model has cleared it, a scripted expert shows that a clear
+              exists, and more models or more attempts per group need only a new protocol file. We think learning from
+              failure, as a team and in a world that punishes the obvious answer, is where agent evaluation should go
+              next, and we hope MythicBench makes it easy to measure.
+            </p>
+
+            <H2 id="references">References</H2>
+            <References />
 
             <H2 id="reproduce">Reproducing the results</H2>
             <p>Everything runs from the repository. Checking the published results is free, because every model reply is recorded.</p>

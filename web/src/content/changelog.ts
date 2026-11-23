@@ -25,6 +25,18 @@ const V1: Versions = { harness: '1.0.0', sim: '0.11.0', content: '1.8.0' }
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 'report-related-work',
+    date: '2026-11-23',
+    title: 'Highlights, related work and a corrected Pyre count',
+    kind: 'docs',
+    summary: 'Text and site changes only; nothing that plays changed, and no score moved.',
+    items: [
+      'A highlights page: 20 moments from the v1 replays, each quote checked word for word against the replay it comes from.',
+      'The report gains a related-work section with 37 references and a comparison with other agent and game benchmarks.',
+      "Correction: Claude Haiku 5.5's Bone Pyre count now covers pulls 2 to 5 like every other model's (0 of 93, was 0 of 116).",
+    ],
+  },
+  {
     id: 'v1-results',
     date: '2026-11-23',
     title: 'Official v1 results',
