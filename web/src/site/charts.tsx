@@ -51,7 +51,7 @@ export function scoreDomain(values: number[], step = 10, pad = 3): [number, numb
   return [lo, hi > lo ? hi : lo + step]
 }
 const ticks = (lo: number, hi: number, step = 10) => Array.from({ length: Math.floor((hi - lo) / step) + 1 }, (_, i) => lo + i * step)
-const textW = (s: string, px = 13) => s.length * px * 0.56
+const textW = (s: string, px = 13) => s.length * px * 0.6
 
 // ---------------------------------------------------------------------------
 // A 95% CI as a bar on a score track, with a dot per group
@@ -83,6 +83,16 @@ export function CIAxis({ width = 160, lo, hi, step = 10 }: { width?: number; lo:
         <text key={v} x={x(v)} y={10} textAnchor="middle" fill={AXIS} fontSize={10} fontFamily={MONO}>{v}</text>
       ))}
     </svg>
+  )
+}
+
+/** Axis titles: y above its tick column (read horizontally), x centred under its ticks. */
+function AxisTitles({ y, x, ml, iw, H }: { y?: string; x?: string; ml: number; iw: number; H: number }) {
+  return (
+    <g aria-hidden>
+      {y && <text x={0} y={11} fill={AXIS} fontSize={12}>{y}</text>}
+      {x && <text x={ml + iw / 2} y={H - 4} textAnchor="middle" fill={AXIS} fontSize={12}>{x}</text>}
+    </g>
   )
 }
 
@@ -147,8 +157,8 @@ export function LearningCurves({ results, tier, view = 'models' }: { results: Re
   const [lo, hi] = scoreDomain(series.flatMap((s) => s.values))
   const narrow = w < 620
   const labelW = Math.max(0, ...series.map((s) => textW(`${s.short}  00.0`))) + 20
-  const H = narrow ? 280 : 340
-  const m = { l: 40, r: narrow ? 16 : labelW, t: 16, b: 36 }
+  const H = narrow ? 304 : 364
+  const m = { l: 40, r: narrow ? 16 : labelW, t: 30, b: 54 }
   const iw = Math.max(1, w - m.l - m.r)
   const ih = H - m.t - m.b
   const x = (k: number) => m.l + (pulls === 1 ? iw / 2 : ((k - 1) / (pulls - 1)) * iw)
@@ -176,8 +186,9 @@ export function LearningCurves({ results, tier, view = 'models' }: { results: Re
               </g>
             ))}
             {Array.from({ length: pulls }, (_, i) => i + 1).map((k) => (
-              <text key={k} x={x(k)} y={H - 12} textAnchor={narrow ? 'middle' : k === 1 ? 'start' : k === pulls ? 'end' : 'middle'} fill={AXIS} fontSize={11} fontFamily={MONO}>{narrow ? (k === 1 ? 'Pull 1' : k) : `Pull ${k}`}</text>
+              <text key={k} x={x(k)} y={m.t + ih + 20} textAnchor="middle" fill={AXIS} fontSize={11} fontFamily={MONO}>{k}</text>
             ))}
+            <AxisTitles y={view === 'memory' ? 'Mean score, same seeds' : 'Mean score'} x="Pull (attempt number in the group)" ml={m.l} iw={iw} H={H} />
             {view === 'models' && pulls > 1 && (
               <g aria-hidden>
                 <rect x={x(1)} y={m.t} width={x(2) - x(1)} height={ih} fill="rgba(230,211,163,0.05)" />
@@ -246,8 +257,8 @@ export function CostScatter({ results }: { results: Results }) {
   }
   const [lo, hi] = scoreDomain(pts.flatMap((p) => p.ci ? [p.ci[0], p.ci[1]] : [p.score]), 10, 1)
   const narrow = w < 520
-  const H = narrow ? 300 : 340
-  const m = { l: 40, r: 20, t: 16, b: 36 }
+  const H = narrow ? 324 : 364
+  const m = { l: 40, r: 20, t: 30, b: 54 }
   const iw = Math.max(1, w - m.l - m.r)
   const ih = H - m.t - m.b
   const x = (c: number) => m.l + ((Math.log10(Math.max(c, cLo)) - Math.log10(cLo)) / (Math.log10(cHi) - Math.log10(cLo))) * iw
@@ -270,12 +281,25 @@ export function CostScatter({ results }: { results: Results }) {
     ]
     const fits = (b: Box) => b.x >= m.l && b.x + b.w <= w - 4 && b.y >= 0 && b.y + b.h <= m.t + ih
       && !dots.some((d, j) => j !== i && overlaps(b, d)) && !placed.some((q) => overlaps(b, q))
-    placed.push(tries.find(fits) ?? tries[0])
+    // Nothing clear: at least stay on the chart (a label off the edge is worse than one touching a neighbour).
+    const inside = (b: Box) => b.x >= 0 && b.x + b.w <= w - 2 && b.y >= 0 && b.y + b.h <= m.t + ih
+    placed.push(tries.find(fits) ?? tries.find(inside) ?? tries[0])
   }
 
   return (
     <figure className="m-0">
       <figcaption className="sr-only">MythicBench score against the cost of one +10 group, by model</figcaption>
+      {narrow && (
+        <ul className="mb-3 grid gap-1 text-[13px] text-fg-muted">
+          {[...pts].sort((a, b) => b.score - a.score).map((p) => (
+            <li key={p.key} className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: p.color }} aria-hidden />
+              <span className="text-fg">{p.label}</span>
+              <span className="ml-auto font-mono text-[12px]">{fmtScore(p.score)} · {fmtUsd(p.cost)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
       <div ref={ref} className="relative">
         {w > 0 && (
           <svg width={w} height={H} role="img" aria-label="Score against cost per group">
@@ -288,9 +312,10 @@ export function CostScatter({ results }: { results: Results }) {
             {xticks.map((d) => (
               <g key={d}>
                 <line x1={x(d)} x2={x(d)} y1={m.t} y2={m.t + ih} stroke={GRID} />
-                <text x={x(d)} y={H - 12} textAnchor="middle" fill={AXIS} fontSize={11} fontFamily={MONO}>{tick(d)}</text>
+                <text x={x(d)} y={m.t + ih + 20} textAnchor="middle" fill={AXIS} fontSize={11} fontFamily={MONO}>{tick(d)}</text>
               </g>
             ))}
+            <AxisTitles y="MythicBench score" x={narrow ? 'Cost of one group (log scale)' : 'Cost of one group of up to five pulls, at list prices (log scale)'} ml={m.l} iw={iw} H={H} />
             {pts.map((p, i) => {
               const b = placed[i]
               const tx = b.anchor === 'start' ? b.x : b.x + b.w
@@ -299,8 +324,10 @@ export function CostScatter({ results }: { results: Results }) {
                   {p.ci && <line x1={x(p.cost)} x2={x(p.cost)} y1={y(p.ci[0])} y2={y(p.ci[1])} stroke={p.color} strokeWidth={2} opacity={0.45} strokeLinecap="round" />}
                   <circle cx={x(p.cost)} cy={y(p.score)} r={14} fill="transparent" />
                   <circle cx={x(p.cost)} cy={y(p.score)} r={6} fill={p.color} stroke={SURFACE} strokeWidth={2} />
-                  <text x={tx} y={b.y + 12} textAnchor={b.anchor} fill={LABEL} fontSize={13} {...HALO}>{p.label}</text>
-                  <text x={tx} y={b.y + 28} textAnchor={b.anchor} fill={AXIS} fontSize={12} fontFamily={MONO} {...HALO}>{fmtScore(p.score)}  {fmtUsd(p.cost)}</text>
+                  {!narrow && <>
+                    <text x={tx} y={b.y + 12} textAnchor={b.anchor} fill={LABEL} fontSize={13} {...HALO}>{p.label}</text>
+                    <text x={tx} y={b.y + 28} textAnchor={b.anchor} fill={AXIS} fontSize={12} fontFamily={MONO} {...HALO}>{fmtScore(p.score)}  {fmtUsd(p.cost)}</text>
+                  </>}
                 </g>
               )
             })}
@@ -324,7 +351,7 @@ export function GroupScores({ results }: { results: Results }) {
   const [lo, hi] = scoreDomain(rows.flatMap((r) => [...r.groups, ...(r.ci ?? [])]))
   const narrow = w < 560
   const rowH = 40
-  const m = { l: Math.max(...rows.map((r) => textW(r.label)), 60) + 22, r: narrow ? 12 : 132, t: 8, b: 30 }
+  const m = { l: Math.max(...rows.map((r) => textW(r.label)), 60) + 22, r: narrow ? 12 : 132, t: 8, b: 50 }
   const H = m.t + rows.length * rowH + m.b
   const iw = Math.max(1, w - m.l - m.r)
   const x = (v: number) => m.l + ((Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo)) * iw
@@ -337,9 +364,10 @@ export function GroupScores({ results }: { results: Results }) {
             {ticks(lo, hi).map((v) => (
               <g key={v}>
                 <line x1={x(v)} x2={x(v)} y1={m.t} y2={H - m.b} stroke={GRID} />
-                <text x={x(v)} y={H - 10} textAnchor="middle" fill={AXIS} fontSize={11} fontFamily={MONO}>{v}</text>
+                <text x={x(v)} y={H - m.b + 18} textAnchor="middle" fill={AXIS} fontSize={11} fontFamily={MONO}>{v}</text>
               </g>
             ))}
+            <AxisTitles x="Group score (mean of its pulls)" ml={m.l} iw={iw} H={H} />
             {rows.map((r, i) => {
               const cy = m.t + i * rowH + rowH / 2
               return (

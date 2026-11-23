@@ -14,6 +14,7 @@ import gzip
 import json
 import re
 import sys
+from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,6 +36,10 @@ def pull_facts(path: Path) -> dict:
         "deaths": len(m.get("deaths", [])),
         "pyres": len(pyres),
         "soaked": sum(1 for e in pyres if e.get("soaked")),
+        # How many players stood in each Bone Pyre, in order (two or more soak it).
+        "pyre_inside": [len(e.get("inside", [])) for e in pyres],
+        # What killed each party member who died, by ability id.
+        "killed_by": dict(Counter(d.get("ability") or "unknown" for d in m.get("deaths", []))),
         "first_soak_s": round(first_soak / 1000, 1) if first_soak is not None else None,
         "kicks": [m["interrupts"]["interrupted"], m["interrupts"]["interruptible_casts"]],
         "chat": sum(1 for e in ev if e["type"] == "chat"),
@@ -44,13 +49,16 @@ def pull_facts(path: Path) -> dict:
 def main() -> int:
     board = json.loads((RESULTS / "leaderboard.json").read_text())
     ranked = {row["model"]: set(row["tiers"]["plus10"]["episode_ids"]) for row in board["leaderboard"]}
-    out: dict = {"source": "results/v1", "tier": "plus10", "models": {}}
+    out: dict = {"source": "results/v1", "tier": "plus10", "abilities": {}, "models": {}}
     for model in board["protocol"]["models"]:
         folder = RESULTS / "replays" / model / "plus10"
         groups: dict[int, list] = {}
         for f in folder.glob("ep*-pull*.json.gz"):  # memory-on, medium effort only (subfolders hold the rest)
             g, p = map(int, re.match(r"ep(\d+)-pull(\d+)", f.name).groups())
             groups.setdefault(g, []).append((p, pull_facts(f)))
+            if not out["abilities"]:  # display names for the killed_by ids
+                r = json.loads(gzip.decompress(f.read_bytes()))
+                out["abilities"] = {k: v["name"] for k, v in {**r["abilities"], **r.get("auras", {})}.items() if "name" in v}
         out["models"][model] = [
             {"episode": g, "ranked": g in ranked.get(model, set()), "pulls": [{"pull": p, **x} for p, x in sorted(pulls)]}
             for g, pulls in sorted(groups.items())

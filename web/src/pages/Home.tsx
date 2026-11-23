@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { HighlightCard } from './Highlights'
 import { HIGHLIGHTS } from '../content/highlights'
 import { PullGrid } from '../site/PullGrid'
+import { DeathCauses, SoakByPull } from '../site/HeatTables'
 import { CostScatter, LearningCurves } from '../site/charts'
 import { LeaderboardTable } from '../site/Leaderboard'
 import { Page } from '../site/Layout'
@@ -152,6 +153,28 @@ function ResultsBody({ results }: { results: Results }) {
         </SectionHead>
         <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
           <LearningCurves results={results} tier={tier} />
+        </div>
+      </section>
+
+      <section className="pt-20">
+        <SectionHead title="Learning to stand in the fire" link={['/report#pyre', 'Bone Pyre in the report']} />
+        <p className="mt-2 max-w-[720px] text-[15px] leading-6 text-fg-muted">
+          Bone Pyre's blast hits everyone unless two players stand inside its circle. No party works that out blind.
+          After one wipe, Opus and Sol soak almost every Pyre. The other three almost never do.
+        </p>
+        <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
+          <SoakByPull results={results} />
+        </div>
+      </section>
+
+      <section className="pt-20">
+        <SectionHead title="What killed them" link={['/report#pyre', 'Deaths in the report']} />
+        <p className="mt-2 max-w-[720px] text-[15px] leading-6 text-fg-muted">
+          Bone Pyre kills more characters than anything else, for every model. The two that learned to soak it trade some of
+          those deaths for the pools that land where the party gathers: for Opus, they are almost level.
+        </p>
+        <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
+          <DeathCauses results={results} />
         </div>
       </section>
 

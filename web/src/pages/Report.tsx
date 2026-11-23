@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from 'react'
 import { modelName } from '../content/display'
 import { BEHAVIOUR, EXPERT, MOMENTS, SOAKS } from '../content/findings'
 import { GroupScores, LearningCurves } from '../site/charts'
+import { DeathCauses, SoakByPull } from '../site/HeatTables'
 import { Cite, References } from '../site/Cite'
 import { GITHUB_URL } from '../site/config'
 import { Page } from '../site/Layout'
@@ -582,6 +583,9 @@ function ResultsBody({ r }: { r: Results }) {
           </tbody>
         </table>
       </Table>
+      <Figure n="3" caption="Share of Bone Pyres soaked (two or more players inside), by pull, over each model's six ranked +10 groups. Nobody soaks on the blind first pull; Opus and Sol do from the second.">
+        <SoakByPull results={r} />
+      </Figure>
       <p>The agents' notes after the first wipe show what each party inferred from the same kind of blast:</p>
       <blockquote>"EVERYONE STACK INSIDE THE CIRCLE." Claude Opus 5.5</blockquote>
       <blockquote>"BONE PYRE is a soak, not a pool to dodge." GPT-6.2 Sol</blockquote>
@@ -591,6 +595,14 @@ function ResultsBody({ r }: { r: Results }) {
         a 2.5 m circle within six seconds on only three Pyres in four, while also dodging pools, interrupting casts and
         holding adds.
       </p>
+      <p>
+        Figure 4 shows what killed each party. Bone Pyre causes 55% of GPT-6 Luna's deaths and 30 to 40% of every other
+        model's. Opus and Sol, whose parties gather in the middle to soak it, lose more characters to the Desecrate pools
+        that land there: 30% and 28% of their deaths, against 5% for Luna.
+      </p>
+      <Figure n="4" caption="What killed each model's characters, as a share of its deaths over its six ranked +10 groups. Hover a cell for the count; Other lists the rest.">
+        <DeathCauses results={r} />
+      </Figure>
 
       <H3 id="memory" n="5.5">The debrief and notes showed no clear benefit for Haiku or Luna</H3>
       <p>
@@ -607,7 +619,7 @@ function ResultsBody({ r }: { r: Results }) {
         })}. That fits Table 5: neither model learned the key mechanic, so the debrief may have had little of use to carry. The models that did
         learn were not part of this test, so their gains in Figure 2 are a before-and-after, not a controlled effect.
       </p>
-      <Figure n="3" caption="The memory test: mean +10 score at each pull on the same twelve seeds, with memory (solid) and without (dashed).">
+      <Figure n="5" caption="The memory test: mean +10 score at each pull on the same twelve seeds, with memory (solid) and without (dashed).">
         <LearningCurves results={r} tier={head} view="memory" />
       </Figure>
 

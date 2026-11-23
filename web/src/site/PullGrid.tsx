@@ -10,9 +10,10 @@ import { navigate } from './router'
 export interface PullFacts {
   pull: number; score: number; dur: number; boss: number | null; deaths: number
   pyres: number; soaked: number; first_soak_s: number | null; kicks: [number, number]; chat: number
+  pyre_inside?: number[]; killed_by?: Record<string, number>
 }
 export interface GroupFacts { episode: number; ranked: boolean; pulls: PullFacts[] }
-export interface Insights { source: string; tier: string; models: Record<string, GroupFacts[]> }
+export interface Insights { source: string; tier: string; abilities?: Record<string, string>; models: Record<string, GroupFacts[]> }
 
 let cache: Promise<Insights> | null = null
 export function fetchInsights(): Promise<Insights> {
@@ -35,7 +36,11 @@ const STOPS: [number, [number, number, number]][] = [
 const LO = 20
 const HI = 70
 export function scoreColor(score: number): string {
-  const f = Math.max(0, Math.min(1, (score - LO) / (HI - LO)))
+  return heat((score - LO) / (HI - LO))
+}
+/** The same ramp for any 0-1 value (the heat tables use it for shares). */
+export function heat(v: number): string {
+  const f = Math.max(0, Math.min(1, v))
   const k = STOPS.findIndex(([s]) => s >= f)
   if (k <= 0) return `rgb(${STOPS[0][1].join(',')})`
   const [s0, c0] = STOPS[k - 1]
@@ -141,7 +146,7 @@ export function PullGrid({ results }: { results: Results }) {
           </span>
           the party stood in Bone Pyre
         </span>
-        <span className="text-fg-faint">Click a square to watch that pull</span>
+        <span className="text-fg-faint">Each square is one pull: five per group, pull 1 to 5 from left to right. Click one to watch it.</span>
       </div>
 
       {hover && (
