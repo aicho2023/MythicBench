@@ -10,6 +10,7 @@ const DESCRIPTION = 'An LLM eval: five agents, one per character, run a Mythic+-
 export const PAGES: PageMeta[] = [
   { path: '/', title: 'MythicBench: can an AI lead a Mythic+ group?', description: DESCRIPTION },
   { path: '/watch', title: 'Watch a run | MythicBench', description: 'Replays of every pull in the benchmark, in 3D, with every decision the model made.' },
+  { path: '/highlights', title: 'Highlights | MythicBench', description: 'The best moments from 420 pulls: breakthroughs, arguments, clutch saves and spectacular wipes, each a click from the replay.' },
   { path: '/report', title: 'Report | MythicBench', description: 'How MythicBench works, what it measures, and what the models did.' },
   { path: '/party', title: 'The party | MythicBench', description: 'Every character and ability in MythicBench, the enemies of the Hollow Vault, and the affixes.' },
   { path: '/compare', title: 'Side by side | MythicBench', description: 'Two MythicBench replays on one clock, seen from above.' },

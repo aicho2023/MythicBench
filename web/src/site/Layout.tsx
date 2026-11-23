@@ -1,12 +1,13 @@
-import { Github, Heart, Menu, X } from 'lucide-react'
+import { Github, Menu, X } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
-import { GITHUB_URL, SITE_URL, VENMO_HANDLE, VENMO_URL } from './config'
+import { GITHUB_URL, SITE_URL } from './config'
 import { metaFor } from './meta'
 import { Link, usePath } from './router'
 
 const NAV = [
   { to: '/', label: 'Leaderboard' },
   { to: '/watch', label: 'Watch' },
+  { to: '/highlights', label: 'Highlights' },
   { to: '/party', label: 'Party' },
   { to: '/report', label: 'Report' },
   { to: '/about', label: 'About' },
@@ -80,14 +81,6 @@ export function SiteFooter() {
   return (
     <footer className="mt-24 border-t border-line">
       <div className="mx-auto max-w-[1248px] px-4 sm:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line py-6">
-          <p className="text-[14px] leading-6 text-fg-muted">
-            Every run is paid for out of pocket. Support more models and harder experiments.
-          </p>
-          <a href={VENMO_URL} target="_blank" rel="noopener noreferrer" className="btn h-9 px-4 text-[13px]">
-            <Heart size={14} className="text-accent" /> Venmo @{VENMO_HANDLE}
-          </a>
-        </div>
         <div className="grid gap-6 py-8 text-[13px] leading-5 text-fg-faint md:grid-cols-[1fr_auto]">
           <p className="max-w-[640px]">
             MythicBench is an independent project, not affiliated with or endorsed by Blizzard Entertainment. World of

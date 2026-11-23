@@ -78,7 +78,7 @@ export function CIBar({ mean, ci, accent = false, width = 160, dots = [], lo = 0
 export function CIAxis({ width = 160, lo, hi, step = 10 }: { width?: number; lo: number; hi: number; step?: number }) {
   const x = (v: number) => (v - lo) / (hi - lo) * (width - 8) + 4
   return (
-    <svg width={width} height={12} className="block" aria-hidden>
+    <svg width={width} height={12} className="block overflow-visible" aria-hidden>
       {ticks(lo, hi, step).map((v) => (
         <text key={v} x={x(v)} y={10} textAnchor="middle" fill={AXIS} fontSize={10} fontFamily={MONO}>{v}</text>
       ))}
@@ -178,6 +178,14 @@ export function LearningCurves({ results, tier, view = 'models' }: { results: Re
             {Array.from({ length: pulls }, (_, i) => i + 1).map((k) => (
               <text key={k} x={x(k)} y={H - 12} textAnchor={narrow ? 'middle' : k === 1 ? 'start' : k === pulls ? 'end' : 'middle'} fill={AXIS} fontSize={11} fontFamily={MONO}>{narrow ? (k === 1 ? 'Pull 1' : k) : `Pull ${k}`}</text>
             ))}
+            {view === 'models' && pulls > 1 && (
+              <g aria-hidden>
+                <rect x={x(1)} y={m.t} width={x(2) - x(1)} height={ih} fill="rgba(230,211,163,0.05)" />
+                <text x={(x(1) + x(2)) / 2} y={m.t + 14} textAnchor="middle" fill="#e6d3a3" fillOpacity={0.75} fontSize={11} fontFamily={MONO}>
+                  {narrow ? 'debrief' : 'the first debrief'}
+                </text>
+              </g>
+            )}
             {at !== null && <line x1={x(at)} x2={x(at)} y1={m.t} y2={m.t + ih} stroke="rgba(255,255,255,0.18)" />}
             {series.map((s, i) => {
               const d = s.values.map((v, k) => `${k ? 'L' : 'M'}${x(k + 1)},${y(v)}`).join('')

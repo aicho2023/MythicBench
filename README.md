@@ -15,9 +15,8 @@ attempt in a 3D replay viewer and recompute every score yourself.
 
 ![Oruth the Unburied in the replay viewer](docs/media/hero.jpg)
 
-The simulator, the dungeon, the model harness and the viewer are working. The
-official run across five models is next, followed by a public site with the
-leaderboard and a write-up.
+The official v1 run of five models is done: the leaderboard, the write-up,
+highlights and every replay are at [mythicbench.com](https://mythicbench.com).
 
 ## Watch a replay
 

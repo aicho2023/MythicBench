@@ -10,6 +10,7 @@ import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { About } from './pages/About'
 import { Changelog } from './pages/Changelog'
+import { Highlights } from './pages/Highlights'
 import { Home } from './pages/Home'
 import { NotFound } from './pages/NotFound'
 import { Party } from './pages/Party'
@@ -37,6 +38,7 @@ function Site() {
   else if (path === '/watch' || path.startsWith('/watch/')) page = <div className="viewer h-full"><Watch path={path} /></div>
   else if (path === '/report') page = <Report />
   else if (path === '/commentary' || path === '/paper') { history.replaceState(null, '', `/report${location.hash}`); page = <Report /> }  // its old names
+  else if (path === '/highlights') page = <Highlights />
   else if (path === '/party') page = <Party />
   else if (path === '/about') page = <About />
   else if (path === '/changelog') page = <Changelog />

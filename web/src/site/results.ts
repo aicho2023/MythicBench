@@ -164,7 +164,7 @@ export const labName = (provider: string) => LAB_NAMES[provider] ?? provider
  * Validated on the dark surface #111113: adjacent pairs pass; at seven series
  * not every pair separates, so charts also label each series by name.
  */
-export const SERIES = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#0ca30c', '#9085e9']
+export const SERIES = ['#3987e5', '#d95926', '#199e70', '#9085e9', '#d55181', '#0ca30c', '#c98500']
 export function modelColor(r: Results, model: string): string {
   const i = r.protocol.models.indexOf(model)
   return SERIES[(i < 0 ? r.protocol.models.length : i) % SERIES.length]

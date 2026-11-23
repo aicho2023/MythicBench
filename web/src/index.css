@@ -149,3 +149,14 @@ body {
 /* Numbers never wrap; a wide table scrolls inside its own box on a phone. */
 .paper td.m, .paper th.r { white-space: nowrap; }
 .paper td:first-child { min-width: 128px; }
+
+/* Report citations and references */
+.paper a.cite { color: #b4b4bb; text-decoration-color: rgba(255, 255, 255, 0.18); text-underline-offset: 3px; }
+.paper a.cite:hover { color: #ededef; text-decoration-color: #e6d3a3; }
+.paper ol.refs { list-style: none; padding-left: 0; font-size: 15px; line-height: 24px; }
+.paper ol.refs li { padding-left: 24px; text-indent: -24px; scroll-margin-top: 96px; }
+.paper ol.refs li + li { margin-top: 10px; }
+.paper ol.refs li:target { background: rgba(230, 211, 163, 0.08); border-radius: 6px; }
+.paper ol.refs a { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13px; color: #a1a1aa; }
+.paper td.yes { color: #e6d3a3; }
+.paper td.no { color: #5c5c63; }

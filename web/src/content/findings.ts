@@ -10,7 +10,7 @@ export const SOAKS: { model: string; groups: string; soaked: string; note?: stri
   { model: 'gpt-6.2-sol', groups: '6 of 6', soaked: '71 of 95', note: '5 after the first wipe, 1 after the second' },
   { model: 'claude-sonnet-5-5', groups: '1 of 6', soaked: '6 of 48' },
   { model: 'gpt-6-luna', groups: '2 of 12', soaked: '5 of 117' },
-  { model: 'claude-haiku-5-5', groups: '0 of 12', soaked: '0 of 116' },
+  { model: 'claude-haiku-5-5', groups: '0 of 12', soaked: '0 of 93' },
 ]
 
 /** Pulls worth watching: [label, viewer path, what happens]. */

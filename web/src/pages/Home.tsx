@@ -1,5 +1,8 @@
 import { ArrowRight } from 'lucide-react'
 import { lazy, Suspense, useState, type ReactNode } from 'react'
+import { HighlightCard } from './Highlights'
+import { HIGHLIGHTS } from '../content/highlights'
+import { PullGrid } from '../site/PullGrid'
 import { CostScatter, LearningCurves } from '../site/charts'
 import { bestPull, LeaderboardTable } from '../site/Leaderboard'
 import { Page } from '../site/Layout'
@@ -10,14 +13,6 @@ import { Link } from '../site/router'
 import { useResults } from '../site/useResults'
 
 const Teaser = lazy(() => import('../site/Teaser'))
-
-export function HowToRead({ children }: { children: ReactNode }) {
-  return (
-    <div className="mt-4 max-w-[720px] border-l-2 border-accent/40 pl-4 text-[13px] leading-5 text-fg-muted">
-      <span className="text-fg">How to read this. </span>{children}
-    </div>
-  )
-}
 
 export function SampleNotice({ results }: { results: Results }) {
   if (results.protocol.name === 'v1') return null
@@ -70,7 +65,7 @@ export function Home() {
           </Link>
           <figcaption className="mt-3 text-[13px] leading-5 text-fg-faint">
             {top
-              ? <>{modelName(top.model)}, {tierName(results!, top.tier)}, {pullLabel(top.episode, top.pull)}: its best pull{topLeft(results!) != null ? `, Oruth at ${topLeft(results!)}% when time ran out` : ''}. Every pull in the benchmark can be replayed like this.</>
+              ? <>{modelName(top.model)}, {tierName(results!, top.tier)}, {pullLabel(top.episode, top.pull)}: its best pull{topLeft(results!) != null ? `, Oruth at ${topLeft(results!)}% when time ran out` : ''}.</>
               : FEATURED.caption}
           </figcaption>
         </figure>
@@ -97,8 +92,8 @@ const FINDINGS: { head: string; body: ReactNode }[] = [
   },
   {
     head: 'Stand in the fire',
-    body: <>Oruth's Bone Pyre has to be soaked, the opposite of gamer instinct. After one wipe, Opus and Sol work
-      it out in 12 of 12 groups. Sonnet: 1 of 6. Luna: 2 of 12. Haiku: 0 of 12.</>,
+    body: <>Oruth's Bone Pyre has to be soaked, the opposite of gamer instinct. Opus and Sol work it out in all 12 of
+      their groups, 11 of them after a single wipe. Sonnet: 1 of 6. Luna: 2 of 12. Haiku: 0 of 12.</>,
   },
   {
     head: 'Same score, a fifth of the price',
@@ -126,9 +121,6 @@ function Findings() {
           </div>
         ))}
       </div>
-      <p className="mt-4 text-[14px] text-fg-muted">
-        <Link to="/report#results" className="text-fg underline decoration-accent/50 underline-offset-4 hover:decoration-accent">Read the full results</Link>, with the replays behind every claim.
-      </p>
     </section>
   )
 }
@@ -136,6 +128,20 @@ function Findings() {
 function Results({ results }: { results: Results }) {
   if (!results.leaderboard.length) return <div className="pt-16"><SampleNotice results={results} /></div>
   return <ResultsBody results={results} />
+}
+
+function SectionHead({ title, link, children }: { title: string; link?: [string, string]; children?: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+      <h2 className="text-[22px] font-medium text-fg">{title}</h2>
+      {children}
+      {link && (
+        <Link to={link[0]} className="flex items-center gap-1.5 text-[13px] text-fg-muted transition-colors hover:text-fg">
+          {link[1]} <ArrowRight size={14} />
+        </Link>
+      )}
+    </div>
+  )
 }
 
 function ResultsBody({ results }: { results: Results }) {
@@ -147,53 +153,49 @@ function ResultsBody({ results }: { results: Results }) {
       <SampleNotice results={results} />
 
       <section id="leaderboard" className="pt-20">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-          <h2 className="text-[22px] font-medium text-fg">Leaderboard</h2>
-          <p className="text-[13px] text-fg-muted">
-            {tierName(results, 'plus10')}, {p.episodes} fresh groups per model, up to {p.max_pulls} pulls each, effort {p.effort}, harness {results.harness_version}
+        <SectionHead title="Leaderboard" link={['/report#results', 'Full results']}>
+          <p className="text-[13px] text-fg-faint sm:ml-auto">
+            {tierName(results, 'plus10')} · {p.episodes} groups per model · up to {p.max_pulls} pulls each
           </p>
-        </div>
+        </SectionHead>
         <div className="mt-6"><LeaderboardTable results={results} /></div>
-        <HowToRead>
-          A <b>group</b> is a fresh party with up to {p.max_pulls} <b>pulls</b>. A pull scores 0 to 100: a clear in time is
-          70 or more, anything short of a clear up to 70 for how far it got. A group's score averages its pulls, and a
-          model's score averages its groups. The order is descriptive; which differences are real is in
-          the <Link to="/report#results" className="underline decoration-white/30 underline-offset-4 hover:decoration-fg">report</Link>.
-          Cost is one group at list prices, thinking included. Click a model to watch its pulls.
-        </HowToRead>
       </section>
 
       <section className="pt-20">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h2 className="text-[22px] font-medium text-fg">Does it learn between wipes?</h2>
+        <SectionHead title="Every pull, at a glance" link={['/highlights', 'Highlights']} />
+        <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
+          <PullGrid results={results} />
+        </div>
+      </section>
+
+      <section className="pt-20">
+        <SectionHead title="Does it learn between wipes?" link={['/report#memory', 'The memory test']}>
           {tiers.length > 1 && (
             <div className="seg" role="group" aria-label="Difficulty">
               {tiers.map((t) => <button key={t} aria-pressed={tier === t} onClick={() => setTier(t)}>{tierName(results, t)}</button>)}
             </div>
           )}
-        </div>
+        </SectionHead>
         <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
           <LearningCurves results={results} tier={tier} />
         </div>
-        <HowToRead>
-          Each line is a model's mean score at each pull, over its {p.episodes} groups. Every party wipes on its first,
-          blind pull. After one debrief, Claude Opus 5.5 and GPT-6.2 Sol climb; the other three stay flat. Hover for
-          the numbers. The test with memory switched off is in
-          the <Link to="/report#memory" className="underline decoration-white/30 underline-offset-4 hover:decoration-fg">report</Link>.
-        </HowToRead>
       </section>
 
       <section className="pt-20">
-        <h2 className="text-[22px] font-medium text-fg">What a score costs</h2>
+        <SectionHead title="What a score costs" />
         <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
           <CostScatter results={results} />
         </div>
-        <HowToRead>
-          Each dot is a model: its score, with its 95% interval as a vertical line, against what one {tierName(results, 'plus10')} group
-          costs at list prices, thinking included. The cost axis is logarithmic, so each step is three times the
-          last. Up and to the left is better value.
-        </HowToRead>
       </section>
+
+      {HIGHLIGHTS.length > 0 && (
+        <section className="pt-20">
+          <SectionHead title="Highlights" link={['/highlights', `All ${HIGHLIGHTS.length}`]} />
+          <div className="mt-6 grid gap-3 md:grid-cols-3">
+            {HIGHLIGHTS.slice(0, 3).map((h) => <HighlightCard key={h.id} h={h} compact />)}
+          </div>
+        </section>
+      )}
     </>
   )
 }
