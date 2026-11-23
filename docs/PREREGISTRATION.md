@@ -25,6 +25,40 @@ plays the same frozen code as stage 1, so every v1 group plays one code. Every
 occurrence in the final data is counted and reported, by the rule stated
 there. Nothing else changes.
 
+**Amendment 3 (2026-11-23, after the official results were published, before
+any new model plays).** Four models from four more labs join v1:
+Gemini 3.8 Flash (Google, `gemini-3.8-flash`), Grok 4.3 (xAI, `grok-4.3`),
+Qwen4-Max (Alibaba, `qwen4-max`) and DeepSeek V4.1 Flash (DeepSeek,
+`deepseek-flash`), each through its lab's own API. They play exactly what the
+five models played: the same frozen game and prompt (harness 1.0.0, sim
+0.11.0, content 1.8.0), the same seed schedule (base 70000), six ranked +10
+groups each, up to five pulls, memory on, at medium effort, with the same
+8,000-token output cap and call budget. No controls, Normal checks or effort
+sweeps are added for them.
+
+What changes in the code is only how requests reach the new labs: four API
+clients and their list prices. What the models see, how their replies are
+read, and how pulls are scored are unchanged, so `HARNESS_VERSION` stays
+1.0.0 and the five existing models' results stand as published. The known
+faults stay too (the throne edge case and the "safe" fault disclosed after the
+run), so all nine models play identical code.
+
+"Medium" effort means each lab's own setting: Gemini's thinking level
+`medium` (its default); Grok's `reasoning_effort` `medium`; DeepSeek's
+`reasoning_effort` `high`, which DeepSeek documents as what `medium` maps to;
+Qwen's thinking switched on at its default depth (Qwen has no levels).
+Costs use list prices: DeepSeek at its peak rate (off-peak is half), so its
+reported cost errs high.
+
+Before the run, a few test calls per model check that each client works, that
+the output cap holds (the spending guard stops a run if a call ever costs more
+than its reserved worst case), and that the model asked for is the one that
+answers. Nothing from those calls is scored. The new models then play one at a
+time under a campaign budget. The protocol file gains the four models; its
+earlier digest stays pinned so the published five-model dataset still
+verifies. Scores and comparisons follow the analysis plan above unchanged:
+Holm's correction is applied over every pair of the nine models.
+
 ## The question
 
 Can a team of AI agents learn a dungeon it has never seen? Five copies of

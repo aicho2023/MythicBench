@@ -25,6 +25,18 @@ const V1: Versions = { harness: '1.0.0', sim: '0.11.0', content: '1.8.0' }
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 'amendment-3',
+    date: '2026-11-23',
+    title: 'Pre-registration amendment 3: four more labs',
+    kind: 'protocol',
+    summary: 'Gemini 3.8 Flash, Grok 4.3, Qwen4-Max and DeepSeek V4.1 Flash join v1, on the same frozen game, prompt and seeds. Their results are not in yet.',
+    items: [
+      'Each plays six ranked +10 groups at medium effort through its lab\'s own API, exactly as the first five models did.',
+      'The code adds only the four API clients and their prices; what models see and how they are scored is unchanged, so the harness stays 1.0.0 and the published results stand.',
+      '"Medium" maps to each lab\'s own setting: Gemini\'s thinking level medium, Grok\'s reasoning effort medium, DeepSeek\'s high (its documented equivalent), and Qwen\'s thinking on.',
+    ],
+  },
+  {
     id: 'claims-pass',
     date: '2026-11-23',
     title: 'Report claims matched to the evidence',

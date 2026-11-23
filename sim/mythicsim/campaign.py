@@ -228,9 +228,9 @@ def run_campaign(proto: dict, *, only: str | None = None, dry_run: bool = False,
     cell's first N episodes (ids below N); running again without it plays the
     rest under the same protocol, so the stages add up to one dataset."""
     pinned = OFFICIAL_PROTOCOLS.get(proto["name"])
-    if pinned and protocol_digest(proto) != pinned:
+    if pinned and protocol_digest(proto) != pinned[-1]:  # only the current version is played
         raise SystemExit(f"protocol {proto['name']!r} differs from the pinned official one (digest "
-                         f"{protocol_digest(proto)[:12]}, pinned {pinned[:12]}): restore it, or give it another name")
+                         f"{protocol_digest(proto)[:12]}, pinned {pinned[-1][:12]}): restore it, or give it another name")
     paid = not offline and any(c.model["provider"] not in FREE_PROVIDERS for c in combos(proto, only))
     dirty = dirty_files()
     if paid and dirty and not dry_run and not allow_dirty:
@@ -397,13 +397,18 @@ def _rescore(rep: dict, ep: int, pull: int, proto: dict) -> tuple[dict, list[str
 
 
 # The official protocols, pinned: a published dataset that names one of these
-# must carry exactly this protocol (its normalized JSON's SHA-256), or a
-# verifier pass would only prove it complete against some other protocol.
-OFFICIAL_PROTOCOLS: dict[str, str] = {
-    "v1": "8ff5337d414ceac9f4944bd23081d6058d459ed3d1f264fd0d7b695d6d0e6641",  # protocol/v1.json
+# must carry exactly one of its pinned versions (normalized JSON's SHA-256), or a
+# verifier pass would only prove it complete against some other protocol. The
+# last digest is the current protocol file; earlier ones are datasets published
+# before a pre-registered amendment that only added models.
+OFFICIAL_PROTOCOLS: dict[str, tuple[str, ...]] = {
+    "v1": (
+        "8ff5337d414ceac9f4944bd23081d6058d459ed3d1f264fd0d7b695d6d0e6641",  # the five models of stages 1 and 2
+        "ddacf3a82cdc87a95cd8186f6541c6712b424e75fc67cecaa73489baf2b36818",  # + four labs (Amendment 3)
+    ),
     # The pre-registered restart: v1 on its reserve seeds (seed_base 80000), run in
     # full only if v1's stage 1 finds a harness fault (docs/PREREGISTRATION.md).
-    "v1-restart": "8bcc88a37769d812845924300c2630a14fc361dfbbbeba8e17819aefa32c5169",  # protocol/v1-restart.json
+    "v1-restart": ("8bcc88a37769d812845924300c2630a14fc361dfbbbeba8e17819aefa32c5169",),  # protocol/v1-restart.json
 }
 
 
@@ -477,9 +482,9 @@ def verify_results(out_dir: Path, first: int | None = None, replay: bool = True,
     if official is not None and digest != protocol_digest(load_protocol(official)):
         bad.append(f"the dataset's protocol isn't {official} (digest {digest[:12]})")
     pinned = OFFICIAL_PROTOCOLS.get(proto["name"])
-    if pinned and digest != pinned:
+    if pinned and digest not in pinned:
         bad.append(f"the dataset says it's protocol {proto['name']!r} but its protocol differs from the pinned "
-                   f"official one (digest {digest[:12]}, pinned {pinned[:12]})")
+                   f"official ones (digest {digest[:12]}, pinned {', '.join(d[:12] for d in pinned)})")
     for k, v in (("harness_version", HARNESS_VERSION), ("sim_version", SIM_VERSION), ("content_version", C.CONTENT_VERSION)):
         if published.get(k) != v:
             bad.append(f"dataset {k} {published.get(k)}, this code {v}: check out the tag the dataset names")

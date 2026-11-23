@@ -155,7 +155,9 @@ export async function gunzipIfNeeded(bytes: Uint8Array): Promise<string> {
 // Display helpers
 // ---------------------------------------------------------------------------
 
-export const LAB_NAMES: Record<string, string> = { anthropic: 'Anthropic', openai: 'OpenAI', mock: 'No API (mock)' }
+export const LAB_NAMES: Record<string, string> = {
+  anthropic: 'Anthropic', openai: 'OpenAI', google: 'Google', xai: 'xAI', alibaba: 'Alibaba', deepseek: 'DeepSeek', mock: 'No API (mock)',
+}
 export const labName = (provider: string) => LAB_NAMES[provider] ?? provider
 
 /**

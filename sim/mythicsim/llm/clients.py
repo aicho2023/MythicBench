@@ -233,6 +233,11 @@ def _read_openai(out, t0: float) -> "Reply":
     text = _text(msg.get("content"), "message.content")
     refusal = _text(msg.get("refusal"), "message.refusal")
     finish = _text(c0.get("finish_reason"), "finish_reason")
+    if finish in ("insufficient_system_resource", "aborted"):
+        # DeepSeek: the provider ran out of capacity or cut the answer off. Not
+        # the model's doing: an error (the party keeps its orders), not a reply.
+        raise ClientError(f"the provider stopped the answer ({finish})")
+    reasoning_text = _text(msg.get("reasoning_content"), "message.reasoning_content")
     usage = _obj(out.get("usage"), "usage")
     prompt = _tokens(usage, "prompt_tokens", "usage")
     completion = _tokens(usage, "completion_tokens", "usage")
@@ -253,8 +258,52 @@ def _read_openai(out, t0: float) -> "Reply":
                 raise _malformed(f"{reasoning} reasoning tokens out of {completion} output tokens")
     return Reply(text, prompt, completion, time.monotonic() - t0, cache_read_tokens=read,
                  truncated=finish == "length", refused=bool(refusal) or finish == "content_filter",
+                 thinking=reasoning_text[:4000],
                  model=_text(out.get("model"), "model"), stop_reason=finish, request_id=_text(out.get("id"), "id"),
                  reasoning_tokens=reasoning, service_tier=_text(out.get("service_tier"), "service_tier"))
+
+
+# Gemini: why a candidate stopped. MAX_TOKENS is a cut-off reply; these mean
+# Google's safety systems withheld it (a refusal: the party keeps its orders).
+_GEMINI_REFUSED = {"SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII", "IMAGE_SAFETY"}
+
+
+def _read_gemini(out, t0: float) -> "Reply":
+    out = _obj(out, "the response")
+    u = _obj(out.get("usageMetadata"), "usageMetadata")
+    prompt = _tokens(u, "promptTokenCount", "usageMetadata")  # includes the cached part
+    if prompt <= 0:
+        raise _malformed("no input tokens counted for a request that had a prompt")
+    read = _tokens(u, "cachedContentTokenCount", "usageMetadata", required=False)
+    if read > prompt:
+        raise _malformed(f"{read} cached tokens out of {prompt} input tokens")
+    answer = _tokens(u, "candidatesTokenCount", "usageMetadata", required=False)
+    thoughts = _tokens(u, "thoughtsTokenCount", "usageMetadata", required=False)
+    model = _text(out.get("modelVersion"), "modelVersion")
+    rid = _text(out.get("responseId"), "responseId")
+    block = _text(_obj(out.get("promptFeedback") or {}, "promptFeedback").get("blockReason"), "blockReason")
+    cands = out.get("candidates") or []
+    if not isinstance(cands, list):
+        raise _malformed("'candidates' is not a list")
+    if not cands:
+        if not block:
+            raise _malformed("no candidates and no block reason")
+        return Reply("", prompt, answer + thoughts, time.monotonic() - t0, cache_read_tokens=read, refused=True,
+                     model=model, stop_reason=f"blocked:{block}", request_id=rid, reasoning_tokens=thoughts)
+    c0 = _obj(cands[0], "candidates[0]")
+    finish = _text(c0.get("finishReason"), "finishReason")
+    parts = _obj(c0.get("content") or {}, "candidates[0].content").get("parts") or []
+    if not isinstance(parts, list):
+        raise _malformed("'parts' is not a list")
+    text, thinking = [], []
+    for i, p in enumerate(parts):
+        p = _obj(p, f"parts[{i}]")
+        (thinking if p.get("thought") is True else text).append(_text(p.get("text"), f"parts[{i}].text"))
+    # Thinking is billed as output (Google's pricing page), so it counts in the output tokens.
+    return Reply("".join(text), prompt, answer + thoughts, time.monotonic() - t0, cache_read_tokens=read,
+                 truncated=finish == "MAX_TOKENS", refused=finish in _GEMINI_REFUSED,
+                 thinking="".join(thinking)[:4000], model=model, stop_reason=finish, request_id=rid,
+                 reasoning_tokens=thoughts)
 
 
 # Per-call output cap (thinking + answer), the same for every model.
@@ -338,6 +387,95 @@ class OpenAIClient:
         return _strict(_read_openai, out, t0)
 
 
+@dataclass
+class GeminiClient:
+    """Google's Gemini API (generateContent). Gemini 3 and later always think;
+    the effort is the lab's own thinking level (low/medium/high)."""
+    model: str
+    effort: str | None = None
+    max_tokens: int = MAX_OUTPUT_TOKENS  # maxOutputTokens counts thinking too (Google's thinking guide)
+    spec: str = ""
+
+    def __post_init__(self) -> None:
+        self.spec = f"google:{self.model}" + (f"@{self.effort}" if self.effort else "")
+        if self.effort in ("none", "max"):
+            raise ClientError(f"{self.model}: thinking can't be turned off or set to max; use low, medium or high",
+                              fatal=True)
+
+    def complete(self, system: str, user: str, tag: str = "") -> Reply:
+        t0 = time.monotonic()
+        cfg: dict = {"maxOutputTokens": self.max_tokens, "thinkingConfig": {"includeThoughts": True}}
+        if self.effort:
+            cfg["thinkingConfig"]["thinkingLevel"] = self.effort
+        # Implicit caching is automatic: the rules come first so repeated calls share a prefix.
+        out = _post(f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent",
+                    {"x-goog-api-key": _key("GEMINI_API_KEY")},
+                    {"systemInstruction": {"parts": [{"text": system}]},
+                     "contents": [{"role": "user", "parts": [{"text": user}]}],
+                     "generationConfig": cfg})
+        return _strict(_read_gemini, out, t0)
+
+
+def _deepseek_effort(effort: str) -> dict:
+    # DeepSeek's levels are none/low/high/max; it maps medium to high itself
+    # (its thinking-mode guide), and so do we, explicitly.
+    level = {"none": "none", "low": "low", "medium": "high", "high": "high", "xhigh": "max", "max": "max"}[effort]
+    return {"thinking": {"type": "disabled" if level == "none" else "enabled"}, "reasoning_effort": level}
+
+
+def _qwen_effort(effort: str) -> dict:
+    # Qwen has thinking on or off, no levels: any effort but none means on, at
+    # the lab's default depth (no thinking_budget).
+    return {"enable_thinking": effort != "none"}
+
+
+def _dashscope_url() -> str:
+    # Model Studio endpoints are per workspace and region, e.g.
+    # https://<workspace>.us-east-1.maas.aliyuncs.com/compatible-mode/v1
+    base = _key("DASHSCOPE_BASE_URL").rstrip("/")
+    if not base.startswith("https://"):
+        raise ClientError("DASHSCOPE_BASE_URL must be the https:// compatible-mode/v1 URL of your workspace", fatal=True)
+    return base + "/chat/completions"
+
+
+# Labs that speak OpenAI's chat-completions format: where to send it, the key,
+# and how the effort is said. Everything else (the prompt, the reply contract,
+# the parser) is the same for every lab.
+_COMPAT = {
+    "xai": {"url": lambda: "https://api.x.ai/v1/chat/completions", "key": "XAI_API_KEY",
+            "effort": lambda e: {"reasoning_effort": e},
+            # Route requests that share the rules to the same cache (xAI's routing header).
+            "headers": lambda system: {"x-grok-conv-id": _cache_key(system)}},
+    "deepseek": {"url": lambda: "https://api.deepseek.com/chat/completions", "key": "DEEPSEEK_API_KEY",
+                 "effort": _deepseek_effort, "headers": lambda system: {}},
+    "alibaba": {"url": _dashscope_url, "key": "DASHSCOPE_API_KEY",
+                "effort": _qwen_effort, "headers": lambda system: {}},
+}
+
+
+@dataclass
+class CompatClient:
+    """A lab with an OpenAI-compatible chat-completions API (xAI, DeepSeek, Alibaba)."""
+    provider: str
+    model: str
+    effort: str | None = None
+    max_tokens: int = MAX_OUTPUT_TOKENS
+    spec: str = ""
+
+    def __post_init__(self) -> None:
+        self.spec = f"{self.provider}:{self.model}" + (f"@{self.effort}" if self.effort else "")
+
+    def complete(self, system: str, user: str, tag: str = "") -> Reply:
+        lab = _COMPAT[self.provider]
+        t0 = time.monotonic()
+        out = _post(lab["url"](), {"authorization": f"Bearer {_key(lab['key'])}", **lab["headers"](system)},
+                    {"model": self.model, "max_tokens": self.max_tokens,
+                     **(lab["effort"](self.effort) if self.effort else {}),
+                     "messages": [{"role": "system", "content": system},
+                                  {"role": "user", "content": user}]})
+        return _strict(_read_openai, out, t0)
+
+
 MOCK_ORDERS = {
     "rook": [["rampart_bash", "oruth"], ["bulwark_slam", "oruth"], ["rampart_strike", "oruth"]],
     "ivy": [["bloomward", "rook"], ["mending_light", "rook"]],
@@ -397,12 +535,17 @@ def make_client(spec: str, effort: str | None = None) -> ChatClient:
         return AnthropicClient(model, effort)
     if provider == "openai":
         return OpenAIClient(model, effort)
+    if provider == "google":
+        return GeminiClient(model, effort)
+    if provider in _COMPAT:
+        return CompatClient(provider, model, effort)
     if provider == "mock":
         return MockClient(model)
     if provider == "scripted":
         from .scripted import ScriptedCommander
         return ScriptedCommander(model)
-    raise ClientError(f"unknown provider {provider!r} (use anthropic, openai, scripted, or mock)")
+    raise ClientError(f"unknown provider {provider!r} (use anthropic, openai, google, xai, deepseek, alibaba, "
+                      "scripted, or mock)")
 
 
 # ---------------------------------------------------------------------------

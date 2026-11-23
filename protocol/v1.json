@@ -18,7 +18,11 @@
     {"provider": "anthropic", "id": "claude-sonnet-5-5", "name": "Claude Sonnet 5.5"},
     {"provider": "anthropic", "id": "claude-opus-5-5", "name": "Claude Opus 5.5"},
     {"provider": "openai", "id": "gpt-6-luna", "name": "GPT-6 Luna"},
-    {"provider": "openai", "id": "gpt-6.2-sol", "name": "GPT-6.2 Sol"}
+    {"provider": "openai", "id": "gpt-6.2-sol", "name": "GPT-6.2 Sol"},
+    {"provider": "google", "id": "gemini-3.8-flash", "name": "Gemini 3.8 Flash"},
+    {"provider": "xai", "id": "grok-4.3", "name": "Grok 4.3"},
+    {"provider": "alibaba", "id": "qwen4-max", "name": "Qwen4-Max"},
+    {"provider": "deepseek", "id": "deepseek-flash", "name": "DeepSeek V4.1 Flash"}
   ],
   "baselines": [
     {"provider": "scripted", "id": "commander", "name": "Scripted commander"}

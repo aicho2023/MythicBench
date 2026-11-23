@@ -25,7 +25,7 @@ from pathlib import Path
 from .llm.clients import ChatClient, ClientError, Reply, load_env
 from .runs import RUNS_DIR
 
-PRICES_AS_OF = "2026-11-21"
+PRICES_AS_OF = "2026-11-23"
 DEFAULT_RUN_BUDGET_USD = 20.0
 DEFAULT_PROJECT_CAP_USD = 500.0
 LEDGER = RUNS_DIR / "spend.jsonl"
@@ -83,6 +83,16 @@ PRICES: dict[str, Price] = {
     "gpt-5.4-mini": Price(0.75, 4.50, 0.075),
     "gpt-5.4-nano": Price(0.20, 1.25, 0.02),
     "gpt-4.1-mini": Price(0.40, 1.60, 0.10),
+    # Google (paid Standard tier; thinking billed as output; introductory rates
+    # through 2026-12-31, about double from 2027-01-01)
+    "gemini-3.8-flash": Price(0.75, 3.75, 0.075),
+    # xAI (prompts under 200K tokens; ours are far below)
+    "grok-4.3": Price(1.25, 2.50, 0.20),
+    # DeepSeek: the peak rate (off-peak is half), so costs here err high
+    "deepseek-flash": Price(0.30, 1.20, 0.006),
+    # Alibaba Model Studio (international): cache hits at the documented typical
+    # 20% of input, as the console shows no separate rate for qwen4-max
+    "qwen4-max": Price(1.50, 4.50, 0.30),
 }
 
 FREE = Price(0.0, 0.0, 0.0)

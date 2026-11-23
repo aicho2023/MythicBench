@@ -410,14 +410,26 @@ def test_an_official_protocol_is_pinned(sandbox, monkeypatch, capsys):
     K.run_campaign(proto)
     out = tmp / "published"
     K.build_results(proto, out, tmp / "runs")
-    monkeypatch.setitem(K.OFFICIAL_PROTOCOLS, proto["name"], "0" * 64)  # the real one differs
+    monkeypatch.setitem(K.OFFICIAL_PROTOCOLS, proto["name"], ("0" * 64,))  # the real one differs
     assert K.verify_results(out, replay=False) == 1
     assert "pinned" in capsys.readouterr().out
 
 
 def test_v1_is_pinned_to_the_committed_protocol():
     v1 = K.load_protocol(Path(__file__).parents[2] / "protocol" / "v1.json")
-    assert K.OFFICIAL_PROTOCOLS["v1"] == K.protocol_digest(v1)
+    assert K.OFFICIAL_PROTOCOLS["v1"][-1] == K.protocol_digest(v1)
+
+
+def test_amendment_3_only_added_models():
+    """The v1 file differs from the protocol stages 1 and 2 played only by four
+    more models; the published five-model dataset still verifies."""
+    root = Path(__file__).parents[2]
+    v1 = K.load_protocol(root / "protocol" / "v1.json")
+    published = K.load_protocol(root / "web" / "public" / "results" / "v1" / "protocol.json")
+    assert K.protocol_digest(published) in K.OFFICIAL_PROTOCOLS["v1"]
+    assert {k: v for k, v in v1.items() if k != "models"} == {k: v for k, v in published.items() if k != "models"}
+    assert v1["models"][:len(published["models"])] == published["models"]
+    assert [m["provider"] for m in v1["models"][len(published["models"]):]] == ["google", "xai", "alibaba", "deepseek"]
 
 
 def test_an_altered_official_protocol_is_refused_before_anything_runs(tmp_path):
@@ -436,8 +448,10 @@ def test_the_restart_protocol_is_v1_on_its_reserve_seeds():
     v1 = K.load_protocol(root / "v1.json")
     rs = K.load_protocol(root / "v1-restart.json")
     for p in (v1, rs):
-        assert K.protocol_digest(p) == K.OFFICIAL_PROTOCOLS[p["name"]]
+        assert K.protocol_digest(p) == K.OFFICIAL_PROTOCOLS[p["name"]][-1]
     assert rs["seed_base"] == v1["restart_seed_base"] != v1["seed_base"]
+    # The restart was never needed; it stays the five-model protocol (Amendment 3 added models to v1 only).
+    v1 = {**v1, "models": v1["models"][:len(rs["models"])]}
     same = {k: v for k, v in v1.items() if k not in ("name", "description", "seed_base", "restart_seed_base")}
     assert same == {k: v for k, v in rs.items() if k not in ("name", "description", "seed_base")}
     # Its own recordings and cells: nothing from v1 is reused.
