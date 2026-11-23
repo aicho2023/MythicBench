@@ -72,7 +72,25 @@ summary it prints has the groups, pulls, cost and reply problems, but no
 scores: stage 1 is read for harness faults only.
 
 Follow it from the session in the Claude app. Options: `--budget`,
-`--cells`, `--every` (minutes between checkpoints).
+`--cells` (configurations at once, 8), `--workers` (groups at once within a
+configuration, 3), `--every` (minutes between checkpoints).
+
+## Stage 2
+
+Stage 2 plays the other 78 groups. Several configurations have 11 groups
+left (Haiku and Luna on +10, and their memory-off controls), so the groups
+within a configuration run 3 at a time (`--workers 3`): about 5 hours,
+against about 13 one at a time. That's longer than a cloud command may run
+(4 hours), so plan on two sessions: when the first stops, make sure it has
+really stopped (one paid process at a time), start a new session on `main`,
+and run the same command; it resumes from `run-data/v1`.
+
+> Run `bash scripts/cloud_stage.sh 2 --budget 450` in the background. When
+> it finishes, show me the summary it prints.
+
+`--budget` applies to each run of the command; `MYTHICBENCH_TOTAL_BUDGET_USD`
+(raise it to 600) caps the cloud's total, stage 1 included. At stage 1's cost
+per group, stage 2 comes to about $320 (Opus about $200 of it).
 
 ## If the session stops part-way
 
