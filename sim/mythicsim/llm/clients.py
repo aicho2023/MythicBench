@@ -438,11 +438,36 @@ def _dashscope_url() -> str:
     return base + "/chat/completions"
 
 
+def _read_xai(out, t0: float) -> "Reply":
+    """xAI counts reasoning outside ``completion_tokens`` (total = prompt +
+    completion + reasoning), bills it as output, and its API doesn't let a cap
+    stop it (neither max_tokens nor max_completion_tokens limits reasoning,
+    checked 2026-11-23). So the reasoning is added to the output, and the
+    8,000-token cap every other model lives under is applied here: a reply
+    whose reasoning and answer together pass it is cut off, as it would have
+    been for any other model."""
+    out = _obj(out, "the response")
+    usage = _obj(out.get("usage"), "usage")
+    cdet = usage.get("completion_tokens_details")
+    reasoning = _tokens(_obj(cdet, "completion_tokens_details"), "reasoning_tokens", "completion_tokens_details",
+                        required=False) if cdet is not None else 0
+    answer = _tokens(usage, "completion_tokens", "usage")
+    total = _tokens(usage, "total_tokens", "usage", required=False)
+    prompt = _tokens(usage, "prompt_tokens", "usage")
+    if total and total != prompt + answer + reasoning:
+        raise _malformed(f"total {total} is not prompt {prompt} + completion {answer} + reasoning {reasoning}")
+    out = {**out, "usage": {**usage, "completion_tokens": answer + reasoning}}
+    r = _read_openai(out, t0)
+    if r.output_tokens > MAX_OUTPUT_TOKENS:
+        r.truncated, r.text = True, ""
+    return r
+
+
 # Labs that speak OpenAI's chat-completions format: where to send it, the key,
 # and how the effort is said. Everything else (the prompt, the reply contract,
 # the parser) is the same for every lab.
 _COMPAT = {
-    "xai": {"url": lambda: "https://api.x.ai/v1/chat/completions", "key": "XAI_API_KEY",
+    "xai": {"url": lambda: "https://api.x.ai/v1/chat/completions", "key": "XAI_API_KEY", "read": _read_xai,
             "effort": lambda e: {"reasoning_effort": e},
             # Route requests that share the rules to the same cache (xAI's routing header).
             "headers": lambda system: {"x-grok-conv-id": _cache_key(system)}},
@@ -473,7 +498,7 @@ class CompatClient:
                      **(lab["effort"](self.effort) if self.effort else {}),
                      "messages": [{"role": "system", "content": system},
                                   {"role": "user", "content": user}]})
-        return _strict(_read_openai, out, t0)
+        return _strict(lab.get("read", _read_openai), out, t0)
 
 
 MOCK_ORDERS = {

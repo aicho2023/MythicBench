@@ -404,7 +404,7 @@ def _rescore(rep: dict, ep: int, pull: int, proto: dict) -> tuple[dict, list[str
 OFFICIAL_PROTOCOLS: dict[str, tuple[str, ...]] = {
     "v1": (
         "8ff5337d414ceac9f4944bd23081d6058d459ed3d1f264fd0d7b695d6d0e6641",  # the five models of stages 1 and 2
-        "ddacf3a82cdc87a95cd8186f6541c6712b424e75fc67cecaa73489baf2b36818",  # + four labs (Amendment 3)
+        "6fbc3d7d61dde0cf7bdacc5c72a7d76df7cd7d1c35c8dcb61a8a16a2a2634b00",  # + three labs (Amendment 3)
     ),
     # The pre-registered restart: v1 on its reserve seeds (seed_base 80000), run in
     # full only if v1's stage 1 finds a harness fault (docs/PREREGISTRATION.md).

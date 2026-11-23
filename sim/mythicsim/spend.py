@@ -39,6 +39,10 @@ class Price:
     output: float
     cached: float
     write: float | None = None
+    # Output tokens one call can bill, when a lab's API can't cap thinking at
+    # the request's output cap (None: the cap, MAX_OUTPUT_TOKENS). Only the
+    # spending guard's reservation uses it.
+    max_output: int | None = None
 
     def cost(self, input_tokens: int, output_tokens: int, cache_read: int = 0, cache_write: int = 0) -> float:
         fresh = max(0, input_tokens - cache_read - cache_write)
@@ -87,7 +91,7 @@ PRICES: dict[str, Price] = {
     # through 2026-12-31, about double from 2027-01-01)
     "gemini-3.8-flash": Price(0.75, 3.75, 0.075),
     # xAI (prompts under 200K tokens; ours are far below)
-    "grok-4.3": Price(1.25, 2.50, 0.20),
+    "grok-4.3": Price(1.25, 2.50, 0.20, max_output=40_000),  # reasoning isn't capped by xAI's API
     # DeepSeek: the peak rate (off-peak is half), so costs here err high
     "deepseek-flash": Price(0.30, 1.20, 0.006),
     # Alibaba Model Studio (international): cache hits at the documented typical
@@ -277,7 +281,7 @@ def worst_case_usd(price: Price, system: str, user: str) -> float:
     from .llm.clients import MAX_OUTPUT_TOKENS
     tokens_in = input_token_bound(system, user)
     rate_in = max(price.input, price.write if price.write is not None else price.input)
-    return (tokens_in * rate_in + MAX_OUTPUT_TOKENS * price.output) / 1e6
+    return (tokens_in * rate_in + (price.max_output or MAX_OUTPUT_TOKENS) * price.output) / 1e6
 
 
 @dataclass
