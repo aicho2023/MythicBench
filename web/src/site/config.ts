@@ -38,3 +38,9 @@ export const FEATURED = {
 export const TEASER_REPLAY = FEATURED.id
 /** Where the clip starts playing, in seconds (just before Oruth is pulled). */
 export const TEASER_START_S = 62
+/**
+ * The home clip once results exist: the top model's best +10 pull (GPT-6.2 Sol,
+ * group 1, pull 4), looped over a stretch of the boss fight: desecrate pools, two
+ * Bone Pyres soaked, a wave of adds. Seconds into the pull.
+ */
+export const HERO_WINDOW_S: [number, number] = [146, 198]

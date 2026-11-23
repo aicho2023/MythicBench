@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { modelName } from '../content/display'
 import { BEHAVIOUR, EXPERT, MOMENTS, SOAKS } from '../content/findings'
 import { GroupScores, LearningCurves } from '../site/charts'
@@ -82,6 +82,14 @@ const LINKS: [string, string, boolean][] = [
  */
 export function Report() {
   const { results } = useResults()
+  // Arriving at /report#section (from another page): scroll there once the section
+  // exists. The results sections only render after the results load.
+  useEffect(() => {
+    const id = decodeURIComponent(location.hash.slice(1))
+    if (!id) return
+    const el = document.getElementById(id)
+    if (el) requestAnimationFrame(() => el.scrollIntoView())
+  }, [results])
   return (
     <Page>
       <div className="mx-auto grid max-w-[1120px] gap-16 py-12 md:py-16 xl:grid-cols-[200px_minmax(0,720px)]">
@@ -539,7 +547,7 @@ function ResultsBody({ r }: { r: Results }) {
         </table>
       </Table>
 
-      <H3 n="5.3">The gap opens after the first wipe</H3>
+      <H3 id="learning" n="5.3">The gap opens after the first wipe</H3>
       <p>
         On the first, blind pull every model scores between {fmtScore(Math.min(...firsts))} and {fmtScore(Math.max(...firsts))},
         about what the fixed-rule bot gets (32). Every party wipes. What separates the models is the next pull (Figure 2).
@@ -551,7 +559,7 @@ function ResultsBody({ r }: { r: Results }) {
         <LearningCurves results={r} tier={head} />
       </Figure>
 
-      <H3 n="5.4">One inference makes most of the difference</H3>
+      <H3 id="pyre" n="5.4">One inference makes most of the difference</H3>
       <p>
         After the first wipe, every party sees the same thing in its debrief: Bone Pyre went off with nobody inside, and
         everyone took a heavy hit. What the parties make of it divides the models almost perfectly (Table 5). Claude Opus
@@ -597,7 +605,7 @@ function ResultsBody({ r }: { r: Results }) {
         <LearningCurves results={r} tier={head} view="memory" />
       </Figure>
 
-      <H3 n="5.6">Cost and effort</H3>
+      <H3 id="cost" n="5.6">Cost and effort</H3>
       <p>
         The official run cost about $357 at list prices, $221 of it Claude Opus 5.5. Opus and GPT-6.2 Sol score the same,
         but an Opus group costs about five times as much, and Sol writes about a fifth as many output tokens (Table 6).

@@ -141,6 +141,14 @@ export const usePlayback = create<Playback>((set, get) => ({
     const want = targetFromUrl(index, catalog)
     if (want) {
       if (want !== currentId || quietLoaded) await get().load(want, { deepLink: true })
+      else {
+        // The replay is already on screen (e.g. a second highlight from the same pull): honour ?t.
+        const q = new URLSearchParams(location.search)
+        if (q.get('t')) {
+          get().seek(Number(q.get('t')) * 1000)
+          set({ playing: q.get('paused') !== '1' })
+        }
+      }
       return true
     }
     if (fallback && (!engine || quietLoaded) && index.length) {
