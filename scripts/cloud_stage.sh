@@ -13,9 +13,9 @@
 #          --hold MIN (test only, 40), --every MIN (checkpoint, 10).
 #
 # What it does:
-#   1. Checks before spending: Python >= 3.10, a clean checkout, the API keys and the
-#      project cap set, both APIs reachable (an unauthenticated request, which costs
-#      nothing), and the dry run.
+#   1. Checks before spending: Python >= 3.10, a clean checkout, the dry run, the
+#      project cap set, and a key for each lab with groups left that works from here
+#      (listing its models, which costs nothing).
 #   2. Restores runs/ from the data branch if one exists, so a stopped run resumes
 #      (recorded replies are never asked, or paid for, again).
 #   3. Plays the stage. Every --every minutes, and at the end, it packs runs/ (replays,
@@ -23,9 +23,11 @@
 #      (run-data/cloud-test for the test) and pushes it.
 #   4. Prints a summary without scores (stage 1 is read for harness faults only).
 #
-# Keys are read from the environment: MYTHICBENCH_ANTHROPIC_API_KEY (a cloud
-# environment doesn't pass ANTHROPIC_API_KEY to commands; that name works locally)
-# and OPENAI_API_KEY. Nothing here prints them. See docs/CLOUD_RUN.md for setting up the cloud environment.
+# Keys are read from the environment, and only the labs with groups left to play
+# need one: MYTHICBENCH_ANTHROPIC_API_KEY (a cloud environment doesn't pass
+# ANTHROPIC_API_KEY to commands; that name works locally), OPENAI_API_KEY,
+# GEMINI_API_KEY, XAI_API_KEY, DEEPSEEK_API_KEY (each may carry the MYTHICBENCH_
+# prefix). Nothing here prints them. See docs/CLOUD_RUN.md for setting up the cloud environment.
 
 set -euo pipefail
 
@@ -73,38 +75,83 @@ if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
 fi
 log "code: $(git rev-parse --short HEAD) on $(git rev-parse --abbrev-ref HEAD) ($(git describe --tags --always))"
 if [ "$MODE" != test ]; then
+  # Which labs still have groups to play (the dry run is free and needs no keys).
+  FIRST="--first=1"; [ "$MODE" = 2 ] && FIRST=""
+  NEED=$(cd sim && "$PY" -m mythicsim campaign "../protocol/$PROTOCOL.json" $FIRST --dry-run \
+         | awk '/ episodes to play/ { n = $0; sub(/ episodes to play.*/, "", n); sub(/.* /, "", n); if (n + 0 > 0) { split($1, a, ":"); print a[1] } }' \
+         | sort -u | tr '\n' ' ')
+  log "labs with groups left to play: ${NEED:-none}"
+  [ -n "${MYTHICBENCH_TOTAL_BUDGET_USD:-}" ] || { echo "MYTHICBENCH_TOTAL_BUDGET_USD is not set in the environment" >&2; exit 1; }
   # A cloud environment reserves ANTHROPIC_API_KEY (sessions sign in through your
   # account) and doesn't pass it to commands: set MYTHICBENCH_ANTHROPIC_API_KEY there.
-  # The run itself reads the usual names, so they're filled in for it here.
+  # Every key may also be given with the MYTHICBENCH_ prefix. The run itself reads
+  # the usual names, so they're filled in for it here.
   export ANTHROPIC_API_KEY="${MYTHICBENCH_ANTHROPIC_API_KEY:-${ANTHROPIC_API_KEY:-}}"
   export OPENAI_API_KEY="${MYTHICBENCH_OPENAI_API_KEY:-${OPENAI_API_KEY:-}}"
-  [ -n "$ANTHROPIC_API_KEY" ] || { echo "no Anthropic key: set MYTHICBENCH_ANTHROPIC_API_KEY in the environment (a cloud session doesn't pass ANTHROPIC_API_KEY to commands)" >&2; exit 1; }
-  [ -n "$OPENAI_API_KEY" ] || { echo "no OpenAI key: set OPENAI_API_KEY (or MYTHICBENCH_OPENAI_API_KEY) in the environment" >&2; exit 1; }
-  [ -n "${MYTHICBENCH_TOTAL_BUDGET_USD:-}" ] || { echo "MYTHICBENCH_TOTAL_BUDGET_USD is not set in the environment" >&2; exit 1; }
-  # Does each key work from here? Listing models costs nothing. The keys go to curl
-  # on stdin, never on its command line, and nothing prints them.
+  export GEMINI_API_KEY="${MYTHICBENCH_GEMINI_API_KEY:-${GEMINI_API_KEY:-}}"
+  export XAI_API_KEY="${MYTHICBENCH_XAI_API_KEY:-${XAI_API_KEY:-}}"
+  export DEEPSEEK_API_KEY="${MYTHICBENCH_DEEPSEEK_API_KEY:-${DEEPSEEK_API_KEY:-}}"
+  # Does each needed key work from here? Listing models costs nothing. The keys go
+  # to curl on stdin, never on its command line, and nothing prints them.
   check_key() {  # name, then curl config lines on stdin
     local name="$1" code
     code=$(curl -s -o /dev/null -m 20 -w '%{http_code}' -K - || true)
     case "$code" in
       200) log "$name: the key works from here" ;;
-      401|403) echo "$name refused the key (HTTP $code): check the key in the environment" >&2; exit 1 ;;
+      400|401|403) echo "$name refused the key (HTTP $code): check the key in the environment" >&2; exit 1 ;;
       000) echo "can't reach $name: add its host to the environment's allowed domains" >&2; exit 1 ;;
       *) echo "$name answered HTTP $code to a free key check; not starting" >&2; exit 1 ;;
     esac
   }
-  check_key "api.anthropic.com" <<EOF
+  need_key() {  # variable name, provider
+    [ -n "${!1:-}" ] || { echo "no key for $2: set $1 (or MYTHICBENCH_$1) in the environment" >&2; exit 1; }
+  }
+  for lab in $NEED; do
+    case "$lab" in
+      anthropic)
+        need_key ANTHROPIC_API_KEY anthropic
+        check_key "api.anthropic.com" <<EOF
 url = "https://api.anthropic.com/v1/models"
 header = "x-api-key: $ANTHROPIC_API_KEY"
 header = "anthropic-version: 2023-06-01"
 EOF
-  check_key "api.openai.com" <<EOF
+        ;;
+      openai)
+        need_key OPENAI_API_KEY openai
+        check_key "api.openai.com" <<EOF
 url = "https://api.openai.com/v1/models"
 header = "Authorization: Bearer $OPENAI_API_KEY"
 EOF
+        ;;
+      google)
+        need_key GEMINI_API_KEY google
+        check_key "generativelanguage.googleapis.com" <<EOF
+url = "https://generativelanguage.googleapis.com/v1beta/models"
+header = "x-goog-api-key: $GEMINI_API_KEY"
+EOF
+        ;;
+      xai)
+        need_key XAI_API_KEY xai
+        check_key "api.x.ai" <<EOF
+url = "https://api.x.ai/v1/models"
+header = "Authorization: Bearer $XAI_API_KEY"
+EOF
+        ;;
+      deepseek)
+        need_key DEEPSEEK_API_KEY deepseek
+        check_key "api.deepseek.com" <<EOF
+url = "https://api.deepseek.com/models"
+header = "Authorization: Bearer $DEEPSEEK_API_KEY"
+EOF
+        ;;
+      scripted|mock) ;;
+      *) echo "no key check for lab $lab; add one to this script before a paid run" >&2; exit 1 ;;
+    esac
+  done
   log "project cap here: \$$MYTHICBENCH_TOTAL_BUDGET_USD; bash timeouts: ${BASH_DEFAULT_TIMEOUT_MS:-unset} / ${BASH_MAX_TIMEOUT_MS:-unset} ms"
+  (cd sim && "$PY" -m mythicsim runs spend 2>/dev/null | head -n 1) || true
   if [ "$MODE" = check ]; then
-    (cd sim && "$PY" -m mythicsim campaign "../protocol/$PROTOCOL.json" --first 1 --dry-run | sed -n '1p;$p')
+    (cd sim && "$PY" -m mythicsim campaign "../protocol/$PROTOCOL.json" $FIRST --dry-run | sed -n '1p;$p')
     log "all checks passed; nothing was played or spent"
     exit 0
   fi

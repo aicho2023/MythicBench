@@ -92,6 +92,22 @@ and run the same command; it resumes from `run-data/v1`.
 (raise it to 600) caps the cloud's total, stage 1 included. At stage 1's cost
 per group, stage 2 comes to about $320 (Opus about $200 of it).
 
+## Amendment 3: the three new labs
+
+Gemini 3.8 Flash, Grok 4.3 and DeepSeek V4.1 Flash play the same two stages.
+Only labs with groups left need a key (the script works that out from the dry
+run), so for this run the environment needs:
+
+- Allowed domains, added to the earlier two: `generativelanguage.googleapis.com`,
+  `api.x.ai`, `api.deepseek.com`.
+- Environment variables, added: `GEMINI_API_KEY`, `XAI_API_KEY`,
+  `DEEPSEEK_API_KEY`, and `MYTHICBENCH_TOTAL_BUDGET_USD` raised to about 620
+  (the cloud's ledger already holds about $357 from stages 1 and 2).
+
+Stage 1 is each new model's first group (3 groups); stage 2 the other 15.
+Gemini answers slowly (20 to 35 seconds a call), so stage 2 may need a second
+session: run the same command again and it resumes.
+
 ## If the session stops part-way
 
 Start a new session and run the same command. It restores `runs/` from
