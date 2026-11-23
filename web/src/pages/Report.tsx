@@ -133,7 +133,9 @@ export function Report() {
               Between attempts they read the same combat log, talk it over and rewrite their own notes, with no guidance
               on what to learn. In a pre-registered run of five frontier models (84 groups, 420 attempts, all public and
               replayable), no model cleared the dungeon. Claude Opus 5.5 (44.1) and GPT-6.2 Sol (42.9) lead, with no clear
-              difference between them, and are clearly ahead of the other three, which score no better than a fixed-rule bot. Their lead does not
+              difference between them. The other three score 32.1 to 32.8, about what a fixed-rule bot scores (32.5). On the
+              same seeds Opus beats all three, and Sol beats two; its lead over Claude Sonnet 5.5 falls just short of the
+              threshold after correcting for multiple comparisons. The leaders' edge does not
               come from the first attempt, where every model plays about the same, but from what they take away from one
               wipe: both work out a mechanic that runs against gamer instinct, in every one of their groups. The others
               almost never do. A clear exists, but it takes near-perfect play.
@@ -298,9 +300,10 @@ export function Report() {
               </div>
             ))}
             <p>
-              The second case is the most telling. The right answer reached the group, was tried, worked, and was then
-              argued away. Each agent keeps its own notes, so a lesson that lives in one agent's notes can be outvoted in
-              the talk. One agent even wrote the opposite of what had just happened to it.
+              The second case is the most telling. The party had evidence both ways in one pull: a soak with two inside that
+              hurt nobody, and a blast with one inside that killed two. Wren's notes generalised from the blast that killed
+              her, not the one she survived inside the circle, and the party carried that lesson into the next pull. Each
+              agent keeps its own notes, so the lesson that wins is the one that gets written down and argued for.
             </p>
             <p>Twenty more moments like these, each a click from the replay, are on the <Link to="/highlights">highlights page</Link>.</p>
 
@@ -322,7 +325,9 @@ export function Report() {
               <li>Every call was served by the model that was asked for. There were no API errors and no refusals.</li>
               <li>Unusable or cut-off replies were the models' own: about 0.6% of Claude Sonnet 5.5's calls, and Claude Haiku 5.5's at high effort when it ran out of output tokens. They count against the model.</li>
               <li>
-                One known harness fault was kept, as the pre-registration allows, and counted by a rule fixed before stage 2.
+                One harness fault, found in stage 1, was kept. The pre-registered rule was to fix a fault and restart on
+                reserve seeds; after stage 1 we amended the protocol to keep this one instead (Amendment 2), so that every
+                group plays the same code, and counted it by a rule fixed before stage 2.
                 In 127,071 moves it happened once: Claude Haiku 5.5, Normal, group 1, pull 4, at 3:44.7, Wren walks through a
                 corner of Oruth's throne, a floating-point edge case. It saved about a second and harmed nobody.{' '}
                 <Link to="/watch/claude-haiku-5-5/normal/0/4">Watch it</Link>.
@@ -334,9 +339,9 @@ export function Report() {
                 moved it to another clear spot instead. An agent that kept sending "safe" could shuffle back and forth
                 between two spots. In the 420 pulls the models played, this happened 2,567 times: GPT-6 Luna 1,726,
                 Claude Haiku 5.5 820, Claude Sonnet 5.5 18, Claude Opus 5.5 2 and GPT-6.2 Sol 1. Only 16 of these moves
-                cut a cast short. In the rest, the agent could not reach its target from where it stood anyway. The fault
-                cost the two models it touched most a handful of casts, far too few to explain their gap to the top two,
-                so no comparison or finding changes. v1 keeps the fault, since its code is frozen. The fix waits for the
+                cut a cast short. In the rest, the agent could not reach its target from where it stood anyway. The cancelled
+                casts are the one consequence that can be counted; the fault's total effect on scores was not measured. It
+                fell almost entirely on GPT-6 Luna and Claude Haiku 5.5. v1 keeps the fault, since its code is frozen. The fix waits for the
                 next harness version.{' '}
                 <Link to="/watch/gpt-6-luna/normal/2/5?t=148">Watch it</Link> (Kit, from 2:28).
               </li>
@@ -569,7 +574,7 @@ function ResultsBody({ r }: { r: Results }) {
       </p>
       <Table n="5" caption="Bone Pyre on +10. A group counts if its party soaked a Pyre at least once. No group soaked one on its first pull. GPT-6 Luna and Claude Haiku 5.5 include their extra memory-on groups.">
         <table>
-          <thead><tr><th>Model</th><th>Groups that learned to soak</th><th className="r">Pyres soaked, pulls 2 to 5</th></tr></thead>
+          <thead><tr><th>Model</th><th>Groups that soaked at least once</th><th className="r">Pyres soaked, pulls 2 to 5</th></tr></thead>
           <tbody>
             {SOAKS.map((s) => (
               <tr key={s.model}><td>{modelName(s.model)}</td><td>{s.groups}{s.note ? <span className="text-fg-faint">, {s.note}</span> : null}</td><td className="r m">{s.soaked}</td></tr>
@@ -577,7 +582,7 @@ function ResultsBody({ r }: { r: Results }) {
           </tbody>
         </table>
       </Table>
-      <p>The agents' notes after the first wipe show the split:</p>
+      <p>The agents' notes after the first wipe show what each party inferred from the same kind of blast:</p>
       <blockquote>"EVERYONE STACK INSIDE THE CIRCLE." Claude Opus 5.5</blockquote>
       <blockquote>"BONE PYRE is a soak, not a pool to dodge." GPT-6.2 Sol</blockquote>
       <blockquote>"The floor circle is NOT the danger." GPT-6 Luna, from the same evidence</blockquote>
@@ -587,10 +592,10 @@ function ResultsBody({ r }: { r: Results }) {
         holding adds.
       </p>
 
-      <H3 id="memory" n="5.5">The memory test found nothing to carry</H3>
+      <H3 id="memory" n="5.5">The debrief and notes showed no clear benefit for Haiku or Luna</H3>
       <p>
-        The pre-registered memory test replays the same seeds with the debrief, talk and notes switched off. It was run on
-        the two cheapest models, and found no effect:{' '}
+        The pre-registered memory test replays the same seeds with the debrief, talk and notes switched off, so it
+        measures all three together. It was run on the two cheapest models, and found no clear difference in score:{' '}
         {effectRows.map((x, i) => {
           const c = cell(x)!
           return (
@@ -599,7 +604,7 @@ function ResultsBody({ r }: { r: Results }) {
               (95% interval {ci(c.learning_effect_ci95)}{c.learning_effect_p != null ? `, p = ${pval(c.learning_effect_p)}` : ''})
             </span>
           )
-        })}. That fits Table 5: neither model learned the key mechanic, so memory had nothing to carry. The models that did
+        })}. That fits Table 5: neither model learned the key mechanic, so the debrief may have had little of use to carry. The models that did
         learn were not part of this test, so their gains in Figure 2 are a before-and-after, not a controlled effect.
       </p>
       <Figure n="3" caption="The memory test: mean +10 score at each pull on the same twelve seeds, with memory (solid) and without (dashed).">
@@ -608,8 +613,8 @@ function ResultsBody({ r }: { r: Results }) {
 
       <H3 id="cost" n="5.6">Cost and effort</H3>
       <p>
-        The official run cost about $357 at list prices, $221 of it Claude Opus 5.5. Opus and GPT-6.2 Sol score the same,
-        but an Opus group costs about five times as much, and Sol writes about a fifth as many output tokens (Table 6).
+        The official run cost about $357 at list prices, $221 of it Claude Opus 5.5. Opus and GPT-6.2 Sol score 44.1 and 42.9,
+        with no clear difference between them, but an Opus group costs about five times as much, and Sol writes about a fifth as many output tokens (Table 6).
         Raising the cheap models' reasoning effort did not help: on the same three groups, Claude Haiku 5.5 did worse at low
         effort than at medium and barely better at high, and GPT-6 Luna scored the same at every level.
       </p>

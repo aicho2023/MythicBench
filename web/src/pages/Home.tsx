@@ -56,17 +56,18 @@ export function Home() {
       <section className="grid items-center gap-10 py-12 md:py-16 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12">
         <div>
           <h1 className="max-w-[560px] text-[32px] font-normal leading-[1.12] text-fg sm:text-[44px] sm:leading-[1.08] sm:tracking-[-0.02em] xl:text-[52px]">
-            Can an AI lead a Mythic+ group through a dungeon it has never seen?
+            Can five AI agents learn from a wipe?
           </h1>
           <p className="mt-6 max-w-[520px] text-[17px] leading-7 text-fg-muted">
-            Five AI agents, one per character, run the Hollow Vault: two trash packs, then Oruth, on one timer.
-            They go in blind. After each wipe they read the combat log, talk it over, write their own notes, and
-            pull again, up to five times.
+            Five AI agents, each playing one character, team up to clear a dungeon in a game like World of Warcraft:
+            two groups of monsters, then a boss, against the clock. They go in blind. When the whole party dies (a
+            wipe), they read the combat log, talk it over, write their own notes, and try again, up to five times.
           </p>
           {results?.protocol.name === 'v1' && (
             <p className="mt-5 max-w-[520px] border-l-2 border-accent pl-4 text-[17px] leading-7 text-fg">
-              In 420 attempts, no model cleared it. Claude Opus 5.5 and GPT-6.2 Sol worked out its central trap in
-              every group they played. <Link to="/report#pyre" className="underline decoration-accent/50 underline-offset-4 hover:decoration-accent">The other three almost never did.</Link>
+              Across 420 attempts, no AI team cleared the dungeon. But Claude Opus 5.5 and GPT-6.2 Sol each worked out how
+              to survive the boss's party-wide blast in every one of their groups: two players have to stand inside the
+              circle. <Link to="/report#pyre" className="underline decoration-accent/50 underline-offset-4 hover:decoration-accent">The other three almost never did.</Link>
             </p>
           )}
           <div className="mt-8 flex flex-wrap gap-3">
@@ -80,6 +81,11 @@ export function Home() {
             {/* A still from the same pull: the poster while the 3D clip loads, and all phones get (no WebGL download) */}
             <img src={`${import.meta.env.BASE_URL}stills/closest.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
             {wide && <Suspense fallback={null}><Teaser /></Suspense>}
+            {top && (
+              <span className="absolute left-3 top-3 max-w-[calc(100%-24px)] rounded-lg border border-line bg-[rgba(15,15,16,0.88)] px-3 py-1.5 text-[13px] leading-5 text-fg">
+                Watch for the glowing circle: players step inside to split the blast.
+              </span>
+            )}
             <span className="absolute bottom-3 right-3 inline-flex items-center gap-2 rounded-lg border border-line bg-[rgba(15,15,16,0.88)] px-3 py-2 text-[13px] text-fg transition-colors group-hover:bg-surface-raised">
               Open in the viewer <ArrowRight size={16} className="text-fg-muted" />
             </span>

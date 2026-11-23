@@ -1,5 +1,40 @@
 [
   {
+    "id": "talked-out-of-it",
+    "title": "Saw it work, then saw it fail",
+    "kind": "argument",
+    "model": "gpt-6-luna",
+    "tier": "plus10",
+    "episode": 6,
+    "pull": 4,
+    "t": 115,
+    "summary": "Ivy calls for the party to stand in the Pyre. She and Wren soak it: Wren's shield absorbs her whole 11.4k share, and the other three take nothing. The next Pyre goes off with only Ivy inside and kills Wren and Kit. After the wipe, Wren writes that the circle protects nobody and cites her own death. The party goes with that: next pull, as they pull Oruth, Brask tells everyone to stay out of Bone Pyre. The team had watched the soak work and watched it fail, and carried forward the wrong lesson.",
+    "quotes": [
+      {
+        "who": "Ivy",
+        "where": "chat",
+        "t": 119.4,
+        "text": "Bone Pyre in 2s; stand in its pool!"
+      },
+      {
+        "who": "Wren",
+        "where": "chat",
+        "t": 119.8,
+        "text": "Ivy, please Hymn immediately after Pyre; I'm shielded and staying in its pool."
+      },
+      {
+        "who": "Wren",
+        "where": "notes",
+        "text": "Bone Pyre’s circle explodes ~6 sec after appearing and does NOT protect anyone: it hit the whole party hard even with zero inside. Do not enter it."
+      },
+      {
+        "who": "Wren",
+        "where": "notes",
+        "text": "At the second blast I took 31.8k and died"
+      }
+    ]
+  },
+  {
     "id": "nobody-inside",
     "title": "Nobody was inside the circle",
     "kind": "eureka",
@@ -25,36 +60,6 @@
         "who": "Brask",
         "where": "debrief talk",
         "text": "I died to the first Pyre by not being in the circle; I'll stack in it every time unless I have Grave Mark"
-      }
-    ]
-  },
-  {
-    "id": "talked-out-of-it",
-    "title": "Right answer, talked out of it",
-    "kind": "argument",
-    "model": "gpt-6-luna",
-    "tier": "plus10",
-    "episode": 6,
-    "pull": 4,
-    "t": 115,
-    "summary": "Ivy calls for the party to stand in the Pyre. She and Wren soak it, and the other three take no damage from it. Then, in her notes after the wipe, Wren, who stood in it and was fine, writes that the circle protects nobody and should be avoided. The party goes with that. Next pull, Brask opens by telling everyone to stay out of Bone Pyre.",
-    "quotes": [
-      {
-        "who": "Ivy",
-        "where": "chat",
-        "t": 119.4,
-        "text": "Bone Pyre in 2s; stand in its pool!"
-      },
-      {
-        "who": "Wren",
-        "where": "chat",
-        "t": 119.8,
-        "text": "Ivy, please Hymn immediately after Pyre; I'm shielded and staying in its pool."
-      },
-      {
-        "who": "Wren",
-        "where": "notes",
-        "text": "Bone Pyre’s circle explodes ~6 sec after appearing and does NOT protect anyone: it hit the whole party hard even with zero inside. Do not enter it."
       }
     ]
   },

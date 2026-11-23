@@ -83,7 +83,7 @@ export function About() {
 
         <Section title="Fair and checkable">
           <ul>
-            <li>Every model gets the same instructions, game state, seeds, reasoning effort and call budget. All of it was fixed in a public pre-registration before the official run.</li>
+            <li>Every model faces the same rules, starting seeds, reasoning effort and decision limits: how often it is asked for orders, and how many calls it gets. The fights themselves diverge as soon as the agents act. All of it was fixed in a public pre-registration before the official run.</li>
             <li>Every model reply is recorded, so every pull replays exactly and every number can be recomputed from the published files.</li>
             <li>A memory-off control plays the same seeds without the debrief, to measure what carrying lessons across wipes is worth.</li>
             <li>One model is called better than another only when it scores higher on the same seeds, by a margin a statistical test supports.</li>
@@ -116,7 +116,7 @@ export function About() {
           <Code>{'cd sim\npip install -e ".[dev]"\npython -m mythicsim verify ../web/public/results/v1   # replay all 465 pulls, rebuild the leaderboard'}</Code>
           <p>To play the expert script's +10 clear, and run the harness end to end with a mock model, without an API key:</p>
           <Code>{'python -m mythicsim run --policy expert --tier +10 --seed 10043\npython -m mythicsim llm --model mock:basic --seeds 0-2'}</Code>
-          <p>To run the official protocol yourself (this calls model APIs and costs money; <code>--dry-run</code> prints the worst case first):</p>
+          <p>To run the official protocol yourself (this calls model APIs and costs money). <code>--dry-run</code> lists what is left to play and a worst-case cost estimate, and spends nothing. Spending during a run is capped separately, by <code>--budget-usd</code> and the <code>MYTHICBENCH_TOTAL_BUDGET_USD</code> limit:</p>
           <Code>{'python -m mythicsim campaign ../protocol/v1.json --dry-run\npython -m mythicsim campaign ../protocol/v1.json --workers 3\npython -m mythicsim results ../protocol/v1.json --out ../results/v1'}</Code>
           <p>More in the <a href={`${GITHUB_URL}#readme`}>README</a>.</p>
         </Section>
