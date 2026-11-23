@@ -27,13 +27,14 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     id: 'amendment-3',
     date: '2026-11-23',
-    title: 'Pre-registration amendment 3: three more labs',
+    title: 'Pre-registration amendment 3: two more labs',
     kind: 'protocol',
-    summary: 'Gemini 3.8 Flash, Grok 4.3 and DeepSeek V4.1 Flash join v1, on the same frozen game, prompt and seeds. Their results are not in yet.',
+    summary: 'Grok 4.3 and DeepSeek V4.1 Flash join v1, on the same frozen game, prompt and seeds. Their results are not in yet.',
     items: [
       'Each plays six ranked +10 groups at medium effort through its lab\'s own API, exactly as the first five models did.',
       'The code adds only the new API clients and their prices; what models see and how they are scored is unchanged, so the harness stays 1.0.0 and the published results stand.',
-      '"Medium" maps to each lab\'s own setting: Gemini\'s thinking level medium, Grok\'s reasoning effort medium, and DeepSeek\'s high (its documented equivalent).',
+      '"Medium" maps to each lab\'s own setting: Grok\'s reasoning effort medium, and DeepSeek\'s high (its documented equivalent).',
+      'Gemini 3.8 Flash was tested and dropped before playing: its notes were never valid JSON, so it would have played every pull with no memory. Qwen4-Max was dropped for lack of API access.',
       'xAI\'s API can\'t cap Grok\'s reasoning, so the 8,000-token cap the other models live under is applied when its replies are read.',
     ],
   },

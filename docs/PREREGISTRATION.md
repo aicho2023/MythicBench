@@ -26,11 +26,11 @@ occurrence in the final data is counted and reported, by the rule stated
 there. Nothing else changes.
 
 **Amendment 3 (2026-11-23, after the official results were published, before
-any new model plays).** Three models from three more labs join v1:
-Gemini 3.8 Flash (Google, `gemini-3.8-flash`), Grok 4.3 (xAI, `grok-4.3`) and
-DeepSeek V4.1 Flash (DeepSeek, `deepseek-flash`), each through its lab's own
-API. (A first draft also named Qwen4-Max from Alibaba; it was dropped before
-any call was made, for lack of API access.) They play exactly what the
+any new model plays).** Two models from two more labs join v1: Grok 4.3
+(xAI, `grok-4.3`) and DeepSeek V4.1 Flash (DeepSeek, `deepseek-flash`), each
+through its lab's own API. Two more were considered and dropped before
+playing anything: Qwen4-Max (Alibaba), for lack of API access, and Gemini 3.8
+Flash (Google), after the test calls below. They play exactly what the
 five models played: the same frozen game and prompt (harness 1.0.0, sim
 0.11.0, content 1.8.0), the same seed schedule (base 70000), six ranked +10
 groups each, up to five pulls, memory on, at medium effort, with the same
@@ -42,10 +42,10 @@ clients and list prices. What the models see, how their replies are
 read, and how pulls are scored are unchanged, so `HARNESS_VERSION` stays
 1.0.0 and the five existing models' results stand as published. The known
 faults stay too (the throne edge case and the "safe" fault disclosed after the
-run), so all eight models play identical code.
+run), so all seven models play identical code.
 
-"Medium" effort means each lab's own setting: Gemini's thinking level
-`medium` (its default); Grok's `reasoning_effort` `medium`; DeepSeek's
+"Medium" effort means each lab's own setting: Grok's `reasoning_effort`
+`medium`; DeepSeek's
 `reasoning_effort` `high`, which DeepSeek documents as what `medium` maps to.
 Costs use list prices: DeepSeek at its peak rate (off-peak is half), so its
 reported cost errs high.
@@ -54,13 +54,21 @@ Before the run, a few test calls per model check that each client works, that
 the output cap holds (the spending guard stops a run if a call ever costs more
 than its reserved worst case), and that the model asked for is the one that
 answers. Nothing from those calls is scored. The new models then play one at a
-time under a campaign budget. The protocol file gains the three models; its
+time under a campaign budget. The protocol file gains the two models; its
 earlier digest stays pinned so the published five-model dataset still
 verifies. Scores and comparisons follow the analysis plan above unchanged:
-Holm's correction is applied over every pair of the eight models.
+Holm's correction is applied over every pair of the seven models.
 
-Test calls (2026-11-23, $0.11, nothing scored): all three answer as the model
-asked for, with valid orders. xAI's API counts Grok's reasoning outside its
+Test calls (2026-11-23, about $0.20, nothing scored), on real fight, party-talk
+and notes prompts from a practice run: Grok and DeepSeek answer as the model
+asked for, with valid orders, talk and notes. Gemini 3.8 Flash's orders and
+talk were valid, but none of its five notes replies was: it writes raw line
+breaks inside the JSON string, which the reply contract (strict JSON, never
+repaired, for every model) rejects, so it would have played every pull with
+no notes. Accepting raw line breaks was ruled out: it would change how one
+published GPT-6 Luna notes reply reads, so the published results would no
+longer replay exactly. Gemini was dropped instead. Its client stays in the
+code, unused. xAI's API counts Grok's reasoning outside its
 completion tokens and lets no request parameter cap it (checked with both
 `max_tokens` and `max_completion_tokens`). So Grok's reasoning is billed as
 output, the spending guard reserves for up to 40,000 output tokens per Grok
