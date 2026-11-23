@@ -10,7 +10,7 @@ import { navigate } from './router'
 export interface PullFacts {
   pull: number; score: number; dur: number; boss: number | null; deaths: number
   pyres: number; soaked: number; first_soak_s: number | null; kicks: [number, number]; chat: number
-  pyre_inside?: number[]; killed_by?: Record<string, number>
+  pyre_inside?: number[]; pyre_t?: number[]; killed_by?: Record<string, number>
 }
 export interface GroupFacts { episode: number; ranked: boolean; pulls: PullFacts[] }
 export interface Insights { source: string; tier: string; abilities?: Record<string, string>; models: Record<string, GroupFacts[]> }
@@ -49,7 +49,7 @@ export function heat(v: number): string {
   return `rgb(${c0.map((c, i) => Math.round(c + (c1[i] - c) * u)).join(',')})`
 }
 
-function useWidth(): [React.RefObject<HTMLDivElement>, number] {
+export function useWidth(): [React.RefObject<HTMLDivElement>, number] {
   const ref = useRef<HTMLDivElement>(null)
   const [w, setW] = useState(0)
   useLayoutEffect(() => {

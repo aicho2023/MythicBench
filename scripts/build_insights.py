@@ -38,6 +38,7 @@ def pull_facts(path: Path) -> dict:
         "soaked": sum(1 for e in pyres if e.get("soaked")),
         # How many players stood in each Bone Pyre, in order (two or more soak it).
         "pyre_inside": [len(e.get("inside", [])) for e in pyres],
+        "pyre_t": [round(e["t"] / 1000, 1) for e in pyres],  # when each went off, seconds into the pull
         # What killed each party member who died, by ability id.
         "killed_by": dict(Counter(d.get("ability") or "unknown" for d in m.get("deaths", []))),
         "first_soak_s": round(first_soak / 1000, 1) if first_soak is not None else None,
