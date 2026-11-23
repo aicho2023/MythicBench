@@ -6,6 +6,7 @@ import '@fontsource/ibm-plex-mono/500.css'
 import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { About } from './pages/About'
+import { Changelog } from './pages/Changelog'
 import { Home } from './pages/Home'
 import { NotFound } from './pages/NotFound'
 import { Party } from './pages/Party'
@@ -35,6 +36,7 @@ function Site() {
   else if (path === '/commentary' || path === '/paper') { history.replaceState(null, '', `/report${location.hash}`); page = <Report /> }  // its old names
   else if (path === '/party') page = <Party />
   else if (path === '/about') page = <About />
+  else if (path === '/changelog') page = <Changelog />
   else if (path === '/compare') page = <Compare />
   else if (import.meta.env.DEV && path === '/dev/portraits') page = <DevPortraits />
   else page = <NotFound />
