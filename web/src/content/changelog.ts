@@ -25,6 +25,19 @@ const V1: Versions = { harness: '1.0.0', sim: '0.11.0', content: '1.8.0' }
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 'claims-pass',
+    date: '2026-11-23',
+    title: 'Report claims matched to the evidence',
+    kind: 'docs',
+    summary: 'Wording changes after an outside review. Nothing that plays changed, and no score moved.',
+    items: [
+      'The abstract no longer says both leaders are clearly ahead of the other three: GPT-6.2 Sol\'s lead over Claude Sonnet 5.5 falls just short after correction. It gives the scores instead.',
+      'The memory test is described as what it measured: the debrief, talk and notes together, on Claude Haiku 5.5 and GPT-6 Luna only, with no clear benefit.',
+      'The "safe" fault: the 16 cancelled casts are the one counted consequence; its total effect on scores was not measured. The throne fault is described as kept by an amendment after stage 1.',
+      'The GPT-6 Luna case now tells the whole pull: the soak worked, the next Pyre killed two, and the notes carried the wrong lesson.',
+    ],
+  },
+  {
     id: 'safe-fault',
     date: '2026-11-23',
     title: 'Disclosed: a second harness fault in "safe"',

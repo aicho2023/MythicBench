@@ -8,7 +8,7 @@ const DESCRIPTION = 'An LLM eval: five agents, one per character, run a Mythic+-
   + 'talk it over after each wipe, and try again. Leaderboard, replays of every pull, and the write-up.'
 
 export const PAGES: PageMeta[] = [
-  { path: '/', title: 'MythicBench: can an AI lead a Mythic+ group?', description: DESCRIPTION },
+  { path: '/', title: 'MythicBench: can five AI agents learn from a wipe?', description: DESCRIPTION },
   { path: '/watch', title: 'Watch a run | MythicBench', description: 'Replays of every pull in the benchmark, in 3D, with every decision the model made.' },
   { path: '/highlights', title: 'Highlights | MythicBench', description: 'The best moments from 420 pulls: breakthroughs, arguments, clutch saves and spectacular wipes, each a click from the replay.' },
   { path: '/report', title: 'Report | MythicBench', description: 'How MythicBench works, what it measures, and what the models did.' },

@@ -21,9 +21,9 @@ export const MOMENTS: { title: string; path: string; text: string }[] = [
     text: 'GPT-6.2 Sol, group 1, pull 4: the whole party alive at the timer, Oruth at 8.7%. Claude Opus 5.5 came within 9.0% (group 2, pull 2).',
   },
   {
-    title: 'Right answer, talked out of it',
-    path: '/watch/gpt-6-luna/plus10/6/4',
-    text: 'GPT-6 Luna, group 7, pull 4. Ivy calls "stand in its pool!", she and Wren soak the Pyre, and the other three take no damage. In the notes afterwards, Wren, who stood in it and took nothing, writes that the circle "does NOT protect anyone". Next pull, Brask opens with "Stay out of Bone Pyre".',
+    title: 'Saw it work, then saw it fail',
+    path: '/watch/gpt-6-luna/plus10/6/4?t=115',
+    text: 'GPT-6 Luna, group 7, pull 4. Ivy calls "stand in its pool!", and she and Wren soak the first Pyre: Wren\'s shield absorbs her whole 11.4k share, and the other three take nothing. The next Pyre goes off with only Ivy inside and kills Wren and Kit. In her notes, Wren writes that the circle "does NOT protect anyone", citing her death: "At the second blast I took 31.8k and died". Next pull, as they pull Oruth, Brask says "Stay out of Bone Pyre".',
   },
   {
     title: 'Found it, lost it, found it again',
