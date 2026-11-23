@@ -28,22 +28,38 @@ from .metrics import score
 # rules (kick every cast, step out of every pool) and never learns.
 SHOWCASE_SEED = 7
 COMMANDER_BLURB = "Fixed, obvious rules through the agents' own interface: kick every cast, step out of every pool. It never learns."
+# The expert script: a clear is possible through that same interface. Its rules
+# were written knowing the fight (soak Bone Pyre, walk clear of Grave Mark, keep
+# out of pools, save Ironhide for Soul Rend); it plays the models' blind view and
+# never learns. Dev seeds (10001+), never the official schedules.
+EXPERT_BLURB = ("Rules written by someone who knows the fight, through the agents' own interface and blind view: "
+                "soak Bone Pyre, walk clear of Grave Mark, stay out of pools. It never learns.")
+EXPERT_SEEDS = {"plus10": 10043, "normal": 10001}
 SHOWCASE = [
     {"id": "commander-plus10", "seed": SHOWCASE_SEED, "mode": "dungeon", "tier": "plus10",
      "label": "Scripted commander, +10", "blurb": COMMANDER_BLURB},
     {"id": "commander-normal", "seed": SHOWCASE_SEED, "mode": "dungeon", "tier": "normal",
      "label": "Scripted commander, Normal", "blurb": COMMANDER_BLURB},
+    {"id": "expert-plus10", "seed": EXPERT_SEEDS["plus10"], "mode": "dungeon", "tier": "plus10",
+     "label": "Expert script, +10", "blurb": EXPERT_BLURB, "policy": "expert"},
+    {"id": "expert-normal", "seed": EXPERT_SEEDS["normal"], "mode": "dungeon", "tier": "normal",
+     "label": "Expert script, Normal", "blurb": EXPERT_BLURB, "policy": "expert"},
 ]
 
 
 MODES = ("dungeon", "boss")
 
 
-def simulate(seed: int, tier: str = C.DEFAULT_TIER, mode: str = "dungeon") -> dict:
-    """One run by the scripted commander (free: no API). ``mode="dungeon"``
-    plays the full run (trash, then the boss); "boss" the boss fight alone."""
-    from .llm.scripted import ScriptedCommander
-    client = ScriptedCommander()
+def simulate(seed: int, tier: str = C.DEFAULT_TIER, mode: str = "dungeon", policy: str = "commander") -> dict:
+    """One run by a scripted party (free: no API): the commander (default) or
+    the expert. ``mode="dungeon"`` plays the full run (trash, then the boss);
+    "boss" the boss fight alone."""
+    if policy == "expert":
+        from .llm.expert import ExpertScript
+        client = ExpertScript()
+    else:
+        from .llm.scripted import ScriptedCommander
+        client = ScriptedCommander()
     policies, party = make_llm_policies(client, tier=tier, mode=mode, knowledge="blind", parallel=False)
     return make_encounter(seed, policies, f"llm:{client.spec}", tier, mode).run()
 
@@ -409,6 +425,8 @@ def main() -> None:
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run", help="play one run with the scripted commander (no API) and print its score")
     r.add_argument("--seed", type=int, default=7)
+    r.add_argument("--policy", choices=("commander", "expert"), default="commander",
+                   help="the scripted commander (default) or the expert script")
     r.add_argument("--out", type=Path, help="also write the replay JSON here")
     r.add_argument("--mode", choices=MODES, default="dungeon",
                      help="dungeon (default): trash packs then the boss; boss: the boss fight alone")
@@ -513,7 +531,7 @@ def main() -> None:
     args = ap.parse_args()
 
     if args.cmd == "run":
-        rep = simulate(args.seed, args.tier, args.mode)
+        rep = simulate(args.seed, args.tier, args.mode, args.policy)
         print(json.dumps(score(rep), indent=2))
         if args.out:
             args.out.write_text(json.dumps(rep, separators=(",", ":")))
@@ -564,7 +582,7 @@ def main() -> None:
         args.out.mkdir(parents=True, exist_ok=True)
         index = []
         for spec in SHOWCASE:
-            rep = simulate(spec["seed"], spec["tier"], spec["mode"])
+            rep = simulate(spec["seed"], spec["tier"], spec["mode"], spec.get("policy", "commander"))
             s = score(rep)
             rep["meta"]["metrics"] = s
             (args.out / f"{spec['id']}.json").write_text(json.dumps(rep, separators=(",", ":")))

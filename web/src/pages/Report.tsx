@@ -127,8 +127,20 @@ export function Report() {
             33 on +10 and has never cleared it.
           </p>
           <p>
+            The <strong>expert script</strong> is the golden standard: proof that a clear is possible. Its rules were
+            written by someone who knows the fight. Two players soak Bone Pyre, a marked player walks clear, nobody
+            walks through a pool, the tank saves Ironhide for Soul Rend, and the healer attacks only when nobody needs
+            healing. It plays through the agents' own interface and blind view and never learns. On 1,000 practice
+            seeds outside the official schedule it clears Normal 898 times and +10 only 4 times, each with a second
+            or less to spare. A +10 clear exists, but it takes near-perfect play: room for better models to find it.
+            Its clears are in the <Link to="/watch" className="underline decoration-accent/50 underline-offset-4">viewer</Link>.
+          </p>
+          <p>
             +10 was calibrated in pilot runs of GPT-6.2 Sol, on seeds outside the official schedule, so that the
-            strongest models clear it only some of the time. Sol is also one of the ranked models.
+            strongest models would clear it some of the time. That tuning was on an earlier version, where Sol cleared
+            some pulls. Later changes (Bone Pyre, shorter melee reach, solid obstacles) made the fight harder, and
+            the calibration was not re-run before the freeze; the expert script measures how hard it ended up. Sol is
+            also one of the ranked models.
           </p>
         </Section>
 
