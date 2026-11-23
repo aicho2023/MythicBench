@@ -2,6 +2,9 @@ import type { ReactNode } from 'react'
 import { Page } from '../site/Layout'
 import { Link } from '../site/router'
 
+/** The expert script's clear rates on practice seeds (python -m mythicsim run --policy expert, seeds 10001+). */
+const EXPERT = { normal: 'TBD', plus10: 'TBD' }
+
 const SECTIONS: [string, string][] = [
   ['results', 'Results'], ['question', 'The question'], ['dungeon', 'The dungeon'], ['groups', 'Groups and pulls'],
   ['agents', 'The agents'], ['fair', 'Same rules for everyone'], ['reading', 'Reading the results'],
@@ -125,6 +128,14 @@ export function Report() {
             A <strong>scripted commander</strong> plays through the same interface with fixed rules: kick every cast,
             step out of every pool. It is a floor, not a skilled player. It never soaks Oruth's Bone Pyre, scores about
             33 on +10 and has never cleared it.
+          </p>
+          <p>
+            The <strong>expert script</strong> is the golden standard: proof that a clear is possible. Its rules were
+            written by someone who knows the fight. Two players soak Bone Pyre, a marked player walks clear, nobody
+            walks through a pool, the tank saves Ironhide for Soul Rend, and the healer attacks only when nobody needs
+            healing. It plays through the agents' own interface and blind view and never learns. On practice seeds
+            outside the official schedule it clears Normal {EXPERT.normal} of the time and +10 {EXPERT.plus10}.
+            Its clears are in the <Link to="/watch">viewer</Link>.
           </p>
           <p>
             +10 was calibrated in pilot runs of GPT-6.2 Sol, on seeds outside the official schedule, so that the

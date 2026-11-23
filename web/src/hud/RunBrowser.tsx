@@ -87,8 +87,10 @@ export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void
     if (sort === 'best') out = [...out].sort((a, b) => (b.summary.score_mean ?? -1) - (a.summary.score_mean ?? -1))
     return out
   }, [runs, q, provider, showOld, sort, currentHarness])
-  // The scripted commander's replays are a reference for local work, not shown to visitors.
-  const refs = SHOW_REFERENCE_RUNS ? index.filter((r) => !r.local && !r.id.startsWith('featured:')) : []
+  // The expert script's clears are the golden standard, shown to everyone. The
+  // scripted commander's replays are a reference for local work, not shown to visitors.
+  const gold = index.filter((r) => r.id.startsWith('expert-'))
+  const refs = SHOW_REFERENCE_RUNS ? index.filter((r) => !r.local && !r.id.startsWith('featured:') && !r.id.startsWith('expert-')) : []
   // Pulls picked out to show (the home page's clip), listed until the official runs replace them.
   const featured = index.filter((r) => r.id.startsWith('featured:'))
 
@@ -262,6 +264,16 @@ export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void
               </div>
             )
           })}
+
+          {gold.length > 0 && (
+            <section className="mt-4 border-t border-line px-2 pt-4">
+              <h3 className="text-[13px] font-medium text-fg">Golden standard: the expert script</h3>
+              <p className="mt-1 text-[12px] leading-5 text-fg-faint">Proof a clear is possible: fixed rules written by someone who knows the fight, playing through the agents' own interface and blind view. It never learns.</p>
+              <div className="mt-2">
+                {gold.map((b) => <RefRow key={b.id} b={b} current={current} load={load} />)}
+              </div>
+            </section>
+          )}
 
           {refs.length > 0 && (
             <section className="mt-4 border-t border-line px-2 pt-4">

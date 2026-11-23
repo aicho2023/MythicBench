@@ -40,6 +40,7 @@ _ENEMY = re.compile(r"(\w+) \(([^)]+)\) (\d+)% HP at \((-?[\d.]+), (-?[\d.]+)\) 
                     r"(?:, casting (\w+))?")
 _BOSS = re.compile(r"^BOSS oruth ([\d.]+)% HP at \((-?[\d.]+), (-?[\d.]+)\), attacking (\w+)(?:, casting (\w+))?")
 _POOL = re.compile(r"(\w+) \((\w+)\) at \((-?[\d.]+), (-?[\d.]+)\) r=([\d.]+)(?: goes off in ([\d.]+)s)?")
+_NEXT = re.compile(r"(\w+) in ([\d.]+)s")
 _MARK = re.compile(r"grave_mark (\d+)s")
 _READY = re.compile(r"Ready: ([\w, ]+?)(?:\.|$)")
 _IDLE = re.compile(r"(\w+) \(([^)]+)\) at \((-?[\d.]+), (-?[\d.]+)\)")
@@ -60,6 +61,8 @@ TRASH_HOLD = {"pack1": (0.0, 46.0), "pack2": (0.0, 22.0)}  # tank pulls each pac
 import os
 HOLD_GAP = float(os.environ.get("EXPERT_GAP", "5.5"))
 FOCUS_ADDS = set(os.environ.get("EXPERT_FOCUS_ADDS", "").split(","))
+FOCUS_WHEN_LOW = set(os.environ.get("EXPERT_FOCUS_LOW", "wren").split(","))
+FOCUS_TANK_HP = float(os.environ.get("EXPERT_FOCUS_TANK_HP", "70"))
 SAFE_ALWAYS = os.environ.get("EXPERT_SAFE_ALWAYS", "0") == "1"
 TANK_TOPUP = float(os.environ.get("EXPERT_TOPUP", "95"))
 WADE = float(os.environ.get("EXPERT_WADE", "1.2"))  # metres of pool a melee will cut across to get back
@@ -80,7 +83,8 @@ PACK_EDGE = {p.id: max(z for _, (_, z) in p.members) for p in C.PACKS}  # the me
 def read_state(state: str) -> dict:
     lines = state.splitlines()
     s: dict = {"party": {}, "enemies": [], "pools": [], "idle": [], "boss": None,
-               "in_combat": "IN COMBAT" in lines[0], "packs": {}, "ready": set(), "boss_asleep": False}
+               "in_combat": "IN COMBAT" in lines[0], "packs": {}, "ready": set(), "boss_asleep": False,
+               "next": {}}
     section = None
     for line in lines:
         if line.startswith("PACK "):
@@ -90,6 +94,8 @@ def read_state(state: str) -> dict:
             pid = re.search(r"\((chapel|ossuary)\)", line)
             if pid:
                 s["packs"]["pack1" if pid.group(1) == "chapel" else "pack2"] = line.split(": ")[1].split(",")[0].lower()
+        elif line.startswith("  Next boss abilities:"):
+            s["next"] = {m.group(1): float(m.group(2)) for m in _NEXT.finditer(line)}
         elif line.startswith("BOSS oruth is asleep"):
             s["boss_asleep"] = True
         elif line.startswith("BOSS oruth"):
@@ -287,7 +293,8 @@ def orders(me: str, state: str) -> dict:
         # the archer and area attacks, held by the tank.
         target = boss
         loose = [e for e in walkers if e["on"] != TANK]
-        if role == "dps" and me in FOCUS_ADDS and walkers:
+        tank_hp = (party.get(TANK) or {}).get("hp", 100)
+        if role == "dps" and walkers and (me in FOCUS_ADDS or (me in FOCUS_WHEN_LOW and tank_hp < FOCUS_TANK_HP)):
             # Kill the summoned adds fast; evenly, so they die together and none
             # is left standing on a fresh grave.
             target = sorted(walkers, key=lambda e: (-e["hp"], e["id"]))[0] if ADDS_EVEN else walkers[0]
@@ -307,7 +314,8 @@ def orders(me: str, state: str) -> dict:
     # --- healer ----------------------------------------------------------------
     if role == "healer":
         lows = sorted(alive.items(), key=lambda kv: kv[1]["hp"])
-        if boss and boss.get("casting") == "soul_rend" and TANK in alive:
+        rend_soon = s["next"].get("soul_rend", 99) <= 3.5
+        if boss and (boss.get("casting") == "soul_rend" or rend_soon) and TANK in alive:
             prio.append(["lumen_ward", TANK])
             if alive[TANK]["hp"] < 90:
                 prio.append(["mending_light", TANK])
@@ -374,7 +382,7 @@ def orders(me: str, state: str) -> dict:
             move = "safe"  # the harness's step out keeps the target in range and avoids other pools
     elif not s["in_combat"]:
         move = _walk_on(me, s)
-        if mine.get("in_pool") and (move is None or _wet(here, tuple(move), hazards) > 3.0):
+        if mine.get("in_pool") and (move is None or _wet(here, tuple(move), hazards) > 5.5):
             move = "safe"
     elif mine.get("in_pool"):
         move = "safe"
@@ -524,6 +532,15 @@ def _boss_move(me: str, s: dict, target):
         spot = _clear_spot(here, s["pools"], toward=boss["pos"], avoid=marked, min_from=C.GRAVE_MARK_RADIUS + 1.0,
                            step=1.0, here=here)
         return _dry(here, spot, hazards, 0.6)
+    # Bone Pyre due (seen only with the timers on): the next two soakers wait close
+    # to Oruth, so wherever it lands (5-9 m from him) they're a step away.
+    if not pyres and s["next"].get("bone_pyre", 99) <= 3.0 and me != TANK:
+        nxt = [p for p in SOAK_ORDER if p in alive and not alive[p]["marked"]][:C.PYRE_SOAKERS]
+        if me in nxt and dist(here, boss["pos"]) > 5.0:
+            spot = _clear_spot(boss["pos"], s["pools"], toward=here, step=1.0, here=here,
+                               avoid=[boss["pos"]], min_from=C.BOSS.radius + C.PLAYER_RADIUS + 1.2)
+            if spot and dist(spot, boss["pos"]) <= 5.5:
+                return _dry(here, spot, hazards)
     if me == TANK:
         # Hold Oruth on clean ground: when pools crowd him, take him somewhere with room.
         spot = BOSS_SPOT if not hazards and dist(here, BOSS_SPOT) > 1.0 else None
