@@ -111,8 +111,8 @@ export function CallInspector() {
             This replay has no recorded model calls. Runs from harness 0.9 on keep every call with the replay.
           </p>
         ) : (
-          <div className="grid min-h-0 flex-1 grid-cols-[260px_1fr]">
-            <ol ref={listRef} className="relative overflow-y-auto border-r border-line py-2">
+          <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,30%)_minmax(0,1fr)] sm:grid-cols-[260px_1fr] sm:grid-rows-1">
+            <ol ref={listRef} className="relative overflow-y-auto border-b border-line py-2 sm:border-b-0 sm:border-r">
               {list.map(({ c: x, i }) => (
                 <li key={i}>
                   <button onClick={() => setSel(i)} aria-current={i === sel}
@@ -127,7 +127,7 @@ export function CallInspector() {
                 </li>
               ))}
             </ol>
-            <div className="min-w-0 overflow-y-auto px-5 pb-6 pt-3">
+            <div className="min-w-0 overflow-y-auto px-4 pb-6 pt-3 sm:px-5">
               {c && (
                 <>
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
