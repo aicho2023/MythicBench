@@ -27,6 +27,21 @@ export function usePath(): string {
   return path
 }
 
+/** The current query string, updated on client-side navigation like usePath. */
+export function useSearch(): string {
+  const [search, setSearch] = useState(() => location.search)
+  useEffect(() => {
+    const on = () => setSearch(location.search)
+    window.addEventListener('popstate', on)
+    window.addEventListener(EVENT, on)
+    return () => {
+      window.removeEventListener('popstate', on)
+      window.removeEventListener(EVENT, on)
+    }
+  }, [])
+  return search
+}
+
 function clean(p: string) {
   return p.length > 1 ? p.replace(/\/+$/, '') : p
 }

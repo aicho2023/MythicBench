@@ -11,6 +11,7 @@ import { usePlayback } from './replay/store'
 import { Scene } from './scene/Scene'
 import { modelName } from './content/display'
 import { parseWatchPath } from './site/results'
+import { useSearch } from './site/router'
 
 /**
  * The replay viewer, full screen. `path` is the /watch address: /watch/<model>
@@ -25,6 +26,7 @@ export default function App({ path = '/watch' }: { path?: string }) {
   const ready = usePlayback((p) => !!p.engine)
   const [about, setAbout] = useState(false)
   const closeAbout = useCallback(() => setAbout(false), [])
+  const search = useSearch() // a new ?t= on the same pull seeks
   const target = parseWatchPath(path)
   const modelOnly = target && target.tier === undefined ? target.model : null
   const [runs, setRuns] = useState(!!modelOnly)
@@ -37,7 +39,7 @@ export default function App({ path = '/watch' }: { path?: string }) {
     if (!indexed) return
     openFromUrl({ fallback: true })
     if (modelOnly) setRuns(true)
-  }, [path, indexed, openFromUrl, modelOnly])
+  }, [path, search, indexed, openFromUrl, modelOnly])
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-bg">

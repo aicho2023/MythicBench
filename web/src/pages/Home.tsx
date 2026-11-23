@@ -4,10 +4,9 @@ import { HighlightCard } from './Highlights'
 import { HIGHLIGHTS } from '../content/highlights'
 import { PullGrid } from '../site/PullGrid'
 import { CostScatter, LearningCurves } from '../site/charts'
-import { bestPull, LeaderboardTable } from '../site/Leaderboard'
+import { LeaderboardTable } from '../site/Leaderboard'
 import { Page } from '../site/Layout'
-import { modelName, pullLabel } from '../content/display'
-import { FEATURED } from '../site/config'
+import { FEATURED, HERO_WINDOW_S } from '../site/config'
 import { tierName, topPull, type Results } from '../site/results'
 import { Link } from '../site/router'
 import { useResults } from '../site/useResults'
@@ -56,72 +55,19 @@ export function Home() {
           </div>
         </div>
         <figure className="m-0">
-          <Link to={top?.path ?? `/watch?replay=${encodeURIComponent(FEATURED.id)}`} aria-label="Open this replay in the viewer"
+          <Link to={top ? `${top.path}?t=${HERO_WINDOW_S[0]}` : `/watch?replay=${encodeURIComponent(FEATURED.id)}`} aria-label="Open this replay in the viewer"
             className="group relative block aspect-[16/10] overflow-hidden rounded-2xl border border-line bg-[#0d0a18]">
             <Suspense fallback={null}><Teaser /></Suspense>
             <span className="absolute bottom-3 right-3 inline-flex items-center gap-2 rounded-lg border border-line bg-[rgba(15,15,16,0.88)] px-3 py-2 text-[13px] text-fg transition-colors group-hover:bg-surface-raised">
               Open in the viewer <ArrowRight size={16} className="text-fg-muted" />
             </span>
           </Link>
-          <figcaption className="mt-3 text-[13px] leading-5 text-fg-faint">
-            {top
-              ? <>{modelName(top.model)}, {tierName(results!, top.tier)}, {pullLabel(top.episode, top.pull)}: its best pull{topLeft(results!) != null ? `, Oruth at ${topLeft(results!)}% when time ran out` : ''}.</>
-              : FEATURED.caption}
-          </figcaption>
         </figure>
       </section>
-
-      {results?.protocol.name === 'v1' && <Findings />}
 
       {error && <p className="py-8 text-[14px] text-bad">{error}</p>}
       {results && <Results results={results} />}
     </Page>
-  )
-}
-
-const FINDINGS: { head: string; body: ReactNode }[] = [
-  {
-    head: 'Nobody cleared it',
-    body: <>Five models, 420 pulls, 0 clears. The closest: GPT-6.2 Sol, all five alive at the timer, Oruth at 8.7%. A clear
-      exists: <Link to="/report#ceiling" className="underline decoration-white/30 underline-offset-4 hover:decoration-fg">a script that knows the fight</Link> finds it, barely.</>,
-  },
-  {
-    head: 'The first pull is a wash',
-    body: <>On a first attempt every model scores 31 to 37, about what a bot with fixed rules gets (32). What
-      separates them is what they take from one wipe: Claude Opus 5.5 jumps from 37 to 52.</>,
-  },
-  {
-    head: 'Stand in the fire',
-    body: <>Oruth's Bone Pyre has to be soaked, the opposite of gamer instinct. Opus and Sol work it out in all 12 of
-      their groups, 11 of them after a single wipe. Sonnet: 1 of 6. Luna: 2 of 12. Haiku: 0 of 12.</>,
-  },
-  {
-    head: 'Same score, a fifth of the price',
-    body: <>Opus (44.1) and GPT-6.2 Sol (42.9) are statistically tied at the top, and both beat the rest on the
-      same seeds. A Sol group costs $7; an Opus group, $37.</>,
-  },
-]
-
-/** How much of Oruth was left in the hero pull (from its score), or null. */
-function topLeft(r: Results): number | null {
-  const t = topPull(r)
-  const row = t && r.leaderboard.find((x) => x.model === t.model)
-  return row ? bestPull(r, row)?.bossLeft ?? null : null
-}
-
-function Findings() {
-  return (
-    <section aria-labelledby="findings" className="pt-4">
-      <h2 id="findings" className="sr-only">What we found</h2>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {FINDINGS.map((f) => (
-          <div key={f.head} className="rounded-xl border border-line bg-surface p-5">
-            <h3 className="text-[16px] font-medium leading-6 text-fg">{f.head}</h3>
-            <p className="mt-2 text-[14px] leading-[22px] text-fg-muted">{f.body}</p>
-          </div>
-        ))}
-      </div>
-    </section>
   )
 }
 
@@ -153,7 +99,7 @@ function ResultsBody({ results }: { results: Results }) {
       <SampleNotice results={results} />
 
       <section id="leaderboard" className="pt-20">
-        <SectionHead title="Leaderboard" link={['/report#results', 'Full results']}>
+        <SectionHead title="Leaderboard" link={['/report#results', 'Results in the report']}>
           <p className="text-[13px] text-fg-faint sm:ml-auto">
             {tierName(results, 'plus10')} · {p.episodes} groups per model · up to {p.max_pulls} pulls each
           </p>
@@ -162,14 +108,14 @@ function ResultsBody({ results }: { results: Results }) {
       </section>
 
       <section className="pt-20">
-        <SectionHead title="Every pull, at a glance" link={['/highlights', 'Highlights']} />
+        <SectionHead title="Every pull, at a glance" link={['/report#pyre', 'Bone Pyre in the report']} />
         <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
           <PullGrid results={results} />
         </div>
       </section>
 
       <section className="pt-20">
-        <SectionHead title="Does it learn between wipes?" link={['/report#memory', 'The memory test']}>
+        <SectionHead title="Does it learn between wipes?" link={['/report#learning', 'Learning in the report']}>
           {tiers.length > 1 && (
             <div className="seg" role="group" aria-label="Difficulty">
               {tiers.map((t) => <button key={t} aria-pressed={tier === t} onClick={() => setTier(t)}>{tierName(results, t)}</button>)}
@@ -182,7 +128,7 @@ function ResultsBody({ results }: { results: Results }) {
       </section>
 
       <section className="pt-20">
-        <SectionHead title="What a score costs" />
+        <SectionHead title="What a score costs" link={['/report#cost', 'Cost in the report']} />
         <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
           <CostScatter results={results} />
         </div>

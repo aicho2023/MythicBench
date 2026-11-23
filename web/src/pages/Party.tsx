@@ -71,6 +71,21 @@ function Section({ id, title, intro, children }: { id: string; title: string; in
   )
 }
 
+/** An enemy's portrait (web/public/portraits/<id>.png, made with /dev/portraits), name and one line of stats. */
+function EnemyHeader({ id, name, line, boss = false }: { id: string; name: string; line: ReactNode; boss?: boolean }) {
+  return (
+    <header className="grid grid-cols-[72px_1fr] items-center gap-4 sm:grid-cols-[88px_1fr]">
+      <img src={`${import.meta.env.BASE_URL}portraits/${id}.png`} alt={name} width={88} height={88} loading="lazy"
+        className="aspect-square w-full rounded-lg"
+        style={{ background: `radial-gradient(circle at 50% 60%, ${boss ? '#7dd3fc' : '#f87171'}22, transparent 70%)` }} />
+      <div className="min-w-0">
+        <h3 className="text-[18px] text-fg">{name}</h3>
+        <div className="mt-0.5 text-[13px] text-fg-faint">{line}</div>
+      </div>
+    </header>
+  )
+}
+
 /** /party: every character and what each ability does, plus the enemies and affixes. */
 export function Party() {
   const [g, setG] = useState<Guide | null>(null)
@@ -138,19 +153,15 @@ export function Party() {
               intro="The Hollow Vault: two packs of undead, then Oruth. The agents learn all of this by fighting it.">
               <div className="space-y-8">
                 {g.trash.map((t) => (
-                  <article key={t.id} className="rounded-xl border border-line p-5 sm:p-6">
-                    <header className="flex flex-wrap items-baseline justify-between gap-2">
-                      <h3 className="text-[18px] text-fg">{t.name}</h3>
-                      <span className="text-[13px] text-fg-faint">{fmtNum(t.max_hp)} health, {t.melee ? 'melee: chases its target' : 'caster: stands and casts'}</span>
-                    </header>
+                  <article key={t.id} id={t.id} className="scroll-mt-20 rounded-xl border border-line p-5 sm:p-6">
+                    <EnemyHeader id={t.id} name={t.name}
+                      line={<>{fmtNum(t.max_hp)} health, {t.melee ? 'melee: chases its target' : 'caster: stands and casts'}</>} />
                     {t.spells.length > 0 && <ul className="mt-2 divide-y divide-line">{t.spells.map((a) => <AbilityRow key={a.id} a={a} enemy />)}</ul>}
                   </article>
                 ))}
-                <article className="rounded-xl border border-line p-5 sm:p-6">
-                  <header className="flex flex-wrap items-baseline justify-between gap-2">
-                    <h3 className="text-[18px] text-fg">{g.boss.name}</h3>
-                    <span className="text-[13px] text-fg-faint">{fmtNum(g.boss.max_hp)} health, summons adds at {g.boss.adds_at_pct.join('% and ')}% health</span>
-                  </header>
+                <article id={g.boss.id} className="scroll-mt-20 rounded-xl border border-line p-5 sm:p-6">
+                  <EnemyHeader id={g.boss.id} name={g.boss.name} boss
+                    line={<>The boss. {fmtNum(g.boss.max_hp)} health, summons adds at {g.boss.adds_at_pct.join('% and ')}% health</>} />
                   <ul className="mt-2 divide-y divide-line">{g.boss.abilities.map((a) => <AbilityRow key={a.id} a={a} enemy />)}</ul>
                 </article>
               </div>
