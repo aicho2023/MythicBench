@@ -25,6 +25,18 @@ const V1: Versions = { harness: '1.0.0', sim: '0.11.0', content: '1.8.0' }
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 'safe-fault',
+    date: '2026-11-23',
+    title: 'Disclosed: a second harness fault in "safe"',
+    kind: 'docs',
+    summary: 'Found while reviewing v1 replays. Disclosed in the report; nothing that plays changed, and no score moved.',
+    items: [
+      'The rules say "safe" steps to the nearest spot clear of the pools. An agent already clear but out of reach of its target, with no dry spot in reach, was moved to another clear spot instead of staying put, and could shuffle back and forth while it kept sending "safe".',
+      'In the 420 pulls the models played it happened 2,567 times, almost all to GPT-6 Luna (1,726) and Claude Haiku 5.5 (820). Only 16 of those moves cut a cast short.',
+      'v1 keeps the fault, since its code is frozen. The fix comes with the next harness version.',
+    ],
+  },
+  {
     id: 'report-related-work',
     date: '2026-11-23',
     title: 'Highlights, related work and a corrected Pyre count',
