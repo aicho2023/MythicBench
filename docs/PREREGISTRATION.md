@@ -16,6 +16,15 @@ still 1.0.0, the sim 0.11.0, the content 1.8.0, and the seeds are the same.
 `v1.0.1` differs from `v1.0.0` only in documentation and in the analysis
 code that builds and checks the results.
 
+**Amendment 2 (2026-11-23, after stage 1's fault review, before stage 2).**
+The review found one harness fault (described under "Running it in two
+stages"). The pre-registered rule says a fault is fixed and the protocol
+restarts on the reserve seeds. We are knowingly departing from that rule for
+this fault: it was judged immaterial, it is deliberately not fixed, and stage 2
+plays the same frozen code as stage 1, so every v1 group plays one code. Every
+occurrence in the final data is counted and reported, by the rule stated
+there. Nothing else changes.
+
 ## The question
 
 Can a team of AI agents learn a dungeon it has never seen? Five copies of
@@ -180,6 +189,28 @@ the agents' own.
    `campaign protocol/v1-restart.json --first 1`, then
    `campaign protocol/v1-restart.json`. Its recordings and results are
    separate from v1's.
+
+**Stage 1 review (2026-11-23).** Stage 1 played its 15 groups (75 pulls) on
+harness 1.0.0, sim 0.11.0, content 1.8.0, and all 75 replay exactly from the
+recordings. No crash, no API error, no refusal, no pull out of calls, no
+prompt with broken text; Oruth always stayed in his room and never stood idle;
+memory on and off behaved as specified. Unusable and cut-off replies were
+model errors (pseudo tool calls, a missing bracket, replies cut off at the
+output cap) and count against the model as above.
+
+One harness fault: in one pull (Claude Haiku 5.5, Normal, group 0, pull 4, at
+3:44.7) Wren walked through Oruth's throne. She stood exactly on the
+throne's inflated boundary (z = -8.8, her body radius from its edge), which
+floating-point arithmetic put 4e-16 m inside it. The router lets a unit walk
+out of an obstacle it already overlaps, so it ignored the throne for her next
+move. It can only happen to a unit standing exactly on such a boundary, saves
+about a second of walking, and can't trap or harm anyone. It was judged
+immaterial and is not fixed (Amendment 2).
+
+Counting rule, fixed now: an occurrence is a `move` event whose straight path,
+sampled every 0.1 m, comes within the mover's body radius minus 1 cm of any
+obstacle (`content.OBSTACLES`). Every occurrence in the final dataset is listed
+in the report, with the model, group, pull and time.
 
 ## Budget
 
