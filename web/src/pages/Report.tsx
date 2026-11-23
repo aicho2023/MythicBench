@@ -132,8 +132,8 @@ export function Report() {
               in a five-person party, run a Mythic+-style dungeon they have never seen, and get up to five attempts.
               Between attempts they read the same combat log, talk it over and rewrite their own notes, with no guidance
               on what to learn. In a pre-registered run of five frontier models (84 groups, 420 attempts, all public and
-              replayable), no model cleared the dungeon. Claude Opus 5.5 (44.1) and GPT-6.2 Sol (42.9) are tied at the
-              top and clearly ahead of the other three, which score no better than a fixed-rule bot. Their lead does not
+              replayable), no model cleared the dungeon. Claude Opus 5.5 (44.1) and GPT-6.2 Sol (42.9) lead, with no clear
+              difference between them, and are clearly ahead of the other three, which score no better than a fixed-rule bot. Their lead does not
               come from the first attempt, where every model plays about the same, but from what they take away from one
               wipe: both work out a mechanic that runs against gamer instinct, in every one of their groups. The others
               almost never do. A clear exists, but it takes near-perfect play.
@@ -172,7 +172,7 @@ export function Report() {
             <ul>
               <li>An environment for learning from failure as a team: deterministic, replayable to the frame, with a boss whose key mechanic contradicts common sense.</li>
               <li>A pre-registered evaluation of five frontier models from two labs: 84 groups and 420 attempts, with seeds, statistics and stopping rules fixed in advance.</li>
-              <li>The finding that the gap between models opens only after the first failure, and that much of it comes down to one inference.</li>
+              <li>The finding that the gap between models opens only after the first failure, and that it shows most clearly in one mechanic, Bone Pyre.</li>
               <li>Every attempt as a 3D replay with every agent's orders, chat and reasoning, and every recorded model reply, so anyone can check or recompute any number for free.</li>
             </ul>
 
@@ -204,8 +204,8 @@ export function Report() {
             </Table>
             <p>
               Bone Pyre is the fight's central test. Every instinct a player has, and most of what a model has read about
-              games, says to step out of a glowing circle on the floor. Here that is exactly wrong. The evidence is in the
-              debrief after the first wipe: nobody stood in it, and everyone took a large hit.
+              games, says to step out of a glowing circle on the floor. Here that is exactly wrong. The evidence is usually in the
+              debrief after the first wipe: too few players stood in it, and everyone took a large hit.
             </p>
             <H3 n="2.2">Difficulty and scoring</H3>
             <p>
@@ -559,10 +559,11 @@ function ResultsBody({ r }: { r: Results }) {
         <LearningCurves results={r} tier={head} />
       </Figure>
 
-      <H3 id="pyre" n="5.4">One inference makes most of the difference</H3>
+      <H3 id="pyre" n="5.4">Bone Pyre is the clearest difference in behaviour</H3>
       <p>
-        After the first wipe, every party sees the same thing in its debrief: Bone Pyre went off with nobody inside, and
-        everyone took a heavy hit. What the parties make of it divides the models almost perfectly (Table 5). Claude Opus
+        After the first wipe, nearly every party sees the same thing in its debrief: Bone Pyre went off with nobody
+        inside, or just one player, and everyone took a heavy hit. (Three of the 42 groups never reached Oruth on their
+        first pull: one each for Claude Sonnet 5.5, GPT-6 Luna and Claude Haiku 5.5.) What the parties make of it divides the models almost perfectly (Table 5). Claude Opus
         5.5 and GPT-6.2 Sol conclude that the circle has to be soaked in every one of their twelve groups, eleven of them
         after the first wipe. The other three models almost never do.
       </p>
