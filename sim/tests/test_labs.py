@@ -103,12 +103,38 @@ def test_gemini_answer_without_usage_is_malformed(fake):
 
 
 def test_xai_request(fake):
-    fake.body = _chat(prompt_tokens_details={"cached_tokens": 64}, completion_tokens_details={"reasoning_tokens": 12})
+    # As xAI really answers (2026-11-23): reasoning is counted outside completion_tokens.
+    fake.body = _chat(total_tokens=100 + 20 + 395, prompt_tokens_details={"cached_tokens": 64},
+                      completion_tokens_details={"reasoning_tokens": 395})
     r = cl.make_client("xai:grok-4.3@medium").complete("rules", "state")
     assert fake.url == "https://api.x.ai/v1/chat/completions"
     assert fake.sent["reasoning_effort"] == "medium" and fake.sent["max_tokens"] == cl.MAX_OUTPUT_TOKENS
     assert fake.headers["x-grok-conv-id"] == cl._cache_key("rules")
-    assert (r.cache_read_tokens, r.reasoning_tokens) == (64, 12)
+    # Reasoning is billed as output, so it counts in the output tokens.
+    assert (r.cache_read_tokens, r.reasoning_tokens, r.output_tokens) == (64, 395, 415)
+    assert r.text == "{}" and not r.truncated
+    # 100 in (64 cached), 415 out at Grok 4.3's prices: xAI's own bill for the probe call matched this math.
+    assert spend.PRICES["grok-4.3"].reply_cost(r) == pytest.approx((36 * 1.25 + 64 * 0.20 + 415 * 2.50) / 1e6)
+
+
+def test_xai_reasoning_past_the_shared_cap_is_a_cut_off_reply(fake):
+    """xAI's API can't cap reasoning, so the cap every other model has is applied when reading."""
+    fake.body = _chat(completion_tokens=50, completion_tokens_details={"reasoning_tokens": cl.MAX_OUTPUT_TOKENS})
+    r = cl.make_client("xai:grok-4.3@medium").complete("s", "u")
+    assert r.truncated and r.text == "" and r.output_tokens == cl.MAX_OUTPUT_TOKENS + 50
+
+
+def test_xai_inconsistent_totals_are_malformed(fake):
+    fake.body = _chat(total_tokens=999, completion_tokens_details={"reasoning_tokens": 5})
+    with pytest.raises(cl.ClientError, match="malformed"):
+        cl.make_client("xai:grok-4.3@medium").complete("s", "u")
+
+
+def test_the_guard_reserves_for_groks_uncapped_reasoning():
+    grok, other = spend.PRICES["grok-4.3"], spend.PRICES["deepseek-flash"]
+    assert grok.max_output and grok.max_output > cl.MAX_OUTPUT_TOKENS
+    assert spend.worst_case_usd(grok, "s", "u") >= grok.max_output * grok.output / 1e6
+    assert other.max_output is None
 
 
 def test_deepseek_maps_medium_to_its_high_and_keeps_reasoning(fake):

@@ -429,7 +429,7 @@ def test_amendment_3_only_added_models():
     assert K.protocol_digest(published) in K.OFFICIAL_PROTOCOLS["v1"]
     assert {k: v for k, v in v1.items() if k != "models"} == {k: v for k, v in published.items() if k != "models"}
     assert v1["models"][:len(published["models"])] == published["models"]
-    assert [m["provider"] for m in v1["models"][len(published["models"]):]] == ["google", "xai", "alibaba", "deepseek"]
+    assert [m["provider"] for m in v1["models"][len(published["models"]):]] == ["google", "xai", "deepseek"]
 
 
 def test_an_altered_official_protocol_is_refused_before_anything_runs(tmp_path):

@@ -21,7 +21,6 @@
     {"provider": "openai", "id": "gpt-6.2-sol", "name": "GPT-6.2 Sol"},
     {"provider": "google", "id": "gemini-3.8-flash", "name": "Gemini 3.8 Flash"},
     {"provider": "xai", "id": "grok-4.3", "name": "Grok 4.3"},
-    {"provider": "alibaba", "id": "qwen4-max", "name": "Qwen4-Max"},
     {"provider": "deepseek", "id": "deepseek-flash", "name": "DeepSeek V4.1 Flash"}
   ],
   "baselines": [
