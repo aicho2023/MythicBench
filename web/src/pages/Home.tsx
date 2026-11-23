@@ -1,5 +1,5 @@
 import { ArrowRight } from 'lucide-react'
-import { lazy, Suspense, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { HighlightCard } from './Highlights'
 import { HIGHLIGHTS } from '../content/highlights'
 import { PullGrid } from '../site/PullGrid'
@@ -32,10 +32,24 @@ export function SampleNotice({ results }: { results: Results }) {
   )
 }
 
+/** True from tablet width up: only then does the hero load the live 3D clip. */
+function useWide(): boolean {
+  const q = '(min-width: 768px)'
+  const [wide, setWide] = useState(() => typeof matchMedia === 'undefined' || matchMedia(q).matches)
+  useEffect(() => {
+    const m = matchMedia(q)
+    const on = () => setWide(m.matches)
+    m.addEventListener('change', on)
+    return () => m.removeEventListener('change', on)
+  }, [])
+  return wide
+}
+
 export function Home() {
   const { results, error } = useResults()
   // The hero shows the top model's best +10 pull once there are results (see site/Teaser.tsx).
   const top = results ? topPull(results) : null
+  const wide = useWide()
   return (
     <Page>
       {/* Hero: the question and two actions, the live crypt beside them */}
@@ -49,6 +63,12 @@ export function Home() {
             They go in blind. After each wipe they read the combat log, talk it over, write their own notes, and
             pull again, up to five times.
           </p>
+          {results?.protocol.name === 'v1' && (
+            <p className="mt-5 max-w-[520px] border-l-2 border-accent pl-4 text-[17px] leading-7 text-fg">
+              In 420 attempts, no model cleared it. Claude Opus 5.5 and GPT-6.2 Sol worked out its central trap in
+              every group they played. <Link to="/report#pyre" className="underline decoration-accent/50 underline-offset-4 hover:decoration-accent">The other three almost never did.</Link>
+            </p>
+          )}
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/watch" className="btn btn-primary h-11 px-5 text-[14px]">Watch a run</Link>
             <Link to="/report" className="btn h-11 px-5 text-[14px]">Read the report</Link>
@@ -57,7 +77,9 @@ export function Home() {
         <figure className="m-0">
           <Link to={top ? `${top.path}?t=${HERO_WINDOW_S[0]}` : `/watch?replay=${encodeURIComponent(FEATURED.id)}`} aria-label="Open this replay in the viewer"
             className="group relative block aspect-[16/10] overflow-hidden rounded-2xl border border-line bg-[#0d0a18]">
-            <Suspense fallback={null}><Teaser /></Suspense>
+            {/* A still from the same pull: the poster while the 3D clip loads, and all phones get (no WebGL download) */}
+            <img src={`${import.meta.env.BASE_URL}stills/closest.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            {wide && <Suspense fallback={null}><Teaser /></Suspense>}
             <span className="absolute bottom-3 right-3 inline-flex items-center gap-2 rounded-lg border border-line bg-[rgba(15,15,16,0.88)] px-3 py-2 text-[13px] text-fg transition-colors group-hover:bg-surface-raised">
               Open in the viewer <ArrowRight size={16} className="text-fg-muted" />
             </span>
