@@ -76,9 +76,53 @@ export function Home() {
         </figure>
       </section>
 
+      {results?.protocol.name === 'v1' && <Findings />}
+
       {error && <p className="py-8 text-[14px] text-bad">{error}</p>}
       {results && <Results results={results} />}
     </Page>
+  )
+}
+
+const FINDINGS: { head: string; body: ReactNode }[] = [
+  {
+    head: 'Nobody cleared it',
+    body: <>Five models, 420 pulls, 0 clears. The closest: GPT-6.2 Sol, all five alive at the timer, Oruth at 8.7%. A clear
+      exists: <Link to="/report#baseline" className="underline decoration-white/30 underline-offset-4 hover:decoration-fg">a script that knows the fight</Link> finds it, barely.</>,
+  },
+  {
+    head: 'The first pull is a wash',
+    body: <>On a first attempt every model scores 31 to 37, about what a bot with fixed rules gets (32). What
+      separates them is what they take from one wipe: Claude Opus 5.5 jumps from 37 to 52.</>,
+  },
+  {
+    head: 'Stand in the fire',
+    body: <>Oruth's Bone Pyre has to be soaked, the opposite of gamer instinct. After one wipe, Opus and Sol work
+      it out in 12 of 12 groups. Sonnet: 1 of 6. Luna: 2 of 12. Haiku: 0 of 12.</>,
+  },
+  {
+    head: 'Same score, a fifth of the price',
+    body: <>Opus (44.1) and GPT-6.2 Sol (42.9) are statistically tied at the top, and both beat the rest on the
+      same seeds. A Sol group costs $7; an Opus group, $37.</>,
+  },
+]
+
+function Findings() {
+  return (
+    <section aria-labelledby="findings" className="pt-4">
+      <h2 id="findings" className="sr-only">What we found</h2>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {FINDINGS.map((f) => (
+          <div key={f.head} className="rounded-xl border border-line bg-surface p-4">
+            <h3 className="text-[15px] font-medium text-fg">{f.head}</h3>
+            <p className="mt-2 text-[13px] leading-5 text-fg-muted">{f.body}</p>
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 text-[13px] text-fg-faint">
+        <Link to="/report#results" className="text-fg underline decoration-accent/50 underline-offset-4 hover:decoration-accent">Read the full results</Link>, with the replays behind every claim.
+      </p>
+    </section>
   )
 }
 

@@ -45,9 +45,15 @@ export function resultsCatalogRuns(r: Results): CatalogRun[] {
   return runs
 }
 
-/** One index entry per pull, with the file's URL and its /watch path. */
+/** One index entry per pull, with the file's URL and its /watch path. The extra
+ * memory-on groups behind the learning effect open by link but aren't listed. */
 export function resultsIndexEntries(r: Results): ReplayIndexEntry[] {
-  return resultsCatalogRuns(r).flatMap((run) => run.items.map((it) => {
+  const extra = r.leaderboard.flatMap((row) => Object.entries(row.tiers).flatMap(([tier, cell]) => {
+    if (!cell.paired_episode_list?.length) return []
+    const run = cellRun(r, row.model, row.provider, row.effort, tier, true, { ...cell, episode_list: cell.paired_episode_list }, 'ranked')
+    return [run]
+  }))
+  return [...resultsCatalogRuns(r), ...extra].flatMap((run) => run.items.map((it) => {
     const who = modelName(run.model)
     const tier = tierName(r, run.tier!)
     return {

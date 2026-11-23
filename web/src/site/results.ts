@@ -40,6 +40,8 @@ export interface TierCell {
   calls?: number; invalid_entries?: number
   harness_versions: string[]
   episode_list: EpisodeResult[]
+  /** Extra memory-on groups behind the paired learning effect (published, not on the leaderboard). */
+  paired_episode_list?: EpisodeResult[]
   usd_per_episode?: number | null
   clears?: number
   episode_ids?: number[]

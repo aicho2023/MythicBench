@@ -12,15 +12,23 @@ export default function Teaser() {
   useEffect(() => {
     const p = usePlayback.getState()
     // The top model's best pull once there are results; the configured showcase before that.
+    let startMs = TEASER_START_S * 1000
     Promise.all([p.ensureIndex(), fetchResults().then(topPullId, () => null)])
-      .then(([, top]) => p.load(top ?? TEASER_REPLAY, { quiet: true, startMs: top ? 0 : TEASER_START_S * 1000 }))
+      .then(async ([, top]) => {
+        await p.load(top ?? TEASER_REPLAY, { quiet: true, startMs: top ? 0 : startMs })
+        if (!top) return
+        // Open on the boss fight: a few seconds before the party pulls Oruth.
+        const pull = usePlayback.getState().engine?.replay.events.find((e) => e.type === 'pull' && (e as { pack?: string }).pack === 'boss')
+        startMs = pull ? Math.max(0, pull.t - 4000) : 0
+        usePlayback.getState().seek(startMs)
+      })
     let visible = true
     const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; usePlayback.getState().setPlaying(visible) })
     if (box.current) io.observe(box.current)
     // Loop: at the end of the replay, go back to the start point.
     const off = usePlayback.subscribe((s) => {
       if (visible && s.engine && !s.playing && s.t >= s.engine.duration) {
-        s.seek(s.currentId === TEASER_REPLAY ? TEASER_START_S * 1000 : 0)
+        s.seek(startMs)
         s.setPlaying(true)
       }
     })

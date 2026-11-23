@@ -1,0 +1,32 @@
+{
+ "anthropic:claude-haiku-5-5@high": {
+  "claude-haiku-5-5": 4722
+ },
+ "anthropic:claude-haiku-5-5@low": {
+  "claude-haiku-5-5": 4514
+ },
+ "anthropic:claude-haiku-5-5@medium": {
+  "claude-haiku-5-5": 40332
+ },
+ "anthropic:claude-opus-5-5@medium": {
+  "claude-opus-5-5": 11645
+ },
+ "anthropic:claude-sonnet-5-5@medium": {
+  "claude-sonnet-5-5": 9928
+ },
+ "openai:gpt-6-luna@high": {
+  "gpt-6-luna": 4693
+ },
+ "openai:gpt-6-luna@low": {
+  "gpt-6-luna": 4964
+ },
+ "openai:gpt-6-luna@medium": {
+  "gpt-6-luna": 40331
+ },
+ "openai:gpt-6.2-sol@medium": {
+  "gpt-6.2-sol": 11409
+ },
+ "scripted:commander": {
+  "(not reported)": 17217
+ }
+}
