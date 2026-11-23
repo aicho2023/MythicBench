@@ -94,6 +94,7 @@ export function SiteFooter() {
             Warcraft and Mythic+ are trademarks of Blizzard Entertainment, Inc. Art: KayKit by Kay Lousberg (CC0).
           </p>
           <div className="flex gap-6 md:justify-end">
+            <Link to="/changelog" className="transition-colors hover:text-fg">Changelog</Link>
             <Link to="/about#credits" className="transition-colors hover:text-fg">Credits</Link>
             <a href={GITHUB_URL} className="transition-colors hover:text-fg">GitHub</a>
             <a href={`${GITHUB_URL}/blob/main/LICENSE`} className="transition-colors hover:text-fg">MIT license</a>
