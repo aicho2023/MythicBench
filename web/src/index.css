@@ -162,4 +162,12 @@ body {
 .paper ol.refs li:target { background: rgba(230, 211, 163, 0.08); border-radius: 6px; }
 .paper ol.refs a { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13px; color: #a1a1aa; }
 .paper td.yes { color: #e6d3a3; }
+/* The heat tables (site/HeatTables.tsx) keep their own grid inside a figure. */
+.paper table.heat { border-collapse: separate; font-size: 13px; line-height: 18px; }
+.paper table.heat th, .paper table.heat td { border-bottom: 0; vertical-align: middle; }
+.paper table.heat thead th { padding: 0 0 4px; vertical-align: bottom; }
+.paper table.heat tbody th { padding: 0 12px 0 0; }
+.paper table.heat td { padding: 0; color: inherit; }
+.paper table.heat td:first-child { min-width: 0; }
+.paper figure figure { margin: 0; }
 .paper td.no { color: #5c5c63; }
