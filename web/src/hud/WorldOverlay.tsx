@@ -262,7 +262,7 @@ export function WorldOverlay() {
       </div>
       {Array.from({ length: MAX_BUBBLES }, (_, i) => (
         <div key={`b${i}`} ref={(el) => { if (el) bubbles.current[i] = el }}
-          className="absolute left-0 top-0 hidden w-max max-w-[240px] rounded-lg bg-[rgba(12,12,14,0.86)] px-2 py-1 text-left font-sans text-[12px] leading-4 text-[#c9cfff] ring-1 ring-white/10" />
+          className="chat-bubble absolute left-0 top-0 hidden w-max max-w-[240px] rounded-lg bg-[rgba(12,12,14,0.86)] px-2 py-1 text-left font-sans text-[12px] leading-4 text-[#c9cfff] ring-1 ring-white/10" />
       ))}
       {Array.from({ length: MAX_TEXT }, (_, i) => (
         <div key={`t${i}`} ref={(el) => { if (el) texts.current[i] = el }}

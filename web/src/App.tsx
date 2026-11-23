@@ -4,6 +4,7 @@ import { AboutPanel, EndBanner, ReplayControls, TimelineLegend, TopBar } from '.
 import { DamageMeter, DecisionLog, RaidWarnings, Scorecard } from './hud/Panels'
 import { PartyFrames } from './hud/PartyFrames'
 import { LearningPanel } from './hud/LearningPanel'
+import { CompactParty, MomentBar } from './hud/MobileMoment'
 import { CallInspector } from './hud/CallInspector'
 import { RunBrowser } from './hud/RunBrowser'
 import { WorldOverlay } from './hud/WorldOverlay'
@@ -51,7 +52,8 @@ export default function App({ path = '/watch' }: { path?: string }) {
 
         {/* Top row: party | boss (+ adds, callouts) | scorecard. See .hud-top in index.css. */}
         <div className="hud-top absolute inset-x-4 top-[72px]">
-          <div className="hud-s justify-self-start [grid-area:party]"><PartyFrames /></div>
+          <div className="hud-s no-phone justify-self-start [grid-area:party]"><PartyFrames /></div>
+          <div className="phone-only [grid-area:party]"><CompactParty /></div>
           <div className="hud-s relative justify-self-center [grid-area:boss]">
             <RaidWarnings />
           </div>
@@ -69,7 +71,7 @@ export default function App({ path = '/watch' }: { path?: string }) {
         {/* Bottom row: decision log | transport. See .hud-bottom in index.css. */}
         <div className="hud-bottom absolute inset-x-4 bottom-4">
           <div className="hud-s hud-log pointer-events-auto justify-self-start [grid-area:log]"><DecisionLog /></div>
-          <div className="flex w-full flex-col items-center gap-2 [grid-area:transport]"><TimelineLegend /><ReplayControls /></div>
+          <div className="flex w-full flex-col items-center gap-2 [grid-area:transport]"><div className="no-phone"><TimelineLegend /></div><div className="phone-only w-full"><MomentBar /></div><ReplayControls /></div>
         </div>
         <div className="absolute left-1/2 top-[28%] z-10 -translate-x-1/2"><div className="hud-s"><EndBanner /></div></div>
         {about && <AboutPanel onClose={closeAbout} />}
