@@ -51,7 +51,7 @@ RANGED = {m.id for m in C.PARTY
                  if C.ABILITIES[a].kind == "damage")}
 SOAK_BIAS = float(os.environ.get("EXPERT_SOAK_BIAS", "1.0"))
 MELEE_SOAK = float(os.environ.get("EXPERT_MELEE_SOAK", "8.0"))
-SOAK_ORDER = os.environ.get("EXPERT_SOAK", "ivy,wren,kit,brask").split(",")  # who stands in Bone Pyre
+SOAK_ORDER = os.environ.get("EXPERT_SOAK", "wren,kit,brask,ivy").split(",")  # who stands in Bone Pyre
 TANK = next(m.id for m in C.PARTY if ROLE_OF[m.id] == "tank")
 HEALER = next(m.id for m in C.PARTY if ROLE_OF[m.id] == "healer")
 BOSS_SPOT = (0.0, 1.0)  # where the tank holds Oruth: room to step around pools
@@ -60,6 +60,8 @@ TRASH_HOLD = {"pack1": (0.0, 46.0), "pack2": (0.0, 22.0)}  # tank pulls each pac
 import os
 HOLD_GAP = float(os.environ.get("EXPERT_GAP", "5.5"))
 FOCUS_ADDS = set(os.environ.get("EXPERT_FOCUS_ADDS", "").split(","))
+TANK_TOPUP = float(os.environ.get("EXPERT_TOPUP", "95"))
+WADE = float(os.environ.get("EXPERT_WADE", "1.2"))  # metres of pool a melee will cut across to get back
 RANK_AOE = os.environ.get("EXPERT_RANK", "0") == "1"
 CHAIN = os.environ.get("EXPERT_CHAIN", "0") == "1"
 STACK = os.environ.get("EXPERT_STACK", "0") == "1"
@@ -320,6 +322,10 @@ def orders(me: str, state: str) -> dict:
                 prio.append(["bloomward", TANK])
         if lows and lows[0][1]["hp"] < 72:
             prio.append(["mending_light", lows[0][0]])
+        # The tank's health can fall a long way between two calls: on the boss,
+        # keep healing him unless he's nearly full when asked.
+        if boss and TANK in alive and alive[TANK]["hp"] < TANK_TOPUP:
+            prio.append(["mending_light", TANK])
         if target:
             prio.append(["sunspark", target["id"]])
 
@@ -549,7 +555,10 @@ def _boss_move(me: str, s: dict, target):
             return None
         spot = _ranged_spot(here, boss["pos"], hazards, me)
         return _dry(here, spot, hazards) if spot and dist(spot, here) > 0.5 else None
-    return _dry(here, _approach(here, target, s["pools"]), hazards) if target else None
+    if not target:
+        return None
+    ap = _approach(here, target, s["pools"])
+    return _dry(here, ap, hazards) or _dry(here, ap, hazards, WADE)
 
 
 def _stack_anchor(s: dict, hazards):
