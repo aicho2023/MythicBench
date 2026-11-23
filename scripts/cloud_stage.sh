@@ -9,7 +9,8 @@
 #   scripts/cloud_stage.sh check           # only the checks before spending (free), then stop
 #
 # Options: --protocol NAME (v1; v1-restart after a stage-1 fault), --budget USD (120),
-#          --cells N (8 groups at once), --hold MIN (test only, 40), --every MIN (checkpoint, 10).
+#          --cells N (8 configurations at once), --workers N (3 groups at once within each),
+#          --hold MIN (test only, 40), --every MIN (checkpoint, 10).
 #
 # What it does:
 #   1. Checks before spending: Python >= 3.10, a clean checkout, the API keys and the
@@ -33,6 +34,7 @@ shift || true
 PROTOCOL="v1"
 BUDGET="120"
 CELLS="8"
+WORKERS="3"
 HOLD="40"
 EVERY="10"
 while [ $# -gt 0 ]; do
@@ -40,6 +42,7 @@ while [ $# -gt 0 ]; do
     --protocol) PROTOCOL="$2"; shift 2 ;;
     --budget) BUDGET="$2"; shift 2 ;;
     --cells) CELLS="$2"; shift 2 ;;
+    --workers) WORKERS="$2"; shift 2 ;;
     --hold) HOLD="$2"; shift 2 ;;
     --every) EVERY="$2"; shift 2 ;;
     *) echo "unknown option $1" >&2; exit 2 ;;
@@ -191,9 +194,9 @@ if [ "$MODE" = test ]; then
 else
   FIRST="--first=1"; [ "$MODE" = 1 ] || FIRST=""
   "$PY" -m mythicsim campaign "../protocol/$PROTOCOL.json" $FIRST --dry-run | tail -n 1
-  log "playing protocol $PROTOCOL stage $MODE: --budget-usd $BUDGET --cells $CELLS"
+  log "playing protocol $PROTOCOL stage $MODE: --budget-usd $BUDGET --cells $CELLS --workers $WORKERS"
   "$PY" -m mythicsim campaign "../protocol/$PROTOCOL.json" $FIRST --budget-usd "$BUDGET" \
-    --cells "$CELLS" || STATUS=$?
+    --cells "$CELLS" --workers "$WORKERS" || STATUS=$?
 fi
 cd "$ROOT"
 if [ "$MODE" = test ]; then
