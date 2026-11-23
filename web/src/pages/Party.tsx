@@ -55,7 +55,9 @@ function AbilityRow({ a, enemy = false }: { a: GuideAbility; enemy?: boolean }) 
           {a.interruptible && <span className="rounded bg-[rgba(127,208,255,0.12)] px-1.5 text-[12px] text-[#7fd0ff]">Interrupt this</span>}
         </div>
         <p className="mt-0.5 text-[14px] leading-6 text-fg-muted">{a.description}</p>
-        <p className="mt-0.5 font-mono text-[12px] text-fg-faint">{stats(a).join(', ')}</p>
+        <p className="mt-1 flex flex-wrap gap-x-2 text-[13px] leading-5 text-fg-faint [font-variant-numeric:tabular-nums]">
+          {stats(a).map((x, i) => <span key={i}>{i > 0 && <span className="mr-2 text-fg-faint/50" aria-hidden>·</span>}{x}</span>)}
+        </p>
       </div>
     </li>
   )
