@@ -4,6 +4,7 @@ import { HighlightCard } from './Highlights'
 import { HIGHLIGHTS } from '../content/highlights'
 import { PullGrid } from '../site/PullGrid'
 import { DeathCauses, SoakByPull } from '../site/HeatTables'
+import { PyreGrid } from '../site/PyreGrid'
 import { CostScatter, LearningCurves } from '../site/charts'
 import { LeaderboardTable } from '../site/Leaderboard'
 import { Page } from '../site/Layout'
@@ -163,6 +164,11 @@ function ResultsBody({ results }: { results: Results }) {
           After one wipe, Opus and Sol soak almost every Pyre. The other three almost never do.
         </p>
         <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
+          <h3 className="mb-4 text-[14px] font-medium text-fg">Every Bone Pyre, and who stood in it</h3>
+          <PyreGrid results={results} />
+        </div>
+        <div className="mt-3 rounded-2xl border border-line bg-surface p-4 sm:p-6">
+          <h3 className="mb-4 text-[14px] font-medium text-fg">The same, in numbers: share of Pyres soaked at each pull</h3>
           <SoakByPull results={results} />
         </div>
       </section>
