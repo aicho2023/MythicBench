@@ -1,7 +1,7 @@
 import { ArrowRight } from 'lucide-react'
 import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { CostScatter, LearningCurves } from '../site/charts'
-import { LeaderboardTable } from '../site/Leaderboard'
+import { bestPull, LeaderboardTable } from '../site/Leaderboard'
 import { Page } from '../site/Layout'
 import { modelName, pullLabel } from '../content/display'
 import { FEATURED } from '../site/config'
@@ -70,7 +70,7 @@ export function Home() {
           </Link>
           <figcaption className="mt-3 text-[13px] leading-5 text-fg-faint">
             {top
-              ? <>{modelName(top.model)}'s best pull on {tierName(results!, top.tier)} ({pullLabel(top.episode, top.pull)}). Every pull is replayable the same way</>
+              ? <>{modelName(top.model)}, {tierName(results!, top.tier)}, {pullLabel(top.episode, top.pull)}: its best pull{topLeft(results!) != null ? `, Oruth at ${topLeft(results!)}% when time ran out` : ''}. Every pull in the benchmark can be replayed like this.</>
               : FEATURED.caption}
           </figcaption>
         </figure>
@@ -88,7 +88,7 @@ const FINDINGS: { head: string; body: ReactNode }[] = [
   {
     head: 'Nobody cleared it',
     body: <>Five models, 420 pulls, 0 clears. The closest: GPT-6.2 Sol, all five alive at the timer, Oruth at 8.7%. A clear
-      exists: <Link to="/report#baseline" className="underline decoration-white/30 underline-offset-4 hover:decoration-fg">a script that knows the fight</Link> finds it, barely.</>,
+      exists: <Link to="/report#ceiling" className="underline decoration-white/30 underline-offset-4 hover:decoration-fg">a script that knows the fight</Link> finds it, barely.</>,
   },
   {
     head: 'The first pull is a wash',
@@ -107,19 +107,26 @@ const FINDINGS: { head: string; body: ReactNode }[] = [
   },
 ]
 
+/** How much of Oruth was left in the hero pull (from its score), or null. */
+function topLeft(r: Results): number | null {
+  const t = topPull(r)
+  const row = t && r.leaderboard.find((x) => x.model === t.model)
+  return row ? bestPull(r, row)?.bossLeft ?? null : null
+}
+
 function Findings() {
   return (
     <section aria-labelledby="findings" className="pt-4">
       <h2 id="findings" className="sr-only">What we found</h2>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {FINDINGS.map((f) => (
-          <div key={f.head} className="rounded-xl border border-line bg-surface p-4">
-            <h3 className="text-[15px] font-medium text-fg">{f.head}</h3>
-            <p className="mt-2 text-[13px] leading-5 text-fg-muted">{f.body}</p>
+          <div key={f.head} className="rounded-xl border border-line bg-surface p-5">
+            <h3 className="text-[16px] font-medium leading-6 text-fg">{f.head}</h3>
+            <p className="mt-2 text-[14px] leading-[22px] text-fg-muted">{f.body}</p>
           </div>
         ))}
       </div>
-      <p className="mt-4 text-[13px] text-fg-faint">
+      <p className="mt-4 text-[14px] text-fg-muted">
         <Link to="/report#results" className="text-fg underline decoration-accent/50 underline-offset-4 hover:decoration-accent">Read the full results</Link>, with the replays behind every claim.
       </p>
     </section>
@@ -139,61 +146,54 @@ function ResultsBody({ results }: { results: Results }) {
     <>
       <SampleNotice results={results} />
 
-      <section id="leaderboard" className="pt-16">
+      <section id="leaderboard" className="pt-20">
         <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-          <h2 className="text-[20px] font-medium text-fg">Leaderboard</h2>
-          <p className="text-[13px] text-fg-faint">
-            {p.episodes} fresh groups per model, each with up to {p.max_pulls} pulls, effort {p.effort}, harness {results.harness_version}
+          <h2 className="text-[22px] font-medium text-fg">Leaderboard</h2>
+          <p className="text-[13px] text-fg-muted">
+            {tierName(results, 'plus10')}, {p.episodes} fresh groups per model, up to {p.max_pulls} pulls each, effort {p.effort}, harness {results.harness_version}
           </p>
         </div>
         <div className="mt-6"><LeaderboardTable results={results} /></div>
         <HowToRead>
-          A <b>group</b> is a fresh party with up to {p.max_pulls} <b>pulls</b>. A pull scores 0 to 100 (a timed clear is 70
-          and up), and a group's score averages its pulls, with a clear counted again for each pull it saved. The score
-          is a model's average group on +10, with a dot per group and a 95% interval. The order is descriptive: one
-          model is called better than another only where their same-seed group scores differ clearly (see
-          the <Link to="/report#reading" className="underline decoration-white/30 underline-offset-4 hover:decoration-fg">report</Link>).{(results.baselines ?? []).length > 0 && " The scripted commander is a floor: fixed, obvious rules through the same interface."} Cost is
-          one +10 group at list prices, thinking included. Click a model to watch its pulls.
+          A <b>group</b> is a fresh party with up to {p.max_pulls} <b>pulls</b>. A pull scores 0 to 100: a clear in time is
+          70 or more, anything short of a clear up to 70 for how far it got. A group's score averages its pulls, and a
+          model's score averages its groups. The order is descriptive; which differences are real is in
+          the <Link to="/report#results" className="underline decoration-white/30 underline-offset-4 hover:decoration-fg">report</Link>.
+          Cost is one group at list prices, thinking included. Click a model to watch its pulls.
         </HowToRead>
-      </section>
-
-      <section className="grid gap-8 pt-20 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-12">
-        <div>
-          <h2 className="text-[20px] font-medium text-fg">What a score costs</h2>
-          <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
-            <CostScatter results={results} />
-          </div>
-        </div>
-        <div className="lg:pt-14">
-          <HowToRead>
-            Each dot is a model: its +10 score against what one +10 group costs, on a log scale. Up and to the left
-            is better value. "Medium" effort buys different amounts of thinking at different labs, so cost is the
-            fairer axis. A dashed line shows a model run at low and high effort too, on the same few groups. A model
-            that clears early plays fewer pulls, so it costs less.
-          </HowToRead>
-        </div>
       </section>
 
       <section className="pt-20">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <h2 className="text-[20px] font-medium text-fg">Does it learn between wipes?</h2>
-          <div className="seg" role="group" aria-label="Tier">
-            {tiers.map((t) => <button key={t} aria-pressed={tier === t} onClick={() => setTier(t)}>{tierName(results, t)}</button>)}
-          </div>
+          <h2 className="text-[22px] font-medium text-fg">Does it learn between wipes?</h2>
+          {tiers.length > 1 && (
+            <div className="seg" role="group" aria-label="Difficulty">
+              {tiers.map((t) => <button key={t} aria-pressed={tier === t} onClick={() => setTier(t)}>{tierName(results, t)}</button>)}
+            </div>
+          )}
         </div>
         <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
           <LearningCurves results={results} tier={tier} />
         </div>
         <HowToRead>
-          Each solid line is a model's mean score at each pull (a clear carries forward). A rising line is
-          progression, not proof of learning. The dashed line in the same color is the memory-off control: the same
-          seeds with no debrief, talk or notes between pulls. The learning effect is the paired difference between
-          the two. The grey dashed line is the scripted commander; the dotted rule at 70 separates a wipe from a
-          clear.
+          Each line is a model's mean score at each pull, over its {p.episodes} groups. Every party wipes on its first,
+          blind pull. After one debrief, Claude Opus 5.5 and GPT-6.2 Sol climb; the other three stay flat. Hover for
+          the numbers. The test with memory switched off is in
+          the <Link to="/report#memory" className="underline decoration-white/30 underline-offset-4 hover:decoration-fg">report</Link>.
         </HowToRead>
       </section>
 
-
+      <section className="pt-20">
+        <h2 className="text-[22px] font-medium text-fg">What a score costs</h2>
+        <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
+          <CostScatter results={results} />
+        </div>
+        <HowToRead>
+          Each dot is a model: its score, with its 95% interval as a vertical line, against what one {tierName(results, 'plus10')} group
+          costs at list prices, thinking included. The cost axis is logarithmic, so each step is three times the
+          last. Up and to the left is better value.
+        </HowToRead>
+      </section>
     </>
   )
 }

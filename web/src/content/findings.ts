@@ -31,3 +31,16 @@ export const MOMENTS: { title: string; path: string; text: string }[] = [
     text: 'Claude Sonnet 5.5, group 3. The healer notices after pull 2 that the tank took less inside the circle. In pull 3 the whole party soaks once, but nobody writes it down. Only after pull 4\'s wipe do the notes say to stand in it.',
   },
 ]
+
+/** How each party played on +10 (all its memory-on groups): share of kickable casts
+ * interrupted, party-chat lines and deaths per pull. */
+export const BEHAVIOUR: { model: string; kicks: string; chat: number; deaths: number }[] = [
+  { model: 'claude-opus-5-5', kicks: '82%', chat: 76, deaths: 4.6 },
+  { model: 'gpt-6.2-sol', kicks: '82%', chat: 49, deaths: 4.6 },
+  { model: 'gpt-6-luna', kicks: '74%', chat: 16, deaths: 5.0 },
+  { model: 'claude-sonnet-5-5', kicks: '68%', chat: 36, deaths: 5.1 },
+  { model: 'claude-haiku-5-5', kicks: '70%', chat: 66, deaths: 5.2 },
+]
+
+/** The expert script on 1,000 practice seeds (10001-11000), outside the official schedules. */
+export const EXPERT = { seeds: 1000, normal: { clears: 898, score: 79.2 }, plus10: { clears: 4, score: 49.9 } }

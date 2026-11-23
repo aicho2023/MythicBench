@@ -1,125 +1,103 @@
 import { ChevronRight } from 'lucide-react'
 import { modelName } from '../content/display'
-import { CIBar } from './charts'
+import { CIAxis, CIBar, scoreDomain } from './charts'
 import {
-  costPerRun, replyProblems, episodeHeadlines, fmtPct, fmtScore, fmtUsd, headlineTier, labName, modelColor, tierName,
+  costPerRun, episodeHeadlines, fmtScore, fmtUsd, headlineTier, labName, modelColor, tierName,
   type LeaderboardRow, type Results,
 } from './results'
 import { navigate } from './router'
 
-/** Mean pulls to clear +10 over the episodes that cleared, with how many did. */
-function pullsToClear(r: Results, row: LeaderboardRow, tier: string): { text: string; title: string } {
-  const cell = row.tiers[tier]
-  if (!cell) return { text: '–', title: 'Not played' }
-  const cleared = cell.pulls_to_clear.filter((p): p is number => p !== null && p <= r.protocol.max_pulls)
-  if (!cleared.length) return { text: 'Not cleared', title: `No group cleared within ${r.protocol.max_pulls} pulls` }
-  const mean = cleared.reduce((a, b) => a + b, 0) / cleared.length
-  return { text: mean.toFixed(1), title: `Mean over the ${cleared.length} of ${cell.episodes} groups that cleared` }
+/** A pull's best score and, when it reached Oruth, how much of him was left (from the scoring rule). */
+export function bestPull(r: Results, row: LeaderboardRow): { score: number; bossLeft: number | null } | null {
+  const cell = row.tiers[headlineTier(r)]
+  const scores = cell?.episode_list.flatMap((e) => e.pulls.map((p) => p.score)) ?? []
+  if (!scores.length) return null
+  const score = Math.max(...scores)
+  // Below a clear, a pull scores 70 x progress, where both packs are 30% of
+  // progress and Oruth's health removed the other 70%.
+  const progress = score / 70
+  const bossLeft = score < 70 && progress >= 0.3 ? Math.round(100 * (1 - (progress - 0.3) / 0.7)) : null
+  return { score, bossLeft }
 }
 
-function effectText(v: number | undefined) {
-  return v === undefined ? '–' : `${v > 0 ? '+' : ''}${v.toFixed(1)}`
-}
-
-function effectTitle(cell: LeaderboardRow['tiers'][string] | undefined) {
-  if (cell?.learning_effect === undefined) return 'No memory-off control for this model'
-  const ci = cell.learning_effect_ci95
-  return `Memory on minus memory off${ci ? `, 95% CI ${ci[0]} to ${ci[1]}` : ''}`
-}
-
-const TH = 'h-10 px-3 text-left align-bottom pb-2 text-[12px] font-normal leading-4 text-fg-faint'
-const TD = 'h-12 px-3 align-middle'
-const NUM = 'num text-right font-mono text-[13px]'
+const TH = 'px-3 pb-3 text-left align-bottom text-[12px] font-medium leading-4 text-fg-muted'
+const TD = 'h-14 px-3 align-middle'
+const NUM = 'num text-right font-mono text-[14px]'
+const STRIP = 200
 
 export function LeaderboardTable({ results }: { results: Results }) {
-  const tiers = Object.keys(results.tiers)
   const hard = headlineTier(results)
+  const T = tierName(results, hard)
   const baselines = results.baselines ?? []
+  const rows = [...results.leaderboard, ...baselines]
+  const [lo, hi] = scoreDomain(rows.flatMap((r) => [...(r.tiers[hard]?.episode_scores ?? []), ...(r.mythicbench_score_ci95 ?? [])]))
   const lead = results.leaderboard.find((r) => r.rank !== null)?.model
-  const hasEffect = results.leaderboard.some((r) => r.tiers[hard]?.learning_effect !== undefined)
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[300px] border-collapse">
+      <table className="w-full min-w-[320px] border-collapse">
         <thead>
           <tr className="border-b border-line">
             <th className={`${TH} pl-0`}>Model</th>
-            <th className={TH} title={`The progression score on ${tierName(results, hard)}, the headline tier`}>MythicBench score ({tierName(results, hard)}) <span className="hidden sm:inline">and 95% CI</span></th>
-            {tiers.map((t) => <th key={t} className={`${TH} hidden text-right md:table-cell`}>{tierName(results, t)}</th>)}
-            <th className={`${TH} hidden text-right lg:table-cell`}>{tierName(results, hard)} clear rate</th>
-            <th className={`${TH} hidden text-right lg:table-cell`}>Pulls to clear {tierName(results, hard)}</th>
-            {hasEffect && <th className={`${TH} hidden text-right xl:table-cell`} title="Progression score with memory on minus memory off, same seeds">Learning effect {tierName(results, hard)}</th>}
-            <th className={`${TH} hidden text-right xl:table-cell`} title="Calls that gave no usable answer: refused, or nothing readable (hover a value for cut-off replies and dropped entries)">No usable reply</th>
-            <th className={`${TH} hidden pr-0 text-right sm:table-cell`}>Cost per {tierName(results, hard)} group</th>
+            <th className={`${TH} text-right`}>Score</th>
+            <th className={`${TH} hidden sm:table-cell`}>
+              <span className="block pb-1">Each group, mean and 95% interval</span>
+              <CIAxis width={STRIP} lo={lo} hi={hi} />
+            </th>
+            <th className={`${TH} hidden text-right md:table-cell`} title="Mean score of the first pull: blind, before any wipe">First pull</th>
+            <th className={`${TH} hidden text-right md:table-cell`} title="The best single pull, and how much of Oruth's health was left when it ended">Best pull</th>
+            <th className={`${TH} hidden text-right lg:table-cell`}>Clears</th>
+            <th className={`${TH} hidden pr-0 text-right sm:table-cell`}>Cost per group</th>
             <th className="w-6" aria-hidden />
           </tr>
         </thead>
         <tbody>
-          {results.leaderboard.map((row) => {
-            const p = pullsToClear(results, row, hard)
-            const go = () => navigate(`/watch/${encodeURIComponent(row.model)}`)
+          {rows.map((row) => {
+            const cell = row.tiers[hard]
+            const ref = baselines.includes(row)
+            const best = bestPull(results, row)
+            const go = () => !ref && navigate(`/watch/${encodeURIComponent(row.model)}`)
+            const ink = ref ? 'text-fg-faint' : 'text-fg-muted'
             return (
-              <tr key={row.model} onClick={go} className="group cursor-pointer border-b border-line transition-colors hover:bg-white/[0.03]">
+              <tr key={row.model} onClick={go} className={`group border-b border-line transition-colors ${ref ? '' : 'cursor-pointer hover:bg-white/[0.03]'}`}>
                 <td className={`${TD} pl-0`}>
-                  <a href={`/watch/${encodeURIComponent(row.model)}`} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) e.preventDefault() }}
+                  <a href={ref ? undefined : `/watch/${encodeURIComponent(row.model)}`} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) e.preventDefault() }}
                     className="flex items-center gap-3 rounded">
-                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: modelColor(results, row.model) }} aria-hidden />
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: ref ? 'transparent' : modelColor(results, row.model), border: ref ? '1px solid #8b8b93' : undefined }} aria-hidden />
                     <span className="min-w-0">
-                      <span className="block truncate text-[14px] leading-5 text-fg">{row.name || modelName(row.model)}</span>
-                      <span className="block text-[12px] leading-4 text-fg-faint">{labName(row.provider)}{row.complete === false ? ', incomplete (not ranked)' : ''}</span>
+                      <span className={`block truncate text-[15px] leading-5 ${ref ? 'text-fg-muted' : 'text-fg'}`}>{row.name || modelName(row.model)}</span>
+                      <span className="block text-[12px] leading-4 text-fg-faint">{ref ? 'Reference, not ranked' : labName(row.provider)}</span>
                     </span>
                   </a>
                 </td>
-                <td className={TD}>
-                  <span className="flex items-center gap-3">
-                    <span className="num w-10 text-right font-mono text-[15px] text-fg">{fmtScore(row.mythicbench_score)}</span>
-                    <span className="sm:hidden"><CIBar mean={row.mythicbench_score} ci={row.mythicbench_score_ci95} accent={row.model === lead} width={80} /></span>
-                    <span className="hidden sm:block"><CIBar mean={row.mythicbench_score} ci={row.mythicbench_score_ci95} accent={row.model === lead} dots={episodeHeadlines(results, row)} /></span>
+                <td className={`${TD} text-right`}>
+                  <span className={`num font-mono text-[17px] ${ref ? 'text-fg-muted' : 'text-fg'}`}>{fmtScore(row.mythicbench_score)}</span>
+                  <span className="block font-mono text-[11px] text-fg-faint sm:hidden">
+                    {row.mythicbench_score_ci95 ? `${fmtScore(row.mythicbench_score_ci95[0])}–${fmtScore(row.mythicbench_score_ci95[1])}` : ''}
                   </span>
                 </td>
-                {tiers.map((t) => <td key={t} className={`${TD} ${NUM} hidden text-fg-muted md:table-cell`}>{fmtScore(row.tiers[t]?.progression_score)}</td>)}
-                <td className={`${TD} ${NUM} hidden text-fg-muted lg:table-cell`}>{fmtPct(row.tiers[hard]?.clear_rate)}</td>
-                <td className={`${TD} ${NUM} hidden text-fg-muted lg:table-cell`} title={p.title}>{p.text}</td>
-                {hasEffect && <td className={`${TD} ${NUM} hidden text-fg-muted xl:table-cell`} title={effectTitle(row.tiers[hard])}>{effectText(row.tiers[hard]?.learning_effect)}</td>}
-                <td className={`${TD} ${NUM} hidden text-fg-muted xl:table-cell`} title={replyProblems(row.tiers[hard]).title}>{replyProblems(row.tiers[hard]).text}</td>
-                <td className={`${TD} ${NUM} hidden pr-0 text-fg-muted sm:table-cell`}>{fmtUsd(costPerRun(row, results))}</td>
-                <td className="w-6 text-fg-faint transition-colors group-hover:text-fg"><ChevronRight size={16} /></td>
+                <td className={`${TD} hidden sm:table-cell`}>
+                  <span title={row.mythicbench_score_ci95 ? `95% interval ${fmtScore(row.mythicbench_score_ci95[0])} to ${fmtScore(row.mythicbench_score_ci95[1])}` : undefined}>
+                    <CIBar mean={row.mythicbench_score} ci={row.mythicbench_score_ci95} dots={episodeHeadlines(results, row)}
+                      lo={lo} hi={hi} width={STRIP} color={ref ? '#8b8b93' : modelColor(results, row.model)} accent={row.model === lead} />
+                  </span>
+                </td>
+                <td className={`${TD} ${NUM} hidden md:table-cell ${ink}`}>{fmtScore(cell?.first_pull_score_mean)}</td>
+                <td className={`${TD} ${NUM} hidden md:table-cell ${ink}`}>
+                  {best ? fmtScore(best.score) : '–'}
+                  {best?.bossLeft != null && <span className="block text-[11px] text-fg-faint">Oruth at {best.bossLeft}%</span>}
+                </td>
+                <td className={`${TD} ${NUM} hidden lg:table-cell ${ink}`}>{cell ? `${cell.clears ?? 0} of ${cell.episodes}` : '–'}</td>
+                <td className={`${TD} ${NUM} hidden pr-0 sm:table-cell ${ink}`}>{ref ? '$0' : fmtUsd(costPerRun(row, results))}</td>
+                <td className="w-6 text-fg-faint transition-colors group-hover:text-fg">{!ref && <ChevronRight size={16} />}</td>
               </tr>
             )
           })}
-          {baselines.length > 0 && (
-            <tr>
-              <td colSpan={10} className="px-0 pb-2 pt-6 text-[12px] text-fg-faint">
-                A reference on the same seeds, not ranked. The scripted commander gives fixed, obvious orders through the agents' own interface and never learns. It's one fixed policy: a reference point for what obvious rules do, not a ceiling or a floor
-              </td>
-            </tr>
-          )}
-          {baselines.map((row) => (
-            <tr key={row.model} className="border-t border-line">
-              <td className={`${TD} pl-0`}>
-                <span className="flex items-center gap-3">
-                  <span className="h-2 w-2 shrink-0 rounded-full border border-fg-faint" aria-hidden />
-                  <span className="text-[14px] text-fg-muted">{row.name}</span>
-                </span>
-              </td>
-              <td className={TD}>
-                <span className="flex items-center gap-3">
-                  <span className="num w-10 text-right font-mono text-[15px] text-fg-muted">{fmtScore(row.mythicbench_score)}</span>
-                  <span className="opacity-70 sm:hidden"><CIBar mean={row.mythicbench_score} ci={row.mythicbench_score_ci95} width={80} /></span>
-                  <span className="hidden opacity-70 sm:block"><CIBar mean={row.mythicbench_score} ci={row.mythicbench_score_ci95} dots={episodeHeadlines(results, row)} /></span>
-                </span>
-              </td>
-              {tiers.map((t) => <td key={t} className={`${TD} ${NUM} hidden text-fg-faint md:table-cell`}>{fmtScore(row.tiers[t]?.progression_score)}</td>)}
-              <td className={`${TD} ${NUM} hidden text-fg-faint lg:table-cell`}>{fmtPct(row.tiers[hard]?.clear_rate)}</td>
-              <td className={`${TD} ${NUM} hidden text-fg-faint lg:table-cell`}>{pullsToClear(results, row, hard).text}</td>
-              {hasEffect && <td className={`${TD} ${NUM} hidden text-fg-faint xl:table-cell`} title="Fixed rules don't learn">0</td>}
-              <td className={`${TD} ${NUM} hidden text-fg-faint xl:table-cell`}>–</td>
-              <td className={`${TD} ${NUM} hidden pr-0 text-fg-faint sm:table-cell`}>$0</td>
-              <td />
-            </tr>
-          ))}
         </tbody>
       </table>
+      <p className="mt-3 text-[12px] leading-5 text-fg-faint">
+        {T}, {results.protocol.episodes} groups per model. A white tick is the model's mean, the bar its 95% interval, each dot one group.
+      </p>
     </div>
   )
 }

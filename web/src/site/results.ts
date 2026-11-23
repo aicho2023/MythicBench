@@ -30,6 +30,7 @@ export interface TierCell {
   clear_rate: number | null; pulls_to_clear_mean: number | null; pulls_to_clear: (number | null)[]
   /** memory on minus the memory-off control (same seeds), when the protocol has a control here */
   learning_effect?: number; learning_effect_ci95?: CI
+  learning_effect_p?: number | null
   first_pull_score_mean: number | null
   curve_mean: number[] | null
   /** effort sweeps: the default effort on this sweep's own groups (a like-for-like comparison) */
@@ -83,6 +84,9 @@ export interface Results {
   /** effort sweeps: other reasoning efforts of some models, unranked */
   configs?: ConfigRow[]
   controls: ControlRow[]
+  /** every pair of ranked models on the same seeds: mean paired difference (a minus b), its 95% CI,
+   * the paired t-test p and its Holm adjustment; claim is the better model where the adjusted p < 0.05 */
+  pairwise?: { a: string; b: string; episodes: number[]; n: number; mean: number; ci95: [number, number]; p: number; p_holm: number; claim: string | null }[]
 }
 
 let cached: Promise<Results> | null = null

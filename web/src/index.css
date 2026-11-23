@@ -110,3 +110,42 @@ body {
 .prose .not-prose a { color: inherit; text-decoration: none; }
 .prose .not-prose ul { list-style: none; padding-left: 0; }
 .prose .not-prose li + li { margin-top: 0; }
+
+/*
+ * The report as a paper: serif body for long reading, sans headings numbered
+ * like sections, figures and tables with captions, numbers in tabular mono.
+ */
+.paper { font-family: 'IBM Plex Serif', Georgia, serif; font-size: 17px; line-height: 30px; color: #c4c4ca; }
+.paper > * + * { margin-top: 18px; }
+.paper h2 { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 22px; line-height: 30px; font-weight: 500; color: #ededef; margin-top: 64px; scroll-margin-top: 88px; }
+.paper h3 { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 17px; line-height: 26px; font-weight: 500; color: #ededef; margin-top: 40px; scroll-margin-top: 88px; }
+.paper h2 + *, .paper h3 + * { margin-top: 12px; }
+.paper h2 .n, .paper h3 .n { color: #e6d3a3; margin-right: 12px; font-variant-numeric: tabular-nums; }
+.paper strong { font-weight: 500; color: #ededef; }
+.paper em { font-style: italic; }
+.paper a { color: #ededef; text-decoration: underline; text-decoration-color: rgba(230, 211, 163, 0.5); text-underline-offset: 4px; }
+.paper a:hover { text-decoration-color: #e6d3a3; }
+.paper ul, .paper ol { padding-left: 22px; }
+.paper ul { list-style: disc; }
+.paper ol { list-style: decimal; }
+.paper li + li { margin-top: 8px; }
+.paper li::marker { color: #8b8b93; }
+.paper blockquote { border-left: 2px solid rgba(230, 211, 163, 0.45); padding-left: 18px; color: #ededef; font-style: italic; }
+.paper code { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 14px; color: #ededef; background: #1a1a1d; border-radius: 4px; padding: 1px 4px; }
+.paper pre { font-family: 'IBM Plex Mono', ui-monospace, monospace; background: #111113; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 16px; overflow-x: auto; font-size: 13px; line-height: 22px; color: #ededef; }
+.paper pre code { background: none; padding: 0; font-size: 13px; }
+/* Figures, tables and callouts: back to the interface face. */
+.paper figure, .paper .ui { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
+.paper figure { margin-top: 32px; margin-bottom: 32px; }
+.paper figcaption { font-size: 14px; line-height: 22px; color: #a1a1aa; margin-top: 12px; }
+.paper figcaption b { font-weight: 500; color: #ededef; }
+.paper table { width: 100%; border-collapse: collapse; font-size: 14px; line-height: 20px; }
+.paper th { text-align: left; font-weight: 500; color: #a1a1aa; font-size: 12px; padding: 0 12px 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.12); vertical-align: bottom; }
+.paper td { padding: 10px 12px 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06); color: #c4c4ca; vertical-align: top; }
+.paper td.r, .paper th.r { text-align: right; }
+.paper td.m { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13px; font-variant-numeric: tabular-nums; }
+.paper tr:last-child td { border-bottom: 0; }
+.paper figure a, .paper .ui a { text-decoration-color: rgba(230, 211, 163, 0.5); }
+/* Numbers never wrap; a wide table scrolls inside its own box on a phone. */
+.paper td.m, .paper th.r { white-space: nowrap; }
+.paper td:first-child { min-width: 128px; }
