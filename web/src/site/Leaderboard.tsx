@@ -2,7 +2,7 @@ import { ChevronRight } from 'lucide-react'
 import { modelName } from '../content/display'
 import { CIAxis, CIBar, scoreDomain } from './charts'
 import {
-  costPerRun, episodeHeadlines, fmtScore, fmtUsd, headlineTier, labName, modelColor, tierName,
+  costPerRun, episodeHeadlines, fmtScore, fmtUsd, headlineTier, labName, modelColor,
   type LeaderboardRow, type Results,
 } from './results'
 import { navigate } from './router'
@@ -27,7 +27,6 @@ const STRIP = 200
 
 export function LeaderboardTable({ results }: { results: Results }) {
   const hard = headlineTier(results)
-  const T = tierName(results, hard)
   const baselines = results.baselines ?? []
   const rows = [...results.leaderboard, ...baselines]
   const [lo, hi] = scoreDomain(rows.flatMap((r) => [...(r.tiers[hard]?.episode_scores ?? []), ...(r.mythicbench_score_ci95 ?? [])]))
@@ -45,7 +44,7 @@ export function LeaderboardTable({ results }: { results: Results }) {
               <CIAxis width={STRIP} lo={lo} hi={hi} />
             </th>
             <th className={`${TH} hidden text-right md:table-cell`} title="Mean score of the first pull: blind, before any wipe">First pull</th>
-            <th className={`${TH} hidden text-right md:table-cell`} title="The best single pull, and how much of Oruth's health was left when it ended">Best pull</th>
+            <th className={`${TH} hidden text-right md:table-cell`} title="The best single pull, and how much of Oruth's health was left when it ended">Best pull, Oruth left</th>
             <th className={`${TH} hidden text-right lg:table-cell`}>Clears</th>
             <th className={`${TH} hidden pr-0 text-right sm:table-cell`}>Cost per group</th>
             <th className="w-6" aria-hidden />
@@ -85,7 +84,12 @@ export function LeaderboardTable({ results }: { results: Results }) {
                 <td className={`${TD} ${NUM} hidden md:table-cell ${ink}`}>{fmtScore(cell?.first_pull_score_mean)}</td>
                 <td className={`${TD} ${NUM} hidden md:table-cell ${ink}`}>
                   {best ? fmtScore(best.score) : '–'}
-                  {best?.bossLeft != null && <span className="block text-[11px] text-fg-faint">Oruth at {best.bossLeft}%</span>}
+                  {best?.bossLeft != null && (
+                    <span className="mt-1 flex items-center justify-end gap-1.5 text-[11px] text-fg-faint" title={`Oruth had ${best.bossLeft}% of his health left`}>
+                      <span className="h-1 w-12 overflow-hidden rounded-full bg-white/[0.08]"><span className="block h-full rounded-full bg-[#d0463b]" style={{ width: `${best.bossLeft}%` }} /></span>
+                      {best.bossLeft}%
+                    </span>
+                  )}
                 </td>
                 <td className={`${TD} ${NUM} hidden lg:table-cell ${ink}`}>{cell ? `${cell.clears ?? 0} of ${cell.episodes}` : '–'}</td>
                 <td className={`${TD} ${NUM} hidden pr-0 sm:table-cell ${ink}`}>{ref ? '$0' : fmtUsd(costPerRun(row, results))}</td>
@@ -95,9 +99,6 @@ export function LeaderboardTable({ results }: { results: Results }) {
           })}
         </tbody>
       </table>
-      <p className="mt-3 text-[12px] leading-5 text-fg-faint">
-        {T}, {results.protocol.episodes} groups per model. A white tick is the model's mean, the bar its 95% interval, each dot one group.
-      </p>
     </div>
   )
 }

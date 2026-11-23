@@ -1,0 +1,548 @@
+[
+  {
+    "id": "nobody-inside",
+    "title": "Nobody was inside the circle",
+    "kind": "eureka",
+    "model": "claude-opus-5-5",
+    "tier": "plus10",
+    "episode": 0,
+    "pull": 1,
+    "t": 106,
+    "summary": "On the first, blind pull, Wren sees Bone Pyre's circle appear and tells everyone to stay out of it. Brask steps clear and dies to it six seconds later. In the debrief Rook spots the clue: the log says nobody was inside when it went off. He concludes it has to be soaked, the party agrees, and in pull 2 four of them stand in the first Pyre. Every Opus group worked this out after its first pull.",
+    "quotes": [
+      {
+        "who": "Wren",
+        "where": "chat",
+        "t": 108.4,
+        "text": "New pyre at (2,-7) r2.5 goes off in 6s, unknown dmg: stay out of it."
+      },
+      {
+        "who": "Rook",
+        "where": "debrief talk",
+        "text": "Bone Pyre hit everyone for ~35k each time, and the log shows nobody was inside the circle. I think it has to be soaked"
+      },
+      {
+        "who": "Brask",
+        "where": "debrief talk",
+        "text": "I died to the first Pyre by not being in the circle; I'll stack in it every time unless I have Grave Mark"
+      }
+    ]
+  },
+  {
+    "id": "talked-out-of-it",
+    "title": "Right answer, talked out of it",
+    "kind": "argument",
+    "model": "gpt-6-luna",
+    "tier": "plus10",
+    "episode": 6,
+    "pull": 4,
+    "t": 115,
+    "summary": "Ivy calls for the party to stand in the Pyre. She and Wren soak it, and the other three take no damage from it. Then, in her notes after the wipe, Wren, who stood in it and was fine, writes that the circle protects nobody and should be avoided. The party goes with that. Next pull, Brask opens by telling everyone to stay out of Bone Pyre.",
+    "quotes": [
+      {
+        "who": "Ivy",
+        "where": "chat",
+        "t": 119.4,
+        "text": "Bone Pyre in 2s; stand in its pool!"
+      },
+      {
+        "who": "Wren",
+        "where": "chat",
+        "t": 119.8,
+        "text": "Ivy, please Hymn immediately after Pyre; I'm shielded and staying in its pool."
+      },
+      {
+        "who": "Wren",
+        "where": "notes",
+        "text": "Bone Pyre’s circle explodes ~6 sec after appearing and does NOT protect anyone: it hit the whole party hard even with zero inside. Do not enter it."
+      }
+    ]
+  },
+  {
+    "id": "same-clue",
+    "title": "Same clue, opposite conclusion",
+    "kind": "reasoning",
+    "model": "claude-sonnet-5-5",
+    "tier": "plus10",
+    "episode": 1,
+    "pull": 4,
+    "t": 150,
+    "summary": "Sonnet's party reads the same evidence Opus's did: the Pyre went off with nobody inside and hit everyone. It draws the opposite conclusion, that the damage can't be avoided and has to be healed through. They keep calling to stay out of the circle, and Ivy and Brask die to the Pyre. Most Sonnet groups made the same inference.",
+    "quotes": [
+      {
+        "who": "Ivy",
+        "where": "chat",
+        "t": 153.6,
+        "text": "Hymn on CD. Pyre in 5s: stay out of circle, I shield Brask"
+      },
+      {
+        "who": "Rook",
+        "where": "debrief talk",
+        "text": "Pyre hits ALL ~33k, circle shows nobody inside, can't dodge."
+      }
+    ]
+  },
+  {
+    "id": "read-backwards",
+    "title": "The empty circle, read backwards",
+    "kind": "reasoning",
+    "model": "claude-haiku-5-5",
+    "tier": "plus10",
+    "episode": 2,
+    "pull": 1,
+    "t": null,
+    "stat": "0 Pyres soaked in 12 groups",
+    "summary": "The debrief tells Haiku's party that Bone Pyre went off with nobody inside and still hit all five of them. That's the clue to stand in it. Haiku reads it the other way round: if an empty circle hits everyone, position can't matter, so heal through it. Ivy even asks everyone to set up so the circle catches nobody, the one thing that guarantees the blast. Haiku never soaked a Pyre in any of its groups.",
+    "quotes": [
+      {
+        "who": "Wren",
+        "where": "debrief talk",
+        "text": "Correction on Bone Pyre. The 0-inside log shows the circle was empty and it still hit all five of us, so spreading won't dodge it. Pre-heals and Ironhide timing matter more."
+      },
+      {
+        "who": "Ivy",
+        "where": "debrief talk",
+        "text": "Please pre-position so each Pyre circle catches nobody"
+      }
+    ]
+  },
+  {
+    "id": "step-in-now",
+    "title": "Step in NOW, 1.5 seconds",
+    "kind": "clutch",
+    "model": "claude-opus-5-5",
+    "tier": "plus10",
+    "episode": 2,
+    "pull": 3,
+    "t": 92,
+    "summary": "A Pyre lands while the party is spread out, and with 1.6 seconds left only Rook, the tank, is inside. He calls for help. Ivy works out she can cover 6.7 m in 1.34 s and sprints in, and Brask follows. Three of them split the blast at about 7.5k each instead of everyone taking 30k.",
+    "quotes": [
+      {
+        "who": "Rook",
+        "where": "chat",
+        "t": 98.0,
+        "text": "I'm soaking the Pyre at (-6,-2) alone. Brask, Kit, step in NOW, it pops in 1.5s!"
+      },
+      {
+        "who": "Ivy",
+        "where": "thinking",
+        "t": 98.0,
+        "text": "The distance is about 9.2m and the radius is 2.5m, so I'd need to cover roughly 6.7m to get inside, which takes around 1.34 seconds at 5 m/s, leaving a little margin."
+      }
+    ]
+  },
+  {
+    "id": "closest",
+    "title": "The closest anyone came",
+    "kind": "record",
+    "stat": "Oruth at 8.7%",
+    "model": "gpt-6.2-sol",
+    "tier": "plus10",
+    "episode": 0,
+    "pull": 4,
+    "t": 225,
+    "summary": "All five of Sol's agents are alive when the 4:15 timer runs out, with Oruth at 8.7% health. No pull in the benchmark got closer. Claude Opus 5.5's best, group 2 pull 2, ran out of time with him at 9.0%.",
+    "quotes": []
+  },
+  {
+    "id": "out-of-clock",
+    "title": "Did everything right, ran out of clock",
+    "kind": "record",
+    "stat": "Oruth at 14.8%",
+    "model": "gpt-6.2-sol",
+    "tier": "plus10",
+    "episode": 3,
+    "pull": 3,
+    "t": 225,
+    "summary": "Sol's party gets the mechanics right: every Bone Pyre soaked, all 11 Requiems interrupted, one death in the last six seconds. The timer still runs out with Oruth at 14.8%. The expert script's clears finish with about a second to spare, so what's missing here is damage, not understanding.",
+    "quotes": [
+      {
+        "who": "Brask",
+        "where": "chat",
+        "t": 229.2,
+        "text": "I'm soaking Pyre at (-6,-5.7) in melee range. Rook and Kit, hold clean spots inside for three soakers."
+      },
+      {
+        "who": "Wren",
+        "where": "chat",
+        "t": 236.8,
+        "text": "18s left. Full burn on Oruth; Rook, Roar the adds off Ivy."
+      },
+      {
+        "who": "Rook",
+        "where": "debrief talk",
+        "text": "We need another 222k boss damage."
+      }
+    ]
+  },
+  {
+    "id": "solo-soak",
+    "title": "Rook tests the solo soak",
+    "kind": "reasoning",
+    "model": "gpt-6.2-sol",
+    "tier": "plus10",
+    "episode": 2,
+    "pull": 2,
+    "t": 88,
+    "summary": "After the first wipe, Rook proposes an experiment: he'll stand in the Pyre alone with his defensive and a shield while everyone else stays out. In pull 2 he does exactly that four times, and each time it still hits the whole party. In the debrief he calls the test a failure and switches to a full-group soak. In pull 3 all five stand inside together.",
+    "quotes": [
+      {
+        "who": "Rook",
+        "where": "debrief talk",
+        "text": "Empty Bone Pyres still blasted us, so let’s try soaking the first: I’ll step in with Ironhide and an Ivy ward."
+      },
+      {
+        "who": "Brask",
+        "where": "chat",
+        "t": 90.6,
+        "text": "Rook solo in Pyre; I'll stay out and cover Requiem #2."
+      },
+      {
+        "who": "Rook",
+        "where": "debrief talk",
+        "text": "Solo Pyre soak failed all four times (~35k per person). Next pull, everyone unmarked gets INSIDE the Pyre before it blows and stays through detonation."
+      }
+    ]
+  },
+  {
+    "id": "learned-too-well",
+    "title": "Lesson learned too well",
+    "kind": "blunder",
+    "model": "claude-opus-5-5",
+    "tier": "plus10",
+    "episode": 0,
+    "pull": 5,
+    "t": 184,
+    "summary": "After pull 4 the whole party writes the same rule into its notes: get into every Bone Pyre, even if that means standing in a Desecrate pool. In pull 5 the Pyre lands on top of two pools. All five agents find a clean spot inside the circle, then walk to it straight through the pools. All five die to Desecrate within 0.9 seconds, before the Pyre even goes off.",
+    "quotes": [
+      {
+        "who": "Kit",
+        "where": "debrief talk",
+        "text": "Pyre: all 5 stack and hold through any Desecrate (about 10k) instead of eating about 30k outside, then 'safe' right after the pop."
+      },
+      {
+        "who": "Brask",
+        "where": "thinking",
+        "t": 186.4,
+        "text": "I'm settling on moving straight to the safe spot at (5.2, 0.5), accepting a brief pass through a desecrate since the notes allow standing in one and the timer gives enough margin."
+      },
+      {
+        "who": "Rook",
+        "where": "thinking",
+        "t": 186.4,
+        "text": "I'll keep the walk straight through the pools, accepting brief damage"
+      }
+    ]
+  },
+  {
+    "id": "healer-flees",
+    "title": "The healer flees to the front door",
+    "kind": "funny",
+    "model": "claude-opus-5-5",
+    "tier": "plus10",
+    "episode": 4,
+    "pull": 1,
+    "t": 160,
+    "summary": "With the rest of the party dead, Ivy runs from the boss room all the way back to the dungeon entrance, two adds chasing her, healing herself for a full minute. In her reasoning she works out that surviving won't change the score and gets the final score exactly right. Oruth never leaves his room, but his party-wide Requiem keeps reaching her, and the fourth one kills her.",
+    "quotes": [
+      {
+        "who": "Ivy",
+        "where": "chat",
+        "t": 166.7,
+        "text": "Kiting north toward the corridor to shed Oruth, healing myself. I'll try to survive and keep his progress."
+      },
+      {
+        "who": "Ivy",
+        "where": "chat",
+        "t": 183.0,
+        "text": "Mark on me, I'm alone so it only hits me. Kiting adds to the entrance and healing myself to stay alive."
+      },
+      {
+        "who": "Ivy",
+        "where": "thinking",
+        "t": 213.1,
+        "text": "progress is about 36.7 either way, and the revive window is too short to matter."
+      }
+    ]
+  },
+  {
+    "id": "no-kicks-left",
+    "title": "Out of kicks, 0.2 seconds to spare",
+    "kind": "clutch",
+    "model": "gpt-6.2-sol",
+    "tier": "plus10",
+    "episode": 5,
+    "pull": 5,
+    "t": 12,
+    "summary": "The Bone Chanter restarts Grave Volley the moment it's interrupted. Rook, Brask and Kit kick it in turn within one second, each handing off to the next in chat, until Kit and Wren, both on cooldown, ask each other to kick the fourth cast at the same instant. Nobody can. A critical hit from Brask kills the Chanter 0.2 seconds before the volley lands.",
+    "quotes": [
+      {
+        "who": "Rook",
+        "where": "chat",
+        "t": 14.6,
+        "text": "Bash down 7s. Brask kick this Grave Volley; Kit or Wren cover if needed."
+      },
+      {
+        "who": "Brask",
+        "where": "chat",
+        "t": 15.1,
+        "text": "Punch is down 15s. Kit or Wren, kick this Grave Volley now."
+      },
+      {
+        "who": "Kit",
+        "where": "chat",
+        "t": 15.6,
+        "text": "Jab down 15s. Wren, please kick this Grave Volley."
+      },
+      {
+        "who": "Wren",
+        "where": "chat",
+        "t": 15.6,
+        "text": "Silencing Arrow down 10s. Kit, please kick this Volley."
+      }
+    ]
+  },
+  {
+    "id": "luna-breakthrough",
+    "title": "Luna's one breakthrough",
+    "kind": "eureka",
+    "model": "gpt-6-luna",
+    "tier": "plus10",
+    "episode": 9,
+    "pull": 5,
+    "t": 133,
+    "summary": "Luna's parties agree group after group that the Pyre hits everyone no matter what. In group 10, Kit's notes record that the one player inside took about half damage, but still advise staying out. Pull 4 gives cleaner evidence, and Rook turns the party around in the debrief. In pull 5 Kit calls the shelter and all five stand in the circle. It's Luna's best +10 pull in any of its 12 groups, and the only group to get there.",
+    "quotes": [
+      {
+        "who": "Kit",
+        "where": "notes",
+        "text": "the one player inside on the next Pyre took about half damage, but don’t assume the circle is safe"
+      },
+      {
+        "who": "Rook",
+        "where": "debrief talk",
+        "text": "Bone Pyre’s circle is the safe zone: those inside took ~8k vs ~35k outside. Stack in it for the blast, then spread for Grave Mark."
+      },
+      {
+        "who": "Kit",
+        "where": "chat",
+        "t": 135.2,
+        "text": "Bone Pyre shelter at (1,-5)—get inside for the blast; stay clear of Desecrates."
+      }
+    ]
+  },
+  {
+    "id": "four-kicks",
+    "title": "Four kicks, zero left",
+    "kind": "funny",
+    "model": "claude-opus-5-5",
+    "tier": "plus10",
+    "episode": 0,
+    "pull": 1,
+    "t": 4,
+    "summary": "Seconds into the very first pull, all four players with an interrupt use it on the same caster within 3.4 seconds. Moments later each asks someone else to kick the next spell, and each reply is the same: mine's on cooldown too. Five copies of one model don't share a plan until they talk one out.",
+    "quotes": [
+      {
+        "who": "Rook",
+        "where": "chat",
+        "t": 11.7,
+        "text": "My bash is on CD, someone kick the Bone Bolt please."
+      },
+      {
+        "who": "Brask",
+        "where": "chat",
+        "t": 13.7,
+        "text": "My kick is on CD 10s. Kit, jab this Bone Bolt please."
+      },
+      {
+        "who": "Kit",
+        "where": "chat",
+        "t": 13.7,
+        "text": "Jab on CD (11s). Brask/Wren kick Bone Bolt pls."
+      },
+      {
+        "who": "Wren",
+        "where": "chat",
+        "t": 13.7,
+        "text": "Silence on CD (14s), can't kick this Bolt."
+      }
+    ]
+  },
+  {
+    "id": "no-defensive",
+    "title": "“Correction: I have no defensive either”",
+    "kind": "funny",
+    "model": "claude-haiku-5-5",
+    "tier": "plus10",
+    "episode": 6,
+    "pull": 4,
+    "t": null,
+    "summary": "In the debrief, Ivy asks the two melee players to use their defensive cooldowns for the next Pyre. Brask replies that he doesn't have one. Ivy asks again, and Kit issues a formal correction listing every ability he owns. Meanwhile the whole party agrees to step out of the circle, the move that guarantees the big hit.",
+    "quotes": [
+      {
+        "who": "Ivy",
+        "where": "debrief talk",
+        "text": "Brask and Kit, please use your defensives on the second pyre (~2:44)."
+      },
+      {
+        "who": "Brask",
+        "where": "debrief talk",
+        "text": "Brask: no defensive, only Throat Punch on Requiem + Ravage on Oruth. I'll step out of every pool and Pyre."
+      },
+      {
+        "who": "Ivy",
+        "where": "debrief talk",
+        "text": "Your defensives matter: Brask and Kit, please use them on the 2:44 cast."
+      },
+      {
+        "who": "Kit",
+        "where": "debrief talk",
+        "text": "Kit: Correction, I have no defensive either (only Twin Fang, Venom Burst, Scatterblades, Quick Jab), so Brask and I can't cover the 2:44 Pyre."
+      }
+    ]
+  },
+  {
+    "id": "almost-in",
+    "title": "Joining Rook in the Pyre, almost",
+    "kind": "blunder",
+    "model": "gpt-6.2-sol",
+    "tier": "plus10",
+    "episode": 1,
+    "pull": 2,
+    "t": 240,
+    "summary": "Twenty seconds left, Oruth at about 17%. Rook stands in the last Pyre and calls Wren in. Wren says she's joining, but keeps firing arrows and ends up 0.7 m outside the circle. With only one player inside, the Pyre kills three of the party, and the enrage finishes Rook four seconds later.",
+    "quotes": [
+      {
+        "who": "Rook",
+        "where": "chat",
+        "t": 246.3,
+        "text": "I'm inside the Pyre. Wren, step toward me after your cast to get inside before it bursts. Keep burning Oruth."
+      },
+      {
+        "who": "Wren",
+        "where": "chat",
+        "t": 246.3,
+        "text": "Joining Rook in the Pyre. Keep hitting Oruth."
+      }
+    ]
+  },
+  {
+    "id": "misread-698",
+    "title": "A misread number rewrites the plan",
+    "kind": "reasoning",
+    "model": "gpt-6.2-sol",
+    "tier": "plus10",
+    "episode": 2,
+    "pull": 4,
+    "t": 186,
+    "summary": "Four of Sol's agents pick the same spot to soak the Pyre, and Oruth's Desecrate pools, aimed at players, land on all of them at once. Four die in about a second. The debrief says the missed Pyre hit Wren for 698, but that was only the health she had left. Three agents read it as 'barely hurt' and plan to spread out and enter the circle late; Ivy reads it correctly. Next pull only Wren makes it into the Pyre, and all five die within two seconds.",
+    "quotes": [
+      {
+        "who": "Rook",
+        "where": "debrief talk",
+        "text": "Desecrate killed four of us in under 2 seconds; the missed Pyre barely hurt Wren."
+      },
+      {
+        "who": "Ivy",
+        "where": "notes",
+        "text": "Pyre killed already-low Wren with 698. Pools, not missed soaks, are the priority."
+      }
+    ]
+  },
+  {
+    "id": "someone-else-kicks",
+    "title": "Everyone thought someone else would kick",
+    "kind": "blunder",
+    "model": "claude-sonnet-5-5",
+    "tier": "plus10",
+    "episode": 5,
+    "pull": 3,
+    "t": 20,
+    "summary": "With notes full of plans for Oruth, the party wipes on the first trash pack in 37 seconds. The Bone Chanter recasts Grave Volley half a second after Brask kicks it, every other interrupt is on cooldown or out of range, and each agent reasons that a teammate will cover it. In the debrief they set a numbered kick order.",
+    "quotes": [
+      {
+        "who": "Wren",
+        "where": "thinking",
+        "t": 22.1,
+        "text": "Silencing arrow is on cooldown for 3.4s, so I can't interrupt this Grave Volley. Brask and Kit can kick it."
+      },
+      {
+        "who": "Brask",
+        "where": "thinking",
+        "t": 22.6,
+        "text": "My throat_punch is on cooldown (14.9s), so someone else needs to interrupt the Grave Volley."
+      },
+      {
+        "who": "Kit",
+        "where": "debrief talk",
+        "text": "Agree. I Jab Volley #2 (Brask #1, Wren #3, Rook #4)."
+      }
+    ]
+  },
+  {
+    "id": "lone-healer",
+    "title": "The healer who wouldn't quit",
+    "kind": "funny",
+    "model": "gpt-6-luna",
+    "tier": "plus10",
+    "episode": 11,
+    "pull": 1,
+    "t": 20,
+    "summary": "Four of the five die to the first trash pack within three seconds. Ivy, the healer, spends the next three minutes alone, kiting three skeletons and chipping them down with her one weak attack, telling the dead to revive when combat ends. It never ends. She kills the last one at 3:26, walks into the second pack by herself, and is still alive when the timer runs out.",
+    "quotes": [
+      {
+        "who": "Ivy",
+        "where": "chat",
+        "t": 45.4,
+        "text": "I’ll kite them; revive when combat ends."
+      },
+      {
+        "who": "Ivy",
+        "where": "chat",
+        "t": 101.4,
+        "text": "Everyone is down; I’m trying to finish the low bonewalker. Revive as soon as combat ends."
+      }
+    ]
+  },
+  {
+    "id": "pyre-kills-five",
+    "title": "One Pyre kills all five",
+    "kind": "blunder",
+    "model": "gpt-6-luna",
+    "tier": "plus10",
+    "episode": 7,
+    "pull": 3,
+    "t": 136,
+    "summary": "Brask begs for an emergency heal before the Pyre. Nobody stands inside, and it kills all five at once. In the debrief the party agrees unanimously that the Pyre can't be avoided and the fix is more healing, the belief 11 of Luna's 12 groups settled on.",
+    "quotes": [
+      {
+        "who": "Brask",
+        "where": "chat",
+        "t": 141.0,
+        "text": "Ivy, emergency heal Brask and Rook before Pyre!"
+      },
+      {
+        "who": "Ivy",
+        "where": "debrief talk",
+        "text": "Pyre hits everyone regardless of the circle."
+      },
+      {
+        "who": "Wren",
+        "where": "debrief talk",
+        "text": "Pyre is unavoidable—time Hymn/shields and keep everyone topped."
+      }
+    ]
+  },
+  {
+    "id": "found-lost-found",
+    "title": "Found it, lost it, found it again",
+    "kind": "argument",
+    "model": "claude-sonnet-5-5",
+    "tier": "plus10",
+    "episode": 2,
+    "pull": 3,
+    "t": 112,
+    "summary": "After pull 2, the healer notices the tank took less damage inside the circle. In pull 3 the whole party soaks a Pyre once, but nobody writes it down. Only after pull 4's wipe do the notes say to stand in it. It's the only Sonnet group that ever soaked.",
+    "quotes": []
+  }
+]

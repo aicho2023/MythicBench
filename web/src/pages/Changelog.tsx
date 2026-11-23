@@ -1,7 +1,6 @@
 import { CHANGELOG, type ChangelogEntry } from '../content/changelog'
 import { GITHUB_URL } from '../site/config'
 import { Page } from '../site/Layout'
-import { Link } from '../site/router'
 
 const KIND: Record<ChangelogEntry['kind'], string> = { release: 'Release', protocol: 'Protocol', docs: 'Analysis' }
 
@@ -43,10 +42,7 @@ export function Changelog() {
         <header>
           <h1 className="text-[28px] font-normal leading-[1.15] text-fg sm:text-[32px]">Changelog</h1>
           <p className="mt-4 max-w-[640px] text-[17px] leading-7 text-fg-muted">
-            What changed in the game and the harness, newest first. Every run records the harness, sim and content
-            versions it played, and results from different versions are never compared as if they were one. How the
-            official run is done is fixed in the <a href={`${GITHUB_URL}/blob/main/docs/PREREGISTRATION.md`} className="text-fg underline decoration-accent/50 underline-offset-4 hover:decoration-accent">pre-registration</a>;
-            the <Link to="/report" className="text-fg underline decoration-accent/50 underline-offset-4 hover:decoration-accent">report</Link> explains what the versions mean for the results.
+            What changed in the game and the harness, newest first. Results from different versions are never mixed.
           </p>
         </header>
         {CHANGELOG.map((e) => <Entry key={e.id} e={e} />)}

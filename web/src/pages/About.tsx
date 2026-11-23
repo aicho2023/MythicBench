@@ -1,3 +1,4 @@
+import { Heart } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { GITHUB_URL, RESULTS_DIR, VENMO_HANDLE, VENMO_URL } from '../site/config'
 import { Page } from '../site/Layout'
@@ -92,8 +93,10 @@ export function About() {
             models costs several hundred dollars in API fees. Donations go straight into running more models,
             stronger ones, and harder experiments.
           </p>
-          <p>
-            <a href={VENMO_URL} target="_blank" rel="noopener noreferrer">Venmo @{VENMO_HANDLE}</a>
+          <p className="not-prose">
+            <a href={VENMO_URL} target="_blank" rel="noopener noreferrer" className="btn h-10 px-4 text-[14px] !text-fg">
+              <Heart size={15} className="text-accent" /> Venmo @{VENMO_HANDLE}
+            </a>
           </p>
         </Section>
 
@@ -106,12 +109,6 @@ export function About() {
           <p>Full list and licenses: <a href={`${GITHUB_URL}/blob/main/THIRD_PARTY.md`}>THIRD_PARTY.md</a>. The code is MIT-licensed.</p>
         </Section>
 
-        <Section title="Disclaimer">
-          <p>
-            MythicBench is an independent project. It is not affiliated with or endorsed by Blizzard Entertainment.
-            World of Warcraft and Mythic+ are trademarks of Blizzard Entertainment, Inc.
-          </p>
-        </Section>
       </div>
     </Page>
   )

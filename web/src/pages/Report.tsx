@@ -266,6 +266,7 @@ export function Report() {
               argued away. Each agent keeps its own notes, so a lesson that lives in one agent's notes can be outvoted in
               the talk. One agent even wrote the opposite of what had just happened to it.
             </p>
+            <p>Twenty more moments like these, each a click from the replay, are on the <Link to="/highlights">highlights page</Link>.</p>
 
             <H2 id="ceiling">How hard is +10?</H2>
             <p>

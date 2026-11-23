@@ -104,12 +104,18 @@ function Side({ entry, engine, t }: { entry: ReplayIndexEntry; engine: ReplayEng
  * Two replays side by side on one clock, as top-down maps: pull 1 against a
  * later pull, or two models on the same seed. /compare?a=<replay id>&b=<replay id>
  */
+const DEFAULT_PAIR = ['/watch/claude-opus-5-5/plus10/1/1', '/watch/claude-opus-5-5/plus10/1/2']
+
 export function Compare() {
   const ensureIndex = usePlayback((p) => p.ensureIndex)
   const index = usePlayback((p) => p.index)
   const q = new URLSearchParams(location.search)
   const ids = [q.get('a'), q.get('b')]
-  const entries = ids.map((id) => index.find((e) => e.id === id))
+  // Opened without a pair: Claude Opus 5.5's group 2, its blind first pull against the pull after one debrief.
+  const preset = !ids[0] || !ids[1]
+  const entries = preset
+    ? DEFAULT_PAIR.map((path) => index.find((e) => e.path === path))
+    : ids.map((id) => index.find((e) => e.id === id))
   const [engines, setEngines] = useState<(ReplayEngine | null)[]>([null, null])
   const [error, setError] = useState<string | null>(null)
   const [t, setT] = useState(0)
@@ -150,7 +156,11 @@ export function Compare() {
     <Page>
       <div className="py-8">
         <h1 className="text-[24px] font-normal text-fg">Side by side</h1>
-        <p className="mt-1 text-[14px] text-fg-muted">Two replays on one clock, seen from above. The view follows each party.</p>
+        <p className="mt-1 text-[14px] text-fg-muted">
+          {preset
+            ? 'Claude Opus 5.5, group 2: the blind first pull against the second, after one debrief. Two replays on one clock, seen from above.'
+            : 'Two replays on one clock, seen from above. The view follows each party.'}
+        </p>
         {missing && <p className="mt-6 text-[14px] text-bad">Couldn't find both replays. Open this page from a replay's learning panel.</p>}
         {error && <p className="mt-6 text-[14px] text-bad">{error}</p>}
         {engines[0] && engines[1] && entries[0] && entries[1] && (
