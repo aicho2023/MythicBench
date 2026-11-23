@@ -60,6 +60,7 @@ TRASH_HOLD = {"pack1": (0.0, 46.0), "pack2": (0.0, 22.0)}  # tank pulls each pac
 import os
 HOLD_GAP = float(os.environ.get("EXPERT_GAP", "5.5"))
 FOCUS_ADDS = set(os.environ.get("EXPERT_FOCUS_ADDS", "").split(","))
+SAFE_ALWAYS = os.environ.get("EXPERT_SAFE_ALWAYS", "0") == "1"
 TANK_TOPUP = float(os.environ.get("EXPERT_TOPUP", "95"))
 WADE = float(os.environ.get("EXPERT_WADE", "1.2"))  # metres of pool a melee will cut across to get back
 RANK_AOE = os.environ.get("EXPERT_RANK", "0") == "1"
@@ -368,8 +369,9 @@ def orders(me: str, state: str) -> dict:
         move = _boss_move(me, s, target)
         if move == "stop":
             move = None if not mine.get("moving") else "stop"
-        elif mine.get("in_pool") and (move is None or any(_in(tuple(move), g) for g in hazards)):
-            move = "safe"
+        elif mine.get("in_pool") and (
+                SAFE_ALWAYS or move is None or any(_in(tuple(move), g) for g in hazards)):
+            move = "safe"  # the harness's step out keeps the target in range and avoids other pools
     elif not s["in_combat"]:
         move = _walk_on(me, s)
         if mine.get("in_pool") and (move is None or _wet(here, tuple(move), hazards) > 3.0):
@@ -499,7 +501,7 @@ def _boss_move(me: str, s: dict, target):
             return dist(at, spot) + 12 * _wet(at, spot, hazards) + SOAK_BIAS * SOAK_ORDER.index(p) + (MELEE_SOAK if melee else 0)
         soakers = sorted(free, key=lambda p: (route_cost(p), SOAK_ORDER.index(p)))[:C.PYRE_SOAKERS]
         if me in soakers:
-            inside = dist(here, pyre["pos"]) <= pyre["r"] - 0.2
+            inside = dist(here, pyre["pos"]) <= pyre["r"] + C.PLAYER_RADIUS * 0.5 - 0.1
             if inside and (not mine["in_pool"] or fuse <= 1.0):
                 return "stop"  # in it: stay (a pool that lands this late hits once at most)
             bodies = [(v["pos"], C.PLAYER_RADIUS) for k, v in alive.items() if k != me]
@@ -594,7 +596,9 @@ def _soak_spot(here, pyre, hazards, slot: int, bodies=()):
     by the driest straight walk."""
     best = None
     c = pyre["pos"]
-    for r in (0.0, 0.7, 1.3, 1.9):
+    # Inside counts out to the rim plus half a body; the outer rings are the
+    # fallback when a pool has landed on the middle.
+    for r in (0.0, 0.7, 1.3, 1.9, 2.3, 2.6):
         for k in range(12 if r else 1):
             a = 2 * math.pi * (k + 0.5 * slot) / 12
             p = (c[0] + r * math.cos(a), c[1] + r * math.sin(a))
@@ -602,7 +606,7 @@ def _soak_spot(here, pyre, hazards, slot: int, bodies=()):
                 continue
             if any(dist(p, b) < r_b + C.PLAYER_RADIUS + 0.15 for b, r_b in bodies):
                 continue
-            cost = dist(here, p) + 12 * _wet(here, p, hazards) + 0.5 * r
+            cost = dist(here, p) + 12 * _wet(here, p, hazards) + 0.5 * r + (3.0 if r > 2.0 else 0.0)
             if best is None or cost < best[0]:
                 best = (cost, p)
     return best[1] if best else None
