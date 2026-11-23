@@ -227,6 +227,15 @@ scripted expert added afterwards (`llm/expert.py`, not part of the protocol)
 clears +10 on 4 of 1,000 practice seeds, so a clear exists but needs
 near-perfect play.
 
+**Post-run disclosure (2026-11-23).** Reviewing replays after the run found a
+second harness fault. The rules say "safe" steps to the nearest spot clear of
+the pools. An agent already clear but out of reach of its first target, with
+no dry spot in reach, was moved to another clear spot instead of staying put.
+In the 420 model pulls this happened 2,567 times (GPT-6 Luna 1,726, Claude
+Haiku 5.5 820, Claude Sonnet 5.5 18, Claude Opus 5.5 2, GPT-6.2 Sol 1). Only 16
+of those moves cut a cast short. v1 keeps the fault, since its code is frozen;
+no analysis was changed, and the fix waits for the next harness version.
+
 ## Budget
 
 The estimate is about $551 if every group plays all five pulls at each

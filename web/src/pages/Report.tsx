@@ -319,6 +319,19 @@ export function Report() {
                 corner of Oruth's throne, a floating-point edge case. It saved about a second and harmed nobody.{' '}
                 <Link to="/watch/claude-haiku-5-5/normal/0/4">Watch it</Link>.
               </li>
+              <li>
+                A second harness fault was found after the run, while reviewing replays. The rules tell agents that
+                "safe" steps to the nearest spot clear of the pools. An agent already standing clear should stay where it
+                is. But when it was also out of reach of its first target, and no dry spot was in reach, the harness
+                moved it to another clear spot instead. An agent that kept sending "safe" could shuffle back and forth
+                between two spots. In the 420 pulls the models played, this happened 2,567 times: GPT-6 Luna 1,726,
+                Claude Haiku 5.5 820, Claude Sonnet 5.5 18, Claude Opus 5.5 2 and GPT-6.2 Sol 1. Only 16 of these moves
+                cut a cast short. In the rest, the agent could not reach its target from where it stood anyway. The fault
+                cost the two models it touched most a handful of casts, far too few to explain their gap to the top two,
+                so no comparison or finding changes. v1 keeps the fault, since its code is frozen. The fix waits for the
+                next harness version.{' '}
+                <Link to="/watch/gpt-6-luna/normal/2/5?t=148">Watch it</Link> (Kit, from 2:28).
+              </li>
               <li>Two departures, disclosed. Interim scores were looked at while stage 2 was playing; nothing was changed or decided because of them. And +10 was calibrated in pilots on an earlier version of the fight, where GPT-6.2 Sol cleared some pulls. Later changes made the fight harder, and the calibration was not re-run before the freeze.</li>
             </ul>
 
@@ -411,6 +424,7 @@ export function Report() {
               <li><strong>A narrow memory test.</strong> It was run on the two cheapest models, which never learned the key mechanic, so it says nothing about memory in the models that did.</li>
               <li><strong>Coarse control.</strong> Orders come every few seconds of game time, not every global cooldown, and the game waits for the agents.</li>
               <li><strong>Prior knowledge.</strong> Models know about MMOs. The fight is original, but its mechanics are familiar types, so it tests applying general game knowledge as well as learning.</li>
+              <li><strong>Range is the agent's job.</strong> The state lists abilities that are off cooldown, not whether their target is in reach. An agent has to work out reach from positions, and some stood idle centimetres out of melee range. That is part of what is measured, but it weighs on melee characters more than on ranged ones, and there is no line-of-sight rule.</li>
               <li><strong>Interrupts only delay.</strong> An interrupted caster starts the same spell again at once, so an interrupt buys about half a second.</li>
               <li><strong>Prices change.</strong> Costs are list prices at the time of the run.</li>
             </ul>
