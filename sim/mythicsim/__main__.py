@@ -34,7 +34,7 @@ COMMANDER_BLURB = "Fixed, obvious rules through the agents' own interface: kick 
 # never learns. Dev seeds (10001+), never the official schedules.
 EXPERT_BLURB = ("Rules written by someone who knows the fight, through the agents' own interface and blind view: "
                 "soak Bone Pyre, walk clear of Grave Mark, stay out of pools. It never learns.")
-EXPERT_SEEDS = {"plus10": 10083, "normal": 10001}
+EXPERT_SEEDS = {"plus10": 10043, "normal": 10001}
 SHOWCASE = [
     {"id": "commander-plus10", "seed": SHOWCASE_SEED, "mode": "dungeon", "tier": "plus10",
      "label": "Scripted commander, +10", "blurb": COMMANDER_BLURB},

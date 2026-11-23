@@ -22,5 +22,31 @@
     "outcome": "timeout",
     "duration_s": 255.0,
     "score": 58.3
+  },
+  {
+    "id": "expert-plus10",
+    "seed": 10043,
+    "mode": "dungeon",
+    "tier": "plus10",
+    "label": "Expert script, +10",
+    "blurb": "Rules written by someone who knows the fight, through the agents' own interface and blind view: soak Bone Pyre, walk clear of Grave Mark, stay out of pools. It never learns.",
+    "policy": "expert",
+    "file": "expert-plus10.json",
+    "outcome": "victory",
+    "duration_s": 254.0,
+    "score": 70.5
+  },
+  {
+    "id": "expert-normal",
+    "seed": 10001,
+    "mode": "dungeon",
+    "tier": "normal",
+    "label": "Expert script, Normal",
+    "blurb": "Rules written by someone who knows the fight, through the agents' own interface and blind view: soak Bone Pyre, walk clear of Grave Mark, stay out of pools. It never learns.",
+    "policy": "expert",
+    "file": "expert-normal.json",
+    "outcome": "victory",
+    "duration_s": 227.3,
+    "score": 83.0
   }
 ]

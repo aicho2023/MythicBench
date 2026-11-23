@@ -25,6 +25,19 @@ const V1: Versions = { harness: '1.0.0', sim: '0.11.0', content: '1.8.0' }
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 'expert-script',
+    date: '2026-11-23',
+    title: 'The expert script: proof a clear is possible',
+    kind: 'release',
+    summary: 'A scripted party that knows the fight, added as the golden standard. Nothing the models see or play changes: harness, sim and content versions are the same.',
+    items: [
+      'It plays through the agents\' own interface and blind view: it reads the same text and sends the same orders, every 4 seconds of game time. Only its rules know the fight.',
+      'Two players soak Bone Pyre, a marked player walks clear, nobody walks through a pool, the tank saves Ironhide for Soul Rend, and the healer attacks only when nobody needs healing.',
+      'On 1,000 practice seeds (outside the official schedules) it clears Normal 898 times and +10 4 times, each +10 clear with a second or less to spare.',
+      'Its clears on both difficulties are in the viewer, under "Golden standard".',
+    ],
+  },
+  {
     id: 'amendment-2',
     date: '2026-11-23',
     title: 'Stage 1 review and pre-registration amendment 2',
