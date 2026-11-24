@@ -226,14 +226,14 @@ const WORK = join(MEDIA, 'launch', '.work')
 /** Gameplay shots. cam0/cam1: the camera's offset from `look` at the start and end (a slow push in). */
 const SHOTS = {
   blind: {
-    path: '/watch/claude-opus-5-5/plus10/0/1', from: 107.6, to: 115.4, look: [1.2, 0.5, -4.6],
+    path: '/watch/claude-opus-5-5/plus10/0/1', from: 107.6, to: 116.6, look: [1.2, 0.5, -4.6],
     cam0: [14, 16, 5], cam1: [11, 12.6, 4],
     title: 'Pull 1', sub: 'Claude Opus 5.5, group 1. Blind: nobody has told them anything.',
     lines: [{ t: 108.4, who: 'Wren', cls: 'ranger', text: 'New pyre at (2,-7) r2.5 goes off in 6s, unknown dmg: stay out of it.' }],
     booms: [{ t: 114.4, text: 'Nobody inside. It hits everyone.', kind: 'bad' }],
   },
   learned: {
-    path: '/watch/claude-opus-5-5/plus10/0/2', from: 139.0, to: 146.8, look: [4.8, 0.5, -9.0],
+    path: '/watch/claude-opus-5-5/plus10/0/2', from: 139.0, to: 148.0, look: [4.8, 0.5, -9.0],
     cam0: [-8, 14, 15], cam1: [-5.4, 10, 10.4],
     title: 'Pull 2', sub: 'The same group, after one debrief.',
     lines: [{ t: 139.6, who: 'Wren', cls: 'ranger', text: 'Moving into the Pyre at (4.5,-8.9) to soak. Everyone stack in it!' },
@@ -268,6 +268,12 @@ const ease = (u) => (u < 0 ? 0 : u > 1 ? 1 : u * u * (3 - 2 * u))
 const fadeIn = (dt, d = 0.25) => ease(dt / d)
 
 async function renderShot(b, id, sh, frames) {
+  // Reuse a full render of the same shot: its frames are kept with a copy of its settings.
+  const n0 = Math.round((sh.to - sh.from) * FPS)
+  const stamp = join(WORK, id, 'shot.json')
+  if (!frames) {
+    try { if (readFileSync(stamp, 'utf8') === JSON.stringify(sh)) { console.log(`${id}: unchanged, reusing frames`); return n0 } } catch { /* none yet */ }
+  }
   const page = await b.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 })
   const cam = (u) => sh.look.map((v, k) => v + sh.cam0[k] + (sh.cam1[k] - sh.cam0[k]) * u)
   await openReplay(page, `${sh.path}?t=${sh.from}&paused=1&follow=0&cam=${cam(0).join(',')}&look=${sh.look.join(',')}`)
@@ -283,7 +289,7 @@ async function renderShot(b, id, sh, frames) {
   const dir = join(WORK, id)
   rmSync(dir, { recursive: true, force: true })
   mkdirSync(dir, { recursive: true })
-  const n = Math.round((sh.to - sh.from) * FPS)
+  const n = n0
   const t0 = Date.now()
   for (const i of frames ?? Array.from({ length: n }, (_, i) => i)) {
     const t = sh.from + i / FPS
@@ -315,6 +321,7 @@ async function renderShot(b, id, sh, frames) {
     if (!frames && i % 24 === 0) process.stdout.write(`\r${id}: ${i}/${n} frames, ${((Date.now() - t0) / 1000 / (i + 1)).toFixed(1)} s each   `)
   }
   await page.close()
+  if (!frames) writeFileSync(stamp, JSON.stringify(sh))
   return n
 }
 
@@ -343,11 +350,10 @@ function cards(bg, grid) {
         .q { margin-top: 40px; font-family: PlexSerif, serif; font-style: italic; font-size: 44px; line-height: 1.3; color: #f3e6c4; min-height: 172px; }
         .who { margin-top: 22px; font-size: 20px; color: #8a8a93; }</style>
       <div class="bg"></div>
-      <div class="center"><div class="mono in" id="k" style="font-size:16px;color:#e8cf8f;letter-spacing:.08em">THE WIPE · THE DEBRIEF</div>
-        <h2 class="in" id="a" style="margin-top:14px">They read the combat log and talk it over.</h2>
+      <div class="center"><h2 class="in" id="a">After the wipe, they read the combat log and talk it over.</h2>
         <div class="q" id="q" data-text="“…the log shows nobody was inside the circle. I think it has to be soaked.”"></div>
         <div class="who in" id="w">Rook, the tank. Claude Opus 5.5, debrief after pull 1</div></div>${anim}
-      <script>window.render = (s) => { show(k, s, 0.1); show(a, s, 0.3); typed(q, s, 1.1, 34); show(w, s, 3.6) }</script>` },
+      <script>window.render = (s) => { show(a, s, 0.2); typed(q, s, 1.1, 34); show(w, s, 3.6) }</script>` },
     { id: 'c-turn', d: 3.6, html: `<style>${base} h1 { font-size: 56px; font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; }</style>
       <div class="bg"></div>
       <div class="center"><h1 class="in" id="a">Two of seven models learned this.</h1>
@@ -360,24 +366,23 @@ function cards(bg, grid) {
         .sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; margin-right: 10px; vertical-align: -1px; }
         .g { position: absolute; right: 48px; top: 50%; width: 760px; transform-origin: 30% 30%; border-radius: 14px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
         .g img { display: block; width: 100%; }</style>
-      <div class="l"><div class="mono in" id="k" style="font-size:16px;color:#e8cf8f;letter-spacing:.08em">EVERY PYRE, EVERY GROUP</div>
-        <h2 class="in" id="a" style="margin-top:14px">Each square is one Bone Pyre, in order, pull by pull.</h2>
+      <div class="l"><h2 class="in" id="a">Each square is one Bone Pyre, in order, pull by pull.</h2>
         <div class="key in" id="c"><div><span class="sw" style="background:#f3c969"></span>two or more inside: soaked</div>
           <div><span class="sw" style="background:#b3307a"></span>one player: not enough</div><div><span class="sw" style="background:#3a2452"></span>nobody inside</div></div></div>
       <div class="g in" id="g"><img src="data:image/png;base64,${grid}"></div>${anim}
-      <script>window.render = (s) => { show(k, s, 0.1); show(a, s, 0.3); show(c, s, 1.0);
+      <script>window.render = (s) => { show(a, s, 0.2); show(c, s, 1.0);
         const u = ease(s / 0.6); g.style.opacity = u; g.style.transform = 'translateY(-50%) scale(' + (1 + 0.05 * s / 5.6) + ') translateY(' + (1 - u) * 14 + 'px)' }</script>` },
     { id: 'c-end', d: 5.0, html: `<style>${base}
         .c { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         .logo { display: flex; align-items: center; gap: 16px; font-size: 34px; font-weight: 500; } .logo .dia { width: 18px; height: 18px; }
         h1 { margin-top: 30px; font-size: 58px; font-weight: 400; letter-spacing: -0.02em; }
-        .st { margin-top: 26px; font-size: 21px; color: #b4b4bb; letter-spacing: .02em; }
+        .st { margin-top: 24px; font-size: 24px; color: #b4b4bb; }
         .url { margin-top: 44px; font-size: 30px; color: #e8cf8f; font-weight: 500; }
         .sm { margin-top: 12px; font-size: 18px; color: #8a8a93; }</style>
       <div class="bg"></div>
       <div class="c"><div class="logo in" id="l"><span class="dia"></span>MythicBench</div>
         <h1 class="in" id="a">Can five AI agents learn from a wipe?</h1>
-        <div class="st mono in" id="s">7 models · 4 labs · 480 attempts · 0 clears</div>
+        <div class="st in" id="s">Seven models from four labs, 480 attempts, no clears.</div>
         <div class="url in" id="u">mythicbench.com</div>
         <div class="sm in" id="m">Every pull is a 3D replay, with every agent's orders, chat and reasoning.</div></div>${anim}
       <script>window.render = (s) => { show(l, s, 0.1); show(a, s, 0.4); show(s_, s, 1.2); show(u, s, 1.9); show(m, s, 2.3) }; const s_ = document.getElementById('s')</script>` },
@@ -450,7 +455,7 @@ async function launchVideo() {
   const out = join(MEDIA, 'launch', 'mythicbench-launch.mp4')
   execFileSync('ffmpeg', ['-y', '-loglevel', 'error', ...inputs, '-filter_complex', chain.replace(/;$/, ''), '-map', '[v]',
     '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', '-preset', 'slow', '-r', String(FPS), '-movflags', '+faststart', out])
-  rmSync(WORK, { recursive: true, force: true })
+  // The frames stay in media/launch/.work (git-ignored), so the next run re-renders only what changed.
   console.log(`wrote media/launch/mythicbench-launch.mp4 (${acc.toFixed(1)} s)`)
 }
 
