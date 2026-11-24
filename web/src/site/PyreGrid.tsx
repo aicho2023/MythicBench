@@ -32,7 +32,7 @@ export function PyreGrid({ results }: { results: Results }) {
   const perPull = Math.max(1, ...rows.flatMap((r) => r.groups.flatMap((g) => g.pulls.map((p) => p.pyre_inside?.length ?? 0))))
 
   const narrow = w < 640
-  const labelW = narrow ? 0 : 164
+  const labelW = narrow ? 0 : 184
   const colGap = narrow ? 8 : 16
   const gap = narrow ? 1.5 : 2
   const cell = Math.max(5, Math.min(14, Math.floor(((w - labelW - colGap * (pulls - 1)) / pulls - gap * (perPull - 1)) / perPull)))

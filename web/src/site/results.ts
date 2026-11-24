@@ -164,9 +164,10 @@ export const labName = (provider: string) => LAB_NAMES[provider] ?? provider
  * Series colors in one fixed order, assigned by a model's position in the
  * protocol (never by rank), so a model keeps its color on every chart.
  * Validated on the dark surface #111113: adjacent pairs pass; at seven series
- * not every pair separates, so charts also label each series by name.
+ * not every pair separates, so charts also label each series by name. The
+ * seventh is cyan, not amber: amber beside the sixth (green) failed for protan vision.
  */
-export const SERIES = ['#3987e5', '#d95926', '#199e70', '#9085e9', '#d55181', '#0ca30c', '#c98500']
+export const SERIES = ['#3987e5', '#d95926', '#199e70', '#9085e9', '#d55181', '#0ca30c', '#1fa3b8']
 export function modelColor(r: Results, model: string): string {
   const i = r.protocol.models.indexOf(model)
   return SERIES[(i < 0 ? r.protocol.models.length : i) % SERIES.length]

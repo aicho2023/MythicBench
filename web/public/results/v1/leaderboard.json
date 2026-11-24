@@ -23,6 +23,27 @@
   },
   {
    "a": "claude-opus-5-5",
+   "b": "deepseek-flash",
+   "episodes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "n": 6,
+   "mean": 10.7,
+   "ci95": [
+    4.08,
+    17.32
+   ],
+   "p": 0.0089,
+   "p_holm": 0.1204,
+   "claim": null
+  },
+  {
+   "a": "claude-opus-5-5",
    "b": "gpt-6-luna",
    "episodes": [
     0,
@@ -39,7 +60,7 @@
     15.22
    ],
    "p": 0.0008,
-   "p_holm": 0.0072,
+   "p_holm": 0.016,
    "claim": "claude-opus-5-5"
   },
   {
@@ -60,7 +81,28 @@
     13.88
    ],
    "p": 0.0001,
-   "p_holm": 0.001,
+   "p_holm": 0.0021,
+   "claim": "claude-opus-5-5"
+  },
+  {
+   "a": "claude-opus-5-5",
+   "b": "grok-4.3",
+   "episodes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "n": 6,
+   "mean": 11.62,
+   "ci95": [
+    6.9,
+    16.33
+   ],
+   "p": 0.0014,
+   "p_holm": 0.0266,
    "claim": "claude-opus-5-5"
   },
   {
@@ -81,8 +123,29 @@
     18.52
    ],
    "p": 0.0057,
-   "p_holm": 0.0364,
-   "claim": "claude-opus-5-5"
+   "p_holm": 0.0855,
+   "claim": null
+  },
+  {
+   "a": "gpt-6.2-sol",
+   "b": "deepseek-flash",
+   "episodes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "n": 6,
+   "mean": 9.56,
+   "ci95": [
+    5.39,
+    13.74
+   ],
+   "p": 0.002,
+   "p_holm": 0.036,
+   "claim": "gpt-6.2-sol"
   },
   {
    "a": "gpt-6.2-sol",
@@ -102,7 +165,7 @@
     14.71
    ],
    "p": 0.0024,
-   "p_holm": 0.0192,
+   "p_holm": 0.0408,
    "claim": "gpt-6.2-sol"
   },
   {
@@ -123,7 +186,28 @@
     17.23
    ],
    "p": 0.0136,
-   "p_holm": 0.068,
+   "p_holm": 0.1632,
+   "claim": null
+  },
+  {
+   "a": "gpt-6.2-sol",
+   "b": "grok-4.3",
+   "episodes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "n": 6,
+   "mean": 10.48,
+   "ci95": [
+    4.05,
+    16.91
+   ],
+   "p": 0.0086,
+   "p_holm": 0.1204,
    "claim": null
   },
   {
@@ -144,8 +228,92 @@
     16.64
    ],
    "p": 0.0052,
-   "p_holm": 0.0364,
-   "claim": "gpt-6.2-sol"
+   "p_holm": 0.0832,
+   "claim": null
+  },
+  {
+   "a": "deepseek-flash",
+   "b": "gpt-6-luna",
+   "episodes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "n": 6,
+   "mean": 0.56,
+   "ci95": [
+    -3.28,
+    4.4
+   ],
+   "p": 0.7233,
+   "p_holm": 1.0,
+   "claim": null
+  },
+  {
+   "a": "deepseek-flash",
+   "b": "claude-sonnet-5-5",
+   "episodes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "n": 6,
+   "mean": 0.63,
+   "ci95": [
+    -5.66,
+    6.92
+   ],
+   "p": 0.8061,
+   "p_holm": 1.0,
+   "claim": null
+  },
+  {
+   "a": "deepseek-flash",
+   "b": "grok-4.3",
+   "episodes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "n": 6,
+   "mean": 0.92,
+   "ci95": [
+    -3.41,
+    5.25
+   ],
+   "p": 0.6096,
+   "p_holm": 1.0,
+   "claim": null
+  },
+  {
+   "a": "deepseek-flash",
+   "b": "claude-haiku-5-5",
+   "episodes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "n": 6,
+   "mean": 1.21,
+   "ci95": [
+    -2.35,
+    4.78
+   ],
+   "p": 0.4218,
+   "p_holm": 1.0,
+   "claim": null
   },
   {
    "a": "gpt-6-luna",
@@ -165,6 +333,27 @@
     4.66
    ],
    "p": 0.9688,
+   "p_holm": 1.0,
+   "claim": null
+  },
+  {
+   "a": "gpt-6-luna",
+   "b": "grok-4.3",
+   "episodes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "n": 6,
+   "mean": 0.36,
+   "ci95": [
+    -2.52,
+    3.24
+   ],
+   "p": 0.7631,
    "p_holm": 1.0,
    "claim": null
   },
@@ -191,6 +380,27 @@
   },
   {
    "a": "claude-sonnet-5-5",
+   "b": "grok-4.3",
+   "episodes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "n": 6,
+   "mean": 0.28,
+   "ci95": [
+    -3.84,
+    4.4
+   ],
+   "p": 0.8666,
+   "p_holm": 1.0,
+   "claim": null
+  },
+  {
+   "a": "claude-sonnet-5-5",
    "b": "claude-haiku-5-5",
    "episodes": [
     0,
@@ -207,6 +417,27 @@
     7.38
    ],
    "p": 0.835,
+   "p_holm": 1.0,
+   "claim": null
+  },
+  {
+   "a": "grok-4.3",
+   "b": "claude-haiku-5-5",
+   "episodes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "n": 6,
+   "mean": 0.3,
+   "ci95": [
+    -3.74,
+    4.33
+   ],
+   "p": 0.8574,
    "p_holm": 1.0,
    "claim": null
   }
@@ -305,7 +536,9 @@
    "claude-sonnet-5-5",
    "claude-opus-5-5",
    "gpt-6-luna",
-   "gpt-6.2-sol"
+   "gpt-6.2-sol",
+   "grok-4.3",
+   "deepseek-flash"
   ]
  },
  "harness_version": "1.0.0",
@@ -3922,6 +4155,1806 @@
    ],
    "cost_usd": 41.7691,
    "rank": 2
+  },
+  {
+   "model": "deepseek-flash",
+   "provider": "deepseek",
+   "name": "DeepSeek V4.1 Flash",
+   "effort": "medium",
+   "tiers": {
+    "plus10": {
+     "episodes": 6,
+     "episode_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ],
+     "complete": true,
+     "pulls": 30,
+     "progression_score": 33.4,
+     "progression_score_ci95": [
+      29.4,
+      37.3
+     ],
+     "episode_scores": [
+      35.66,
+      36.86,
+      26.48,
+      33.08,
+      32.7,
+      35.38
+     ],
+     "clear_rate": 0.0,
+     "clears": 0,
+     "clear_rate_ci95": [
+      0.0,
+      0.4593
+     ],
+     "pulls_to_clear_mean": null,
+     "pulls_to_clear": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+     ],
+     "first_pull_score_mean": 31.4,
+     "curve_mean": [
+      31.4,
+      34.2,
+      34.5,
+      33.7,
+      33.0
+     ],
+     "cost_usd": 35.7216,
+     "usd_per_episode": 5.9536,
+     "usd_per_pull": 1.1907,
+     "tokens_per_pull": [
+      1467918,
+      886934
+     ],
+     "refusals": 0,
+     "unusable_replies": 677,
+     "truncated_replies": 654,
+     "invalid_entries": 652,
+     "api_errors": 0,
+     "pulls_out_of_calls": 0,
+     "calls": 9887,
+     "harness_versions": [
+      "1.0.0"
+     ],
+     "episode_list": [
+      {
+       "episode": 0,
+       "run_id": "2026-11-24T0104_deepseek-flash@medium_787a8655",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 70001,
+         "score": 34.4,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 134.2,
+         "file": "replays/deepseek-flash/plus10/ep0-pull1.json.gz",
+         "usd": 1.0507,
+         "stats": {
+          "usd": 1.0507,
+          "calls": 293,
+          "input_tokens": 1171750,
+          "output_tokens": 786548,
+          "cache_read_tokens": 832384,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 28,
+          "truncated_replies": 28,
+          "invalid_entries": 29,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 278,
+           "input_tokens": 1104658,
+           "output_tokens": 766539,
+           "refusals": 0,
+           "unusable_replies": 28,
+           "truncated_replies": 28,
+           "invalid_entries": 29,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 67092,
+           "output_tokens": 20009,
+           "cache_read_tokens": 50688,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 15,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          10,
+          13
+         ],
+         "avoidable": 100108
+        },
+        {
+         "pull": 2,
+         "seed": 70002,
+         "score": 33.3,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 140.8,
+         "file": "replays/deepseek-flash/plus10/ep0-pull2.json.gz",
+         "usd": 1.0176,
+         "stats": {
+          "usd": 1.0176,
+          "calls": 316,
+          "input_tokens": 1437764,
+          "output_tokens": 744550,
+          "cache_read_tokens": 1044736,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 11,
+          "truncated_replies": 10,
+          "invalid_entries": 10,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 301,
+           "input_tokens": 1363028,
+           "output_tokens": 721547,
+           "refusals": 0,
+           "unusable_replies": 10,
+           "truncated_replies": 10,
+           "invalid_entries": 10,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 74736,
+           "output_tokens": 23003,
+           "cache_read_tokens": 51840,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 15,
+           "unusable_replies": 1,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          15,
+          20
+         ],
+         "avoidable": 62216
+        },
+        {
+         "pull": 3,
+         "seed": 70003,
+         "score": 34.0,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 144.5,
+         "file": "replays/deepseek-flash/plus10/ep0-pull3.json.gz",
+         "usd": 1.3728,
+         "stats": {
+          "usd": 1.3728,
+          "calls": 335,
+          "input_tokens": 1545150,
+          "output_tokens": 1032641,
+          "cache_read_tokens": 1122048,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 40,
+          "truncated_replies": 38,
+          "invalid_entries": 38,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 320,
+           "input_tokens": 1470163,
+           "output_tokens": 1008478,
+           "refusals": 0,
+           "unusable_replies": 38,
+           "truncated_replies": 38,
+           "invalid_entries": 38,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 74987,
+           "output_tokens": 24163,
+           "cache_read_tokens": 52096,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 15,
+           "unusable_replies": 2,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          16,
+          22
+         ],
+         "avoidable": 69462
+        },
+        {
+         "pull": 4,
+         "seed": 70004,
+         "score": 41.6,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 222.8,
+         "file": "replays/deepseek-flash/plus10/ep0-pull4.json.gz",
+         "usd": 1.7783,
+         "stats": {
+          "usd": 1.7783,
+          "calls": 445,
+          "input_tokens": 2049571,
+          "output_tokens": 1334835,
+          "cache_read_tokens": 1491072,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 38,
+          "truncated_replies": 38,
+          "invalid_entries": 37,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 430,
+           "input_tokens": 1971766,
+           "output_tokens": 1292273,
+           "refusals": 0,
+           "unusable_replies": 37,
+           "truncated_replies": 37,
+           "invalid_entries": 37,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 77805,
+           "output_tokens": 42562,
+           "cache_read_tokens": 53632,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 15,
+           "unusable_replies": 1,
+           "truncated_replies": 1,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          21,
+          27
+         ],
+         "avoidable": 95206
+        },
+        {
+         "pull": 5,
+         "seed": 70005,
+         "score": 35.0,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 194.9,
+         "file": "replays/deepseek-flash/plus10/ep0-pull5.json.gz",
+         "usd": 1.6039,
+         "stats": {
+          "usd": 1.6039,
+          "calls": 353,
+          "input_tokens": 1611740,
+          "output_tokens": 1223594,
+          "cache_read_tokens": 1183488,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 34,
+          "truncated_replies": 34,
+          "invalid_entries": 34,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 353,
+           "input_tokens": 1611740,
+           "output_tokens": 1223594,
+           "refusals": 0,
+           "unusable_replies": 34,
+           "truncated_replies": 34,
+           "invalid_entries": 34,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 0,
+           "input_tokens": 0,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 7,
+         "kicks": [
+          16,
+          25
+         ],
+         "avoidable": 63464
+        }
+       ]
+      },
+      {
+       "episode": 1,
+       "run_id": "2026-11-24T0705_deepseek-flash@medium_7c4f7127",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 70101,
+         "score": 35.1,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 140.7,
+         "file": "replays/deepseek-flash/plus10/ep1-pull1.json.gz",
+         "usd": 1.2285,
+         "stats": {
+          "usd": 1.2285,
+          "calls": 328,
+          "input_tokens": 1307530,
+          "output_tokens": 925929,
+          "cache_read_tokens": 934784,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 28,
+          "truncated_replies": 27,
+          "invalid_entries": 27,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 313,
+           "input_tokens": 1239966,
+           "output_tokens": 903412,
+           "refusals": 0,
+           "unusable_replies": 27,
+           "truncated_replies": 27,
+           "invalid_entries": 27,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 67564,
+           "output_tokens": 22517,
+           "cache_read_tokens": 49792,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 15,
+           "unusable_replies": 1,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          13,
+          18
+         ],
+         "avoidable": 56374
+        },
+        {
+         "pull": 2,
+         "seed": 70102,
+         "score": 49.4,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 222.7,
+         "file": "replays/deepseek-flash/plus10/ep1-pull2.json.gz",
+         "usd": 1.5522,
+         "stats": {
+          "usd": 1.5522,
+          "calls": 454,
+          "input_tokens": 2007867,
+          "output_tokens": 1144183,
+          "cache_read_tokens": 1439488,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 28,
+          "truncated_replies": 27,
+          "invalid_entries": 27,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 439,
+           "input_tokens": 1932569,
+           "output_tokens": 1119866,
+           "refusals": 0,
+           "unusable_replies": 27,
+           "truncated_replies": 27,
+           "invalid_entries": 27,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 75298,
+           "output_tokens": 24317,
+           "cache_read_tokens": 52480,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 15,
+           "unusable_replies": 1,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          14,
+          17
+         ],
+         "avoidable": 91361
+        },
+        {
+         "pull": 3,
+         "seed": 70103,
+         "score": 37.3,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 186.4,
+         "file": "replays/deepseek-flash/plus10/ep1-pull3.json.gz",
+         "usd": 1.2461,
+         "stats": {
+          "usd": 1.2461,
+          "calls": 364,
+          "input_tokens": 1650176,
+          "output_tokens": 918960,
+          "cache_read_tokens": 1196288,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 22,
+          "truncated_replies": 20,
+          "invalid_entries": 20,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 349,
+           "input_tokens": 1574911,
+           "output_tokens": 902801,
+           "refusals": 0,
+           "unusable_replies": 20,
+           "truncated_replies": 20,
+           "invalid_entries": 20,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 75265,
+           "output_tokens": 16159,
+           "cache_read_tokens": 52480,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 15,
+           "unusable_replies": 2,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          13,
+          16
+         ],
+         "avoidable": 240047
+        },
+        {
+         "pull": 4,
+         "seed": 70104,
+         "score": 26.5,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 155.9,
+         "file": "replays/deepseek-flash/plus10/ep1-pull4.json.gz",
+         "usd": 0.9381,
+         "stats": {
+          "usd": 0.9381,
+          "calls": 307,
+          "input_tokens": 1381187,
+          "output_tokens": 685522,
+          "cache_read_tokens": 1016448,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 12,
+          "truncated_replies": 12,
+          "invalid_entries": 12,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 297,
+           "input_tokens": 1334335,
+           "output_tokens": 662793,
+           "refusals": 0,
+           "unusable_replies": 12,
+           "truncated_replies": 12,
+           "invalid_entries": 12,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 10,
+           "input_tokens": 46852,
+           "output_tokens": 22729,
+           "cache_read_tokens": 29440,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          11,
+          15
+         ],
+         "avoidable": 231863
+        },
+        {
+         "pull": 5,
+         "seed": 70105,
+         "score": 36.0,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 167.7,
+         "file": "replays/deepseek-flash/plus10/ep1-pull5.json.gz",
+         "usd": 1.1599,
+         "stats": {
+          "usd": 1.1599,
+          "calls": 349,
+          "input_tokens": 1603248,
+          "output_tokens": 851829,
+          "cache_read_tokens": 1167744,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 30,
+          "truncated_replies": 30,
+          "invalid_entries": 30,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 349,
+           "input_tokens": 1603248,
+           "output_tokens": 851829,
+           "refusals": 0,
+           "unusable_replies": 30,
+           "truncated_replies": 30,
+           "invalid_entries": 30,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 0,
+           "input_tokens": 0,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          12,
+          15
+         ],
+         "avoidable": 203614
+        }
+       ]
+      },
+      {
+       "episode": 2,
+       "run_id": "2026-11-24T0705_deepseek-flash@medium_7c4f7127",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 70201,
+         "score": 9.4,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 25.3,
+         "file": "replays/deepseek-flash/plus10/ep2-pull1.json.gz",
+         "usd": 0.3462,
+         "stats": {
+          "usd": 0.3462,
+          "calls": 95,
+          "input_tokens": 377485,
+          "output_tokens": 260794,
+          "cache_read_tokens": 272256,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 6,
+          "truncated_replies": 6,
+          "invalid_entries": 6,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 85,
+           "input_tokens": 338986,
+           "output_tokens": 249228,
+           "refusals": 0,
+           "unusable_replies": 6,
+           "truncated_replies": 6,
+           "invalid_entries": 6,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 10,
+           "input_tokens": 38499,
+           "output_tokens": 11566,
+           "cache_read_tokens": 29440,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 10,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          4,
+          7
+         ],
+         "avoidable": 8070
+        },
+        {
+         "pull": 2,
+         "seed": 70202,
+         "score": 27.4,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 136.5,
+         "file": "replays/deepseek-flash/plus10/ep2-pull2.json.gz",
+         "usd": 0.9245,
+         "stats": {
+          "usd": 0.9245,
+          "calls": 285,
+          "input_tokens": 1274330,
+          "output_tokens": 680327,
+          "cache_read_tokens": 932480,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 13,
+          "truncated_replies": 12,
+          "invalid_entries": 12,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 265,
+           "input_tokens": 1177505,
+           "output_tokens": 646828,
+           "refusals": 0,
+           "unusable_replies": 12,
+           "truncated_replies": 12,
+           "invalid_entries": 12,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 20,
+           "input_tokens": 96825,
+           "output_tokens": 33499,
+           "cache_read_tokens": 71936,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 20,
+           "unusable_replies": 1,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          9,
+          13
+         ],
+         "avoidable": 76869
+        },
+        {
+         "pull": 3,
+         "seed": 70203,
+         "score": 32.3,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 136.5,
+         "file": "replays/deepseek-flash/plus10/ep2-pull3.json.gz",
+         "usd": 1.2299,
+         "stats": {
+          "usd": 1.2299,
+          "calls": 331,
+          "input_tokens": 1497988,
+          "output_tokens": 920013,
+          "cache_read_tokens": 1100416,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 21,
+          "truncated_replies": 19,
+          "invalid_entries": 18,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 316,
+           "input_tokens": 1424682,
+           "output_tokens": 891585,
+           "refusals": 0,
+           "unusable_replies": 18,
+           "truncated_replies": 18,
+           "invalid_entries": 18,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 73306,
+           "output_tokens": 28428,
+           "cache_read_tokens": 51328,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 15,
+           "unusable_replies": 3,
+           "truncated_replies": 1,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          13,
+          21
+         ],
+         "avoidable": 92922
+        },
+        {
+         "pull": 4,
+         "seed": 70204,
+         "score": 33.1,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 154.0,
+         "file": "replays/deepseek-flash/plus10/ep2-pull4.json.gz",
+         "usd": 1.0242,
+         "stats": {
+          "usd": 1.0242,
+          "calls": 327,
+          "input_tokens": 1493002,
+          "output_tokens": 744810,
+          "cache_read_tokens": 1079808,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 11,
+          "truncated_replies": 10,
+          "invalid_entries": 10,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 312,
+           "input_tokens": 1418586,
+           "output_tokens": 714967,
+           "refusals": 0,
+           "unusable_replies": 10,
+           "truncated_replies": 10,
+           "invalid_entries": 10,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 74416,
+           "output_tokens": 29843,
+           "cache_read_tokens": 51968,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 15,
+           "unusable_replies": 1,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          12,
+          15
+         ],
+         "avoidable": 49318
+        },
+        {
+         "pull": 5,
+         "seed": 70205,
+         "score": 30.2,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 192.4,
+         "file": "replays/deepseek-flash/plus10/ep2-pull5.json.gz",
+         "usd": 1.2503,
+         "stats": {
+          "usd": 1.2503,
+          "calls": 357,
+          "input_tokens": 1601982,
+          "output_tokens": 932481,
+          "cache_read_tokens": 1187840,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 20,
+          "truncated_replies": 20,
+          "invalid_entries": 20,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 357,
+           "input_tokens": 1601982,
+           "output_tokens": 932481,
+           "refusals": 0,
+           "unusable_replies": 20,
+           "truncated_replies": 20,
+           "invalid_entries": 20,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 0,
+           "input_tokens": 0,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          18,
+          25
+         ],
+         "avoidable": 82149
+        }
+       ]
+      },
+      {
+       "episode": 3,
+       "run_id": "2026-11-24T0705_deepseek-flash@medium_7c4f7127",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 70301,
+         "score": 36.3,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 142.2,
+         "file": "replays/deepseek-flash/plus10/ep3-pull1.json.gz",
+         "usd": 1.1294,
+         "stats": {
+          "usd": 1.1294,
+          "calls": 297,
+          "input_tokens": 1180967,
+          "output_tokens": 852908,
+          "cache_read_tokens": 844672,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 24,
+          "truncated_replies": 24,
+          "invalid_entries": 24,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 287,
+           "input_tokens": 1136959,
+           "output_tokens": 824694,
+           "refusals": 0,
+           "unusable_replies": 24,
+           "truncated_replies": 24,
+           "invalid_entries": 24,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 10,
+           "input_tokens": 44008,
+           "output_tokens": 28214,
+           "cache_read_tokens": 29440,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 10,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          12,
+          15
+         ],
+         "avoidable": 69963
+        },
+        {
+         "pull": 2,
+         "seed": 70302,
+         "score": 29.4,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 145.1,
+         "file": "replays/deepseek-flash/plus10/ep3-pull2.json.gz",
+         "usd": 0.9427,
+         "stats": {
+          "usd": 0.9427,
+          "calls": 295,
+          "input_tokens": 1328739,
+          "output_tokens": 692412,
+          "cache_read_tokens": 975616,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 19,
+          "truncated_replies": 16,
+          "invalid_entries": 16,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 280,
+           "input_tokens": 1257199,
+           "output_tokens": 675339,
+           "refusals": 0,
+           "unusable_replies": 16,
+           "truncated_replies": 16,
+           "invalid_entries": 16,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 71540,
+           "output_tokens": 17073,
+           "cache_read_tokens": 51072,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 15,
+           "unusable_replies": 3,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          13,
+          19
+         ],
+         "avoidable": 45006
+        },
+        {
+         "pull": 3,
+         "seed": 70303,
+         "score": 33.0,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 119.6,
+         "file": "replays/deepseek-flash/plus10/ep3-pull3.json.gz",
+         "usd": 0.8033,
+         "stats": {
+          "usd": 0.8033,
+          "calls": 270,
+          "input_tokens": 1233824,
+          "output_tokens": 582552,
+          "cache_read_tokens": 904320,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 9,
+          "truncated_replies": 8,
+          "invalid_entries": 8,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 255,
+           "input_tokens": 1160056,
+           "output_tokens": 559199,
+           "refusals": 0,
+           "unusable_replies": 8,
+           "truncated_replies": 8,
+           "invalid_entries": 8,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 73768,
+           "output_tokens": 23353,
+           "cache_read_tokens": 51712,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 15,
+           "unusable_replies": 1,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          11,
+          14
+         ],
+         "avoidable": 41991
+        },
+        {
+         "pull": 4,
+         "seed": 70304,
+         "score": 34.1,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 149.2,
+         "file": "replays/deepseek-flash/plus10/ep3-pull4.json.gz",
+         "usd": 1.1348,
+         "stats": {
+          "usd": 1.1348,
+          "calls": 314,
+          "input_tokens": 1434684,
+          "output_tokens": 844867,
+          "cache_read_tokens": 1052416,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 27,
+          "truncated_replies": 26,
+          "invalid_entries": 26,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 299,
+           "input_tokens": 1359766,
+           "output_tokens": 817646,
+           "refusals": 0,
+           "unusable_replies": 26,
+           "truncated_replies": 26,
+           "invalid_entries": 26,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 74918,
+           "output_tokens": 27221,
+           "cache_read_tokens": 52224,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 15,
+           "unusable_replies": 1,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          12,
+          15
+         ],
+         "avoidable": 63243
+        },
+        {
+         "pull": 5,
+         "seed": 70305,
+         "score": 32.6,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 177.0,
+         "file": "replays/deepseek-flash/plus10/ep3-pull5.json.gz",
+         "usd": 1.3699,
+         "stats": {
+          "usd": 1.3699,
+          "calls": 356,
+          "input_tokens": 1631038,
+          "output_tokens": 1023482,
+          "cache_read_tokens": 1182208,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 27,
+          "truncated_replies": 27,
+          "invalid_entries": 27,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 356,
+           "input_tokens": 1631038,
+           "output_tokens": 1023482,
+           "refusals": 0,
+           "unusable_replies": 27,
+           "truncated_replies": 27,
+           "invalid_entries": 27,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 0,
+           "input_tokens": 0,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          15,
+          22
+         ],
+         "avoidable": 100611
+        }
+       ]
+      },
+      {
+       "episode": 4,
+       "run_id": "2026-11-24T0705_deepseek-flash@medium_7c4f7127",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 70401,
+         "score": 35.6,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 149.8,
+         "file": "replays/deepseek-flash/plus10/ep4-pull1.json.gz",
+         "usd": 1.1254,
+         "stats": {
+          "usd": 1.1254,
+          "calls": 309,
+          "input_tokens": 1239195,
+          "output_tokens": 843231,
+          "cache_read_tokens": 878336,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 20,
+          "truncated_replies": 20,
+          "invalid_entries": 20,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 299,
+           "input_tokens": 1195290,
+           "output_tokens": 827994,
+           "refusals": 0,
+           "unusable_replies": 20,
+           "truncated_replies": 20,
+           "invalid_entries": 20,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 10,
+           "input_tokens": 43905,
+           "output_tokens": 15237,
+           "cache_read_tokens": 29440,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 10,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          13,
+          18
+         ],
+         "avoidable": 67378
+        },
+        {
+         "pull": 2,
+         "seed": 70402,
+         "score": 32.3,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 142.4,
+         "file": "replays/deepseek-flash/plus10/ep4-pull2.json.gz",
+         "usd": 1.1519,
+         "stats": {
+          "usd": 1.1519,
+          "calls": 330,
+          "input_tokens": 1522395,
+          "output_tokens": 851956,
+          "cache_read_tokens": 1112960,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 17,
+          "truncated_replies": 15,
+          "invalid_entries": 16,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 310,
+           "input_tokens": 1420469,
+           "output_tokens": 818652,
+           "refusals": 0,
+           "unusable_replies": 16,
+           "truncated_replies": 15,
+           "invalid_entries": 16,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 20,
+           "input_tokens": 101926,
+           "output_tokens": 33304,
+           "cache_read_tokens": 75008,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 20,
+           "unusable_replies": 1,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 6,
+         "kicks": [
+          12,
+          17
+         ],
+         "avoidable": 58510
+        },
+        {
+         "pull": 3,
+         "seed": 70403,
+         "score": 33.9,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 197.1,
+         "file": "replays/deepseek-flash/plus10/ep4-pull3.json.gz",
+         "usd": 1.2682,
+         "stats": {
+          "usd": 1.2682,
+          "calls": 359,
+          "input_tokens": 1651655,
+          "output_tokens": 941031,
+          "cache_read_tokens": 1212672,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 21,
+          "truncated_replies": 21,
+          "invalid_entries": 21,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 344,
+           "input_tokens": 1574737,
+           "output_tokens": 918712,
+           "refusals": 0,
+           "unusable_replies": 21,
+           "truncated_replies": 21,
+           "invalid_entries": 21,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 76918,
+           "output_tokens": 22319,
+           "cache_read_tokens": 52608,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 15,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          12,
+          15
+         ],
+         "avoidable": 59773
+        },
+        {
+         "pull": 4,
+         "seed": 70404,
+         "score": 31.5,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 131.2,
+         "file": "replays/deepseek-flash/plus10/ep4-pull4.json.gz",
+         "usd": 1.1931,
+         "stats": {
+          "usd": 1.1931,
+          "calls": 287,
+          "input_tokens": 1320514,
+          "output_tokens": 899473,
+          "cache_read_tokens": 960768,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 30,
+          "truncated_replies": 29,
+          "invalid_entries": 29,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 267,
+           "input_tokens": 1219440,
+           "output_tokens": 875898,
+           "refusals": 0,
+           "unusable_replies": 29,
+           "truncated_replies": 29,
+           "invalid_entries": 29,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 20,
+           "input_tokens": 101074,
+           "output_tokens": 23575,
+           "cache_read_tokens": 74752,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 1,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          11,
+          15
+         ],
+         "avoidable": 34687
+        },
+        {
+         "pull": 5,
+         "seed": 70405,
+         "score": 30.2,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 137.5,
+         "file": "replays/deepseek-flash/plus10/ep4-pull5.json.gz",
+         "usd": 1.1512,
+         "stats": {
+          "usd": 1.1512,
+          "calls": 295,
+          "input_tokens": 1349869,
+          "output_tokens": 863621,
+          "cache_read_tokens": 986880,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 25,
+          "truncated_replies": 25,
+          "invalid_entries": 26,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 295,
+           "input_tokens": 1349869,
+           "output_tokens": 863621,
+           "refusals": 0,
+           "unusable_replies": 25,
+           "truncated_replies": 25,
+           "invalid_entries": 26,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 0,
+           "input_tokens": 0,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          13,
+          19
+         ],
+         "avoidable": 29743
+        }
+       ]
+      },
+      {
+       "episode": 5,
+       "run_id": "2026-11-24T0705_deepseek-flash@medium_7c4f7127",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 70501,
+         "score": 37.9,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 196.6,
+         "file": "replays/deepseek-flash/plus10/ep5-pull1.json.gz",
+         "usd": 1.8393,
+         "stats": {
+          "usd": 1.8393,
+          "calls": 445,
+          "input_tokens": 1779990,
+          "output_tokens": 1398156,
+          "cache_read_tokens": 1266816,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 34,
+          "truncated_replies": 34,
+          "invalid_entries": 33,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 430,
+           "input_tokens": 1710215,
+           "output_tokens": 1362987,
+           "refusals": 0,
+           "unusable_replies": 33,
+           "truncated_replies": 33,
+           "invalid_entries": 33,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 69775,
+           "output_tokens": 35169,
+           "cache_read_tokens": 50816,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 15,
+           "unusable_replies": 1,
+           "truncated_replies": 1,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 7,
+         "kicks": [
+          24,
+          33
+         ],
+         "avoidable": 84223
+        },
+        {
+         "pull": 2,
+         "seed": 70502,
+         "score": 33.4,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 158.1,
+         "file": "replays/deepseek-flash/plus10/ep5-pull2.json.gz",
+         "usd": 1.2018,
+         "stats": {
+          "usd": 1.2018,
+          "calls": 341,
+          "input_tokens": 1520976,
+          "output_tokens": 890461,
+          "cache_read_tokens": 1098752,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 14,
+          "truncated_replies": 13,
+          "invalid_entries": 13,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 326,
+           "input_tokens": 1446853,
+           "output_tokens": 863252,
+           "refusals": 0,
+           "unusable_replies": 13,
+           "truncated_replies": 13,
+           "invalid_entries": 13,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 74123,
+           "output_tokens": 27209,
+           "cache_read_tokens": 51712,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 15,
+           "unusable_replies": 1,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          11,
+          15
+         ],
+         "avoidable": 84649
+        },
+        {
+         "pull": 3,
+         "seed": 70503,
+         "score": 36.2,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 163.3,
+         "file": "replays/deepseek-flash/plus10/ep5-pull3.json.gz",
+         "usd": 1.3409,
+         "stats": {
+          "usd": 1.3409,
+          "calls": 386,
+          "input_tokens": 1774424,
+          "output_tokens": 992970,
+          "cache_read_tokens": 1302656,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 20,
+          "truncated_replies": 19,
+          "invalid_entries": 18,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 366,
+           "input_tokens": 1672607,
+           "output_tokens": 949135,
+           "refusals": 0,
+           "unusable_replies": 18,
+           "truncated_replies": 18,
+           "invalid_entries": 18,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 20,
+           "input_tokens": 101817,
+           "output_tokens": 43835,
+           "cache_read_tokens": 75008,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 2,
+           "unusable_replies": 2,
+           "truncated_replies": 1,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          13,
+          18
+         ],
+         "avoidable": 120847
+        },
+        {
+         "pull": 4,
+         "seed": 70504,
+         "score": 35.2,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 182.5,
+         "file": "replays/deepseek-flash/plus10/ep5-pull4.json.gz",
+         "usd": 1.2325,
+         "stats": {
+          "usd": 1.2325,
+          "calls": 350,
+          "input_tokens": 1621852,
+          "output_tokens": 913037,
+          "cache_read_tokens": 1189504,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 23,
+          "truncated_replies": 21,
+          "invalid_entries": 20,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 335,
+           "input_tokens": 1545921,
+           "output_tokens": 880743,
+           "refusals": 0,
+           "unusable_replies": 20,
+           "truncated_replies": 20,
+           "invalid_entries": 20,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 75931,
+           "output_tokens": 32294,
+           "cache_read_tokens": 52608,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 3,
+           "truncated_replies": 1,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          13,
+          17
+         ],
+         "avoidable": 33336
+        },
+        {
+         "pull": 5,
+         "seed": 70505,
+         "score": 34.2,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 181.0,
+         "file": "replays/deepseek-flash/plus10/ep5-pull5.json.gz",
+         "usd": 1.114,
+         "stats": {
+          "usd": 1.114,
+          "calls": 314,
+          "input_tokens": 1436642,
+          "output_tokens": 830841,
+          "cache_read_tokens": 1067904,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 25,
+          "truncated_replies": 25,
+          "invalid_entries": 25,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 314,
+           "input_tokens": 1436642,
+           "output_tokens": 830841,
+           "refusals": 0,
+           "unusable_replies": 25,
+           "truncated_replies": 25,
+           "invalid_entries": 25,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 0,
+           "input_tokens": 0,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          12,
+          18
+         ],
+         "avoidable": 129146
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "complete": true,
+   "mythicbench_score": 33.4,
+   "mythicbench_score_ci95": [
+    29.4,
+    37.3
+   ],
+   "cost_usd": 35.7216,
+   "rank": 3
   },
   {
    "model": "gpt-6-luna",
@@ -8425,7 +10458,7 @@
     33.8
    ],
    "cost_usd": 3.348,
-   "rank": 3
+   "rank": 4
   },
   {
    "model": "claude-sonnet-5-5",
@@ -10225,7 +12258,1807 @@
     36.7
    ],
    "cost_usd": 50.3622,
-   "rank": 4
+   "rank": 5
+  },
+  {
+   "model": "grok-4.3",
+   "provider": "xai",
+   "name": "Grok 4.3",
+   "effort": "medium",
+   "tiers": {
+    "plus10": {
+     "episodes": 6,
+     "episode_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ],
+     "complete": true,
+     "pulls": 30,
+     "progression_score": 32.4,
+     "progression_score_ci95": [
+      30.3,
+      34.6
+     ],
+     "episode_scores": [
+      31.44,
+      34.84,
+      33.7,
+      31.42,
+      29.36,
+      33.9
+     ],
+     "clear_rate": 0.0,
+     "clears": 0,
+     "clear_rate_ci95": [
+      0.0,
+      0.4593
+     ],
+     "pulls_to_clear_mean": null,
+     "pulls_to_clear": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+     ],
+     "first_pull_score_mean": 34.8,
+     "curve_mean": [
+      34.8,
+      31.7,
+      28.1,
+      34.0,
+      33.6
+     ],
+     "cost_usd": 51.9162,
+     "usd_per_episode": 8.6527,
+     "usd_per_pull": 1.7305,
+     "tokens_per_pull": [
+      1312348,
+      410357
+     ],
+     "refusals": 0,
+     "unusable_replies": 5,
+     "truncated_replies": 0,
+     "invalid_entries": 22,
+     "api_errors": 0,
+     "pulls_out_of_calls": 0,
+     "calls": 10195,
+     "harness_versions": [
+      "1.0.0"
+     ],
+     "episode_list": [
+      {
+       "episode": 0,
+       "run_id": "2026-11-23T2058_grok-4.3@medium_b3ba69f5",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 70001,
+         "score": 29.5,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 197.7,
+         "file": "replays/grok-4.3/plus10/ep0-pull1.json.gz",
+         "usd": 1.8827,
+         "stats": {
+          "usd": 1.8827,
+          "calls": 357,
+          "input_tokens": 1291401,
+          "output_tokens": 436811,
+          "cache_read_tokens": 784384,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 342,
+           "input_tokens": 1228229,
+           "output_tokens": 425613,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 63172,
+           "output_tokens": 11198,
+           "cache_read_tokens": 14720,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          10,
+          15
+         ],
+         "avoidable": 19891
+        },
+        {
+         "pull": 2,
+         "seed": 70002,
+         "score": 32.8,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 171.1,
+         "file": "replays/grok-4.3/plus10/ep0-pull2.json.gz",
+         "usd": 1.7718,
+         "stats": {
+          "usd": 1.7718,
+          "calls": 337,
+          "input_tokens": 1299029,
+          "output_tokens": 404975,
+          "cache_read_tokens": 823296,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 1,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 322,
+           "input_tokens": 1231374,
+           "output_tokens": 393995,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 67655,
+           "output_tokens": 10980,
+           "cache_read_tokens": 9088,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 1,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          12,
+          16
+         ],
+         "avoidable": 52182
+        },
+        {
+         "pull": 3,
+         "seed": 70003,
+         "score": 30.6,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 187.5,
+         "file": "replays/grok-4.3/plus10/ep0-pull3.json.gz",
+         "usd": 1.7979,
+         "stats": {
+          "usd": 1.7979,
+          "calls": 328,
+          "input_tokens": 1290317,
+          "output_tokens": 403661,
+          "cache_read_tokens": 784896,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 313,
+           "input_tokens": 1220529,
+           "output_tokens": 393617,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 69788,
+           "output_tokens": 10044,
+           "cache_read_tokens": 6144,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 9,
+         "kicks": [
+          13,
+          17
+         ],
+         "avoidable": 21447
+        },
+        {
+         "pull": 4,
+         "seed": 70004,
+         "score": 33.0,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 180.0,
+         "file": "replays/grok-4.3/plus10/ep0-pull4.json.gz",
+         "usd": 1.7616,
+         "stats": {
+          "usd": 1.7616,
+          "calls": 338,
+          "input_tokens": 1334230,
+          "output_tokens": 405902,
+          "cache_read_tokens": 877056,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 323,
+           "input_tokens": 1263037,
+           "output_tokens": 395183,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 71193,
+           "output_tokens": 10719,
+           "cache_read_tokens": 6272,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 6,
+         "kicks": [
+          12,
+          17
+         ],
+         "avoidable": 73553
+        },
+        {
+         "pull": 5,
+         "seed": 70005,
+         "score": 31.3,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 168.0,
+         "file": "replays/grok-4.3/plus10/ep0-pull5.json.gz",
+         "usd": 1.5954,
+         "stats": {
+          "usd": 1.5954,
+          "calls": 307,
+          "input_tokens": 1198492,
+          "output_tokens": 369684,
+          "cache_read_tokens": 787584,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 2,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 307,
+           "input_tokens": 1198492,
+           "output_tokens": 369684,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 2,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 0,
+           "input_tokens": 0,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 6,
+         "kicks": [
+          11,
+          15
+         ],
+         "avoidable": 38358
+        }
+       ]
+      },
+      {
+       "episode": 1,
+       "run_id": "2026-11-24T0705_grok-4.3@medium_d376fc97",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 70101,
+         "score": 41.6,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 197.5,
+         "file": "replays/grok-4.3/plus10/ep1-pull1.json.gz",
+         "usd": 1.8013,
+         "stats": {
+          "usd": 1.8013,
+          "calls": 372,
+          "input_tokens": 1368414,
+          "output_tokens": 447847,
+          "cache_read_tokens": 979840,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 1,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 357,
+           "input_tokens": 1303250,
+           "output_tokens": 436706,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 1,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 65164,
+           "output_tokens": 11141,
+           "cache_read_tokens": 18816,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 15,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          12,
+          17
+         ],
+         "avoidable": 18255
+        },
+        {
+         "pull": 2,
+         "seed": 70102,
+         "score": 34.2,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 175.9,
+         "file": "replays/grok-4.3/plus10/ep1-pull2.json.gz",
+         "usd": 1.8755,
+         "stats": {
+          "usd": 1.8755,
+          "calls": 365,
+          "input_tokens": 1415007,
+          "output_tokens": 446655,
+          "cache_read_tokens": 961792,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 2,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 350,
+           "input_tokens": 1346537,
+           "output_tokens": 434062,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 2,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 68470,
+           "output_tokens": 12593,
+           "cache_read_tokens": 29696,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 15,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 6,
+         "kicks": [
+          10,
+          16
+         ],
+         "avoidable": 60040
+        },
+        {
+         "pull": 3,
+         "seed": 70103,
+         "score": 29.1,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 170.9,
+         "file": "replays/grok-4.3/plus10/ep1-pull3.json.gz",
+         "usd": 1.6223,
+         "stats": {
+          "usd": 1.6223,
+          "calls": 332,
+          "input_tokens": 1281594,
+          "output_tokens": 380797,
+          "cache_read_tokens": 887296,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 1,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 317,
+           "input_tokens": 1214482,
+           "output_tokens": 369672,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 1,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 67112,
+           "output_tokens": 11125,
+           "cache_read_tokens": 19584,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 15,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          10,
+          14
+         ],
+         "avoidable": 87787
+        },
+        {
+         "pull": 4,
+         "seed": 70104,
+         "score": 33.5,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 183.5,
+         "file": "replays/grok-4.3/plus10/ep1-pull4.json.gz",
+         "usd": 1.7651,
+         "stats": {
+          "usd": 1.7651,
+          "calls": 353,
+          "input_tokens": 1385197,
+          "output_tokens": 413352,
+          "cache_read_tokens": 952192,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 2,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 338,
+           "input_tokens": 1315862,
+           "output_tokens": 401562,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 2,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 69335,
+           "output_tokens": 11790,
+           "cache_read_tokens": 35584,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 15,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 6,
+         "kicks": [
+          13,
+          18
+         ],
+         "avoidable": 55366
+        },
+        {
+         "pull": 5,
+         "seed": 70105,
+         "score": 35.8,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 184.4,
+         "file": "replays/grok-4.3/plus10/ep1-pull5.json.gz",
+         "usd": 1.8883,
+         "stats": {
+          "usd": 1.8883,
+          "calls": 364,
+          "input_tokens": 1418412,
+          "output_tokens": 450624,
+          "cache_read_tokens": 963072,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 3,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 364,
+           "input_tokens": 1418412,
+           "output_tokens": 450624,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 3,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 0,
+           "input_tokens": 0,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          12,
+          15
+         ],
+         "avoidable": 87693
+        }
+       ]
+      },
+      {
+       "episode": 2,
+       "run_id": "2026-11-24T0248_grok-4.3@medium_664044a6",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 70201,
+         "score": 37.0,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 184.7,
+         "file": "replays/grok-4.3/plus10/ep2-pull1.json.gz",
+         "usd": 1.7158,
+         "stats": {
+          "usd": 1.7158,
+          "calls": 359,
+          "input_tokens": 1318654,
+          "output_tokens": 433241,
+          "cache_read_tokens": 967296,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 344,
+           "input_tokens": 1252955,
+           "output_tokens": 421643,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 65699,
+           "output_tokens": 11598,
+           "cache_read_tokens": 38400,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          12,
+          15
+         ],
+         "avoidable": 32531
+        },
+        {
+         "pull": 2,
+         "seed": 70202,
+         "score": 32.3,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 160.3,
+         "file": "replays/grok-4.3/plus10/ep2-pull2.json.gz",
+         "usd": 1.6308,
+         "stats": {
+          "usd": 1.6308,
+          "calls": 325,
+          "input_tokens": 1253530,
+          "output_tokens": 369438,
+          "cache_read_tokens": 818816,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 310,
+           "input_tokens": 1186417,
+           "output_tokens": 357433,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 67113,
+           "output_tokens": 12005,
+           "cache_read_tokens": 17920,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          12,
+          15
+         ],
+         "avoidable": 45982
+        },
+        {
+         "pull": 3,
+         "seed": 70203,
+         "score": 33.5,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 199.7,
+         "file": "replays/grok-4.3/plus10/ep2-pull3.json.gz",
+         "usd": 1.8968,
+         "stats": {
+          "usd": 1.8968,
+          "calls": 368,
+          "input_tokens": 1451573,
+          "output_tokens": 442467,
+          "cache_read_tokens": 975104,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 1,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 353,
+           "input_tokens": 1381435,
+           "output_tokens": 430359,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 1,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 70138,
+           "output_tokens": 12108,
+           "cache_read_tokens": 11904,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 6,
+         "kicks": [
+          10,
+          16
+         ],
+         "avoidable": 59148
+        },
+        {
+         "pull": 4,
+         "seed": 70204,
+         "score": 32.7,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 174.6,
+         "file": "replays/grok-4.3/plus10/ep2-pull4.json.gz",
+         "usd": 1.8212,
+         "stats": {
+          "usd": 1.8212,
+          "calls": 358,
+          "input_tokens": 1424049,
+          "output_tokens": 425662,
+          "cache_read_tokens": 974336,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 1,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 343,
+           "input_tokens": 1354689,
+           "output_tokens": 413298,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 1,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 69360,
+           "output_tokens": 12364,
+           "cache_read_tokens": 12160,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          12,
+          16
+         ],
+         "avoidable": 47408
+        },
+        {
+         "pull": 5,
+         "seed": 70205,
+         "score": 33.0,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 166.2,
+         "file": "replays/grok-4.3/plus10/ep2-pull5.json.gz",
+         "usd": 1.5824,
+         "stats": {
+          "usd": 1.5824,
+          "calls": 324,
+          "input_tokens": 1273759,
+          "output_tokens": 387305,
+          "cache_read_tokens": 931456,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 324,
+           "input_tokens": 1273759,
+           "output_tokens": 387305,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 0,
+           "input_tokens": 0,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          12,
+          17
+         ],
+         "avoidable": 7966
+        }
+       ]
+      },
+      {
+       "episode": 3,
+       "run_id": "2026-11-24T0248_grok-4.3@medium_664044a6",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 70301,
+         "score": 32.1,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 245.9,
+         "file": "replays/grok-4.3/plus10/ep3-pull1.json.gz",
+         "usd": 2.1843,
+         "stats": {
+          "usd": 2.1843,
+          "calls": 434,
+          "input_tokens": 1600687,
+          "output_tokens": 566984,
+          "cache_read_tokens": 1175296,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 419,
+           "input_tokens": 1534070,
+           "output_tokens": 556690,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 66617,
+           "output_tokens": 10294,
+           "cache_read_tokens": 24832,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          13,
+          25
+         ],
+         "avoidable": 17736
+        },
+        {
+         "pull": 2,
+         "seed": 70302,
+         "score": 27.2,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 153.8,
+         "file": "replays/grok-4.3/plus10/ep3-pull2.json.gz",
+         "usd": 1.5017,
+         "stats": {
+          "usd": 1.5017,
+          "calls": 309,
+          "input_tokens": 1188437,
+          "output_tokens": 364923,
+          "cache_read_tokens": 853504,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 1,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 299,
+           "input_tokens": 1144864,
+           "output_tokens": 356498,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 1,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 10,
+           "input_tokens": 43573,
+           "output_tokens": 8425,
+           "cache_read_tokens": 18944,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          11,
+          16
+         ],
+         "avoidable": 52646
+        },
+        {
+         "pull": 3,
+         "seed": 70303,
+         "score": 32.3,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 160.8,
+         "file": "replays/grok-4.3/plus10/ep3-pull3.json.gz",
+         "usd": 1.6821,
+         "stats": {
+          "usd": 1.6821,
+          "calls": 329,
+          "input_tokens": 1278581,
+          "output_tokens": 387305,
+          "cache_read_tokens": 842240,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 2,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 314,
+           "input_tokens": 1211321,
+           "output_tokens": 376939,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 2,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 67260,
+           "output_tokens": 10366,
+           "cache_read_tokens": 23808,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          10,
+          14
+         ],
+         "avoidable": 18874
+        },
+        {
+         "pull": 4,
+         "seed": 70304,
+         "score": 32.5,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 157.4,
+         "file": "replays/grok-4.3/plus10/ep3-pull4.json.gz",
+         "usd": 1.704,
+         "stats": {
+          "usd": 1.704,
+          "calls": 320,
+          "input_tokens": 1267100,
+          "output_tokens": 395228,
+          "cache_read_tokens": 826624,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 305,
+           "input_tokens": 1199197,
+           "output_tokens": 384014,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 67903,
+           "output_tokens": 11214,
+           "cache_read_tokens": 28032,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          11,
+          15
+         ],
+         "avoidable": 39139
+        },
+        {
+         "pull": 5,
+         "seed": 70305,
+         "score": 33.0,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 155.8,
+         "file": "replays/grok-4.3/plus10/ep3-pull5.json.gz",
+         "usd": 1.7105,
+         "stats": {
+          "usd": 1.7105,
+          "calls": 323,
+          "input_tokens": 1265427,
+          "output_tokens": 416244,
+          "cache_read_tokens": 868480,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 323,
+           "input_tokens": 1265427,
+           "output_tokens": 416244,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 0,
+           "input_tokens": 0,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          9,
+          15
+         ],
+         "avoidable": 19862
+        }
+       ]
+      },
+      {
+       "episode": 4,
+       "run_id": "2026-11-24T0248_grok-4.3@medium_664044a6",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 70401,
+         "score": 34.0,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 203.8,
+         "file": "replays/grok-4.3/plus10/ep4-pull1.json.gz",
+         "usd": 1.9464,
+         "stats": {
+          "usd": 1.9464,
+          "calls": 370,
+          "input_tokens": 1385794,
+          "output_tokens": 484980,
+          "cache_read_tokens": 950784,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 1,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 355,
+           "input_tokens": 1319731,
+           "output_tokens": 474434,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 1,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 66063,
+           "output_tokens": 10546,
+           "cache_read_tokens": 27776,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          12,
+          18
+         ],
+         "avoidable": 35101
+        },
+        {
+         "pull": 2,
+         "seed": 70402,
+         "score": 32.4,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 160.1,
+         "file": "replays/grok-4.3/plus10/ep4-pull2.json.gz",
+         "usd": 1.6424,
+         "stats": {
+          "usd": 1.6424,
+          "calls": 334,
+          "input_tokens": 1297618,
+          "output_tokens": 388993,
+          "cache_read_tokens": 906752,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 1,
+          "truncated_replies": 0,
+          "invalid_entries": 2,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 324,
+           "input_tokens": 1253272,
+           "output_tokens": 381517,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 2,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 10,
+           "input_tokens": 44346,
+           "output_tokens": 7476,
+           "cache_read_tokens": 16000,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 1,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          11,
+          17
+         ],
+         "avoidable": 29709
+        },
+        {
+         "pull": 3,
+         "seed": 70403,
+         "score": 8.2,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 38.6,
+         "file": "replays/grok-4.3/plus10/ep4-pull3.json.gz",
+         "usd": 0.4894,
+         "stats": {
+          "usd": 0.4894,
+          "calls": 95,
+          "input_tokens": 372879,
+          "output_tokens": 106842,
+          "cache_read_tokens": 232192,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 80,
+           "input_tokens": 314418,
+           "output_tokens": 95616,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 58461,
+           "output_tokens": 11226,
+           "cache_read_tokens": 29056,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          4,
+          7
+         ],
+         "avoidable": 0
+        },
+        {
+         "pull": 4,
+         "seed": 70404,
+         "score": 38.6,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 213.2,
+         "file": "replays/grok-4.3/plus10/ep4-pull4.json.gz",
+         "usd": 1.9476,
+         "stats": {
+          "usd": 1.9476,
+          "calls": 382,
+          "input_tokens": 1502965,
+          "output_tokens": 453083,
+          "cache_read_tokens": 1013120,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 1,
+          "truncated_replies": 0,
+          "invalid_entries": 1,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 367,
+           "input_tokens": 1432221,
+           "output_tokens": 441088,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 1,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 70744,
+           "output_tokens": 11995,
+           "cache_read_tokens": 25472,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 1,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          13,
+          18
+         ],
+         "avoidable": 32033
+        },
+        {
+         "pull": 5,
+         "seed": 70405,
+         "score": 33.6,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 188.3,
+         "file": "replays/grok-4.3/plus10/ep4-pull5.json.gz",
+         "usd": 1.7945,
+         "stats": {
+          "usd": 1.7945,
+          "calls": 356,
+          "input_tokens": 1371485,
+          "output_tokens": 415547,
+          "cache_read_tokens": 913024,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 356,
+           "input_tokens": 1371485,
+           "output_tokens": 415547,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 0,
+           "input_tokens": 0,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          11,
+          15
+         ],
+         "avoidable": 26549
+        }
+       ]
+      },
+      {
+       "episode": 5,
+       "run_id": "2026-11-24T0248_grok-4.3@medium_664044a6",
+       "pulls": [
+        {
+         "pull": 1,
+         "seed": 70501,
+         "score": 34.6,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 170.6,
+         "file": "replays/grok-4.3/plus10/ep5-pull1.json.gz",
+         "usd": 1.6939,
+         "stats": {
+          "usd": 1.6939,
+          "calls": 341,
+          "input_tokens": 1265266,
+          "output_tokens": 411567,
+          "cache_read_tokens": 872960,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 326,
+           "input_tokens": 1200616,
+           "output_tokens": 400335,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 64650,
+           "output_tokens": 11232,
+           "cache_read_tokens": 1920,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          11,
+          15
+         ],
+         "avoidable": 15824
+        },
+        {
+         "pull": 2,
+         "seed": 70502,
+         "score": 31.4,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 178.0,
+         "file": "replays/grok-4.3/plus10/ep5-pull2.json.gz",
+         "usd": 1.7918,
+         "stats": {
+          "usd": 1.7918,
+          "calls": 341,
+          "input_tokens": 1340242,
+          "output_tokens": 419301,
+          "cache_read_tokens": 887424,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 326,
+           "input_tokens": 1272887,
+           "output_tokens": 407099,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 67355,
+           "output_tokens": 12202,
+           "cache_read_tokens": 39808,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          10,
+          15
+         ],
+         "avoidable": 44008
+        },
+        {
+         "pull": 3,
+         "seed": 70503,
+         "score": 34.6,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 165.4,
+         "file": "replays/grok-4.3/plus10/ep5-pull3.json.gz",
+         "usd": 1.7365,
+         "stats": {
+          "usd": 1.7365,
+          "calls": 338,
+          "input_tokens": 1326128,
+          "output_tokens": 409379,
+          "cache_read_tokens": 899584,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 1,
+          "truncated_replies": 0,
+          "invalid_entries": 1,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 328,
+           "input_tokens": 1280897,
+           "output_tokens": 400469,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 1,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 10,
+           "input_tokens": 45231,
+           "output_tokens": 8910,
+           "cache_read_tokens": 1280,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 1,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          12,
+          16
+         ],
+         "avoidable": 8151
+        },
+        {
+         "pull": 4,
+         "seed": 70504,
+         "score": 33.8,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 184.7,
+         "file": "replays/grok-4.3/plus10/ep5-pull4.json.gz",
+         "usd": 1.9541,
+         "stats": {
+          "usd": 1.9541,
+          "calls": 385,
+          "input_tokens": 1528442,
+          "output_tokens": 458428,
+          "cache_read_tokens": 1049984,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 1,
+          "truncated_replies": 0,
+          "invalid_entries": 0,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 370,
+           "input_tokens": 1460251,
+           "output_tokens": 446595,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 15,
+           "input_tokens": 68191,
+           "output_tokens": 11833,
+           "cache_read_tokens": 25088,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 1,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          12,
+          18
+         ],
+         "avoidable": 4151
+        },
+        {
+         "pull": 5,
+         "seed": 70505,
+         "score": 35.1,
+         "outcome": "wipe",
+         "in_time": false,
+         "duration_s": 203.9,
+         "file": "replays/grok-4.3/plus10/ep5-pull5.json.gz",
+         "usd": 1.7281,
+         "stats": {
+          "usd": 1.7281,
+          "calls": 351,
+          "input_tokens": 1375716,
+          "output_tokens": 413475,
+          "cache_read_tokens": 976384,
+          "cache_write_tokens": 0,
+          "refusals": 0,
+          "unusable_replies": 0,
+          "truncated_replies": 0,
+          "invalid_entries": 1,
+          "api_errors": 0,
+          "budget_exhausted": false,
+          "in_pull": {
+           "calls": 351,
+           "input_tokens": 1375716,
+           "output_tokens": 413475,
+           "refusals": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 1,
+           "api_errors": 0
+          },
+          "between_pulls": {
+           "calls": 0,
+           "input_tokens": 0,
+           "output_tokens": 0,
+           "cache_read_tokens": 0,
+           "cache_write_tokens": 0,
+           "latency_s": 0.0,
+           "cached_calls": 0,
+           "unusable_replies": 0,
+           "truncated_replies": 0,
+           "invalid_entries": 0,
+           "api_errors": 0,
+           "refusals": 0,
+           "chat_dropped": 0,
+           "budget_exhausted": false
+          }
+         },
+         "deaths": 5,
+         "kicks": [
+          12,
+          14
+         ],
+         "avoidable": 21400
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "complete": true,
+   "mythicbench_score": 32.4,
+   "mythicbench_score_ci95": [
+    30.3,
+    34.6
+   ],
+   "cost_usd": 51.9162,
+   "rank": 6
   },
   {
    "model": "claude-haiku-5-5",
@@ -14729,7 +18562,7 @@
     35.3
    ],
    "cost_usd": 5.4932,
-   "rank": 5
+   "rank": 7
   }
  ],
  "baselines": [
