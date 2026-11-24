@@ -421,15 +421,16 @@ def test_v1_is_pinned_to_the_committed_protocol():
 
 
 def test_amendment_3_only_added_models():
-    """The v1 file differs from the protocol stages 1 and 2 played only by four
-    more models; the published five-model dataset still verifies."""
+    """Amendment 3 only added two models: the v1 file without them is exactly the
+    protocol stages 1 and 2 played (the first pinned digest), and the published
+    dataset is the full seven-model protocol."""
     root = Path(__file__).parents[2]
     v1 = K.load_protocol(root / "protocol" / "v1.json")
     published = K.load_protocol(root / "web" / "public" / "results" / "v1" / "protocol.json")
-    assert K.protocol_digest(published) in K.OFFICIAL_PROTOCOLS["v1"]
-    assert {k: v for k, v in v1.items() if k != "models"} == {k: v for k, v in published.items() if k != "models"}
-    assert v1["models"][:len(published["models"])] == published["models"]
-    assert [m["provider"] for m in v1["models"][len(published["models"]):]] == ["xai", "deepseek"]
+    assert published == v1
+    assert [m["provider"] for m in v1["models"][-2:]] == ["xai", "deepseek"]
+    five = {**v1, "models": v1["models"][:-2]}
+    assert K.protocol_digest(five) == K.OFFICIAL_PROTOCOLS["v1"][0]
 
 
 def test_an_altered_official_protocol_is_refused_before_anything_runs(tmp_path):
