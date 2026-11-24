@@ -41,7 +41,7 @@ no API calls. You need Python 3.10+.
 
 ```bash
 cd sim && pip install -e ".[dev]"
-python -m mythicsim verify ../web/public/results/v1             # replay all 525 pulls, rebuild the leaderboard
+python -m mythicsim verify ../web/public/results/v1             # replay all 525 pulls (480 by the models, 45 by the bot), rebuild the leaderboard
 python -m mythicsim export ../web/public/results/v1 --zip       # CSVs, JSONL and one story per group
 ```
 
@@ -56,6 +56,27 @@ cd web && npm install && npm run dev
 Open http://localhost:5173. Space plays and pauses, the arrow keys seek 5
 seconds, 1 to 4 set the speed. `/watch/<model>/<tier>/<group>/<pull>` opens
 one pull, and `?t=30` starts it at 0:30.
+
+### Share card, clips and the launch video
+
+Ready-to-post media lives in [`media/`](media/): the share card, highlight
+clips and the launch video, with suggested post copy. It is all rendered from
+the real replays. To render it again, with `npm run dev` running in another
+terminal:
+
+```bash
+cd web
+npm run media og                  # rewrites public/og.jpg and media/share-card.jpg
+npm run media clips               # media/clips/<id>.mp4
+npm run media clips step-in-now   # just one
+npm run media launch              # media/launch/mythicbench-launch.mp4
+MB_PREVIEW=1 npm run media launch # a few stills per shot, to check framing first
+```
+
+It needs Playwright (`npm i -D playwright && npx playwright install chromium`)
+and ffmpeg. The moments, cameras and captions are set in
+`web/scripts/media.mjs`. Don't edit the site while it renders: the dev server
+reloads the page.
 
 ## How it works
 

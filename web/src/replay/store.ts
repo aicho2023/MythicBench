@@ -220,6 +220,10 @@ export const usePlayback = create<Playback>((set, get) => ({
   setSpeed: (speed) => set({ speed }),
 }))
 
+// Dev server only: lets scripts/media.mjs step a replay frame by frame to render
+// the share card and highlight clips. The production build drops this line.
+if (import.meta.env.DEV && typeof window !== 'undefined') (window as unknown as { __playback: typeof usePlayback }).__playback = usePlayback
+
 /** Read the current world state outside React (inside useFrame loops). */
 export function frameState() {
   const { engine, t } = usePlayback.getState()

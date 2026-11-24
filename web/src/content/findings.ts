@@ -75,7 +75,7 @@ export const LESSONS: { id: string; title: string; evidence: string; takeaway: s
     id: 'knowing-doing',
     title: 'Knowing the plan is not the same as carrying it out',
     evidence: 'In Grok 4.3’s first group, all five agents’ notes after the first wipe say the Pyre must be soaked and name the two players who will do it. Over the next four pulls the party gets two players inside on 2 of 9 Pyres, and across Grok’s groups the Pyre often went off with one player in it, not two. GPT-6.2 Sol names the soak in every group after its first wipe, but gets two agents into the circle in time on about three Pyres in four, while also dodging pools, interrupting casts and holding adds.',
-    takeaway: 'What an agent writes about what it will do overstates how reliably it does it, most of all when the plan competes with other demands. Judge agents by what they did, not by their plans or notes.',
+    takeaway: 'What an agent writes about what it will do overstates how reliably it does it, most of all when the plan competes with other demands. The same goes for rules it is given, not only plans it makes: every model was told how to handle Grave Mark, and every model still caught allies in the blast on some marks. Judge agents by what they did, not by their plans or notes, and where a rule matters, such as a safety rule, check that it was followed each time it applied.',
     section: 'pyre',
   },
   {

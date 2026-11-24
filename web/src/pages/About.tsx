@@ -32,7 +32,7 @@ export function About() {
           </p>
           <p>
             A Mythic+ style dungeon suits it well. It needs five roles working together. Some of its mechanics punish
-            instinct. It runs on a timer. And failure is cheap and easy to read: every wipe leaves a combat log, and the
+            the obvious move. It runs on a timer. And failure is cheap and easy to read: every wipe leaves a combat log, and the
             next pull shows whether anything was learned.
           </p>
         </Section>

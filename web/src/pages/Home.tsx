@@ -52,13 +52,31 @@ export function Home() {
   const wide = useWide()
   return (
     <Page>
-      {/* Hero: the question and two actions, the live crypt beside them */}
-      <section className="grid items-center gap-10 py-12 md:py-16 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12">
-        <div>
-          <h1 className="max-w-[560px] text-[32px] font-normal leading-[1.12] text-fg sm:text-[44px] sm:leading-[1.08] sm:tracking-[-0.02em] xl:text-[52px]">
-            Can five AI agents learn from a wipe?
-          </h1>
-          <p className="mt-6 max-w-[520px] text-[17px] leading-7 text-fg-muted">
+      {/* Hero: the question and two actions, the live crypt beside them. On phones and
+          tablets the picture comes right after the question, so a visitor from a shared
+          link sees the game before the paragraphs. */}
+      <section className="grid gap-6 py-12 md:py-16 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:grid-rows-[auto_auto] lg:gap-x-12 lg:gap-y-6">
+        <h1 className="max-w-[560px] text-[32px] font-normal leading-[1.12] text-fg sm:text-[44px] sm:leading-[1.08] sm:tracking-[-0.02em] lg:self-end xl:text-[52px]">
+          Can five AI agents learn from a wipe?
+        </h1>
+        <figure className="m-0 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center">
+          <Link to={top ? `${top.path}?t=${HERO_WINDOW_S[0]}` : `/watch?replay=${encodeURIComponent(FEATURED.id)}`} aria-label="Open this replay in the viewer"
+            className="group relative block aspect-[16/10] overflow-hidden rounded-2xl border border-line bg-[#0d0a18]">
+            {/* A still from the same pull: the poster while the 3D clip loads, and all phones get (no WebGL download) */}
+            <img src={`${import.meta.env.BASE_URL}stills/closest.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            {wide && <Suspense fallback={null}><Teaser /></Suspense>}
+            {top && (
+              <span className="absolute left-3 top-3 max-w-[calc(100%-24px)] rounded-lg border border-line bg-[rgba(15,15,16,0.88)] px-3 py-1.5 text-[13px] leading-5 text-fg">
+                Watch for the glowing circle: players step inside to split the blast.
+              </span>
+            )}
+            <span className="absolute bottom-3 right-3 inline-flex items-center gap-2 rounded-lg border border-line bg-[rgba(15,15,16,0.88)] px-3 py-2 text-[13px] text-fg transition-colors group-hover:bg-surface-raised">
+              Open in the viewer <ArrowRight size={16} className="text-fg-muted" />
+            </span>
+          </Link>
+        </figure>
+        <div className="lg:col-start-1 lg:row-start-2">
+          <p className="max-w-[520px] text-[17px] leading-7 text-fg-muted">
             Five AI agents, each playing one character, team up to clear a dungeon in a game like World of Warcraft:
             two groups of monsters, then a boss, against the clock. They go in blind. When the whole party dies (a
             wipe), they read the combat log, talk it over, write their own notes, and try again, up to five times.
@@ -75,22 +93,6 @@ export function Home() {
             <Link to="/report" className="btn h-11 px-5 text-[14px]">Read the report</Link>
           </div>
         </div>
-        <figure className="m-0">
-          <Link to={top ? `${top.path}?t=${HERO_WINDOW_S[0]}` : `/watch?replay=${encodeURIComponent(FEATURED.id)}`} aria-label="Open this replay in the viewer"
-            className="group relative block aspect-[16/10] overflow-hidden rounded-2xl border border-line bg-[#0d0a18]">
-            {/* A still from the same pull: the poster while the 3D clip loads, and all phones get (no WebGL download) */}
-            <img src={`${import.meta.env.BASE_URL}stills/closest.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
-            {wide && <Suspense fallback={null}><Teaser /></Suspense>}
-            {top && (
-              <span className="absolute left-3 top-3 max-w-[calc(100%-24px)] rounded-lg border border-line bg-[rgba(15,15,16,0.88)] px-3 py-1.5 text-[13px] leading-5 text-fg">
-                Watch for the glowing circle: players step inside to split the blast.
-              </span>
-            )}
-            <span className="absolute bottom-3 right-3 inline-flex items-center gap-2 rounded-lg border border-line bg-[rgba(15,15,16,0.88)] px-3 py-2 text-[13px] text-fg transition-colors group-hover:bg-surface-raised">
-              Open in the viewer <ArrowRight size={16} className="text-fg-muted" />
-            </span>
-          </Link>
-        </figure>
       </section>
 
       {error && <p className="py-8 text-[14px] text-bad">{error}</p>}
@@ -133,6 +135,12 @@ function ResultsBody({ results }: { results: Results }) {
           </p>
         </SectionHead>
         <div className="mt-6"><LeaderboardTable results={results} /></div>
+        {p.name === 'v1' && (
+          <p className="mt-3 text-[13px] leading-5 text-fg-faint">
+            No Google model: Gemini 3.8 Flash was tried before the run and left out, because its notes never came back as
+            valid JSON, so it would have played with no memory. <Link to="/report#protocol" className="underline decoration-white/20 underline-offset-4 hover:text-fg">Protocol</Link>
+          </p>
+        )}
       </section>
 
       <section className="pt-20">
@@ -157,6 +165,11 @@ function ResultsBody({ results }: { results: Results }) {
         <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
           <PyreGrid results={results} />
         </div>
+        <p className="mt-6 max-w-[720px] border-l-2 border-accent pl-4 text-[17px] leading-7 text-fg">
+          Knowing isn't doing. In Grok 4.3's first group, after the first wipe, all five agents wrote that the Pyre
+          must be soaked and named the two who would stand in it. Over the next four pulls they got two players inside
+          on 2 of 9 Pyres. <Link to="/report#pyre" className="text-fg-muted underline decoration-accent/50 underline-offset-4 hover:text-fg">More in the report</Link>
+        </p>
       </section>
 
       <section className="pt-20">
