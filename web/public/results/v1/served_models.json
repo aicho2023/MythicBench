@@ -14,6 +14,9 @@
  "anthropic:claude-sonnet-5-5@medium": {
   "claude-sonnet-5-5": 9928
  },
+ "deepseek:deepseek-flash@medium": {
+  "deepseek-flash": 9887
+ },
  "openai:gpt-6-luna@high": {
   "gpt-6-luna": 4693
  },
@@ -28,5 +31,8 @@
  },
  "scripted:commander": {
   "(not reported)": 17217
+ },
+ "xai:grok-4.3@medium": {
+  "grok-4.3": 10195
  }
 }

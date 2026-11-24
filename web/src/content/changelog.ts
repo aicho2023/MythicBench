@@ -25,6 +25,20 @@ const V1: Versions = { harness: '1.0.0', sim: '0.11.0', content: '1.8.0' }
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 'amendment-3-results',
+    date: '2026-11-24',
+    title: 'Results: Grok 4.3 and DeepSeek V4.1 Flash',
+    kind: 'docs',
+    versions: V1,
+    summary: 'The two models added by Amendment 3 have played all their groups. The leaderboard, charts, report and data now cover seven models from four labs.',
+    items: [
+      'Grok 4.3 scores 32.4 and DeepSeek V4.1 Flash 33.4, level with Claude Sonnet 5.5, Claude Haiku 5.5 and GPT-6 Luna. Neither cleared, and neither learned to soak Bone Pyre: Grok\'s parties soaked 3 of 65 Pyres, DeepSeek\'s 7 of 64.',
+      'Pairwise comparisons are now corrected for all 21 pairs, as pre-registered. Opus is clearly ahead of GPT-6 Luna, Claude Sonnet 5.5 and Grok 4.3, and Sol of GPT-6 Luna and DeepSeek V4.1 Flash. Opus and Sol over Claude Haiku 5.5, clear among five models, fall short under the stricter correction; neither score changed.',
+      'DeepSeek V4.1 Flash had 6.6% of its replies cut off at the 8,000-token cap every model shares, far more than any other model. They count against it, and the report says so.',
+      'All 525 pulls replay exactly from the published recordings. The five earlier models\' results are unchanged.',
+    ],
+  },
+  {
     id: 'beyond-the-game',
     date: '2026-11-24',
     title: 'Report: what carries over beyond the game',

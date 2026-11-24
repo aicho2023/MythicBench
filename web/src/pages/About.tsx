@@ -56,9 +56,9 @@ export function About() {
 
         <Section title="What we found">
           <p>
-            In 420 pulls, no party cleared the dungeon. The closest on +10 was GPT-6.2 Sol, which had Oruth at 8.7%
+            In 480 pulls by seven models from four labs, no party cleared the dungeon. The closest on +10 was GPT-6.2 Sol, which had Oruth at 8.7%
             when time ran out. The key to the fight is soaking Bone Pyre: standing in the fire instead of running from
-            it. Claude Opus 5.5 and GPT-6.2 Sol worked that out in every group. The other three models almost never
+            it. Claude Opus 5.5 and GPT-6.2 Sol worked that out in every group. The other five models almost never
             did. A clear is possible: a script written by someone who knows the fight finds one, with a second to spare.
           </p>
           <p>

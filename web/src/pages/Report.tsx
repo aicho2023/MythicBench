@@ -117,7 +117,7 @@ export function Report() {
               MythicBench: can language-model agents learn a boss fight from failure?
             </h1>
             <p className="mt-5 text-[17px] leading-7 text-fg-muted">
-              Five frontier models, five agents each, a dungeon none of them has seen, and five attempts to beat it.
+              Seven frontier models from four labs, five agents each, a dungeon none of them has seen, and five attempts to beat it.
             </p>
             <div className="mt-6 flex flex-wrap gap-2 text-[13px]">
               {LINKS.map(([label, to, internal]) => internal
@@ -133,14 +133,14 @@ export function Report() {
               at a task, work out why, and do better on the next try. Five copies of one model each play one character
               in a five-person party, run a Mythic+-style dungeon they have never seen, and get up to five attempts.
               Between attempts they read the same combat log, talk it over and rewrite their own notes, with no guidance
-              on what to learn. In a pre-registered run of five frontier models (84 groups, 420 attempts, all public and
-              replayable), no model cleared the dungeon. Claude Opus 5.5 (44.1) and GPT-6.2 Sol (42.9) lead, with no clear
-              difference between them. The other three score 32.1 to 32.8, about what a fixed-rule bot scores (32.5). On the
-              same seeds Opus beats all three, and Sol beats two; its lead over Claude Sonnet 5.5 falls just short of the
-              threshold after correcting for multiple comparisons. The leaders' edge does not
+              on what to learn. In a pre-registered run of seven frontier models from four labs (96 groups, 480 attempts, all
+              public and replayable), no model cleared the dungeon. Claude Opus 5.5 (44.1) and GPT-6.2 Sol (42.9) lead, with
+              no clear difference between them. The other five score 32.1 to 33.4, about what a fixed-rule bot scores (32.5).
+              Each leader is ten to twelve points ahead of each of the five on the same seeds; after correcting for all 21
+              comparisons, five of those ten gaps are clear. The leaders' edge does not
               come from the first attempt, where every model plays about the same, but from what they take away from one
-              wipe: both work out a mechanic that runs against gamer instinct, in every one of their groups. The others
-              almost never do. A clear exists, but it takes near-perfect play. The results suggest lessons for agents
+              wipe: both work out a mechanic that runs against gamer instinct, in every one of their groups. The other five
+              almost never do, often even when their own notes describe it. A clear exists, but it takes near-perfect play. The results suggest lessons for agents
               meant to learn on the job: a first attempt says little about who will learn, a rule that runs against habit
               is rarely learned, and memory, effort and agreement between agents do not make up for drawing the wrong
               lesson.
@@ -178,7 +178,7 @@ export function Report() {
             <p>This report makes four contributions:</p>
             <ul>
               <li>An environment for learning from failure as a team: deterministic, replayable to the frame, with a boss whose key mechanic contradicts common sense.</li>
-              <li>A pre-registered evaluation of five frontier models from two labs: 84 groups and 420 attempts, with seeds, statistics and stopping rules fixed in advance.</li>
+              <li>A pre-registered evaluation of seven frontier models from four labs: 96 groups and 480 attempts, with seeds, statistics and stopping rules fixed in advance.</li>
               <li>The finding that the gap between models opens only after the first failure, and that it shows most clearly in one mechanic, Bone Pyre.</li>
               <li>Every attempt as a 3D replay with every agent's orders, chat and reasoning, and every recorded model reply, so anyone can check or recompute any number for free.</li>
             </ul>
@@ -258,7 +258,9 @@ export function Report() {
               The models, seeds, metrics, analysis and stopping rules were fixed in a public pre-registration before the
               official run, and the code was frozen (harness 1.0.0, sim 0.11.0, content 1.8.0). Seeds come from a schedule
               nobody tuned on. The run was played in two stages: stage 1 played each configuration's first group and was
-              checked only for harness faults, and stage 2 played the rest on the same frozen code.
+              checked only for harness faults, and stage 2 played the rest on the same frozen code. Two models from two
+              more labs, Grok 4.3 (xAI) and DeepSeek V4.1 Flash (DeepSeek), were added afterwards by a pre-registered
+              amendment (Amendment 3), and played the same frozen code, seeds and settings in the same two stages.
             </p>
             <Table n="2" caption="Groups played per model. The two cheapest models also played extra memory-on groups, paired with the memory-off control on the same seeds, a Normal check, and low and high effort.">
               <table>
@@ -344,14 +346,14 @@ export function Report() {
 
             <H2 id="validity">Validity</H2>
             <ul>
-              <li>All 93 planned groups were played (84 by the models, 9 by a fixed-rule bot), and all 465 pulls replay exactly from the published recordings. <code>python -m mythicsim verify</code> rebuilds the leaderboard from them.</li>
-              <li>Every call was served by the model that was asked for. There were no API errors and no refusals.</li>
-              <li>Unusable or cut-off replies were the models' own: about 0.6% of Claude Sonnet 5.5's calls, and Claude Haiku 5.5's at high effort when it ran out of output tokens. They count against the model.</li>
+              <li>All 105 planned groups were played (96 by the models, 9 by a fixed-rule bot), and all 525 pulls replay exactly from the published recordings. <code>python -m mythicsim verify</code> rebuilds the leaderboard from them.</li>
+              <li>Every call was served by the model that was asked for. There were no API errors and no refusals in the counted groups. Some runs stopped part-way (a cloud session's time limit, and once a provider account running out of credit); a stopped group is not counted until it is played again from its recorded replies, so the replay continues exactly where it stopped.</li>
+              <li>Unusable or cut-off replies were the models' own, and they count against the model. Under the same 8,000-token cap every model has, DeepSeek V4.1 Flash's replies were cut off far more often than any other model's: 654 of its 9,887 calls (6.6%), most of them orders during a fight, after which that agent keeps its previous orders. Next were about 0.6% of Claude Sonnet 5.5's calls, and Claude Haiku 5.5's at high effort. xAI's API cannot cap Grok 4.3's reasoning, so the cap was applied when its replies were read; none of Grok's replies passed it.</li>
               <li>
                 One harness fault, found in stage 1, was kept. The pre-registered rule was to fix a fault and restart on
                 reserve seeds; after stage 1 we amended the protocol to keep this one instead (Amendment 2), so that every
                 group plays the same code, and counted it by a rule fixed before stage 2.
-                In 127,071 moves it happened once: Claude Haiku 5.5, Normal, group 1, pull 4, at 3:44.7, Wren walks through a
+                In 127,071 moves by the first five models it happened once (and never in the 15,495 moves of the two added later): Claude Haiku 5.5, Normal, group 1, pull 4, at 3:44.7, Wren walks through a
                 corner of Oruth's throne, a floating-point edge case. It saved about a second and harmed nobody.{' '}
                 <Link to="/watch/claude-haiku-5-5/normal/0/4">Watch it</Link>.
               </li>
@@ -360,15 +362,16 @@ export function Report() {
                 "safe" steps to the nearest spot clear of the pools. An agent already standing clear should stay where it
                 is. But when it was also out of reach of its first target, and no dry spot was in reach, the harness
                 moved it to another clear spot instead. An agent that kept sending "safe" could shuffle back and forth
-                between two spots. In the 420 pulls the models played, this happened 2,567 times: GPT-6 Luna 1,726,
-                Claude Haiku 5.5 820, Claude Sonnet 5.5 18, Claude Opus 5.5 2 and GPT-6.2 Sol 1. Only 16 of these moves
-                cut a cast short. In the rest, the agent could not reach its target from where it stood anyway. The cancelled
-                casts are the one consequence that can be counted; the fault's total effect on scores was not measured. It
-                fell almost entirely on GPT-6 Luna and Claude Haiku 5.5. v1 keeps the fault, since its code is frozen. The fix waits for the
+                between two spots. In the 480 pulls the models played, this happened 3,108 times: GPT-6 Luna 1,726,
+                Claude Haiku 5.5 820, Grok 4.3 509, DeepSeek V4.1 Flash 32, Claude Sonnet 5.5 18, Claude Opus 5.5 2 and
+                GPT-6.2 Sol 1. Only 18 of these moves cut a cast short. In the rest, the agent could not reach its target from
+                where it stood anyway. The cancelled casts are the one consequence that can be counted; the fault's total
+                effect on scores was not measured. It fell mostly on GPT-6 Luna, Claude Haiku 5.5 and Grok 4.3. v1 keeps
+                the fault, since its code is frozen, and the two added models played with it too. The fix waits for the
                 next harness version.{' '}
                 <Link to="/watch/gpt-6-luna/normal/2/5?t=148">Watch it</Link> (Kit, from 2:28).
               </li>
-              <li>Two departures, disclosed. Interim scores were looked at while stage 2 was playing; nothing was changed or decided because of them. And +10 was calibrated in pilots on an earlier version of the fight, where GPT-6.2 Sol cleared some pulls. Later changes made the fight harder, and the calibration was not re-run before the freeze.</li>
+              <li>Two departures, disclosed. Interim scores were looked at while stage 2 was playing; nothing was changed or decided because of them. And +10 was calibrated in pilots on an earlier version of the fight, where GPT-6.2 Sol cleared some pulls. Later changes made the fight harder, and the calibration was not re-run before the freeze. Finally, Amendment 3 was made after the five-model results were published, so the two labs were added knowing those results; the new models played the frozen protocol unchanged, and the five models' results stand as published.</li>
             </ul>
 
             <H2 id="related">Related work</H2>
@@ -433,7 +436,7 @@ export function Report() {
             <H2 id="limits">Limitations</H2>
             <ul>
               <li><strong>One dungeon, one boss.</strong> The results are about this task, not a general ranking of models.</li>
-              <li><strong>Small samples.</strong> Six groups per model separate large gaps, not small ones. Zero clears in six is consistent with a true clear rate of up to 46%.</li>
+              <li><strong>Small samples.</strong> Six groups per model separate large gaps, not small ones. Zero clears in six is consistent with a true clear rate of up to 46%. Adding models makes the correction for multiple comparisons stricter: with seven models, two gaps that were clear among five (Opus and Sol over Claude Haiku 5.5) no longer are, though neither changed.</li>
               <li><strong>A narrow memory test.</strong> It was run on the two cheapest models, which never learned the key mechanic, so it says nothing about memory in the models that did.</li>
               <li><strong>Coarse control.</strong> Orders come every few seconds of game time, not every global cooldown, and the game waits for the agents.</li>
               <li><strong>Prior knowledge.</strong> Models know about MMOs. The fight is original, but its mechanics are familiar types, so it tests applying general game knowledge as well as learning.</li>
@@ -445,9 +448,9 @@ export function Report() {
             <H2 id="conclusion">Conclusion</H2>
             <p>
               Today's best models can coordinate a party well enough to bring a boss within a tenth of his health, and they
-              can learn from a failure. Two of five models, after one wipe, worked out a mechanic that runs against
-              instinct and turned it into a plan five agents could carry out, in every group they played. The other three
-              almost never did, and played no better than fixed rules. No model cleared. The gap that matters is not what
+              can learn from a failure. Two of seven models, after one wipe, worked out a mechanic that runs against
+              instinct and turned it into a plan five agents could carry out, in every group they played. The other five
+              almost never did, some even with the right plan in their notes, and played no better than fixed rules. No model cleared. The gap that matters is not what
               a model knows on the first attempt, but what it can make of the second.
             </p>
             <p>
@@ -463,7 +466,7 @@ export function Report() {
             <H2 id="reproduce">Reproducing the results</H2>
             <p>Everything runs from the repository. Checking the published results is free, because every model reply is recorded.</p>
             <pre><code>{`cd sim && pip install -e ".[dev]"
-python -m mythicsim verify ../web/public/results/v1             # replay all 465 pulls, rebuild the leaderboard
+python -m mythicsim verify ../web/public/results/v1             # replay all 525 pulls, rebuild the leaderboard
 python -m mythicsim export ../web/public/results/v1 --zip       # flat files for your own analysis
 python -m mythicsim run --policy expert --tier +10 --seed 10043   # the expert's +10 clear`}</code></pre>
 
@@ -494,7 +497,7 @@ function ResultsBody({ r }: { r: Results }) {
     <>
       <H3 n="5.1">Nobody cleared the dungeon</H3>
       <p>
-        Across 84 groups and 420 pulls, no model cleared the Hollow Vault, on +10 or on Normal. With zero clears in six
+        Across 96 groups and 480 pulls, no model cleared the Hollow Vault, on +10 or on Normal. With zero clears in six
         groups, each model's +10 clear rate has an exact 95% interval of 0% to 46%. The closest pulls came from the top
         two models: GPT-6.2 Sol finished one with all five agents alive and Oruth at {bestPull(r, sol)?.bossLeft}% health,
         and Claude Opus 5.5 got him to {bestPull(r, top1)?.bossLeft}%. Figure 1 shows every group's score, and Table 3 the
@@ -525,15 +528,17 @@ function ResultsBody({ r }: { r: Results }) {
         </table>
       </Table>
 
-      <H3 n="5.2">Two models lead; three are level with fixed rules</H3>
+      <H3 n="5.2">Two models lead; five are level with fixed rules</H3>
       <p>
         {modelName(top1.model)} ({fmtScore(top1.mythicbench_score)}) and {modelName(top2.model)} ({fmtScore(top2.mythicbench_score)})
-        lead, and the difference between them is not significant. Each beats the other models on the same seeds by ten to
-        twelve points (Table 4), except that Sol's lead over Claude Sonnet 5.5 falls just short after correction. GPT-6 Luna,
-        Claude Sonnet 5.5 and Claude Haiku 5.5 cannot be told apart, and none of them beats a fixed-rule bot that interrupts
-        every cast and steps out of every pool (32.5).
+        lead, and the difference between them is not significant. Each is ten to twelve points ahead of every other model
+        on the same seeds (Table 4). With seven models there are 21 comparisons, and after correcting for all of them five
+        of those gaps are clear: Opus over GPT-6 Luna, Claude Sonnet 5.5 and Grok 4.3, and Sol over GPT-6 Luna and
+        DeepSeek V4.1 Flash. The other five gaps, of the same size, fall short of the threshold with six groups per model.
+        The other five models cannot be told apart, and all of them score within a point of a fixed-rule bot that
+        interrupts every cast and steps out of every pool (32.5).
       </p>
-      <Table n="4" caption="Every pair of models on the same seeds: the mean group-by-group difference, its 95% interval, and the paired t-test's p-value before and after Holm's correction for ten comparisons. A difference is claimed only where the adjusted p is below 0.05.">
+      <Table n="4" caption={`Every pair of models on the same seeds: the mean group-by-group difference, its 95% interval, and the paired t-test's p-value before and after Holm's correction for ${pairs.length} comparisons. A difference is claimed only where the adjusted p is below 0.05.`}>
         <table>
           <thead><tr><th>Comparison</th><th className="r">Difference</th><th className="r">95% interval</th><th className="r">p</th><th className="r">Adjusted p</th><th>Verdict</th></tr></thead>
           <tbody>
@@ -557,7 +562,7 @@ function ResultsBody({ r }: { r: Results }) {
         about what the fixed-rule bot gets (32). Every party wipes. What separates the models is the next pull (Figure 2).
         Claude Opus 5.5 averages {fmtScore(cell(top1)?.curve_mean?.[0])} on its first pull and{' '}
         {fmtScore(cell(top1)?.curve_mean?.[1])} on its second. GPT-6.2 Sol climbs more slowly, to{' '}
-        {fmtScore(Math.max(...(cell(sol)?.curve_mean ?? [0])))} by its fourth. The other three stay flat.
+        {fmtScore(Math.max(...(cell(sol)?.curve_mean ?? [0])))} by its fourth. The other five stay about flat.
       </p>
       <Figure n="2" caption="Mean +10 score at each pull, over each model's six groups. Hover for the values.">
         <LearningCurves results={r} tier={head} />
@@ -566,10 +571,10 @@ function ResultsBody({ r }: { r: Results }) {
       <H3 id="pyre" n="5.4">Bone Pyre is the clearest difference in behaviour</H3>
       <p>
         After the first wipe, nearly every party sees the same thing in its debrief: Bone Pyre went off with nobody
-        inside, or just one player, and everyone took a heavy hit. (Three of the 42 groups never reached Oruth on their
-        first pull: one each for Claude Sonnet 5.5, GPT-6 Luna and Claude Haiku 5.5.) What the parties make of it divides the models almost perfectly (Table 5). Claude Opus
+        inside, or just one player, and everyone took a heavy hit. (Four of the 54 groups never reached Oruth on their
+        first pull: one each for Claude Sonnet 5.5, GPT-6 Luna, Claude Haiku 5.5 and DeepSeek V4.1 Flash.) What the parties make of it divides the models almost perfectly (Table 5). Claude Opus
         5.5 and GPT-6.2 Sol conclude that the circle has to be soaked in every one of their twelve groups, eleven of them
-        after the first wipe. The other three models almost never do.
+        after the first wipe. The other five models almost never do: 6 of their 42 groups soaked a Pyre even once.
       </p>
       <Table n="5" caption="Bone Pyre on +10. A group counts if its party soaked a Pyre at least once. No group soaked one on its first pull. GPT-6 Luna and Claude Haiku 5.5 include their extra memory-on groups.">
         <table>
@@ -588,10 +593,14 @@ function ResultsBody({ r }: { r: Results }) {
       <blockquote>"EVERYONE STACK INSIDE THE CIRCLE." Claude Opus 5.5</blockquote>
       <blockquote>"BONE PYRE is a soak, not a pool to dodge." GPT-6.2 Sol</blockquote>
       <blockquote>"The floor circle is NOT the danger." GPT-6 Luna, from the same evidence</blockquote>
+      <blockquote>"Bone Pyre is party-wide ~33k unavoidable, hits everyone; NOT a floor circle to dodge." DeepSeek V4.1 Flash</blockquote>
       <p>
         Knowing is not the same as doing. Sol names the soak in every group after its first wipe, but gets two agents into
         a 2.5 m circle within six seconds on only three Pyres in four, while also dodging pools, interrupting casts and
-        holding adds.
+        holding adds. Grok 4.3 shows the gap more starkly. In its first group, after the first wipe, all five agents'
+        notes say the Pyre must be soaked and name the two who will stand in it. Over the next four pulls the party gets two players
+        inside on 2 of 9 Pyres. Across Grok's six groups, 14 of the 50 Pyres on pulls 2 to 5 had exactly one player
+        inside, not enough to split the blast. The same rule written down did not become the same behaviour.
       </p>
       <p>
         Figure 4 shows what killed each party. Bone Pyre causes 55% of GPT-6 Luna's deaths and 30 to 40% of every other
@@ -623,8 +632,9 @@ function ResultsBody({ r }: { r: Results }) {
 
       <H3 id="cost" n="5.6">Cost and effort</H3>
       <p>
-        The official run cost about $357 at list prices, $221 of it Claude Opus 5.5. Opus and GPT-6.2 Sol score 44.1 and 42.9,
+        The official run cost about $445 at list prices, $221 of it Claude Opus 5.5. Opus and GPT-6.2 Sol score 44.1 and 42.9,
         with no clear difference between them, but an Opus group costs about five times as much, and Sol writes about a fifth as many output tokens (Table 6).
+        A Grok 4.3 or DeepSeek V4.1 Flash group costs about as much as a Sol group (DeepSeek's at its peak list price, which errs high).
         Raising the cheap models' reasoning effort did not help: on the same three groups, Claude Haiku 5.5 did worse at low
         effort than at medium and barely better at high, and GPT-6 Luna scored the same at every level.
       </p>

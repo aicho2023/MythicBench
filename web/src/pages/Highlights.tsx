@@ -21,7 +21,7 @@ const KIND_COLOR: Record<HighlightKind, string> = {
 }
 
 // Fixed colors per model, matching the leaderboard (protocol order).
-const MODEL_ORDER = ['claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5', 'gpt-6-luna', 'gpt-6.2-sol']
+const MODEL_ORDER = ['claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5', 'gpt-6-luna', 'gpt-6.2-sol', 'grok-4.3', 'deepseek-flash']
 const modelInk = (m: string) => SERIES[Math.max(0, MODEL_ORDER.indexOf(m)) % SERIES.length]
 
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
@@ -134,7 +134,7 @@ export function Highlights() {
         <header>
           <h1 className="text-[32px] font-normal leading-[1.12] text-fg sm:text-[40px]">Highlights</h1>
           <p className="mt-4 max-w-[640px] text-[17px] leading-7 text-fg-muted">
-            The moments worth seeing from 420 pulls: breakthroughs, arguments, clutch saves and spectacular wipes.
+            The moments worth seeing from the official run: breakthroughs, arguments, clutch saves and spectacular wipes.
             Each one opens in the <Link to="/watch" className="text-fg underline decoration-accent/50 underline-offset-4 hover:decoration-accent">replay viewer</Link> at the moment it happens.
           </p>
         </header>

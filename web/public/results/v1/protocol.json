@@ -45,6 +45,18 @@
    "id": "gpt-6.2-sol",
    "name": "GPT-6.2 Sol",
    "effort": "medium"
+  },
+  {
+   "provider": "xai",
+   "id": "grok-4.3",
+   "name": "Grok 4.3",
+   "effort": "medium"
+  },
+  {
+   "provider": "deepseek",
+   "id": "deepseek-flash",
+   "name": "DeepSeek V4.1 Flash",
+   "effort": "medium"
   }
  ],
  "baselines": [
