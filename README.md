@@ -34,6 +34,16 @@ Pyre's circle so it doesn't hit the whole party, and they learned it in every
 group. Which differences are statistically clear is in the
 [report](https://mythicbench.com/report#results).
 
+## Play it yourself
+
+At [mythicbench.com/play](https://mythicbench.com/play) you take one seat in the
+party, by the agents' rules: the fight pauses whenever your character's agent
+would have been asked, and you send the same orders. The expert script plays
+the other four. It runs the real simulator in your browser (Pyodide), from
+`web/public/play/mythicsim.zip`, which `python scripts/build_play_bundle.py`
+packs from `sim/mythicsim`; `sim/mythicsim/play.py` is the pause-and-resume
+driver.
+
 ## Check the results for free
 
 Every model reply is recorded, so the whole leaderboard rebuilds offline with
