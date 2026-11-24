@@ -163,6 +163,21 @@ fi
 remote_has_branch() { git ls-remote --exit-code --heads origin "$DATA_BRANCH" >/dev/null 2>&1; }
 DATA_REF="refs/remotes/origin/$DATA_BRANCH"
 fetch_data() { git fetch -q origin "+refs/heads/$DATA_BRANCH:$DATA_REF"; }
+# The archive is stored in parts (runs.tar.gz.part-aa, -ab, ...): GitHub refuses
+# any file over 100 MiB, and the archive outgrows that during a long run.
+# PART_SIZE is split's -b size; 45m keeps each part under GitHub's 50 MB warning.
+PART_SIZE="${PART_SIZE:-45m}"
+# The archive on the data branch, written to stdout: its parts joined in order, or
+# the single runs.tar.gz that branches saved before parts. Fails if neither is there.
+data_archive() {
+  local parts
+  parts=$(git ls-tree --name-only "$DATA_REF" | grep '^runs\.tar\.gz\.part-' | sort || true)
+  if [ -n "$parts" ]; then
+    for p in $parts; do git show "$DATA_REF:$p"; done
+  else
+    git show "$DATA_REF:runs.tar.gz"
+  fi
+}
 
 if remote_has_branch; then
   if [ -d runs ] && [ -n "$(ls -A runs 2>/dev/null | grep -v '^archive$' || true)" ]; then
@@ -170,7 +185,7 @@ if remote_has_branch; then
   else
     log "restoring runs/ from $DATA_BRANCH (a resumed run plays only what's missing)"
     fetch_data
-    git show "$DATA_REF:runs.tar.gz" | tar -xzf - -C "$ROOT"
+    data_archive | tar -xzf - -C "$ROOT"
   fi
 fi
 
@@ -187,10 +202,17 @@ checkpoint() {
       git -C "$WT" clean -qfdx
     fi
   fi
-  tar -czf "$WT/runs.tar.gz" -C "$ROOT" --exclude='runs/archive' --exclude='*.lock' runs
-  printf 'MythicBench run data for protocol %s, from %s.\nUnpack at the repository root: tar -xzf runs.tar.gz\nLast checkpoint: %s (%s)\n' \
+  # Pack to a temporary file, then split it into the worktree in place of the last
+  # checkpoint's archive (a single runs.tar.gz, or parts).
+  tar -czf "$TMP/runs.tar.gz" -C "$ROOT" --exclude='runs/archive' --exclude='*.lock' runs
+  rm -f "$WT/runs.tar.gz" "$WT"/runs.tar.gz.part-*
+  split -b "$PART_SIZE" "$TMP/runs.tar.gz" "$WT/runs.tar.gz.part-"
+  local size
+  size=$(du -h "$TMP/runs.tar.gz" | cut -f1)
+  rm -f "$TMP/runs.tar.gz"
+  printf 'MythicBench run data for protocol %s, from %s.\nUnpack at the repository root: cat runs.tar.gz.part-* | tar -xzf -\nLast checkpoint: %s (%s)\n' \
     "$PROTOCOL" "$(git rev-parse --short HEAD)" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$note" > "$WT/README.txt"
-  git -C "$WT" add runs.tar.gz README.txt
+  git -C "$WT" add -A .
   local who=(-c user.name="${GIT_AUTHOR_NAME:-MythicBench run}" -c user.email="${GIT_AUTHOR_EMAIL:-run@mythicbench.invalid}")
   # One commit, amended each time, so the branch doesn't grow by a tarball per checkpoint.
   if git -C "$WT" rev-parse -q --verify HEAD >/dev/null 2>&1; then
@@ -200,7 +222,7 @@ checkpoint() {
   fi
   if git -C "$WT" push -q -f origin "HEAD:refs/heads/$DATA_BRANCH" 2>/dev/null \
      || git -C "$WT" push -q origin "HEAD:refs/heads/$DATA_BRANCH" 2>/dev/null; then
-    log "checkpoint pushed to $DATA_BRANCH ($(du -h "$WT/runs.tar.gz" | cut -f1), $note)"
+    log "checkpoint pushed to $DATA_BRANCH ($size in $(ls "$WT"/runs.tar.gz.part-* | wc -l | tr -d ' ') parts, $note)"
   else
     log "WARNING: checkpoint push to $DATA_BRANCH failed; the data is only on this machine for now"
   fi
@@ -280,5 +302,5 @@ for r in rows:
 print(f"\n{len(rows)} runs, ${sum(r[5] for r in rows):.2f} at list prices (scores left out on purpose)")
 EOF
 (cd sim && "$PY" -m mythicsim runs spend 2>/dev/null | head -n 1) || true
-log "done (campaign exit $STATUS). Data: branch $DATA_BRANCH, file runs.tar.gz"
+log "done (campaign exit $STATUS). Data: branch $DATA_BRANCH, files runs.tar.gz.part-*"
 exit "$STATUS"
