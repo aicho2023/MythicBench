@@ -2,6 +2,7 @@ import { ArrowRight } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { HighlightCard } from './Highlights'
 import { HIGHLIGHTS } from '../content/highlights'
+import { LESSONS } from '../content/findings'
 import { PullGrid } from '../site/PullGrid'
 import { DeathCauses, SoakByPull } from '../site/HeatTables'
 import { PyreGrid } from '../site/PyreGrid'
@@ -136,6 +137,27 @@ function ResultsBody({ results }: { results: Results }) {
         </SectionHead>
         <div className="mt-6"><LeaderboardTable results={results} /></div>
       </section>
+
+      {p.name === 'v1' && (
+        <section className="pt-20">
+          <SectionHead title="Beyond the game" link={['/report#lessons', 'In the report']} />
+          <p className="mt-2 max-w-[720px] text-[15px] leading-6 text-fg-muted">
+            The setting has the same shape as a common goal for agents at work: do a task, get feedback, do it better next
+            time, often alongside other agents. One fight can’t settle anything in general, but six results look likely to carry over.
+          </p>
+          <ol className="mt-6 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {LESSONS.map((l, i) => (
+              <li key={l.id}>
+                <Link to={`/report#lesson-${l.id}`} className="group flex h-full flex-col rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-white/20">
+                  <span className="font-mono text-[12px] text-fg-faint">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="mt-2 text-[16px] leading-6 text-fg">{l.title}</span>
+                  <span className="mt-2 text-[14px] leading-6 text-fg-muted">{l.short}</span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
 
       <section className="pt-20">
         <SectionHead title="Every pull, at a glance" link={['/report#pyre', 'Bone Pyre in the report']} />

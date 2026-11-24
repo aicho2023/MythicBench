@@ -25,6 +25,17 @@ const V1: Versions = { harness: '1.0.0', sim: '0.11.0', content: '1.8.0' }
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 'beyond-the-game',
+    date: '2026-11-24',
+    title: 'Report: what carries over beyond the game',
+    kind: 'docs',
+    summary: 'A new section on what the results suggest beyond the game, and edits throughout the report.',
+    items: [
+      'New Section 7, "Beyond the game": six results that look likely to hold wherever agents are meant to learn from feedback, each with its evidence and caveats. They also appear on the home page.',
+      'Edits to the introduction, related work and conclusion, and to the reference list.',
+    ],
+  },
+  {
     id: 'amendment-3',
     date: '2026-11-23',
     title: 'Pre-registration amendment 3: two more labs',

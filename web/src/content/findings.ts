@@ -42,5 +42,61 @@ export const BEHAVIOUR: { model: string; kicks: string; chat: number; deaths: nu
   { model: 'claude-haiku-5-5', kicks: '70%', chat: 66, deaths: 5.2 },
 ]
 
+/** What the results suggest beyond the game: shown as cards on the home page
+ * (title + short) and as Section 7 of the report (evidence + takeaway). Each
+ * claim restates a result from Sections 5 and 6, and carries their caveats:
+ * one task, six groups per model. Written for the five v1 models; revisit when
+ * Amendment 3's two models are in. */
+export const LESSONS: { id: string; title: string; short: string; evidence: string; takeaway: string; section: string }[] = [
+  {
+    id: 'first-try',
+    title: 'A first attempt says little about who will learn',
+    short: 'On the blind first pull every model played about the same. The gap opened only after the first failure, where a one-attempt test can’t see it.',
+    evidence: 'On the blind first pull, every model scored about what a fixed-rule bot does. The gap between models opened on the second pull and after.',
+    takeaway: 'If an agent is meant to improve with feedback, such as revising its own work, retrying a failed job or picking up a team’s conventions, score it over several rounds of feedback, not one attempt. A one-attempt test would have ranked these five models as equal.',
+    section: 'learning',
+  },
+  {
+    id: 'against-habit',
+    title: 'Learning a rule that runs against habit is rare',
+    short: 'Standing in the fire goes against every gamer’s instinct. After one wipe, Claude Opus 5.5 and GPT-6.2 Sol learned it in every group. The other three almost never did.',
+    evidence: 'Bone Pyre asks players to stand inside a glowing circle, the opposite of what games usually teach. Claude Opus 5.5 and GPT-6.2 Sol learned to soak it in all twelve of their groups, eleven of them after a single wipe. The other three models did in 3 of their 30 groups.',
+    takeaway: 'Many workflows have a rule like this: an in-house way of doing something that differs from the usual one. Don’t assume an agent will work such a rule out from its failures, even with the evidence in front of it. Either state the rule, or check that the model you use can learn one like it.',
+    section: 'pyre',
+  },
+  {
+    id: 'memory',
+    title: 'Memory only helps a model that draws the right lesson',
+    short: 'Switching off the debrief and notes made no clear difference to the two models that never learned the key mechanic.',
+    evidence: 'The pre-registered memory test switched off the debrief, talk and notes for Claude Haiku 5.5 and GPT-6 Luna, and found no clear difference in score. Neither had learned to soak Bone Pyre, so their notes had little of use to carry. The test was not run on the models that did learn.',
+    takeaway: 'Giving an agent notes, reflection or a memory store is not a fix by itself: what it keeps is only as good as the lesson it draws. Check whether the stored lessons are right, not just whether there is memory.',
+    section: 'memory',
+  },
+  {
+    id: 'knowing-doing',
+    title: 'Knowing the plan is not the same as carrying it out',
+    short: 'GPT-6.2 Sol named the right plan in every group after its first wipe, and carried it out on about three Pyres in four.',
+    evidence: 'GPT-6.2 Sol names the soak in every group after its first wipe, but gets two agents into the circle in time on about three Pyres in four, while also dodging pools, interrupting casts and holding adds.',
+    takeaway: 'What an agent writes about what it will do overstates how reliably it does it, most of all when the plan competes with other demands. Judge agents by what they did, not by their plans or notes.',
+    section: 'pyre',
+  },
+  {
+    id: 'consensus',
+    title: 'In a team, the lesson that gets written down wins, right or wrong',
+    short: 'One party saw the right answer work, then argued it away after a single bad outcome. Agreement between agents is not evidence that they are right.',
+    evidence: 'In one GPT-6 Luna group, two players soaked a Pyre and nobody was hurt; the next went off with one player inside and killed two. The notes that followed generalised from the deaths, and the party stopped soaking.',
+    takeaway: 'Agents that share notes or a memory can settle on a wrong lesson as easily as a right one, and a confident note spreads. Systems that share memory should check lessons against the record, not against how many agents agree.',
+    section: 'cases',
+  },
+  {
+    id: 'effort',
+    title: 'More thinking and a higher price did not buy learning',
+    short: 'Raising the cheaper models’ reasoning effort didn’t help, and the two models that learned were five times apart in cost.',
+    evidence: 'On the same groups, Claude Haiku 5.5 did worse at low effort and barely better at high, and GPT-6 Luna scored the same at every level. Claude Opus 5.5 and GPT-6.2 Sol learned equally well, but an Opus group cost about five times as much.',
+    takeaway: 'Turning up reasoning effort did not make a model learn here; the choice of model did. Among models that can learn a task, compare what each costs.',
+    section: 'cost',
+  },
+]
+
 /** The expert script on 1,000 practice seeds (10001-11000), outside the official schedules. */
 export const EXPERT = { seeds: 1000, normal: { clears: 898, score: 79.2 }, plus10: { clears: 4, score: 49.9 } }
