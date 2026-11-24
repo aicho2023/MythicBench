@@ -234,7 +234,7 @@ export function Report() {
             <H2 id="harness">Agents and harness</H2>
             <H3 n="3.1">What an agent sees and does</H3>
             <p>
-              Each agent controls one character and sees what that character would: the party's health, positions, casts
+              Each agent controls one character and sees what that character would see: the party's health, positions, casts
               and auras; its own cooldowns; the enemies and what they are casting; the pools on the floor; and the party
               chat. It is asked for orders every four seconds of game time, and sooner when something concerns it, such
               as a cast starting, a pool appearing or an ally falling low. It replies in JSON with where to move (a
@@ -459,6 +459,7 @@ export function Report() {
               <li><strong>More models.</strong> New models join v1 the way Grok 4.3 and DeepSeek V4.1 Flash did: by an amendment, on the same frozen code, seeds and settings, so their scores sit on the same leaderboard. Next in line are Claude Fable 5.2, GPT Terra, Grok 4.7 and Kimi, as budget and research credits from the labs allow. One group costs from under $1 to about $37 at list prices, depending on the model, and each model plays six.</li>
               <li><strong>Tighter comparisons.</strong> Six groups per model separate only large gaps. More groups per model would show whether the five models level with the scripted bot really are level.</li>
               <li><strong>Memory where it matters.</strong> The memory test ran only on two models that never learned the key mechanic. Running it on Claude Opus 5.5 and GPT-6.2 Sol would show how much of their gain the debrief, talk and notes explain.</li>
+              <li><strong>Told, not learned.</strong> Groups told up front that Bone Pyre is a soak would show how much of the gap is working the rule out rather than carrying it out. Grave Mark (section 5.8) suggests most of it, since every model follows a rule it was given; the control would test that directly, and say how much prior knowledge of the genre helps the two models that learned.</li>
               <li><strong>A fixed harness.</strong> The "safe" fault waits for the next harness version, which would be a new protocol with its own runs, not a change to v1.</li>
               <li><strong>More fights.</strong> Other bosses with other mechanics that run against instinct would test whether the pattern here holds beyond Bone Pyre.</li>
             </ul>
@@ -593,7 +594,7 @@ function ResultsBody({ r }: { r: Results }) {
         inside, or just one player, and everyone took a heavy hit. (Four of the 54 groups never reached Oruth on their
         first pull: one each for Claude Sonnet 5.5, GPT-6 Luna, Claude Haiku 5.5 and DeepSeek V4.1 Flash.) What the parties make of it divides the models almost perfectly (Table 5). Claude Opus
         5.5 and GPT-6.2 Sol conclude that the circle has to be soaked in every one of their twelve groups, eleven of them
-        after the first wipe. The other five models almost never do: 6 of their 42 groups soaked a Pyre even once.
+        after the first wipe. The other five models rarely do: only 6 of their 42 groups soaked even a single Pyre.
       </p>
       <Table n="5" caption="Bone Pyre on +10. A group counts if its party soaked a Pyre at least once. No group soaked one on its first pull. GPT-6 Luna and Claude Haiku 5.5 include their extra memory-on groups.">
         <table>
@@ -698,6 +699,26 @@ function ResultsBody({ r }: { r: Results }) {
           </tbody>
         </table>
       </Table>
+
+      <H3 id="mark" n="5.8">Grave Mark: a rule they were told</H3>
+      <p>
+        Bone Pyre has to be worked out. Grave Mark does not: it comes with the +10 affix the agents know from the start,
+        and its description says what to do ("Get away from the group"). So it shows whether a party can carry out a rule
+        about where to stand under the same pressure, and every model can. Of the marks that went off in the ranked +10
+        groups, each model's marked player kept the blast off the rest of the party on 78% to 99% of them, from Claude
+        Haiku 5.5 (50 of 64) to Claude Sonnet 5.5 (68 of 69). The fixed-rule bot, which ignores the mark, manages 54%
+        by where it happens to stand. The models did it from the blind first pull, on 73% to 100% of marks. The five
+        models that never learned Bone Pyre could follow a rule about where to stand; what they lacked was the rule.
+      </p>
+      <p>
+        The marked player also has to weigh one mechanic against another. In Claude Opus 5.5's group 3, pull 3, Wren is
+        marked shortly before a Pyre and types: "I'm marked. Staying at (-2,20) in the corridor, so stay 7m+ away from
+        me. It pops ~95s. I skip the Pyre until it does." Rook, Ivy and Brask soak the Pyre without her, and her blast
+        hits nobody else (<Link to="/watch/claude-opus-5-5/plus10/2/3?t=88">watch it from 1:28</Link>). Later in the
+        same pull Kit is marked and tells Brask to stay 6 m away. Brask replies "Brask holding north until Kit's Mark
+        pops", and two seconds later is caught in the blast (<Link to="/watch/claude-opus-5-5/plus10/2/3?t=141">watch
+        it from 2:21</Link>). Even a rule every agent was given, and agreed to out loud, was not followed every time.
+      </p>
     </>
   )
 }

@@ -10,6 +10,7 @@
     "test": "vitest run",
     "replays": "cd ../sim && python3 -m mythicsim generate --out ../web/public/replays",
     "typecheck": "tsc --noEmit",
+    "media": "node scripts/media.mjs",
     "sample": "cd ../sim && python3 -m mythicsim campaign ../protocol/sample.json --workers 2 && python3 -m mythicsim results ../protocol/sample.json --out ../web/public/results/sample"
   },
   "dependencies": {
