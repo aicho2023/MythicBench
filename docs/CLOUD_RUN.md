@@ -119,8 +119,12 @@ The results come back from the branch:
 
 ```bash
 git fetch origin run-data/v1
-mkdir -p /tmp/stage1 && git show origin/run-data/v1:runs.tar.gz | tar -xzf - -C /tmp/stage1
+mkdir -p /tmp/stage1 && for p in $(git ls-tree --name-only origin/run-data/v1 | grep '^runs\.tar\.gz\.part-' | sort); do git show "origin/run-data/v1:$p"; done | tar -xzf - -C /tmp/stage1
 ```
+
+The archive is stored in 45 MB parts (`runs.tar.gz.part-aa`, `-ab`, ...), because
+GitHub refuses any file over 100 MiB and the archive outgrows that. Branches
+saved before parts hold a single `runs.tar.gz`, which the script still restores.
 
 Then move the runs into `runs/`, and append the cloud's spend ledger
 (`/tmp/stage1/runs/spend.jsonl`) to `runs/spend.jsonl`, so the project cap
