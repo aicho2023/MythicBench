@@ -143,7 +143,7 @@ export function Report() {
               Each leader is ten to twelve points ahead of each of the five on the same seeds; after correcting for all 21
               comparisons, five of those ten gaps are clear. The leaders' edge does not
               come from the first attempt, where every model plays about the same, but from what they take away from one
-              wipe: both work out a mechanic that runs against gamer instinct, in every one of their groups. The other five
+              wipe: both work out a mechanic that breaks the first rule of games like this, to step out of circles on the floor, in every one of their groups. The other five
               almost never do, often even when their own notes describe it. A clear exists, but it takes near-perfect play. The results suggest lessons for agents
               meant to learn on the job: a first attempt says little about who will learn, a rule that runs against habit
               is rarely learned, and memory, effort and agreement between agents do not make up for drawing the wrong
@@ -181,7 +181,7 @@ export function Report() {
             </p>
             <p>This report makes four contributions:</p>
             <ul>
-              <li>An environment for learning from failure as a team: deterministic, replayable to the frame, with a boss whose key mechanic contradicts common sense.</li>
+              <li>An environment for learning from failure as a team: deterministic, replayable to the frame, with a boss whose key mechanic breaks the usual rule to step out of circles on the floor.</li>
               <li>A pre-registered evaluation of seven frontier models from four labs: 96 groups and 480 attempts, with seeds, statistics and stopping rules fixed in advance.</li>
               <li>The finding that the gap between models opens only after the first failure, and that it shows most clearly in one mechanic, Bone Pyre.</li>
               <li>Every attempt as a 3D replay with every agent's orders, chat and reasoning, and every recorded model reply, so anyone can check or recompute any number for free.</li>
@@ -214,8 +214,10 @@ export function Report() {
               </table>
             </Table>
             <p>
-              Bone Pyre is the fight's central test. Every instinct a player has, and most of what a model has read about
-              games, says to step out of a glowing circle on the floor. Here that is exactly wrong. The evidence is usually in the
+              Bone Pyre is the fight's central test. The first rule a new player learns, and the most common advice in what
+              a model has read about games, is to step out of glowing circles on the floor. Here that is exactly wrong.
+              Experienced Mythic+ players know the exception, the soak, and a model may know it too, but nothing in the
+              agents' instructions says this circle is one. They have to work it out, and the evidence is usually in the
               debrief after the first wipe: too few players stood in it, and everyone took a large hit.
             </p>
             <H3 n="2.2">Difficulty and scoring</H3>
@@ -264,7 +266,10 @@ export function Report() {
               nobody tuned on. The run was played in two stages: stage 1 played each configuration's first group and was
               checked only for harness faults, and stage 2 played the rest on the same frozen code. Two models from two
               more labs, Grok 4.3 (xAI) and DeepSeek V4.1 Flash (DeepSeek), were added afterwards by a pre-registered
-              amendment (Amendment 3), and played the same frozen code, seeds and settings in the same two stages.
+              amendment (Amendment 3), and played the same frozen code, seeds and settings in the same two stages. Two more
+              were tried and left out before playing: Google's Gemini 3.8 Flash, whose notes never came back as valid JSON,
+              so it would have played every pull with no memory, and Qwen4-Max, for lack of API access
+              (see the <a href="/changelog">changelog</a>).
             </p>
             <Table n="2" caption="Groups played per model. The two cheapest models also played extra memory-on groups, paired with the memory-off control on the same seeds, a Normal check, and low and high effort.">
               <table>
@@ -461,8 +466,8 @@ export function Report() {
             <H2 id="conclusion">Conclusion</H2>
             <p>
               Today's best models can coordinate a party well enough to bring a boss within a tenth of his health, and they
-              can learn from a failure. Two of seven models, after one wipe, worked out a mechanic that runs against
-              instinct and turned it into a plan five agents could carry out, in every group they played. The other five
+              can learn from a failure. Two of seven models, after one wipe, worked out a mechanic that breaks the
+              usual rule to step out of the circle, and turned it into a plan five agents could carry out, in every group they played. The other five
               almost never did, some even with the right plan in their notes, and played no better than fixed rules. No model cleared. The gap that matters is not what
               a model knows on the first attempt, but what it can make of the second.
             </p>
@@ -479,7 +484,7 @@ export function Report() {
             <H2 id="reproduce">Reproducing the results</H2>
             <p>Everything runs from the repository. Checking the published results is free, because every model reply is recorded.</p>
             <pre><code>{`cd sim && pip install -e ".[dev]"
-python -m mythicsim verify ../web/public/results/v1             # replay all 525 pulls, rebuild the leaderboard
+python -m mythicsim verify ../web/public/results/v1             # replay all 525 pulls (480 by the models, 45 by the bot), rebuild the leaderboard
 python -m mythicsim export ../web/public/results/v1 --zip       # flat files for your own analysis
 python -m mythicsim run --policy expert --tier +10 --seed 10043   # the expert's +10 clear`}</code></pre>
 

@@ -30,6 +30,12 @@ function keyEvents(engine: ReplayEngine, markers: ReturnType<ReplayEngine['marke
   return out.sort((a, b) => a.t - b.t)
 }
 
+/** A highlight on the open pull that starts within the minute before t, if any. */
+function highlightAt(t: number) {
+  return HIGHLIGHTS.find((x) => x.t != null && highlightPath(x).split('?')[0] === location.pathname
+    && t >= (x.t - 5) * 1000 && t <= (x.t + 60) * 1000)
+}
+
 /** One row of five: name, health and whether each character is alive. */
 export function CompactParty() {
   const h = useHud()
@@ -52,9 +58,12 @@ export function CompactParty() {
 export function MomentBar() {
   const h = useHud()
   const markers = useMarkers()
-  const [open, setOpen] = useState(() => new URLSearchParams(location.search).has('t'))
+  // Starts closed, even on a shared ?t= link: the scene is what a visitor came to see.
+  // The bar names the highlight, if this is one, and the drawer holds its story.
+  const [open, setOpen] = useState(false)
   if (!h) return null
   const { engine, t, s } = h
+  const highlight = highlightAt(t)
   const ev = keyEvents(engine, markers, t - EVENTS_MS, t).at(-1)
   let chat: Line | null = null
   for (const { e } of engine.eventsBetween(t - 8000, t)) {
@@ -66,7 +75,9 @@ export function MomentBar() {
       <button onClick={() => setOpen(true)}
         className="pointer-events-auto flex w-full items-center gap-2 rounded-lg border border-line bg-[rgba(17,17,19,0.9)] px-3 py-2 text-left">
         <span className="min-w-0 flex-1">
-          <span className="block text-[12px] font-medium leading-4 text-fg">What happened here</span>
+          <span className={`block truncate text-[12px] font-medium leading-4 ${highlight ? 'text-accent' : 'text-fg'}`}>
+            {highlight ? `Highlight: ${highlight.title}` : 'What happened here'}
+          </span>
           <span className={`block truncate text-[12px] leading-4 ${latest === chat ? '' : latest?.tone === 'bad' ? 'text-bad' : 'text-fg-muted'}`}
             style={latest === chat ? { color: PARTY_CHAT } : undefined}>
             {latest ? `${fmtTime(latest.t)} ${latest.text}` : 'Tap for the score, the chat and the agents’ orders'}
@@ -143,8 +154,7 @@ function MomentDrawer({ onClose }: { onClose: () => void }) {
   const players = s.order.map((id) => s.units[id]).filter((u) => u.info.kind === 'player')
   const go = (at: number) => { seek(at - 2000); onClose() }
   // A highlight on this pull that starts within the last minute: its story leads the drawer.
-  const highlight = HIGHLIGHTS.find((x) => x.t != null && highlightPath(x).split('?')[0] === location.pathname
-    && t >= (x.t - 5) * 1000 && t <= (x.t + 60) * 1000)
+  const highlight = highlightAt(t)
 
   return (
     <div className="pointer-events-auto fixed inset-0 z-30 flex flex-col justify-end" role="dialog" aria-label="What happened here">
