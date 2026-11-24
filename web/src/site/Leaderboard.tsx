@@ -31,6 +31,8 @@ export function LeaderboardTable({ results }: { results: Results }) {
   const rows = [...results.leaderboard, ...baselines]
   const [lo, hi] = scoreDomain(rows.flatMap((r) => [...(r.tiers[hard]?.episode_scores ?? []), ...(r.mythicbench_score_ci95 ?? [])]))
   const lead = results.leaderboard.find((r) => r.rank !== null)?.model
+  // A column of "0 of 6" says nothing the page doesn't: it appears once any model clears.
+  const anyClear = results.leaderboard.some((r) => (r.tiers[hard]?.clears ?? 0) > 0)
 
   return (
     <div className="overflow-x-auto">
@@ -40,12 +42,12 @@ export function LeaderboardTable({ results }: { results: Results }) {
             <th className={`${TH} pl-0`}>Model</th>
             <th className={`${TH} text-right`}>Score</th>
             <th className={`${TH} hidden sm:table-cell`}>
-              <span className="block pb-1">Each group, mean and 95% interval</span>
+              <span className="block pb-1">Each group, with the 95% interval</span>
               <CIAxis width={STRIP} lo={lo} hi={hi} />
             </th>
             <th className={`${TH} hidden text-right md:table-cell`} title="Mean score of the first pull: blind, before any wipe">First pull</th>
-            <th className={`${TH} hidden text-right md:table-cell`} title="The best single pull, and how much of Oruth's health was left when it ended">Best pull, Oruth left</th>
-            <th className={`${TH} hidden text-right lg:table-cell`}>Clears</th>
+            <th className={`${TH} hidden text-right md:table-cell`} title="How much of Oruth's health was left at the end of the model's best pull">Lowest Oruth health</th>
+            {anyClear && <th className={`${TH} hidden text-right lg:table-cell`}>Clears</th>}
             <th className={`${TH} hidden pr-0 text-right sm:table-cell`}>Cost per group</th>
             <th className="w-6" aria-hidden />
           </tr>
@@ -83,15 +85,14 @@ export function LeaderboardTable({ results }: { results: Results }) {
                 </td>
                 <td className={`${TD} ${NUM} hidden md:table-cell ${ink}`}>{fmtScore(cell?.first_pull_score_mean)}</td>
                 <td className={`${TD} ${NUM} hidden md:table-cell ${ink}`}>
-                  {best ? fmtScore(best.score) : '–'}
-                  {best?.bossLeft != null && (
-                    <span className="mt-1 flex items-center justify-end gap-1.5 text-[11px] text-fg-faint" title={`Oruth had ${best.bossLeft}% of his health left`}>
+                  {best && best.score >= 70 ? 'Cleared' : best?.bossLeft != null ? (
+                    <span className="inline-flex items-center gap-2" title={`Best pull: ${fmtScore(best.score)}, with Oruth at ${best.bossLeft}% health`}>
                       <span className="h-1 w-12 overflow-hidden rounded-full bg-white/[0.08]"><span className="block h-full rounded-full bg-[#d0463b]" style={{ width: `${best.bossLeft}%` }} /></span>
                       {best.bossLeft}%
                     </span>
-                  )}
+                  ) : '–'}
                 </td>
-                <td className={`${TD} ${NUM} hidden lg:table-cell ${ink}`}>{cell ? `${cell.clears ?? 0} of ${cell.episodes}` : '–'}</td>
+                {anyClear && <td className={`${TD} ${NUM} hidden lg:table-cell ${ink}`}>{cell ? `${cell.clears ?? 0} of ${cell.episodes}` : '–'}</td>}
                 <td className={`${TD} ${NUM} hidden pr-0 sm:table-cell ${ink}`}>{ref ? '$0' : fmtUsd(costPerRun(row, results))}</td>
                 <td className="w-6 text-fg-faint transition-colors group-hover:text-fg">{!ref && <ChevronRight size={16} />}</td>
               </tr>

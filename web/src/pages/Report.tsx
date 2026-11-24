@@ -112,7 +112,7 @@ export function Report() {
 
         <article className="min-w-0">
           <header>
-            <p className="font-mono text-[12px] tracking-wide text-accent/80">REPORT · v1 · NOVEMBER 2026</p>
+            <p className="font-mono text-[12px] text-fg-faint">Report, v1, November 2026</p>
             <h1 className="mt-3 text-[32px] font-normal leading-[1.12] tracking-[-0.01em] text-fg sm:text-[40px]">
               MythicBench: can language-model agents learn a boss fight from failure?
             </h1>
@@ -127,7 +127,7 @@ export function Report() {
           </header>
 
           <section aria-label="Abstract" className="mt-10 rounded-2xl border border-line bg-surface px-6 py-5">
-            <p className="text-[12px] font-medium uppercase tracking-[0.08em] text-fg-faint">Abstract</p>
+            <p className="text-[13px] font-medium text-fg-muted">Abstract</p>
             <p className="mt-2 text-[16px] leading-7 text-[#c4c4ca]" style={{ fontFamily: "'IBM Plex Serif', Georgia, serif" }}>
               Most agent benchmarks ask a model to finish a task once. MythicBench asks whether a team of agents can fail
               at a task, work out why, and do better on the next try. Five copies of one model each play one character
@@ -640,7 +640,7 @@ function ResultsBody({ r }: { r: Results }) {
       </p>
       <Table n="6" caption="Cost on +10. Output tokens include thinking. The last column compares low, medium and high effort on the same three groups.">
         <table>
-          <thead><tr><th>Model</th><th className="r">Score</th><th className="r">Cost / group</th><th className="r">Output tokens / pull</th><th className="r">Low · medium · high</th></tr></thead>
+          <thead><tr><th>Model</th><th className="r">Score</th><th className="r">Cost / group</th><th className="r">Output tokens / pull</th><th className="r">Low / medium / high</th></tr></thead>
           <tbody>
             {rows.map((x) => {
               const eff = (r.configs ?? []).filter((c) => c.model === x.model)
@@ -654,7 +654,7 @@ function ResultsBody({ r }: { r: Results }) {
                   <td className="r m">{fmtScore(x.mythicbench_score)}</td>
                   <td className="r m">{fmtUsd(costPerRun(x, r))}</td>
                   <td className="r m">{tok ? `${Math.round(tok[1] / 1000).toLocaleString('en-US')}k` : '–'}</td>
-                  <td className="r m">{med ? `${fmtScore(low?.progression_score)} · ${fmtScore(med.progression_score)} · ${fmtScore(high?.progression_score)}` : '–'}</td>
+                  <td className="r m">{med ? `${fmtScore(low?.progression_score)} / ${fmtScore(med.progression_score)} / ${fmtScore(high?.progression_score)}` : '–'}</td>
                 </tr>
               )
             })}

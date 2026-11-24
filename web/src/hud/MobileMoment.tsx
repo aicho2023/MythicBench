@@ -158,7 +158,7 @@ function MomentDrawer({ onClose }: { onClose: () => void }) {
 
         {highlight && (
           <div className="mt-3 rounded-lg border border-accent/30 bg-accent/[0.06] px-3 py-2.5">
-            <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-accent">Highlight</div>
+            <div className="text-[12px] font-medium text-accent">Highlight</div>
             <div className="mt-0.5 text-[14px] font-medium leading-5 text-fg">{highlight.title}</div>
             <p className="mt-1 text-[13px] leading-5 text-fg-muted">{highlight.summary}</p>
           </div>
@@ -216,7 +216,7 @@ function Stat({ label, value, bad = false }: { label: string; value: string; bad
 }
 
 function Head({ children }: { children: ReactNode }) {
-  return <h3 className="mb-1 mt-5 text-[12px] font-medium uppercase tracking-[0.06em] text-fg-faint">{children}</h3>
+  return <h3 className="mb-1 mt-5 text-[13px] font-medium text-fg-muted">{children}</h3>
 }
 
 function Empty({ children }: { children: ReactNode }) {

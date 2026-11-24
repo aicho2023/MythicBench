@@ -28,7 +28,7 @@ const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60))
 
 function KindTag({ kind }: { kind: HighlightKind }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-[12px] font-medium uppercase tracking-[0.06em]" style={{ color: KIND_COLOR[kind] }}>
+    <span className="inline-flex items-center gap-1.5 text-[12px] text-fg-muted">
       <span className="h-1.5 w-1.5 rotate-45 rounded-[1px]" style={{ background: KIND_COLOR[kind] }} aria-hidden />
       {KIND_LABEL[kind]}
     </span>

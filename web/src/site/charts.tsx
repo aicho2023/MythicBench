@@ -188,7 +188,7 @@ export function LearningCurves({ results, tier, view = 'models' }: { results: Re
             {Array.from({ length: pulls }, (_, i) => i + 1).map((k) => (
               <text key={k} x={x(k)} y={m.t + ih + 20} textAnchor="middle" fill={AXIS} fontSize={11} fontFamily={MONO}>{k}</text>
             ))}
-            <AxisTitles y={view === 'memory' ? 'Mean score, same seeds' : 'Mean score'} x="Pull (attempt number in the group)" ml={m.l} iw={iw} H={H} />
+            <AxisTitles y={view === 'memory' ? 'Mean score, same seeds' : 'Mean score'} x="Pull" ml={m.l} iw={iw} H={H} />
             {view === 'models' && pulls > 1 && (
               <g aria-hidden>
                 <rect x={x(1)} y={m.t} width={x(2) - x(1)} height={ih} fill="rgba(230,211,163,0.05)" />
@@ -295,7 +295,7 @@ export function CostScatter({ results }: { results: Results }) {
             <li key={p.key} className="flex items-center gap-2">
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: p.color }} aria-hidden />
               <span className="text-fg">{p.label}</span>
-              <span className="ml-auto font-mono text-[12px]">{fmtScore(p.score)} · {fmtUsd(p.cost)}</span>
+              <span className="ml-auto font-mono text-[12px]">{fmtScore(p.score)}<span className="ml-3 text-fg-faint">{fmtUsd(p.cost)}</span></span>
             </li>
           ))}
         </ul>
@@ -315,7 +315,7 @@ export function CostScatter({ results }: { results: Results }) {
                 <text x={x(d)} y={m.t + ih + 20} textAnchor="middle" fill={AXIS} fontSize={11} fontFamily={MONO}>{tick(d)}</text>
               </g>
             ))}
-            <AxisTitles y="MythicBench score" x={narrow ? 'Cost of one group (log scale)' : 'Cost of one group of up to five pulls, at list prices (log scale)'} ml={m.l} iw={iw} H={H} />
+            <AxisTitles y="MythicBench score" x={narrow ? 'Cost per group (log scale)' : 'Cost per group of up to five pulls, list prices (log scale)'} ml={m.l} iw={iw} H={H} />
             {pts.map((p, i) => {
               const b = placed[i]
               const tx = b.anchor === 'start' ? b.x : b.x + b.w
