@@ -5,6 +5,7 @@ import type { ReplayMeta } from '../replay/types'
 import { CLASS_COLORS, WARN_CASTS, dungeonProgress, dungeonScore, fmtNum, fmtTime, runScore } from '../content/display'
 import { usePlayback, useHud } from '../replay/store'
 import { useInspector } from './CallInspector'
+import { chatText } from './bits'
 
 // ---------------------------------------------------------------------------
 // Scorecard: the eval's metrics, live as the replay plays.
@@ -255,7 +256,7 @@ export function DecisionLog() {
     if (view === 'chat') {
       if (e.type === 'chat') {
         const u = s.units[e.unit]
-        rows.push({ key: i, t: e.t, who: u?.info.name ?? e.unit, unit: e.unit, cls: u?.info.class ?? '', text: e.text, tone: 'chat' })
+        rows.push({ key: i, t: e.t, who: u?.info.name ?? e.unit, unit: e.unit, cls: u?.info.class ?? '', text: chatText(u?.info.name ?? e.unit, e.text), tone: 'chat' })
       }
       continue
     }

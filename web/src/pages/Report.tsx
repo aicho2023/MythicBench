@@ -1,3 +1,4 @@
+import { ChevronDown } from 'lucide-react'
 import { useEffect, type ReactNode } from 'react'
 import { modelName } from '../content/display'
 import { BEHAVIOUR, EXPERT, LESSONS, MOMENTS, SOAKS } from '../content/findings'
@@ -130,7 +131,24 @@ export function Report() {
             </div>
           </header>
 
-          <section aria-label="Abstract" className="mt-10 rounded-2xl border border-line bg-surface px-6 py-5">
+          {/* Below xl the sidebar contents are hidden, so the long page gets a collapsible list instead. */}
+          <details className="group mt-8 rounded-xl border border-line text-[14px] xl:hidden">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 font-medium text-fg [&::-webkit-details-marker]:hidden">
+              Contents
+              <ChevronDown size={16} className="text-fg-muted transition-transform group-open:rotate-180" aria-hidden />
+            </summary>
+            <ol className="border-t border-line px-4 py-3 leading-8">
+              {TOC.map(([id, n, title]) => (
+                <li key={id}>
+                  <a href={`#${id}`} onClick={(e) => e.currentTarget.closest('details')?.removeAttribute('open')} className="flex gap-3 text-fg-muted transition-colors hover:text-fg">
+                    <span className="w-5 shrink-0 text-right font-mono text-[12px] text-fg-faint">{n}</span>{title}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </details>
+
+          <section aria-label="Abstract" className="mt-6 xl:mt-10 rounded-2xl border border-line bg-surface px-6 py-5">
             <p className="text-[13px] font-medium text-fg-muted">Abstract</p>
             <p className="mt-2 text-[16px] leading-7 text-[#c4c4ca]" style={{ fontFamily: "'IBM Plex Serif', Georgia, serif" }}>
               Most agent benchmarks ask a model to finish a task once. MythicBench asks whether a team of agents can fail

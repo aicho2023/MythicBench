@@ -11,7 +11,7 @@ import { CLASS_COLORS, SCHOOL_COLORS, fmtNum } from '../content/display'
 import { posAt, bossOf } from '../replay/engine'
 import { frameState } from '../replay/store'
 import { sceneBridge } from '../scene/Scene'
-import { ROLE_ICON, ROLE_TINT } from './bits'
+import { ROLE_ICON, ROLE_TINT, chatText } from './bits'
 
 const MAX_TEXT = 44
 const MAX_PLATES = 16
@@ -151,7 +151,7 @@ export function WorldOverlay() {
 
       // ---- chat bubbles: each player's latest party-chat line, over its head
       const said: Record<string, string> = {}
-      for (const { e } of engine.eventsBetween(t - BUBBLE_MS, t)) if (e.type === 'chat') said[e.unit] = e.text
+      for (const { e } of engine.eventsBetween(t - BUBBLE_MS, t)) if (e.type === 'chat') said[e.unit] = chatText(s.units[e.unit]?.info.name ?? e.unit, e.text)
       let b = 0
       for (const [id, text] of Object.entries(said)) {
         const u = s.units[id]

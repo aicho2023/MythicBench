@@ -10,7 +10,7 @@ import { bossOf, type ReplayEngine } from '../replay/engine'
 import { usePlayback, useHud } from '../replay/store'
 import { HIGHLIGHTS, highlightPath } from '../content/highlights'
 import { useInspector } from './CallInspector'
-import { Bar } from './bits'
+import { Bar, chatText } from './bits'
 
 const PARTY_CHAT = '#aab4ff'
 /** How far back the drawer looks for key events and chat. */
@@ -58,7 +58,7 @@ export function MomentBar() {
   const ev = keyEvents(engine, markers, t - EVENTS_MS, t).at(-1)
   let chat: Line | null = null
   for (const { e } of engine.eventsBetween(t - 8000, t)) {
-    if (e.type === 'chat') chat = { t: e.t, text: `${s.units[e.unit]?.info.name ?? e.unit}: ${e.text}`, tone: 'plain' }
+    if (e.type === 'chat') chat = { t: e.t, text: `${s.units[e.unit]?.info.name ?? e.unit}: ${chatText(s.units[e.unit]?.info.name ?? e.unit, e.text)}`, tone: 'plain' }
   }
   const latest = chat && (!ev || chat.t > ev.t) ? chat : ev
   return (
@@ -137,7 +137,7 @@ function MomentDrawer({ onClose }: { onClose: () => void }) {
   for (const { e } of engine.eventsBetween(t - CHAT_MS, t)) {
     if (e.type === 'chat') {
       const u = s.units[e.unit]
-      chat.push({ t: e.t, who: u?.info.name ?? e.unit, cls: u?.info.class ?? '', text: e.text })
+      chat.push({ t: e.t, who: u?.info.name ?? e.unit, cls: u?.info.class ?? '', text: chatText(u?.info.name ?? e.unit, e.text) })
     }
   }
   const players = s.order.map((id) => s.units[id]).filter((u) => u.info.kind === 'player')

@@ -26,9 +26,10 @@ function Strip({ label, pulls, value, fmt, max, current, onPick, height = 24, ki
   const pts = vals.map((v, k) => (v === null ? null : `${x(k)},${y(v)}`)).filter(Boolean).join(' ')
   return (
     <div className="mx-3 mt-1.5">
-      <div className="flex justify-between text-meta leading-4 text-fg-faint">
+      <div className="flex flex-wrap justify-between gap-x-3 text-meta leading-4 text-fg-faint">
         <span>{label}</span>
-        <span className="num font-mono">{vals.map((v) => (v === null ? '-' : fmt(v))).join('  ')}</span>
+        {/* One unbroken row of values: if it doesn't fit beside the label, it moves to its own line. */}
+        <span className="num ml-auto whitespace-nowrap font-mono">{vals.map((v) => (v === null ? '-' : fmt(v))).join('  ')}</span>
       </div>
       <svg width={W} height={height} className="block" role="img" aria-label={`${label} per pull`}>
         {killLine !== undefined && <line x1={PAD} x2={W - PAD} y1={y(killLine)} y2={y(killLine)} stroke="rgba(255,255,255,0.12)" strokeDasharray="3 3" />}

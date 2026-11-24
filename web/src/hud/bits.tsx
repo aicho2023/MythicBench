@@ -101,3 +101,13 @@ export function RoleIcon({ role, size = 12 }: { role: string; size?: number }) {
     </span>
   )
 }
+
+/**
+ * A party-chat line for display. Models often start their own line with their
+ * character's name ("Brask: I'll kick"), which the log and bubbles already show,
+ * so it would read "Brask: Brask: I'll kick". The recorded text is unchanged.
+ */
+export function chatText(name: string, text: string): string {
+  const esc = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return text.replace(new RegExp(`^\\s*\\[?${esc}\\]?\\s*[:\\-–—]\\s*`, 'i'), '') || text
+}

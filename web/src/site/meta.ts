@@ -20,7 +20,13 @@ export const PAGES: PageMeta[] = [
 
 export const OG_IMAGE = '/og.jpg'
 
+/** The report's old addresses, which still open it. */
+const ALIASES: Record<string, string> = { '/paper': '/report', '/commentary': '/report' }
+
 export function metaFor(path: string): PageMeta {
   const top = '/' + (path.split('/')[1] ?? '')
-  return PAGES.find((p) => p.path === top) ?? PAGES[0]
+  const found = PAGES.find((p) => p.path === (ALIASES[top] ?? top))
+  // Only /watch has sub-pages; any other deeper or unknown path is the not-found page.
+  if (!found || (top !== '/watch' && path !== top)) return { path, title: 'Page not found | MythicBench', description: DESCRIPTION }
+  return found
 }
