@@ -57,21 +57,24 @@ Open http://localhost:5173. Space plays and pauses, the arrow keys seek 5
 seconds, 1 to 4 set the speed. `/watch/<model>/<tier>/<group>/<pull>` opens
 one pull, and `?t=30` starts it at 0:30.
 
-### Share card and clips
+### Share card, clips and the launch video
 
-The link-preview image (`web/public/og.jpg`) and short MP4 clips of the
-highlights are rendered from the real replays, so they always show the current
-game. With `npm run dev` running in another terminal:
+Ready-to-post media lives in [`media/`](media/): the share card, highlight
+clips and the launch video, with suggested post copy. It is all rendered from
+the real replays. To render it again, with `npm run dev` running in another
+terminal:
 
 ```bash
 cd web
-node scripts/media.mjs og                 # rewrites public/og.jpg
-node scripts/media.mjs clips              # writes clips/<id>.mp4 (git-ignored)
-node scripts/media.mjs clips step-in-now  # just one
+npm run media og                  # rewrites public/og.jpg and media/share-card.jpg
+npm run media clips               # media/clips/<id>.mp4
+npm run media clips step-in-now   # just one
+npm run media launch              # media/launch/mythicbench-launch.mp4
+MB_PREVIEW=1 npm run media launch # a few stills per shot, to check framing first
 ```
 
 It needs Playwright (`npm i -D playwright && npx playwright install chromium`)
-and ffmpeg. The moments, camera and captions are set at the top of
+and ffmpeg. The moments, cameras and captions are set in
 `web/scripts/media.mjs`. Don't edit the site while it renders: the dev server
 reloads the page.
 
