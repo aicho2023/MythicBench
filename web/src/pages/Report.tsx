@@ -451,7 +451,7 @@ export function Report() {
 
             <H2 id="next">Next steps</H2>
             <ul>
-              <li><strong>More models.</strong> New models join v1 the way Grok 4.3 and DeepSeek V4.1 Flash did: by an amendment, on the same frozen code, seeds and settings, so their scores sit on the same leaderboard. Next in line are Claude Fable 5.2, Terra, Grok 4.7 and Kimi, as budget and research credits from the labs allow. One group costs from under $1 to about $37 at list prices, depending on the model, and each model plays six.</li>
+              <li><strong>More models.</strong> New models join v1 the way Grok 4.3 and DeepSeek V4.1 Flash did: by an amendment, on the same frozen code, seeds and settings, so their scores sit on the same leaderboard. Next in line are Claude Fable 5.2, GPT Terra, Grok 4.7 and Kimi, as budget and research credits from the labs allow. One group costs from under $1 to about $37 at list prices, depending on the model, and each model plays six.</li>
               <li><strong>Tighter comparisons.</strong> Six groups per model separate only large gaps. More groups per model would show whether the five models level with the scripted bot really are level.</li>
               <li><strong>Memory where it matters.</strong> The memory test ran only on two models that never learned the key mechanic. Running it on Claude Opus 5.5 and GPT-6.2 Sol would show how much of their gain the debrief, talk and notes explain.</li>
               <li><strong>A fixed harness.</strong> The "safe" fault waits for the next harness version, which would be a new protocol with its own runs, not a change to v1.</li>
@@ -486,6 +486,7 @@ python -m mythicsim run --policy expert --tier +10 --seed 10043   # the expert's
             <H2 id="cite">Citing</H2>
             <pre><code>{`@misc{mythicbench2026,
   title        = {MythicBench: Can Language-Model Agents Learn a Boss Fight from Failure?},
+  author       = {Austin},
   year         = {2026},
   howpublished = {\\url{https://mythicbench.com/report}},
   note         = {Version 1. Code and data: ${GITHUB_URL}}
