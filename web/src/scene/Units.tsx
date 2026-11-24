@@ -169,7 +169,11 @@ function UnitActor({ id }: { id: string }) {
       if (!picking.unit || e.delta > 6) return
       e.stopPropagation()
       picking.unit(id)
-    }}>
+    }} onPointerOver={(e) => {
+      if (!picking.hover) return
+      e.stopPropagation()
+      picking.hover(id)
+    }} onPointerOut={() => picking.hover?.(null)}>
       {/* soft blob shadow + class ring for readability */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]} scale={info.radius * 2.6 * (isBoss ? 1.2 : 1)}>
         <planeGeometry />

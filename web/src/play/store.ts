@@ -7,9 +7,11 @@ import { create } from 'zustand'
 import { ReplayEngine, EPILOGUE_MS } from '../replay/engine'
 import { usePlayback } from '../replay/store'
 import type { Replay, ReplayEvent } from '../replay/types'
+import { picking } from '../scene/picking'
 import { sim, type Ask, type Metrics, type Orders } from './sim'
 
 export const MAX_PULLS = 5
+export type Move = null | 'safe' | 'next' | 'stop' | [number, number]
 export type Tier = 'normal' | 'plus10'
 
 /** Vault numbers count days from launch: everyone plays the same seeds on the same day. */
@@ -51,16 +53,21 @@ interface PlayState {
   pulls: PullResult[]
   notes: string
   decisions: number
-  /** Where the next move goes, picked on the floor (x, z). */
-  marker: [number, number] | null
-  picking: boolean
+  /** The move about to be sent: a spot tapped on the floor (x, z), "safe", "next", "stop", or none. */
+  move: Move
+  /** The ability waiting for a target, and the unit under the pointer (or a target in the panel). */
+  adding: string | null
+  hover: string | null
+  /** Each ability's reach in metres (from the game guide), to flag targets out of range. */
+  ranges: Record<string, number>
   setSeat: (s: string) => void
   setTier: (t: Tier) => void
   setVault: (v: number) => void
   setAuto: (a: boolean) => void
   setNotes: (n: string) => void
-  setMarker: (m: [number, number] | null) => void
-  setPicking: (p: boolean) => void
+  setMove: (m: Move) => void
+  setAdding: (a: string | null) => void
+  setHover: (h: string | null) => void
   begin: () => Promise<void>
   send: (text: string) => Promise<void>
   /** The viewer reached the end of the pull: show the result. */
@@ -89,7 +96,7 @@ const routineOnly = (a: Ask) => a.why.length === 1 && a.why[0] === 'routine chec
 
 export const usePlay = create<PlayState>((set, get) => ({
   phase: 'lobby', error: null, seat: 'wren', tier: 'normal', vault: todaysVault(), pull: 1, rules: '',
-  ask: null, ended: null, busy: false, auto: true, pulls: [], notes: '', decisions: 0, marker: null, picking: false,
+  ask: null, ended: null, busy: false, auto: true, pulls: [], notes: '', decisions: 0, move: null, adding: null, hover: null, ranges: {},
   setSeat: (seat) => set({ seat }),
   setTier: (tier) => set({ tier }),
   setVault: (vault) => set({ vault }),
@@ -99,17 +106,19 @@ export const usePlay = create<PlayState>((set, get) => ({
     if (auto && a && routineOnly(a) && a.orders && !get().busy) void get().send('{}')
   },
   setNotes: (notes) => set({ notes }),
-  setMarker: (marker) => set({ marker }),
-  setPicking: (picking) => set({ picking }),
+  setMove: (move) => set({ move }),
+  setAdding: (adding) => set({ adding }),
+  setHover: (hover) => { picking.highlight = hover; set({ hover }) },
 
   begin: async () => {
     set({ phase: 'loading', error: null, pulls: [], pull: 1, notes: '' })
+    if (!Object.keys(get().ranges).length) void loadRanges().then((ranges) => set({ ranges }))
     await startPull(1)
   },
 
   send: async (text) => {
     if (get().busy || !get().ask) return
-    set({ busy: true, marker: null, picking: false })
+    set({ busy: true, move: null, adding: null, hover: null })
     try {
       const step = await sim.answer(text)
       set((s) => ({ decisions: s.decisions + 1 }))
@@ -147,9 +156,16 @@ export const usePlay = create<PlayState>((set, get) => ({
   quit: () => {
     head = null; events = []; chat = []
     usePlayback.setState({ engine: null, currentId: null, playing: false, t: 0 })
-    set({ phase: 'lobby', ask: null, ended: null, busy: false, pulls: [], marker: null, picking: false })
+    set({ phase: 'lobby', ask: null, ended: null, busy: false, pulls: [], move: null, adding: null, hover: null })
   },
 }))
+
+async function loadRanges(): Promise<Record<string, number>> {
+  try {
+    const g: { party: { abilities: { id: string; range_m?: number }[] }[] } = await (await fetch('/replays/game.json')).json()
+    return Object.fromEntries(g.party.flatMap((m) => m.abilities.filter((a) => a.range_m).map((a) => [a.id, a.range_m!])))
+  } catch { return {} }
+}
 
 async function startPull(pull: number) {
   const { seat, tier, vault } = usePlay.getState()
@@ -214,3 +230,6 @@ export function ordersText(o: { move: Orders['move_to']; priority: [string, stri
   if (o.say.trim()) out.say = o.say.trim()
   return JSON.stringify(out)
 }
+
+// Local development: the stores, for driving a game from the console.
+if (import.meta.env.DEV && typeof window !== 'undefined') Object.assign(window as object, { __play: usePlay, __playback: usePlayback })

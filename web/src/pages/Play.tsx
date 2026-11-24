@@ -191,7 +191,7 @@ function Game() {
         </div>
         {phase === 'playing' && (
           <div className="absolute inset-x-2 bottom-2 flex justify-center sm:inset-x-4 sm:bottom-4">
-            <div className="hud-s w-full max-w-[780px]"><Orders onAiView={() => setAi(true)} /></div>
+            <div className="hud-s w-full max-w-[780px]"><Tips /><Orders onAiView={() => setAi(true)} /></div>
           </div>
         )}
         {phase === 'loading' && <Center><div className="card px-5 py-4 text-[14px] text-fg-muted">Setting up the pull…</div></Center>}
@@ -199,6 +199,23 @@ function Game() {
         {phase === 'done' && <Done />}
         {ai && <AiView ask={ask} rules={rules} onClose={() => setAi(false)} />}
       </div>
+    </div>
+  )
+}
+
+/** Three tips on a first game, until dismissed (remembered in this browser). */
+function Tips() {
+  const [open, setOpen] = useState(() => { try { return localStorage.getItem('mb:play:tips') !== 'seen' } catch { return true } })
+  if (!open) return null
+  const close = () => { setOpen(false); try { localStorage.setItem('mb:play:tips', 'seen') } catch { /* storage off */ } }
+  return (
+    <div className="card pointer-events-auto mb-2 flex items-start gap-3 px-3 py-2.5 text-[13px] leading-5 text-fg-muted">
+      <ul className="min-w-0 flex-1 space-y-1">
+        <li><span className="text-fg">Attack:</span> pick an ability, then a target in the list or in the scene. Enemies are numbered on their nameplates.</li>
+        <li><span className="text-fg">Move:</span> Next waypoint follows the route to the boss; or tap the floor. Your character holds still otherwise.</li>
+        <li><span className="text-fg">Keys:</span> 1 to 5 pick abilities, Enter sends, Space keeps your orders, Esc cancels.</li>
+      </ul>
+      <button className="icon-btn h-7 w-7" onClick={close} aria-label="Hide tips"><X size={14} /></button>
     </div>
   )
 }

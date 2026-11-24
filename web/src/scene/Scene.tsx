@@ -69,6 +69,11 @@ function FollowParty() {
         .map((u) => posAt(u, f.t))
       if (!pts.length) return
       want = new THREE.Vector3(pts.reduce((a, p) => a + p[0], 0) / pts.length, 0.6, pts.reduce((a, p) => a + p[1], 0) / pts.length)
+      if (own?.alive) {
+        // /play: look a little in front of your character, so it sits above the orders panel.
+        const toward = new THREE.Vector3(camera.position.x - controls.target.x, 0, camera.position.z - controls.target.z)
+        if (toward.lengthSq() > 1e-6) want.add(toward.normalize().multiplyScalar(4))
+      }
     } else {
       want = new THREE.Vector3(...CAM_LOOK)
     }
