@@ -24,7 +24,8 @@ const TOC: [string, string, string][] = [
   ['validity', '9', 'Validity'],
   ['related', '10', 'Related work'],
   ['limits', '11', 'Limitations'],
-  ['conclusion', '12', 'Conclusion'],
+  ['next', '12', 'Next steps'],
+  ['conclusion', '13', 'Conclusion'],
   ['references', '', 'References'],
   ['reproduce', 'A', 'Reproducing the results'],
   ['cite', 'B', 'Citing'],
@@ -118,6 +119,9 @@ export function Report() {
             </h1>
             <p className="mt-5 text-[17px] leading-7 text-fg-muted">
               Seven frontier models from four labs, five agents each, a dungeon none of them has seen, and five attempts to beat it.
+            </p>
+            <p className="mt-3 text-[14px] text-fg-faint">
+              By Austin (<a href="https://x.com/awstnnnn" target="_blank" rel="noopener noreferrer" className="text-fg-muted underline decoration-white/30 underline-offset-4 hover:text-fg">@awstnnnn</a>)
             </p>
             <div className="mt-6 flex flex-wrap gap-2 text-[13px]">
               {LINKS.map(([label, to, internal]) => internal
@@ -443,6 +447,15 @@ export function Report() {
               <li><strong>Range is the agent's job.</strong> The state lists abilities that are off cooldown, not whether their target is in reach. An agent has to work out reach from positions, and some stood idle centimetres out of melee range. That is part of what is measured, but it weighs on melee characters more than on ranged ones, and there is no line-of-sight rule.</li>
               <li><strong>Interrupts only delay.</strong> An interrupted caster starts the same spell again at once, so an interrupt buys about half a second.</li>
               <li><strong>Prices change.</strong> Costs are list prices at the time of the run.</li>
+            </ul>
+
+            <H2 id="next">Next steps</H2>
+            <ul>
+              <li><strong>More models.</strong> New models join v1 the way Grok 4.3 and DeepSeek V4.1 Flash did: by an amendment, on the same frozen code, seeds and settings, so their scores sit on the same leaderboard. Next in line are Claude Fable 5.2, Terra, Grok 4.7 and Kimi, as budget and research credits from the labs allow. One group costs from under $1 to about $37 at list prices, depending on the model, and each model plays six.</li>
+              <li><strong>Tighter comparisons.</strong> Six groups per model separate only large gaps. More groups per model would show whether the five models level with the scripted bot really are level.</li>
+              <li><strong>Memory where it matters.</strong> The memory test ran only on two models that never learned the key mechanic. Running it on Claude Opus 5.5 and GPT-6.2 Sol would show how much of their gain the debrief, talk and notes explain.</li>
+              <li><strong>A fixed harness.</strong> The "safe" fault waits for the next harness version, which would be a new protocol with its own runs, not a change to v1.</li>
+              <li><strong>More fights.</strong> Other bosses with other mechanics that run against instinct would test whether the pattern here holds beyond Bone Pyre.</li>
             </ul>
 
             <H2 id="conclusion">Conclusion</H2>

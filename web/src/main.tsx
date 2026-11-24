@@ -6,7 +6,7 @@ import '@fontsource/ibm-plex-mono/500.css'
 import '@fontsource/ibm-plex-serif/400.css' // the report's body text
 import '@fontsource/ibm-plex-serif/400-italic.css'
 import '@fontsource/ibm-plex-serif/500.css'
-import { lazy, StrictMode, Suspense } from 'react'
+import { Component, lazy, StrictMode, Suspense, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { About } from './pages/About'
 import { Changelog } from './pages/Changelog'
@@ -23,6 +23,37 @@ const Watch = lazy(() => import('./App'))
 const Report = lazy(() => import('./pages/Report').then((m) => ({ default: m.Report })))
 const Compare = lazy(() => import('./pages/Compare').then((m) => ({ default: m.Compare })))
 const DevPortraits = lazy(() => import('./pages/DevPortraits'))
+
+// A deploy renames the code files that pages load on demand, so a tab opened
+// before it asks for files that are gone. Load the new version instead of
+// leaving a blank page; at most once a minute, so a real outage can't loop.
+function reloadForNewVersion(): boolean {
+  try {
+    const last = Number(sessionStorage.getItem('mb:reloaded') ?? 0)
+    if (Date.now() - last < 60_000) return false
+    sessionStorage.setItem('mb:reloaded', String(Date.now()))
+  } catch { /* storage blocked: reload anyway */ }
+  location.reload()
+  return true
+}
+window.addEventListener('vite:preloadError', (e) => { if (reloadForNewVersion()) e.preventDefault() })
+
+/** Catches a page that fails to load or render: reloads once for a stale deploy, else says so. */
+class PageBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false }
+  static getDerivedStateFromError() { return { failed: true } }
+  componentDidCatch(err: unknown) {
+    if (/dynamically imported module|Importing a module script failed|error loading dynamically/i.test(String(err))) reloadForNewVersion()
+  }
+  render() {
+    if (!this.state.failed) return this.props.children
+    return (
+      <div className="grid h-full min-h-[60vh] place-items-center px-4 text-center text-[14px] text-fg-muted">
+        <p>This page didn't load. <button className="underline decoration-accent/50 underline-offset-4 hover:text-fg" onClick={() => location.reload()}>Reload</button></p>
+      </div>
+    )
+  }
+}
 
 // Links from before the site existed opened the viewer at the root: /?replay=<id>, /?run=<id>.
 {
@@ -45,7 +76,11 @@ function Site() {
   else if (path === '/compare') page = <Compare />
   else if (import.meta.env.DEV && path === '/dev/portraits') page = <DevPortraits />
   else page = <NotFound />
-  return <Suspense fallback={<div className="grid h-full place-items-center text-[13px] text-fg-faint">Loading…</div>}>{page}</Suspense>
+  return (
+    <PageBoundary key={path}>
+      <Suspense fallback={<div className="grid h-full place-items-center text-[13px] text-fg-faint">Loading…</div>}>{page}</Suspense>
+    </PageBoundary>
+  )
 }
 
 createRoot(document.getElementById('root')!).render(

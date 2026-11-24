@@ -1,6 +1,6 @@
 import { Heart } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { GITHUB_URL, RESULTS_DIR, VENMO_HANDLE, VENMO_URL } from '../site/config'
+import { GITHUB_URL, VENMO_HANDLE, VENMO_URL } from '../site/config'
 import { Page } from '../site/Layout'
 import { Link } from '../site/router'
 
@@ -11,10 +11,6 @@ function Section({ id, title, children }: { id?: string; title: string; children
       <div className="prose mt-4">{children}</div>
     </section>
   )
-}
-
-function Code({ children }: { children: string }) {
-  return <pre><code>{children}</code></pre>
 }
 
 export function About() {
@@ -54,19 +50,6 @@ export function About() {
           </p>
         </Section>
 
-        <Section title="What we found">
-          <p>
-            In 480 pulls by seven models from four labs, no party cleared the dungeon. The closest on +10 was GPT-6.2 Sol, which had Oruth at 8.7%
-            when time ran out. The key to the fight is soaking Bone Pyre: standing in the fire instead of running from
-            it. Claude Opus 5.5 and GPT-6.2 Sol worked that out in every group. The other five models almost never
-            did. A clear is possible: a script written by someone who knows the fight finds one, with a second to spare.
-          </p>
-          <p>
-            The <Link to="/report">report</Link> has the full results, and the <Link to="/highlights">highlights</Link> show
-            the moments behind them.
-          </p>
-        </Section>
-
         <Section title="For WoW players">
           <p>
             Think of a fresh key in a dungeon you've never run, with no guide. Each character has an interrupt, a
@@ -88,6 +71,7 @@ export function About() {
             <li>A memory-off control plays the same seeds without the debrief, to measure what carrying lessons across wipes is worth.</li>
             <li>One model is called better than another only when it scores higher on the same seeds, by a margin a statistical test supports.</li>
             <li>Problems found after the run are disclosed, in the report and the <Link to="/changelog">changelog</Link>.</li>
+            <li>Anyone can rebuild the leaderboard for free from the recorded replies: the <a href={`${GITHUB_URL}#readme`}>README</a> shows how.</li>
           </ul>
         </Section>
 
@@ -109,16 +93,10 @@ export function About() {
           </p>
         </Section>
 
-        <Section title="Run it yourself">
+        <Section id="author" title="Who made this">
           <p>
-            Every model reply is recorded, so checking the published results is free and offline. You need Python 3.10
-            or later:
-          </p>
-          <Code>{'cd sim\npip install -e ".[dev]"\npython -m mythicsim verify ../web/public/results/v1   # replay all 525 pulls, rebuild the leaderboard'}</Code>
-          <p>
-            The dataset is <code>{RESULTS_DIR}</code>: the leaderboard, the exact settings, and a replay of every pull with
-            every reply the model gave (<a href={`/${RESULTS_DIR}/leaderboard.json`}>leaderboard.json</a>). Running the
-            viewer, running models and the full protocol are in the <a href={`${GITHUB_URL}#readme`}>README</a>.
+            MythicBench is built and run by Austin. Follow along, or get in touch, on X at{' '}
+            <a href="https://x.com/awstnnnn" target="_blank" rel="noopener noreferrer">@awstnnnn</a>.
           </p>
         </Section>
 

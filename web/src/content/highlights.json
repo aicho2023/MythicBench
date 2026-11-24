@@ -549,5 +549,88 @@
     "t": 112,
     "summary": "After pull 2, the healer notices the tank took less damage inside the circle. In pull 3 the whole party soaks a Pyre once, but nobody writes it down. Only after pull 4's wipe do the notes say to stand in it. It's the only Sonnet group that ever soaked.",
     "quotes": []
+  },
+  {
+    "id": "deepseek-soak",
+    "title": "Half the party says run, half steps in",
+    "kind": "eureka",
+    "model": "deepseek-flash",
+    "tier": "plus10",
+    "episode": 1,
+    "pull": 2,
+    "t": 110,
+    "summary": "As the first Bone Pyre appears, Ivy announces she is moving in to soak it, while Wren tells Brask and Kit to step out. Brask and Kit stay, and with three inside the blast is split. After the wipe, Rook turns it into the rule: soak, don't dodge. It is the only DeepSeek V4.1 Flash group that works the Pyre out, and next pull four players stand in the first one.",
+    "quotes": [
+      {
+        "who": "Ivy",
+        "where": "chat",
+        "t": 115.9,
+        "text": "Moving in to soak, hymn right after detonation."
+      },
+      {
+        "who": "Wren",
+        "where": "chat",
+        "t": 115.9,
+        "text": "Brask, Kit - pyre under you detonating now, step out."
+      },
+      {
+        "who": "Rook",
+        "where": "debrief talk",
+        "text": "Bone Pyre = SOAK, not dodge: EVERYONE run INTO the circle."
+      }
+    ]
+  },
+  {
+    "id": "grok-plan-once",
+    "title": "The plan worked once",
+    "kind": "blunder",
+    "model": "grok-4.3",
+    "tier": "plus10",
+    "episode": 0,
+    "pull": 2,
+    "t": 158,
+    "summary": "After the first wipe, all five of Grok 4.3's agents write the same plan into their notes: Brask and Kit soak Bone Pyre. In pull 2 they do it for the first Pyre. For the second, only Brask goes in, and the blast hits the whole party. The debrief names the failure and the plan stays in the notes, but over the next three pulls the party gets two players inside only once more.",
+    "quotes": [
+      {
+        "who": "Kit",
+        "where": "notes",
+        "text": "Plan: Brask+Kit soak Bone Pyre (Ivy Lumen on us)."
+      },
+      {
+        "who": "Rook",
+        "where": "debrief talk",
+        "text": "Pyre soak failed (only Brask in 2nd)."
+      }
+    ]
+  },
+  {
+    "id": "deepseek-unavoidable",
+    "title": "Unavoidable, they agreed",
+    "kind": "reasoning",
+    "model": "deepseek-flash",
+    "tier": "plus10",
+    "episode": 0,
+    "pull": 2,
+    "t": 100,
+    "summary": "After the first wipe, four of DeepSeek V4.1 Flash's five agents write that Bone Pyre can't be avoided. In pull 2, Rook reminds the party not to dodge it, and nobody steps in. Both Pyres go off with the circle empty, and by 2:19 Rook is the last one standing. The next debrief plans heals around the blast rather than a way to stop it.",
+    "quotes": [
+      {
+        "who": "Ivy",
+        "where": "notes",
+        "text": "Bone Pyre is party-wide ~33k unavoidable, hits everyone; NOT a floor circle to dodge"
+      },
+      {
+        "who": "Rook",
+        "where": "chat",
+        "t": 104.9,
+        "text": "Pyre is raid-wide, don't dodge."
+      },
+      {
+        "who": "Rook",
+        "where": "chat",
+        "t": 138.7,
+        "text": "All four down, no rezzes in combat."
+      }
+    ]
   }
 ]

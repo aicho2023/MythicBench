@@ -81,6 +81,8 @@ export interface Results {
   leaderboard: LeaderboardRow[]
   /** reference players through the same interface (the scripted commander): shown, never ranked */
   baselines?: LeaderboardRow[]
+  /** The scripted bot's score, kept as a reference line when the bot's rows are hidden. */
+  bot_score?: number | null
   /** effort sweeps: other reasoning efforts of some models, unranked */
   configs?: ConfigRow[]
   controls: ControlRow[]
@@ -113,6 +115,7 @@ export function modelsOnly(r: Results): Results {
     leaderboard: r.leaderboard.filter((row) => models.has(row.model)),
     controls: r.controls.filter((c) => models.has(c.model)),
     baselines: [],
+    bot_score: r.baselines?.find((b) => b.mythicbench_score != null)?.mythicbench_score ?? null,
     configs: (r.configs ?? []).filter((c) => models.has(c.model)),
   }
 }

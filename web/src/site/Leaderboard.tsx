@@ -46,7 +46,6 @@ export function LeaderboardTable({ results }: { results: Results }) {
               <CIAxis width={STRIP} lo={lo} hi={hi} />
             </th>
             <th className={`${TH} hidden text-right md:table-cell`} title="Mean score of the first pull: blind, before any wipe">First pull</th>
-            <th className={`${TH} hidden text-right md:table-cell`} title="How much of Oruth's health was left at the end of the model's best pull">Lowest Oruth health</th>
             {anyClear && <th className={`${TH} hidden text-right lg:table-cell`}>Clears</th>}
             <th className={`${TH} hidden pr-0 text-right sm:table-cell`}>Cost per group</th>
             <th className="w-6" aria-hidden />
@@ -56,7 +55,6 @@ export function LeaderboardTable({ results }: { results: Results }) {
           {rows.map((row) => {
             const cell = row.tiers[hard]
             const ref = baselines.includes(row)
-            const best = bestPull(results, row)
             const go = () => !ref && navigate(`/watch/${encodeURIComponent(row.model)}`)
             const ink = ref ? 'text-fg-faint' : 'text-fg-muted'
             return (
@@ -84,14 +82,6 @@ export function LeaderboardTable({ results }: { results: Results }) {
                   </span>
                 </td>
                 <td className={`${TD} ${NUM} hidden md:table-cell ${ink}`}>{fmtScore(cell?.first_pull_score_mean)}</td>
-                <td className={`${TD} ${NUM} hidden md:table-cell ${ink}`}>
-                  {best && best.score >= 70 ? 'Cleared' : best?.bossLeft != null ? (
-                    <span className="inline-flex items-center gap-2" title={`Best pull: ${fmtScore(best.score)}, with Oruth at ${best.bossLeft}% health`}>
-                      <span className="h-1 w-12 overflow-hidden rounded-full bg-white/[0.08]"><span className="block h-full rounded-full bg-[#d0463b]" style={{ width: `${best.bossLeft}%` }} /></span>
-                      {best.bossLeft}%
-                    </span>
-                  ) : '–'}
-                </td>
                 {anyClear && <td className={`${TD} ${NUM} hidden lg:table-cell ${ink}`}>{cell ? `${cell.clears ?? 0} of ${cell.episodes}` : '–'}</td>}
                 <td className={`${TD} ${NUM} hidden pr-0 sm:table-cell ${ink}`}>{ref ? '$0' : fmtUsd(costPerRun(row, results))}</td>
                 <td className="w-6 text-fg-faint transition-colors group-hover:text-fg">{!ref && <ChevronRight size={16} />}</td>
