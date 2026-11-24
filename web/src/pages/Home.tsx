@@ -72,6 +72,7 @@ export function Home() {
           )}
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/watch" className="btn btn-primary h-11 px-5 text-[14px]">Watch a run</Link>
+            <Link to="/play" className="btn h-11 px-5 text-[14px]">Play it yourself</Link>
             <Link to="/report" className="btn h-11 px-5 text-[14px]">Read the report</Link>
           </div>
         </div>

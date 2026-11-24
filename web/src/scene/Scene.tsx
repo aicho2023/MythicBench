@@ -8,6 +8,8 @@ import { frameState, usePlayback } from '../replay/store'
 import { Arena } from './Arena'
 import { Effects } from './Effects'
 import { Units } from './Units'
+import { PickLayer } from '../play/PickLayer'
+import { picking } from './picking'
 
 /** Lets DOM overlays (floating numbers, nameplates) project 3D -> screen. */
 export const sceneBridge: { camera: THREE.Camera | null; scene: THREE.Scene | null; size: { width: number; height: number } } = {
@@ -61,11 +63,17 @@ function FollowParty() {
     if (!f || !controls || !FOLLOW) return
     let want: THREE.Vector3
     if (f.engine.replay.arena.rooms) {
-      const alive = f.s.order.map((id) => f.s.units[id]).filter((u) => u.info.kind === 'player' && u.alive)
+      const own = picking.follow ? f.s.units[picking.follow] : null
+      const alive = own?.alive ? [own] : f.s.order.map((id) => f.s.units[id]).filter((u) => u.info.kind === 'player' && u.alive)
       const pts = (alive.length ? alive : f.s.order.map((id) => f.s.units[id]).filter((u) => u.info.kind === 'player'))
         .map((u) => posAt(u, f.t))
       if (!pts.length) return
       want = new THREE.Vector3(pts.reduce((a, p) => a + p[0], 0) / pts.length, 0.6, pts.reduce((a, p) => a + p[1], 0) / pts.length)
+      if (own?.alive) {
+        // /play: look a little in front of your character, so it sits above the orders panel.
+        const toward = new THREE.Vector3(camera.position.x - controls.target.x, 0, camera.position.z - controls.target.z)
+        if (toward.lengthSq() > 1e-6) want.add(toward.normalize().multiplyScalar(4))
+      }
     } else {
       want = new THREE.Vector3(...CAM_LOOK)
     }
@@ -118,6 +126,7 @@ export function Scene() {
       <Arena />
       <Units />
       <Effects />
+      <PickLayer />
       <FollowParty />
       <OrbitControls
         makeDefault

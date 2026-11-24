@@ -12,6 +12,7 @@ export const PAGES: PageMeta[] = [
   { path: '/watch', title: 'Watch a run | MythicBench', description: 'Replays of every pull in the benchmark, in 3D, with every decision the model made.' },
   { path: '/highlights', title: 'Highlights | MythicBench', description: 'The best moments from the official run: breakthroughs, arguments, clutch saves and spectacular wipes, each a click from the replay.' },
   { path: '/report', title: 'Report | MythicBench', description: 'How MythicBench works, what it measures, and what the models did.' },
+  { path: '/play', title: 'Play | MythicBench', description: 'Take one seat in the party and play by the AI agents\u2019 rules: the fight pauses every 4 seconds for your orders, and four expert bots play the rest. Can you clear the vault?' },
   { path: '/party', title: 'The party | MythicBench', description: 'Every character and ability in MythicBench, the enemies of the Hollow Vault, and the affixes.' },
   { path: '/compare', title: 'Side by side | MythicBench', description: 'Two MythicBench replays on one clock, seen from above.' },
   { path: '/about', title: 'About | MythicBench', description: 'How MythicBench works, for WoW players and for ML people, how to run it yourself, and credits.' },

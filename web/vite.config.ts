@@ -55,6 +55,8 @@ function pageCopies(): Plugin {
 export default defineConfig({
   plugins: [{ enforce: 'pre', ...mdx() }, react({ include: /\.(mdx|tsx?)$/ }), pageCopies()],
   base: '/',
+  // /play's game worker loads Pyodide with a dynamic import: an ES module worker.
+  worker: { format: 'es' },
   server: { host: true, port: Number(process.env.PORT) || 5173 },
   test: { environment: 'node' },
 })

@@ -11,6 +11,7 @@ import { CLASS_COLORS, SCHOOL_COLORS, fmtNum } from '../content/display'
 import { posAt, bossOf } from '../replay/engine'
 import { frameState } from '../replay/store'
 import { sceneBridge } from '../scene/Scene'
+import { enemyTags, picking } from '../scene/picking'
 import { ROLE_ICON, ROLE_TINT } from './bits'
 
 const MAX_TEXT = 44
@@ -81,6 +82,8 @@ export function WorldOverlay() {
 
       // ---- nameplates
       let p = 0
+      // On /play: enemies carry the number the orders panel uses, and your character says so.
+      const tags = picking.follow ? enemyTags(s) : null
       const placed: { el: HTMLDivElement; x: number; y: number }[] = []
       for (const id of s.order) {
         const u = s.units[id]
@@ -108,7 +111,7 @@ export function WorldOverlay() {
         if (doing.textContent !== doingText) doing.textContent = doingText
         doing.style.display = doingText ? 'block' : 'none'
         if (abInfo) doing.style.color = player ? SCHOOL_COLORS[abInfo.school] ?? '#ededef' : u.cast?.interruptible ? '#fbbf24' : '#fca5a5'
-        const label = u.info.kind === 'player' ? u.info.name : ''
+        const label = u.info.kind === 'player' ? (id === picking.follow ? `${u.info.name} (you)` : u.info.name) : tags?.[id] ?? ''
         if (name.textContent !== label) name.textContent = label
         const role = u.info.kind === 'player' ? u.info.role : ''
         if (icons.dataset.role !== role) {
@@ -116,6 +119,18 @@ export function WorldOverlay() {
           for (const c of Array.from(icons.children) as HTMLElement[]) c.style.display = c.dataset.role === role ? 'inline-flex' : 'none'
         }
         name.style.color = u.info.kind === 'player' ? CLASS_COLORS[u.info.class] : '#fca5a5'
+        // An enemy's number, as a badge over its health bar.
+        const badge = u.info.kind !== 'player' && !!label
+        const lit = badge && picking.highlight === id
+        const look = lit ? 'lit' : String(badge)
+        if (name.dataset.badge !== look) {
+          name.dataset.badge = look
+          Object.assign(name.style, badge
+            ? { padding: '0 5px', borderRadius: '4px', fontFamily: "'IBM Plex Mono', monospace",
+                background: lit ? '#fbbf24' : 'rgba(10,10,12,0.85)', boxShadow: lit ? 'none' : 'inset 0 0 0 1px rgba(252,165,165,0.6)' }
+            : { padding: '', borderRadius: '', background: '', boxShadow: '', fontFamily: '' })
+        }
+        if (lit) name.style.color = '#0a0a0c'
         const showBar = u.info.kind !== 'player'
         bar.style.display = showBar ? 'block' : 'none'
         if (showBar) (bar.firstElementChild as HTMLElement).style.width = `${(100 * u.hp) / u.info.max_hp}%`

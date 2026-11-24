@@ -231,9 +231,10 @@ export class ReplayEngine {
   private readonly snapshots: { t: number; next: number; state: ReplayState }[] = []
   private cache: { t: number; state: ReplayState } | null = null
 
-  constructor(replay: Replay) {
+  /** ``epilogueMs``: viewing time after the last event (0 for a fight still being played, on /play). */
+  constructor(replay: Replay, epilogueMs = EPILOGUE_MS) {
     this.replay = replay
-    this.duration = replay.meta.duration_ms + EPILOGUE_MS
+    this.duration = replay.meta.duration_ms + epilogueMs
     this.times = replay.events.map((e) => e.t)
     // Build snapshots: state after all events with e.t <= boundary.
     const s = initialState(replay)

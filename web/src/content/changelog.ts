@@ -25,6 +25,19 @@ const V1: Versions = { harness: '1.0.0', sim: '0.11.0', content: '1.8.0' }
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 'play',
+    date: '2026-11-24',
+    title: 'Play it yourself',
+    kind: 'release',
+    summary: 'A new page, /play: take one seat in the party and play by the agents\' rules, with the expert script in the other four. Nothing that plays in the benchmark changed, and no score moved.',
+    items: [
+      'The fight pauses whenever your character\'s agent would have been asked (every 4 seconds of game time, and at once when something concerns you), and you send the same orders: a move, a priority list, a line of party chat.',
+      'It is the v1 game, run in your browser: the simulator itself, in Pyodide. With the expert in your seat, every pull replays byte for byte like the expert party\'s.',
+      'A new vault every day, the same five seeds for everyone. Share a result and your friends play the same seeds.',
+      'People\'s games use their own seeds, far from the benchmark\'s, and are never on the leaderboard.',
+    ],
+  },
+  {
     id: 'site-polish',
     date: '2026-11-24',
     title: 'Site: new highlights, the party page and next steps',

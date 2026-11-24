@@ -23,6 +23,7 @@ const Watch = lazy(() => import('./App'))
 const Report = lazy(() => import('./pages/Report').then((m) => ({ default: m.Report })))
 const Compare = lazy(() => import('./pages/Compare').then((m) => ({ default: m.Compare })))
 const DevPortraits = lazy(() => import('./pages/DevPortraits'))
+const Play = lazy(() => import('./pages/Play').then((m) => ({ default: m.Play })))
 
 // A deploy renames the code files that pages load on demand, so a tab opened
 // before it asks for files that are gone. Load the new version instead of
@@ -71,6 +72,7 @@ function Site() {
   else if (path === '/commentary' || path === '/paper') { history.replaceState(null, '', `/report${location.hash}`); page = <Report /> }  // its old names
   else if (path === '/highlights') page = <Highlights />
   else if (path === '/party') page = <Party />
+  else if (path === '/play') page = <Play />
   else if (path === '/about') page = <About />
   else if (path === '/changelog') page = <Changelog />
   else if (path === '/compare') page = <Compare />
