@@ -3,8 +3,6 @@ import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { HighlightCard } from './Highlights'
 import { HIGHLIGHTS } from '../content/highlights'
 import { LESSONS } from '../content/findings'
-import { PullGrid } from '../site/PullGrid'
-import { DeathCauses, SoakByPull } from '../site/HeatTables'
 import { PyreGrid } from '../site/PyreGrid'
 import { CostScatter, LearningCurves } from '../site/charts'
 import { LeaderboardTable } from '../site/Leaderboard'
@@ -132,7 +130,7 @@ function ResultsBody({ results }: { results: Results }) {
       <section id="leaderboard" className="pt-20">
         <SectionHead title="Leaderboard" link={['/report#results', 'Results in the report']}>
           <p className="text-[13px] text-fg-faint sm:ml-auto">
-            {tierName(results, 'plus10')} · {p.episodes} groups per model · up to {p.max_pulls} pulls each
+            {tierName(results, 'plus10')}, {p.episodes} groups per model, up to {p.max_pulls} pulls each
           </p>
         </SectionHead>
         <div className="mt-6"><LeaderboardTable results={results} /></div>
@@ -142,29 +140,21 @@ function ResultsBody({ results }: { results: Results }) {
         <section className="pt-20">
           <SectionHead title="Beyond the game" link={['/report#lessons', 'In the report']} />
           <p className="mt-2 max-w-[720px] text-[15px] leading-6 text-fg-muted">
-            The setting has the same shape as a common goal for agents at work: do a task, get feedback, do it better next
-            time, often alongside other agents. One fight can’t settle anything in general, but six results look likely to carry over.
+            Agents at work are often meant to learn from feedback, too. One fight can’t settle anything in general, but these
+            results look likely to carry over.
           </p>
-          <ol className="mt-6 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {LESSONS.map((l, i) => (
+          <ul className="mt-6 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {LESSONS.map((l) => (
               <li key={l.id}>
                 <Link to={`/report#lesson-${l.id}`} className="group flex h-full flex-col rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-white/20">
-                  <span className="font-mono text-[12px] text-fg-faint">{String(i + 1).padStart(2, '0')}</span>
-                  <span className="mt-2 text-[16px] leading-6 text-fg">{l.title}</span>
+                  <span className="text-[16px] leading-6 text-fg">{l.title}</span>
                   <span className="mt-2 text-[14px] leading-6 text-fg-muted">{l.short}</span>
                 </Link>
               </li>
             ))}
-          </ol>
+          </ul>
         </section>
       )}
-
-      <section className="pt-20">
-        <SectionHead title="Every pull, at a glance" link={['/report#pyre', 'Bone Pyre in the report']} />
-        <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
-          <PullGrid results={results} />
-        </div>
-      </section>
 
       <section className="pt-20">
         <SectionHead title="Does it learn between wipes?" link={['/report#learning', 'Learning in the report']}>
@@ -182,27 +172,11 @@ function ResultsBody({ results }: { results: Results }) {
       <section className="pt-20">
         <SectionHead title="Learning to stand in the fire" link={['/report#pyre', 'Bone Pyre in the report']} />
         <p className="mt-2 max-w-[720px] text-[15px] leading-6 text-fg-muted">
-          Bone Pyre's blast hits everyone unless two players stand inside its circle. No party works that out blind.
-          After one wipe, Opus and Sol soak most Pyres. The other five almost never do, even when their notes say to.
+          Bone Pyre's blast hits everyone unless two players stand inside its circle. Each square below is one Pyre.
+          After one wipe, Opus and Sol soak most of them. The other five almost never do, even when their notes say to.
         </p>
         <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
-          <h3 className="mb-4 text-[14px] font-medium text-fg">Every Bone Pyre, and who stood in it</h3>
           <PyreGrid results={results} />
-        </div>
-        <div className="mt-3 rounded-2xl border border-line bg-surface p-4 sm:p-6">
-          <h3 className="mb-4 text-[14px] font-medium text-fg">The same, in numbers: share of Pyres soaked at each pull</h3>
-          <SoakByPull results={results} />
-        </div>
-      </section>
-
-      <section className="pt-20">
-        <SectionHead title="What killed them" link={['/report#pyre', 'Deaths in the report']} />
-        <p className="mt-2 max-w-[720px] text-[15px] leading-6 text-fg-muted">
-          Bone Pyre kills more characters than anything else, for every model. The two that learned to soak it trade some of
-          those deaths for the pools that land where the party gathers: for Opus, they are almost level.
-        </p>
-        <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
-          <DeathCauses results={results} />
         </div>
       </section>
 

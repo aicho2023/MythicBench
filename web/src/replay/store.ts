@@ -112,8 +112,9 @@ export const usePlayback = create<Playback>((set, get) => ({
         let results: Results | null = null
         try { results = await fetchResults() } catch { /* no dataset */ }
         // Model runs saved on this machine (`python -m mythicsim llm ...` publishes
-        // them to replays/local/catalog.json), if any. Local development only.
-        const saved = await fetchJson<Catalog>(`${base}replays/local/catalog.json`)
+        // them to replays/local/catalog.json), if any. Local development only: the
+        // deployed site has none, so it doesn't ask (and log a 404).
+        const saved = import.meta.env.DEV ? await fetchJson<Catalog>(`${base}replays/local/catalog.json`) : null
         // Mock and scripted runs saved locally stay out of the run list unless references are on.
         const local = saved && !SHOW_REFERENCE_RUNS
           ? { ...saved, runs: saved.runs.filter((r) => !REFERENCE_PROVIDERS.includes(r.provider)) }
