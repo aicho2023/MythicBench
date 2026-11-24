@@ -1,5 +1,8 @@
 name: CI
 on: [push, pull_request]
+# CI only reads the code: give its GitHub token no write access.
+permissions:
+  contents: read
 jobs:
   sim:
     runs-on: ubuntu-latest

@@ -1,4 +1,4 @@
-/// <reference types="vitest" />
+/// <reference types="vitest/config" />
 import mdx from '@mdx-js/rollup'
 import react from '@vitejs/plugin-react'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -55,6 +55,9 @@ function pageCopies(): Plugin {
 export default defineConfig({
   plugins: [{ enforce: 'pre', ...mdx() }, react({ include: /\.(mdx|tsx?)$/ }), pageCopies()],
   base: '/',
-  server: { host: true, port: Number(process.env.PORT) || 5173 },
+  // The dev server listens on this machine only. `host: true` would serve the
+  // working tree (unpublished local runs included) to everyone on the same
+  // network; opt in with `npm run dev -- --host` when testing on a phone.
+  server: { port: Number(process.env.PORT) || 5173 },
   test: { environment: 'node' },
 })
