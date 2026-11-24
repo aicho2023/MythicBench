@@ -33,10 +33,12 @@ export function PyreGrid({ results }: { results: Results }) {
 
   const narrow = w < 640
   const labelW = narrow ? 0 : 184
-  const colGap = narrow ? 8 : 16
+  const minGap = narrow ? 8 : 16
   const gap = narrow ? 1.5 : 2
-  const cell = Math.max(5, Math.min(14, Math.floor(((w - labelW - colGap * (pulls - 1)) / pulls - gap * (perPull - 1)) / perPull)))
+  const cell = Math.max(5, Math.min(16, Math.floor(((w - labelW - minGap * (pulls - 1)) / pulls - gap * (perPull - 1)) / perPull)))
   const colW = perPull * cell + (perPull - 1) * gap
+  // Spread the pull columns across the full width rather than leaving it empty on the right.
+  const colGap = pulls > 1 ? Math.max(minGap, Math.min(96, Math.floor((w - labelW - pulls * colW) / (pulls - 1)))) : minGap
 
   if (!data) return <div ref={ref} className="h-[420px]" />
   return (

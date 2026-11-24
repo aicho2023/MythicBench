@@ -2,7 +2,6 @@ import { ArrowRight } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { HighlightCard } from './Highlights'
 import { HIGHLIGHTS } from '../content/highlights'
-import { LESSONS } from '../content/findings'
 import { PyreGrid } from '../site/PyreGrid'
 import { CostScatter, LearningCurves } from '../site/charts'
 import { LeaderboardTable } from '../site/Leaderboard'
@@ -135,26 +134,6 @@ function ResultsBody({ results }: { results: Results }) {
         </SectionHead>
         <div className="mt-6"><LeaderboardTable results={results} /></div>
       </section>
-
-      {p.name === 'v1' && (
-        <section className="pt-20">
-          <SectionHead title="Beyond the game" link={['/report#lessons', 'In the report']} />
-          <p className="mt-2 max-w-[720px] text-[15px] leading-6 text-fg-muted">
-            Agents at work are often meant to learn from feedback, too. One fight can’t settle anything in general, but these
-            results look likely to carry over.
-          </p>
-          <ul className="mt-6 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {LESSONS.map((l) => (
-              <li key={l.id}>
-                <Link to={`/report#lesson-${l.id}`} className="group flex h-full flex-col rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-white/20">
-                  <span className="text-[16px] leading-6 text-fg">{l.title}</span>
-                  <span className="mt-2 text-[14px] leading-6 text-fg-muted">{l.short}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
 
       <section className="pt-20">
         <SectionHead title="Does it learn between wipes?" link={['/report#learning', 'Learning in the report']}>

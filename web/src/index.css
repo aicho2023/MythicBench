@@ -84,6 +84,10 @@ body {
 
 @keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes slidein { from { transform: translateX(16px); } to { transform: none; } }
+/* The party page's character stage: a short slide when the selection changes. */
+@keyframes stagein { from { opacity: 0; transform: translateX(var(--from, 16px)); } to { opacity: 1; transform: none; } }
+.stage-in { animation: stagein 220ms cubic-bezier(0.2, 0, 0, 1); }
+@media (prefers-reduced-motion: reduce) { .stage-in { animation: none; } }
 
 /*
  * Long-form text (the paper, the about page). 16px body for reading, 20/16 headings,

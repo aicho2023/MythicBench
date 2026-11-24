@@ -59,7 +59,7 @@ function QuoteLine({ q }: { q: Quote }) {
       <div className="min-w-0">
         <div className="flex flex-wrap items-baseline gap-x-2 text-[12px]">
           <span className="font-medium" style={{ color }}>{q.who}</span>
-          <span className="text-fg-faint">{q.where}{q.t != null ? ` · ${clock(q.t)}` : ''}</span>
+          <span className="text-fg-faint">{q.where}{q.t != null && <span className="ml-2">{clock(q.t)}</span>}</span>
         </div>
         <p className={`mt-0.5 text-[15px] leading-6 text-[#d4d4d8] ${q.where === 'thinking' ? 'italic' : ''}`}>“{q.text}”</p>
       </div>

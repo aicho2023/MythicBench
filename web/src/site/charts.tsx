@@ -248,6 +248,8 @@ export function CostScatter({ results }: { results: Results }) {
   const pts = results.leaderboard
     .filter((r) => r.mythicbench_score != null)
     .map((r) => ({ key: r.model, label: modelName(r.model), color: modelColor(results, r.model), cost: costPerRun(r, results) ?? 0, score: r.mythicbench_score!, ci: r.mythicbench_score_ci95 ?? null }))
+  // The scripted bot: what fixed rules score, the level the models that didn't learn sit at.
+  const bot = results.bot_score ?? (results.baselines ?? []).find((b) => b.mythicbench_score != null)?.mythicbench_score ?? null
   const paid = pts.map((p) => p.cost).filter((c) => c > 0)
   const cLo = paid.length ? Math.min(...paid) / 2 : 0.01
   const cHi = paid.length ? Math.max(...paid) * 2 : 100
@@ -255,43 +257,54 @@ export function CostScatter({ results }: { results: Results }) {
   for (let e = Math.floor(Math.log10(cLo)); e <= Math.ceil(Math.log10(cHi)); e++) {
     for (const f of [1, 3]) { const v = f * 10 ** e; if (v >= cLo && v <= cHi) xticks.push(v) }
   }
-  const [lo, hi] = scoreDomain(pts.flatMap((p) => p.ci ? [p.ci[0], p.ci[1]] : [p.score]), 10, 1)
+  const [lo, hi] = scoreDomain([...pts.flatMap((p) => p.ci ? [p.ci[0], p.ci[1]] : [p.score]), ...(bot != null ? [bot] : [])], 10, 1)
   const narrow = w < 520
-  const H = narrow ? 324 : 364
-  const m = { l: 40, r: 20, t: 30, b: 54 }
+  const H = narrow ? 300 : 380
+  const m = { l: 40, r: 20, t: 20, b: 54 }
   const iw = Math.max(1, w - m.l - m.r)
   const ih = H - m.t - m.b
   const x = (c: number) => m.l + ((Math.log10(Math.max(c, cLo)) - Math.log10(cLo)) / (Math.log10(cHi) - Math.log10(cLo))) * iw
   const y = (v: number) => m.t + ih - ((Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo)) * ih
   const tick = (d: number) => '$' + (d < 1 ? d.toFixed(d < 0.1 ? 2 : 1) : d.toLocaleString('en-US'))
 
-  // Each label beside its own dot: right, else left, else above, else below,
-  // whichever overlaps no other dot and no label already placed.
+  // The two leaders, when they can't be told apart on score but differ a lot in cost: say so on the chart.
+  const [a, b] = [...pts].sort((p, q) => q.score - p.score)
+  const pair = a && b ? (results.pairwise ?? []).find((q) => (q.a === a.key && q.b === b.key) || (q.a === b.key && q.b === a.key)) : undefined
+  const [cheap, dear] = a && b ? (a.cost <= b.cost ? [a, b] : [b, a]) : []
+  const ratio = cheap && dear && cheap.cost > 0 ? dear.cost / cheap.cost : 0
+  const note = !narrow && cheap && dear && pair && !pair.claim && ratio >= 2
+    ? { x1: x(cheap.cost), x2: x(dear.cost), y: y(Math.max(cheap.ci?.[1] ?? cheap.score, dear.ci?.[1] ?? dear.score)) - 10,
+        text: `${Math.round(ratio)}× the cost, no clear difference in score` }
+    : null
+
+  // Each name beside its own dot: right, else left, else above, else below,
+  // whichever overlaps no other dot, label or the note.
   const placed: (Box & { anchor: 'start' | 'end' })[] = []
   const dots: Box[] = pts.map((p) => ({ x: x(p.cost) - 7, y: y(p.score) - 7, w: 14, h: 14 }))
+  const blocked: Box[] = note ? [{ x: Math.min(note.x1, note.x2), y: note.y - 22, w: Math.abs(note.x2 - note.x1), h: 26 }] : []
   for (const [i, p] of pts.entries()) {
     const cx = x(p.cost), cy = y(p.score)
-    const bw = Math.max(textW(p.label), textW(`${fmtScore(p.score)}  ${fmtUsd(p.cost)}`, 12)) + 4
-    const bh = 32
+    const bw = textW(p.label) + 4
+    const bh = 18
     const tries: (Box & { anchor: 'start' | 'end' })[] = [
-      { x: cx + 12, y: cy - bh / 2, w: bw, h: bh, anchor: 'start' },
-      { x: cx - 12 - bw, y: cy - bh / 2, w: bw, h: bh, anchor: 'end' },
-      { x: cx - bw / 2, y: cy - 12 - bh, w: bw, h: bh, anchor: 'start' },
-      { x: cx - bw / 2, y: cy + 12, w: bw, h: bh, anchor: 'start' },
+      { x: cx + 11, y: cy - bh / 2, w: bw, h: bh, anchor: 'start' },
+      { x: cx - 11 - bw, y: cy - bh / 2, w: bw, h: bh, anchor: 'end' },
+      { x: cx - bw / 2, y: cy - 10 - bh, w: bw, h: bh, anchor: 'start' },
+      { x: cx - bw / 2, y: cy + 10, w: bw, h: bh, anchor: 'start' },
     ]
-    const fits = (b: Box) => b.x >= m.l && b.x + b.w <= w - 4 && b.y >= 0 && b.y + b.h <= m.t + ih
-      && !dots.some((d, j) => j !== i && overlaps(b, d)) && !placed.some((q) => overlaps(b, q))
-    // Nothing clear: at least stay on the chart (a label off the edge is worse than one touching a neighbour).
-    const inside = (b: Box) => b.x >= 0 && b.x + b.w <= w - 2 && b.y >= 0 && b.y + b.h <= m.t + ih
+    const fits = (q: Box) => q.x >= m.l && q.x + q.w <= w - 4 && q.y >= 0 && q.y + q.h <= m.t + ih
+      && !dots.some((d, j) => j !== i && overlaps(q, d)) && !placed.some((o) => overlaps(q, o)) && !blocked.some((o) => overlaps(q, o))
+    const inside = (q: Box) => q.x >= 0 && q.x + q.w <= w - 2 && q.y >= 0 && q.y + q.h <= m.t + ih
     placed.push(tries.find(fits) ?? tries.find(inside) ?? tries[0])
   }
+  const tip = pts.find((p) => p.key === hover)
 
   return (
     <figure className="m-0">
       <figcaption className="sr-only">MythicBench score against the cost of one +10 group, by model</figcaption>
       {narrow && (
         <ul className="mb-3 grid gap-1 text-[13px] text-fg-muted">
-          {[...pts].sort((a, b) => b.score - a.score).map((p) => (
+          {[...pts].sort((p, q) => q.score - p.score).map((p) => (
             <li key={p.key} className="flex items-center gap-2">
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: p.color }} aria-hidden />
               <span className="text-fg">{p.label}</span>
@@ -300,7 +313,7 @@ export function CostScatter({ results }: { results: Results }) {
           ))}
         </ul>
       )}
-      <div ref={ref} className="relative">
+      <div ref={ref} className="relative" onPointerLeave={() => setHover(null)}>
         {w > 0 && (
           <svg width={w} height={H} role="img" aria-label="Score against cost per group">
             {ticks(lo, hi).map((v) => (
@@ -310,28 +323,46 @@ export function CostScatter({ results }: { results: Results }) {
               </g>
             ))}
             {xticks.map((d) => (
-              <g key={d}>
-                <line x1={x(d)} x2={x(d)} y1={m.t} y2={m.t + ih} stroke={GRID} />
-                <text x={x(d)} y={m.t + ih + 20} textAnchor="middle" fill={AXIS} fontSize={11} fontFamily={MONO}>{tick(d)}</text>
-              </g>
+              <text key={d} x={x(d)} y={m.t + ih + 20} textAnchor="middle" fill={AXIS} fontSize={11} fontFamily={MONO}>{tick(d)}</text>
             ))}
             <AxisTitles y="MythicBench score" x={narrow ? 'Cost per group (log scale)' : 'Cost per group of up to five pulls, list prices (log scale)'} ml={m.l} iw={iw} H={H} />
+            {bot != null && (
+              <g>
+                <line x1={m.l} x2={m.l + iw} y1={y(bot)} y2={y(bot)} stroke={AXIS} strokeDasharray="4 4" opacity={0.6} />
+                <text x={m.l + 6} y={y(bot) + 15} fill={AXIS} fontSize={12}>Scripted bot, {fmtScore(bot)}</text>
+              </g>
+            )}
+            {note && (
+              <g>
+                <line x1={note.x1} x2={note.x2} y1={note.y} y2={note.y} stroke={AXIS} strokeWidth={1} />
+                <line x1={note.x1} x2={note.x1} y1={note.y - 4} y2={note.y + 4} stroke={AXIS} />
+                <line x1={note.x2} x2={note.x2} y1={note.y - 4} y2={note.y + 4} stroke={AXIS} />
+                <text x={(note.x1 + note.x2) / 2} y={note.y - 8} textAnchor="middle" fill={LABEL} fontSize={12} {...HALO}>{note.text}</text>
+              </g>
+            )}
             {pts.map((p, i) => {
-              const b = placed[i]
-              const tx = b.anchor === 'start' ? b.x : b.x + b.w
+              const box = placed[i]
+              const tx = box.anchor === 'start' ? box.x : box.x + box.w
               return (
-                <g key={p.key} opacity={hover && hover !== p.key ? 0.25 : 1} onPointerEnter={() => setHover(p.key)} onPointerLeave={() => setHover(null)}>
-                  {p.ci && <line x1={x(p.cost)} x2={x(p.cost)} y1={y(p.ci[0])} y2={y(p.ci[1])} stroke={p.color} strokeWidth={2} opacity={0.45} strokeLinecap="round" />}
-                  <circle cx={x(p.cost)} cy={y(p.score)} r={14} fill="transparent" />
+                <g key={p.key} opacity={hover && hover !== p.key ? 0.25 : 1} onPointerEnter={() => setHover(p.key)}>
+                  {p.ci && <line x1={x(p.cost)} x2={x(p.cost)} y1={y(p.ci[0])} y2={y(p.ci[1])} stroke={p.color} strokeWidth={2} opacity={0.3} strokeLinecap="round" />}
+                  <circle cx={x(p.cost)} cy={y(p.score)} r={16} fill="transparent" />
                   <circle cx={x(p.cost)} cy={y(p.score)} r={6} fill={p.color} stroke={SURFACE} strokeWidth={2} />
-                  {!narrow && <>
-                    <text x={tx} y={b.y + 12} textAnchor={b.anchor} fill={LABEL} fontSize={13} {...HALO}>{p.label}</text>
-                    <text x={tx} y={b.y + 28} textAnchor={b.anchor} fill={AXIS} fontSize={12} fontFamily={MONO} {...HALO}>{fmtScore(p.score)}  {fmtUsd(p.cost)}</text>
-                  </>}
+                  {!narrow && <text x={tx} y={box.y + 13} textAnchor={box.anchor} fill={LABEL} fontSize={13} {...HALO}>{p.label}</text>}
                 </g>
               )
             })}
           </svg>
+        )}
+        {tip && !narrow && (
+          <div className="pointer-events-none absolute z-20 rounded-lg border border-line bg-surface-raised px-3 py-2 text-[13px] leading-5 shadow-[0_6px_24px_rgba(0,0,0,0.5)]"
+            style={{ left: Math.max(0, Math.min(w - 220, x(tip.cost) - 110)), top: y(tip.score) - 14, width: 220, transform: 'translateY(-100%)' }}>
+            <div className="text-fg">{tip.label}</div>
+            <div className="mt-0.5 flex justify-between font-mono text-[12px] text-fg-muted">
+              <span>Score {fmtScore(tip.score)}</span><span>{fmtUsd(tip.cost)} per group</span>
+            </div>
+            {tip.ci && <div className="font-mono text-[12px] text-fg-faint">95% interval {fmtScore(tip.ci[0])} to {fmtScore(tip.ci[1])}</div>}
+          </div>
         )}
       </div>
     </figure>

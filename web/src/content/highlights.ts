@@ -36,7 +36,7 @@ export interface Highlight {
 }
 
 export const KIND_LABEL: Record<HighlightKind, string> = {
-  eureka: 'Eureka', argument: 'Argument', clutch: 'Clutch', teamwork: 'Teamwork',
+  eureka: 'Breakthrough', argument: 'Argument', clutch: 'Clutch', teamwork: 'Teamwork',
   blunder: 'Blunder', funny: 'Funny', reasoning: 'Reasoning', record: 'Record',
 }
 

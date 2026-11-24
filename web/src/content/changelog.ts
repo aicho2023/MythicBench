@@ -25,6 +25,18 @@ const V1: Versions = { harness: '1.0.0', sim: '0.11.0', content: '1.8.0' }
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 'site-polish',
+    date: '2026-11-24',
+    title: 'Site: new highlights, the party page and next steps',
+    kind: 'docs',
+    summary: 'Three highlights from the Grok 4.3 and DeepSeek V4.1 Flash runs, a redesigned party page, and a lighter home page. Nothing that plays changed, and no score moved.',
+    items: [
+      'Highlights: three new moments from the two added models, each checked word for word against its replay. "Eureka" is now "Breakthrough".',
+      'The party page shows one character or enemy at a time, with its abilities below.',
+      'Report: a Next steps section and an author line. Home: a clearer cost chart with the scripted bot as a reference line.',
+    ],
+  },
+  {
     id: 'amendment-3-results',
     date: '2026-11-24',
     title: 'Results: Grok 4.3 and DeepSeek V4.1 Flash',
