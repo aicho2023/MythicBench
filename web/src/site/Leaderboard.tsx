@@ -26,10 +26,31 @@ export function bestPull(r: Results, row: LeaderboardRow): { score: number; boss
 const TH = 'px-3 pb-3 text-left align-bottom text-[12px] font-medium leading-4 text-fg-muted'
 const TD = 'h-14 px-3 align-middle'
 const NUM = 'num text-right font-mono text-[14px]'
-/** The dot plot's narrowest width; it takes whatever the other columns leave. */
+/** The dot plot takes what the fixed-width columns leave, within these bounds. */
 const STRIP_MIN = 160
-/** Columns that hug their content, so the space goes to the dot plot. */
-const TIGHT = 'w-px whitespace-nowrap'
+const STRIP_MAX = 440
+
+/** A column heading: what it is, and in a second quieter line, what it measures. */
+function Head({ name, sub }: { name: string; sub: string }) {
+  return (
+    <>
+      <span className="block text-fg-muted">{name}</span>
+      <span className="block font-normal text-fg-faint">{sub}</span>
+    </>
+  )
+}
+
+/** Oruth's health bar at the end of a model's best pull. */
+function BossLeft({ pct }: { pct: number }) {
+  return (
+    <span className="flex items-center justify-end gap-2.5" title={`Oruth had ${pct.toFixed(1)}% of his health left`}>
+      <span className="h-1.5 w-[88px] overflow-hidden rounded-full bg-white/[0.08]">
+        <span className="block h-full rounded-full bg-[#d0463b]" style={{ width: `${pct}%` }} />
+      </span>
+      <span className="num w-[44px] text-right font-mono text-[14px]">{pct.toFixed(1)}%</span>
+    </span>
+  )
+}
 
 export function LeaderboardTable({ results }: { results: Results }) {
   const hard = headlineTier(results)
@@ -49,25 +70,25 @@ export function LeaderboardTable({ results }: { results: Results }) {
     return left.length ? Math.min(...left) : null
   }
   const [stripRef, stripW] = useWidth()
-  const STRIP = Math.max(STRIP_MIN, stripW - 24)
+  const STRIP = Math.min(STRIP_MAX, Math.max(STRIP_MIN, stripW))
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[320px] border-collapse">
         <thead>
           <tr className="border-b border-line">
-            <th className={`${TH} ${TIGHT} pl-0`}>Model</th>
-            <th className={`${TH} ${TIGHT} text-right`}>Score</th>
-            <th className={`${TH} hidden w-full pl-6 sm:table-cell`}>
+            <th className={`${TH} w-[210px] pl-0`}>Model</th>
+            <th className={`${TH} w-[104px] text-right`}><Head name="Score" sub="0 to 100" /></th>
+            <th className={`${TH} hidden pl-8 sm:table-cell`}>
               <div ref={stripRef} className="w-full">
-                <span className="block pb-1">Each group, with the 95% interval</span>
+                <span className="block pb-1"><Head name="Each group's score" sub="dots, with the 95% interval" /></span>
                 <CIAxis width={STRIP} lo={lo} hi={hi} />
               </div>
             </th>
-            <th className={`${TH} hidden text-right md:table-cell`}><span className="inline-block w-[92px]">Closest to killing Oruth</span></th>
-            <th className={`${TH} ${TIGHT} hidden text-right lg:table-cell`}>First pull</th>
-            {anyClear && <th className={`${TH} ${TIGHT} hidden text-right lg:table-cell`}>Clears</th>}
-            <th className={`${TH} hidden pr-0 text-right sm:table-cell`}><span className="inline-block w-[64px]">Cost per group</span></th>
+            <th className={`${TH} hidden w-[190px] text-right md:table-cell`}><Head name="Oruth's health" sub="at the end of the best pull" /></th>
+            <th className={`${TH} hidden w-[150px] text-right lg:table-cell`}><Head name="First pull" sub="blind, before learning" /></th>
+            {anyClear && <th className={`${TH} hidden w-[88px] text-right lg:table-cell`}><Head name="Clears" sub="of six groups" /></th>}
+            <th className={`${TH} hidden w-[112px] pr-0 text-right sm:table-cell`}><Head name="Cost" sub="per group" /></th>
             <th className="w-6" aria-hidden />
           </tr>
         </thead>
@@ -95,13 +116,13 @@ export function LeaderboardTable({ results }: { results: Results }) {
                     {row.mythicbench_score_ci95 ? `${fmtScore(row.mythicbench_score_ci95[0])}–${fmtScore(row.mythicbench_score_ci95[1])}` : ''}
                   </span>
                 </td>
-                <td className={`${TD} hidden pl-6 sm:table-cell`}>
+                <td className={`${TD} hidden pl-8 sm:table-cell`}>
                   <span title={row.mythicbench_score_ci95 ? `95% interval ${fmtScore(row.mythicbench_score_ci95[0])} to ${fmtScore(row.mythicbench_score_ci95[1])}` : undefined}>
                     <CIBar mean={row.mythicbench_score} ci={row.mythicbench_score_ci95} dots={episodeHeadlines(results, row)}
                       lo={lo} hi={hi} width={STRIP} color={ref ? COLOR.fgFaint : modelColor(results, row.model)} accent={row.model === lead} />
                   </span>
                 </td>
-                <td className={`${TD} ${NUM} hidden md:table-cell ${ink}`}>{ref || closest(row.model) == null ? '–' : `${closest(row.model)!.toFixed(1)}% left`}</td>
+                <td className={`${TD} ${NUM} hidden md:table-cell ${ink}`}>{ref || closest(row.model) == null ? '–' : <BossLeft pct={closest(row.model)!} />}</td>
                 <td className={`${TD} ${NUM} hidden lg:table-cell ${ink}`}>{fmtScore(cell?.first_pull_score_mean)}</td>
                 {anyClear && <td className={`${TD} ${NUM} hidden lg:table-cell ${ink}`}>{cell ? `${cell.clears ?? 0} of ${cell.episodes}` : '–'}</td>}
                 <td className={`${TD} ${NUM} hidden pr-0 sm:table-cell ${ink}`}>{ref ? '$0' : fmtUsd(costPerRun(row, results))}</td>
@@ -120,10 +141,9 @@ export function LeaderboardTable({ results }: { results: Results }) {
 function LeaderboardKey() {
   // [term, meaning, the breakpoint its column shows from]
   const items: [string, string, string?][] = [
-    ['Dots and bar', 'each dot is one group\'s score; the bar is the 95% interval, the white tick the average.', 'hidden sm:block'],
-    ['Closest to killing Oruth', 'his health at the end of the model\'s best pull. No model got him to zero.', 'hidden md:block'],
-    ['First pull', 'the blind first attempt, before any wipe to learn from.', 'hidden lg:block'],
-    ['Cost per group', 'one group of up to five pulls, at list prices, thinking included.', 'hidden sm:block'],
+    ['Each group\'s score', 'a dot per group; the bar is the 95% interval, the white tick the average.', 'hidden sm:block'],
+    ['Oruth\'s health', 'no model got the boss to zero; Opus and Sol came closest.', 'hidden md:block'],
+    ['Cost', 'one group of up to five pulls, at list prices, thinking included.', 'hidden sm:block'],
     ['Scripted bot', 'fixed rules played through the same controls: it interrupts and steps out of pools, and never learns.'],
   ]
   return (

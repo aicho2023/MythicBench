@@ -69,12 +69,8 @@ export function Home() {
           <p className="mt-6 max-w-[520px] text-[17px] leading-7 text-fg-muted">
             We've all been there. Your character's corpse lies on the ground, alongside the rest of your group. Time is
             running out, and you've probably thought, "Man, even bots would be better than this." That's what
-            MythicBench sets out to test. We wanted to see if seven AI models from four labs could learn how to clear a
+            MythicBench sets out to test. We wanted to see if seven AI models could learn how to clear a
             Mythic-style dungeon, all by themselves.
-          </p>
-          <p className="mt-4 max-w-[520px] text-[17px] leading-7 text-fg-muted">
-            Five agents, all one model, go in blind. After each wipe they read the combat log, talk it over and try
-            again, up to five times.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/watch" className="btn btn-primary h-11 px-5 text-[14px]">Watch a run</Link>
@@ -87,11 +83,6 @@ export function Home() {
             {/* A still from the same pull: the poster while the 3D clip loads, and all phones get (no WebGL download) */}
             <img src={`${import.meta.env.BASE_URL}stills/closest.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
             {wide && idle && <Suspense fallback={null}><Teaser /></Suspense>}
-            {top && (
-              <span className="absolute left-3 top-3 max-w-[calc(100%-24px)] rounded-lg border border-line bg-[rgba(15,15,16,0.88)] px-3 py-1.5 text-[13px] leading-5 text-fg">
-                Watch for the glowing circle: players step inside to split the blast.
-              </span>
-            )}
             <span className="absolute bottom-3 right-3 inline-flex items-center gap-2 rounded-lg border border-line bg-[rgba(15,15,16,0.88)] px-3 py-2 text-[13px] text-fg transition-colors group-hover:bg-surface-raised">
               Open in the viewer <ArrowRight size={16} className="text-fg-muted" />
             </span>
@@ -102,26 +93,6 @@ export function Home() {
       {error && <p className="py-8 text-[14px] text-bad">{error}</p>}
       {results && <Results results={results} />}
     </Page>
-  )
-}
-
-/** How a score is made, before the table that shows them. Matches sim/mythicsim/metrics.py and the report. */
-function Scoring() {
-  const items: [string, string][] = [
-    ['Progress, up to 70', 'Health removed from the two packs (15% each) and from Oruth, the boss (70%).'],
-    ['Speed, up to 30 more', 'Only for a clear: more for the time left on the clock.'],
-    ['Group score', 'A group is one party\'s five pulls (attempts) at the dungeon. Its score is their average; a clear counts again for every pull it saves.'],
-    ['Model score', 'The average of its six groups, all on +10, the hardest difficulty.'],
-  ]
-  return (
-    <dl className="mt-6 grid gap-x-6 gap-y-4 rounded-2xl border border-line bg-surface p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-4">
-      {items.map(([k, v]) => (
-        <div key={k}>
-          <dt className="text-[14px] font-medium text-fg">{k}</dt>
-          <dd className="mt-1 text-[14px] leading-5 text-fg-muted">{v}</dd>
-        </div>
-      ))}
-    </dl>
   )
 }
 
@@ -154,15 +125,15 @@ function ResultsBody({ results }: { results: Results }) {
     <>
 
       <section id="leaderboard" className="pt-20">
-        <SectionHead title="Leaderboard" link={['/report#results', 'Results in the report']} />
-        <Scoring />
+        <SectionHead title="Leaderboard" link={['/report#results', 'Report']}
+          caption="Each model played six groups of up to five pulls (attempts) on +10, the hardest difficulty. A pull that wipes scores up to 70 for how far the party got: the two packs are 30% of the way, Oruth the boss 70%. A clear scores 70, plus up to 30 for speed." />
         <div className="mt-8"><LeaderboardTable results={results} /></div>
       </section>
 
       <section className="pt-20">
-        <SectionHead title="All seven start level. Only Opus and Sol pull ahead after the first wipe."
-          caption="Average score on each pull, 1 to 5, over each model's six groups. Pull 1 is blind."
-          link={['/report#learning', 'Learning in the report']}>
+        <SectionHead title="After five pulls, only Opus and Sol had clearly improved their scores."
+          caption="Average score on each pull, 1 to 5, over each model's six groups."
+          link={['/report#learning', 'Report']}>
           {tiers.length > 1 && (
             <div className="seg" role="group" aria-label="Difficulty">
               {tiers.map((t) => <button key={t} aria-pressed={tier === t} onClick={() => setTier(t)}>{tierName(results, t)}</button>)}
@@ -178,18 +149,18 @@ function ResultsBody({ results }: { results: Results }) {
       </section>
 
       <section className="pt-20">
-        <SectionHead title="Only Opus and Sol learned to stand in the fire."
+        <SectionHead title="Only Opus and Sol learned how to handle a core game mechanic."
           caption="Bone Pyre's blast hits the whole party unless two players stand inside its circle. Each square is one Pyre. The other five almost never soak it, even when their notes say to."
-          link={['/report#pyre', 'Bone Pyre in the report']} />
+          link={['/report#pyre', 'Report']} />
         <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
           <PyreGrid results={results} />
         </div>
       </section>
 
       <section className="pt-20">
-        <SectionHead title="Opus scores like Sol at five times the cost."
+        <SectionHead title="Sol scores like Opus at a fifth of the cost."
           caption="Each model's score against what one group costs to run, at list prices."
-          link={['/report#cost', 'Cost in the report']} />
+          link={['/report#cost', 'Report']} />
         <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
           <CostScatter results={results} />
         </div>

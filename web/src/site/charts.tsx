@@ -80,7 +80,7 @@ export function CIAxis({ width = 160, lo, hi, step = 10 }: { width?: number; lo:
 function AxisTitles({ y, x, ml, iw, H }: { y?: string; x?: string; ml: number; iw: number; H: number }) {
   return (
     <g aria-hidden>
-      {y && <text x={0} y={11} fill={AXIS} fontSize={12}>{y}</text>}
+      {y && <text transform={`translate(11, ${(H - 54) / 2 + 10}) rotate(-90)`} textAnchor="middle" fill={AXIS} fontSize={12}>{y}</text>}
       {x && <text x={ml + iw / 2} y={H - 4} textAnchor="middle" fill={AXIS} fontSize={12}>{x}</text>}
     </g>
   )
@@ -272,7 +272,7 @@ export function CostScatter({ results }: { results: Results }) {
   const ratio = cheap && dear && cheap.cost > 0 ? dear.cost / cheap.cost : 0
   const note = !narrow && cheap && dear && pair && !pair.claim && ratio >= 2
     ? { x1: x(cheap.cost), x2: x(dear.cost), y: y(Math.max(cheap.ci?.[1] ?? cheap.score, dear.ci?.[1] ?? dear.score)) - 10,
-        text: `${Math.round(ratio)}× the cost, no clear difference in score` }
+        text: `${modelName(cheap.key)} costs 1/${Math.round(ratio)} as much, no clear difference in score` }
     : null
 
   // Each name beside its own dot: right, else left, else above, else below,
