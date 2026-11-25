@@ -99,7 +99,7 @@ export function HighlightCard({ h, compact = false }: { h: Highlight; compact?: 
 /** A card in the highlights grid: the whole story, every quote shown. */
 function FullCard({ h, to }: { h: Highlight; to: string }) {
   return (
-    <article id={h.id} className="scroll-mt-24 overflow-hidden rounded-2xl border border-line bg-surface">
+    <article id={h.id} className="flex scroll-mt-24 flex-col overflow-hidden rounded-2xl border border-line bg-surface">
       {h.image && (
         <Link to={to} className="group relative block aspect-[16/8] overflow-hidden border-b border-line bg-scene" aria-label={`Watch: ${h.title}`}>
           <img src={`${import.meta.env.BASE_URL}${h.image}`} alt="" loading="lazy" className="h-full w-full object-cover" />
@@ -109,13 +109,13 @@ function FullCard({ h, to }: { h: Highlight; to: string }) {
           </span>
         </Link>
       )}
-      <div className="p-5 sm:p-6">
+      <div className="flex flex-1 flex-col p-5 sm:p-6">
         <KindTag kind={h.kind} />
         <h2 className="mt-1.5 text-[17px] font-medium leading-6 text-fg sm:text-[20px] sm:leading-7">{h.title}</h2>
         <div className="mt-1.5"><Where h={h} /></div>
         <p className="mt-4 text-[15px] leading-[26px] text-fg-muted">{h.summary}</p>
         {h.quotes.length > 0 && <ul className="mt-5 space-y-4 border-l-2 border-line pl-4">{h.quotes.map((q, i) => <QuoteLine key={i} q={q} />)}</ul>}
-        <div className="mt-6">
+        <div className="mt-auto pt-6">
           <Link to={to} className="btn h-10 px-4 text-[14px]">
             <Play size={14} /> Watch{h.t != null ? ` from ${fmtTime(h.t * 1000)}` : ' the pull'} <ArrowRight size={14} className="text-fg-muted" />
           </Link>
@@ -163,7 +163,7 @@ export function Highlights() {
           ))}
         </div>
 
-        <div className="mt-10 grid items-start gap-6 md:grid-cols-2">
+        <div className="mt-10 grid gap-6 md:grid-cols-2">
           {shown.map((h) => <HighlightCard key={h.id} h={h} />)}
           {!shown.length && <p className="text-[14px] text-fg-faint">Nothing matches both filters.</p>}
         </div>
