@@ -1,4 +1,5 @@
-import { ArrowRight } from 'lucide-react'
+import { ArrowDown, ArrowRight, ChevronUp, RotateCcw } from 'lucide-react'
+import { RUN_STEPS } from '../content/runSteps'
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { HighlightCard, isRankedGroup } from './Highlights'
 import { HIGHLIGHTS } from '../content/highlights'
@@ -74,8 +75,9 @@ export function Home() {
           <p className="mt-6 max-w-[520px] text-[17px] leading-7 text-fg-muted">
             We've all been there. Your character's corpse lies on the ground, alongside the rest of your group. Time is
             running out, and you've probably thought, "Even bots would be better than my teammates." Well, it's time
-            to put that to the test. Introducing: MythicBench. We wanted to see if seven AI models could learn how to clear a
-            Mythic-style dungeon, all by themselves.
+            to put that to the test. So I built MythicBench. I wanted to see if seven AI models could learn how to clear a
+            Mythic+ dungeon like the ones in World of Warcraft, all by themselves. That means two packs of monsters, then
+            a boss, within 4 minutes and 15 seconds.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/watch" className="btn btn-primary h-11 px-5 text-[14px]">Watch a run</Link>
@@ -96,9 +98,52 @@ export function Home() {
         </figure>
       </section>
 
+      <HowItWorks />
+
       {error && <p className="py-8 text-[14px] text-bad">{error}</p>}
       {results ? <Results results={results} /> : !error && <div className="min-h-[100vh]" aria-hidden />}
     </Page>
+  )
+}
+
+/** The steps as a flow chart: four cards in a row, and a loop from the debrief back to the next pull. Wide screens only get the drawn loop. */
+const FLOW_COLS = 'lg:grid-cols-[minmax(0,1fr)_28px_minmax(0,1fr)_28px_minmax(0,1fr)_28px_minmax(0,1fr)]'
+const LINE = 'border-white/25'
+
+function HowItWorks() {
+  return (
+    <section id="how" className="pt-4">
+      <SectionHead title="How a run works" />
+      <div className={`mt-5 grid grid-cols-1 ${FLOW_COLS}`}>
+        {RUN_STEPS.flatMap(({ title, body }, i) => [
+          i > 0 && (
+            <div key={`to${i}`} className="flex h-8 items-center justify-center text-fg-faint lg:h-auto" aria-hidden>
+              <ArrowDown size={16} className="lg:hidden" /><ArrowRight size={16} className="hidden lg:block" />
+            </div>
+          ),
+          <div key={title} className="rounded-xl border border-line bg-surface p-5">
+            <div className="num text-[13px] text-fg-faint">{i + 1}</div>
+            <h3 className="mt-2 text-[15px] font-medium leading-5 text-fg">{title}</h3>
+            <p className="mt-2 text-[14px] leading-[22px] text-fg-muted">{body}</p>
+          </div>,
+        ])}
+      </div>
+      {/* The loop: from the debrief (4) back into the next pull's orders (3) */}
+      <div className={`hidden h-9 lg:grid ${FLOW_COLS}`} aria-hidden>
+        <div className={`relative col-start-5 ml-[50%] rounded-bl-lg border-b border-l ${LINE}`}>
+          <ChevronUp size={14} className="absolute -left-[7.5px] -top-[7px] text-white/40" />
+        </div>
+        <div className={`col-start-6 border-b ${LINE}`} />
+        <div className={`col-start-7 mr-[50%] rounded-br-lg border-b border-r ${LINE}`} />
+      </div>
+      <div className={`grid ${FLOW_COLS}`}>
+        <p className="flex items-center justify-center gap-2 pt-3 text-[13px] text-fg-muted lg:col-span-3 lg:col-start-5 lg:pt-2">
+          <RotateCcw size={14} className="text-fg-faint lg:hidden" aria-hidden />
+          <span className="lg:hidden">Back to step 3 for the next pull, with the notes</span>
+          <span className="hidden lg:inline">Next pull, with the notes</span>
+        </p>
+      </div>
+    </section>
   )
 }
 
@@ -126,8 +171,8 @@ function Scoring({ results }: { results: Results }) {
         Each attempt at the dungeon is called a pull, and every pull scores 0 to 100. A pull that ends in a wipe
         (everyone dying) earns points for how far the party got: up to 10.5 for each of the two packs (groups of
         monsters before the boss) and up to 49 for Oruth, in proportion to the health taken off each. A clear
-        (completion of the dungeon) earns 70, plus up to 30 the faster it finishes. We define a model's score as the
-        average score of all its pulls.
+        (completion of the dungeon) earns 70, plus up to 30 the faster it finishes. A model's score is the average
+        score of all its pulls.
       </p>
       <div>
         {ok && (

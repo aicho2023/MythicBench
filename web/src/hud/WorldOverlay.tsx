@@ -150,7 +150,7 @@ export function WorldOverlay() {
         placed.push(feet ? { el: bp, x: feet[0], y: feet[1] + 12 + bp.offsetHeight } : { el: bp, x: bsp[0], y: bsp[1] })
         const q = (k: string) => bp.querySelector(`[data-k="${k}"]`) as HTMLElement
         if (q('name').textContent !== boss.info.name) q('name').textContent = boss.info.name
-        const pct = `${((100 * boss.hp) / boss.info.max_hp).toFixed(1)}%`
+        const pct = boss.hp >= boss.info.max_hp ? '100%' : `${((100 * boss.hp) / boss.info.max_hp).toFixed(1)}%`
         if (q('pct').textContent !== pct) q('pct').textContent = pct
         q('hp').style.width = `${(100 * boss.hp) / boss.info.max_hp}%`
         q('fury').style.display = boss.auras.hollow_fury ? 'inline' : 'none'

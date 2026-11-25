@@ -171,11 +171,11 @@ export function LearningCurves({ results, tier, view = 'models', bot: withBot = 
 
   return (
     <figure className="m-0">
-      <figcaption className="sr-only">Mean score at each pull on {tierName(results, tier)}</figcaption>
+      <figcaption className="sr-only">Average score at each pull on {tierName(results, tier)}</figcaption>
       {narrow && <Legend items={legend} />}
       <div ref={ref} className="relative">
         {w > 0 && (
-          <svg width={w} height={H} role="img" aria-label={`Mean score at each pull on ${tierName(results, tier)}`}>
+          <svg width={w} height={H} role="img" aria-label={`Average score at each pull on ${tierName(results, tier)}`}>
             {ticks(lo, hi).map((v) => (
               <g key={v}>
                 <line x1={m.l} x2={m.l + iw} y1={y(v)} y2={y(v)} stroke={GRID} />
@@ -185,7 +185,7 @@ export function LearningCurves({ results, tier, view = 'models', bot: withBot = 
             {Array.from({ length: pulls }, (_, i) => i + 1).map((k) => (
               <text key={k} x={x(k)} y={m.t + ih + 20} textAnchor="middle" fill={AXIS} fontSize={11} fontFamily={MONO}>{k}</text>
             ))}
-            <AxisTitles y={view === 'memory' ? 'Mean score, same seeds' : 'Mean score'} x="Pull" ml={m.l} iw={iw} H={H} />
+            <AxisTitles y={view === 'memory' ? 'Average score, same seeds' : 'Average score'} x="Pull" ml={m.l} iw={iw} H={H} />
             {view === 'models' && pulls > 1 && (
               <g aria-hidden>
                 <rect x={x(1)} y={m.t} width={x(2) - x(1)} height={ih} fill="rgba(230,211,163,0.05)" />
@@ -300,7 +300,7 @@ export function CostScatter({ results }: { results: Results }) {
 
   return (
     <figure className="m-0">
-      <figcaption className="sr-only">MythicBench score against the cost of one +10 group, by model</figcaption>
+      <figcaption className="sr-only">Score against the cost of one +10 group, by model</figcaption>
       {narrow && (
         <ul className="mb-3 grid gap-1 text-[13px] text-fg-muted">
           {[...pts].sort((p, q) => q.score - p.score).map((p) => (
@@ -324,7 +324,7 @@ export function CostScatter({ results }: { results: Results }) {
             {xticks.map((d) => (
               <text key={d} x={x(d)} y={m.t + ih + 20} textAnchor="middle" fill={AXIS} fontSize={11} fontFamily={MONO}>{tick(d)}</text>
             ))}
-            <AxisTitles y="MythicBench score" x={narrow ? 'Cost per group (log scale)' : 'Cost per group of up to five pulls, list prices (log scale)'} ml={m.l} iw={iw} H={H} />
+            <AxisTitles y="Score" x={narrow ? 'Cost per group (log scale)' : 'Cost per group of up to five pulls, list prices (log scale)'} ml={m.l} iw={iw} H={H} />
             {bot != null && (
               <g>
                 <line x1={m.l} x2={m.l + iw} y1={y(bot)} y2={y(bot)} stroke={AXIS} strokeDasharray="4 4" opacity={0.6} />
