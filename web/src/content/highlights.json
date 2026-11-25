@@ -36,7 +36,7 @@
   },
   {
     "id": "nobody-inside",
-    "title": "Rook figures out the soak mechanic from the combat log",
+    "title": "Rook finds the soak in the combat log",
     "kind": "eureka",
     "model": "claude-opus-5-5",
     "tier": "plus10",
@@ -65,7 +65,7 @@
   },
   {
     "id": "same-clue",
-    "title": "Sonnet draws the wrong conclusion for handling Bone Pyre",
+    "title": "Sonnet draws the wrong conclusion",
     "kind": "reasoning",
     "model": "claude-sonnet-5-5",
     "tier": "plus10",
@@ -89,7 +89,7 @@
   },
   {
     "id": "read-backwards",
-    "title": "Haiku does not infer how to handle the soak mechanic",
+    "title": "Haiku never works out the soak",
     "kind": "reasoning",
     "model": "claude-haiku-5-5",
     "tier": "plus10",
@@ -269,7 +269,7 @@
   },
   {
     "id": "no-kicks-left",
-    "title": "Party does not space out kicks and becomes vulnerable",
+    "title": "Kicks too close together",
     "kind": "clutch",
     "model": "gpt-6.2-sol",
     "tier": "plus10",
@@ -360,7 +360,7 @@
   },
   {
     "id": "misread-698",
-    "title": "An incorrect damage calculation led to a group wipe",
+    "title": "A misread number leads to a wipe",
     "kind": "reasoning",
     "model": "gpt-6.2-sol",
     "tier": "plus10",
