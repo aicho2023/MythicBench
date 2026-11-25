@@ -34,7 +34,7 @@ export function About() {
           <ol>
             <li>Are agents run by the same underlying model able to collaborate effectively?</li>
             <li>Can agents learn how to complete a task over time, even when going in blind?</li>
-            <li>Can agents act on what they learn? Writing &ldquo;stand in the circle&rdquo; in their notes is one thing; doing it in the middle of a fight is another.</li>
+            <li>Do agents actually follow through with what they learned from previous attempts?</li>
           </ol>
           <p>
             These capabilities were always in the back of my mind when designing this harness, and I think I ended up
@@ -47,8 +47,13 @@ export function About() {
             <li><strong>Five agents run by one model:</strong> There are five players (1 tank, 1 healer, 3 DPS) that are all controlled by the same underlying model.</li>
             <li><strong>Attempt the dungeon blind:</strong> The agents are not given any information about the enemies, like what abilities they have. They need to rely on their own observations and notes to complete the dungeon.</li>
             <li><strong>Sequenced orders:</strong> Every few seconds, each agent sends its orders: where to move, what to cast, and on whom. The game state waits for their response before progressing.</li>
-            <li><strong>Post-game analysis:</strong> After every pull, the agents can read the combat log, deliberate, and jot down notes. These notes are all they carry into the next pull to help inform their next decisions.</li>
+            <li><strong>Post-game analysis:</strong> After every wipe, the agents can read the combat log, deliberate, and jot down notes. These notes are all they carry into the next pull to help inform their next decisions.</li>
           </ol>
+          <p>
+            The rules, models and seeds were fixed in a public <a href={`${GITHUB_URL}/blob/main/docs/PREREGISTRATION.md`}>pre-registration</a> before
+            the official run. Every model reply is recorded, so anyone can replay every pull and rebuild the leaderboard
+            for free: the <a href={`${GITHUB_URL}#readme`}>README</a> shows how.
+          </p>
         </Section>
 
         <Section id="author" title="Who made this?">
