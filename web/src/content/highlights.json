@@ -18,19 +18,8 @@
       },
       {
         "who": "Wren",
-        "where": "chat",
-        "t": 119.8,
-        "text": "Ivy, please Hymn immediately after Pyre; I'm shielded and staying in its pool."
-      },
-      {
-        "who": "Wren",
         "where": "notes",
         "text": "Bone Pyre’s circle explodes ~6 sec after appearing and does NOT protect anyone: it hit the whole party hard even with zero inside. Do not enter it."
-      },
-      {
-        "who": "Wren",
-        "where": "notes",
-        "text": "At the second blast I took 31.8k and died"
       }
     ]
   },
@@ -55,11 +44,6 @@
         "who": "Rook",
         "where": "debrief talk",
         "text": "Bone Pyre hit everyone for ~35k each time, and the log shows nobody was inside the circle. I think it has to be soaked"
-      },
-      {
-        "who": "Brask",
-        "where": "debrief talk",
-        "text": "I died to the first Pyre by not being in the circle; I'll stack in it every time unless I have Grave Mark"
       }
     ]
   },
@@ -145,7 +129,19 @@
     "pull": 4,
     "t": 225,
     "summary": "This is the best run in the benchmark, with only 8.7% of Oruth's health left when the timer runs out. The next best run is by Claude Opus 5.5, leaving Oruth with 9.0%.",
-    "quotes": []
+    "quotes": [
+      {
+        "who": "Rook",
+        "where": "chat",
+        "t": 248.6,
+        "text": "6s left. All damage on Oruth; ignore walkers."
+      },
+      {
+        "who": "Rook",
+        "where": "debrief talk",
+        "text": "No deaths and 12/12 Requiems kicked—keep that rotation and the Ironhide/Ward plan. We need 131k more boss damage."
+      }
+    ]
   },
   {
     "id": "out-of-clock",
@@ -221,12 +217,6 @@
         "who": "Kit",
         "where": "debrief talk",
         "text": "Pyre: all 5 stack and hold through any Desecrate (about 10k) instead of eating about 30k outside, then 'safe' right after the pop."
-      },
-      {
-        "who": "Brask",
-        "where": "thinking",
-        "t": 186.4,
-        "text": "I'm settling on moving straight to the safe spot at (5.2, 0.5), accepting a brief pass through a desecrate since the notes allow standing in one and the timer gives enough margin."
       },
       {
         "who": "Rook",
@@ -324,12 +314,6 @@
         "who": "Rook",
         "where": "debrief talk",
         "text": "Bone Pyre’s circle is the safe zone: those inside took ~8k vs ~35k outside. Stack in it for the blast, then spread for Grave Mark."
-      },
-      {
-        "who": "Kit",
-        "where": "chat",
-        "t": 135.2,
-        "text": "Bone Pyre shelter at (1,-5)—get inside for the blast; stay clear of Desecrates."
       }
     ]
   },
@@ -554,12 +538,6 @@
     "t": 82,
     "summary": "Rook unexpectedly gets caught on the corner of the corridor wall and doesn't move. The rest of his party notices and tries to send him coordinates to get him out, although the new route still gets him stuck at the same wall. Rook is stuck for 40 seconds before eventually pulling Oruth, 35 seconds later than intended.",
     "quotes": [
-      {
-        "who": "Rook",
-        "where": "chat",
-        "t": 82.7,
-        "text": "Pulling Oruth now, come in. I'll hold him at the dais. Spread 6m+ on Grave Mark, adds to me."
-      },
       {
         "who": "Ivy",
         "where": "chat",
