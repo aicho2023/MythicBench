@@ -22,8 +22,8 @@ export function About() {
 
         <Section id="why" title="Why did you build MythicBench?">
           <p>
-            I recently got hooked on World of Warcraft and had really been enjoying progressing on Mythic dungeons. For
-            the uninitiated, Mythic dungeons are multi-stage battles that involve clearing both small groups of enemies
+            I recently got hooked on World of Warcraft and had really been enjoying progressing on Mythic+ dungeons. For
+            the uninitiated, Mythic+ dungeons are multi-stage battles against a timer that involve clearing both small groups of enemies
             as well as strong bosses. I got curious about whether the latest models could clear them, and that's how
             MythicBench was born. I got to combine my love for WoW with my interest in creating benchmarks!
           </p>
@@ -37,7 +37,7 @@ export function About() {
             <li>Do agents actually follow through with what they learned from previous attempts?</li>
           </ol>
           <p>
-            These capabilities were always in the back of my mind when designing this harness, and I think I ended up
+            These capabilities were always in the back of my mind when designing this benchmark, and I think I ended up
             with a decent result!
           </p>
         </Section>
@@ -46,20 +46,19 @@ export function About() {
           <ol>
             <li><strong>Five agents run by one model:</strong> There are five players (1 tank, 1 healer, 3 DPS) that are all controlled by the same underlying model.</li>
             <li><strong>Attempt the dungeon blind:</strong> The agents are not given any information about the enemies, like what abilities they have. They need to rely on their own observations and notes to complete the dungeon.</li>
-            <li><strong>Sequenced orders:</strong> Every few seconds, each agent sends its orders: where to move, what to cast, and on whom. The game state waits for their response before progressing.</li>
-            <li><strong>Post-game analysis:</strong> After every wipe, the agents can read the combat log, deliberate, and jot down notes. These notes are all they carry into the next pull to help inform their next decisions.</li>
+            <li><strong>Orders every few seconds:</strong> Every few seconds, each agent sends its orders: where to move, what to cast, and on whom. The game state waits for their response before progressing.</li>
+            <li><strong>Debrief after a wipe:</strong> After every wipe, the agents can read the combat log, deliberate, and jot down notes. These notes are all they carry into the next pull to help inform their next decisions.</li>
           </ol>
           <p>
             The rules, models and seeds were fixed in a public <a href={`${GITHUB_URL}/blob/main/docs/PREREGISTRATION.md`}>pre-registration</a> before
             the official run. Every model reply is recorded, so anyone can replay every pull and rebuild the leaderboard
-            for free: the <a href={`${GITHUB_URL}#readme`}>README</a> shows how.
+            for free. The <a href={`${GITHUB_URL}#readme`}>README</a> shows how.
           </p>
         </Section>
 
         <Section id="author" title="Who made this?">
           <p>
-            MythicBench was created by Austin (<a href="https://x.com/awstnnnn" target="_blank" rel="noopener noreferrer">@awstnnnn</a> on
-            X). Feel free to follow along and send messages on X.
+            MythicBench was created by Austin (<a href="https://x.com/awstnnnn" target="_blank" rel="noopener noreferrer">@awstnnnn</a>). Feel free to follow along and send messages on X.
           </p>
         </Section>
 
@@ -80,7 +79,7 @@ export function About() {
           <ul>
             <li>Characters, animations and dungeon art: <a href="https://www.kaylousberg.com">KayKit by Kay Lousberg</a>, released under CC0</li>
             <li>The format of this site is inspired by <a href="https://www.dwarkesh.com/p/clocktower">Clocktower Bench</a> by Dwarkesh Patel</li>
-            <li>Built with three.js, React Three Fiber, React, Tailwind CSS and Lucide icons; type is IBM Plex</li>
+            <li>Built with three.js, React Three Fiber, React, Tailwind CSS and Lucide icons, in the IBM Plex typeface</li>
           </ul>
           <p>Full list and licenses: <a href={`${GITHUB_URL}/blob/main/THIRD_PARTY.md`}>THIRD_PARTY.md</a>. The code is MIT-licensed.</p>
           <p>
