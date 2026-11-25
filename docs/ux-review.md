@@ -20,67 +20,61 @@ Wording is out of scope here; it's being rewritten by hand (`docs/copy/`).
   "269K" on the next line). The row of values now stays whole and drops below
   its label when it doesn't fit.
 
-## To fix, most important first
+## Fixed in the second pass
 
-### 1. A visitor can't tell what the score means
-The leaderboard shows Score, a dot strip, First pull and Cost with no key. The
-only explanation of "First pull" is a hover tooltip, which doesn't exist on
-phones. Covered by the "What we measure" slot in `docs/copy/01-home.md`; also
-worth one line of small text under the table once that wording exists.
+Each checked in a production build at 1440×900, 1280×720 and on a 390 px
+phone with touch.
 
-### 2. The scripted bot is invisible, but the headline claim depends on it
-The text says five models "score about what a fixed-rule bot scores (32.5)."
-The bot only appears in the cost chart. It's missing from the leaderboard and
-the learning chart, where that comparison would be seen. Suggest a dashed grey
-line at 32.5 on the learning chart (the original design doc planned one) and
-a greyed reference row in the leaderboard. This was hidden on purpose, so it's
-your call.
+1. **Leaderboard key.** A short key under the table says what Score, the dots
+   and bar, First pull, Cost and the bot mean. Each line shows only where its
+   column does. The "First pull" hover tooltip is gone. (Placeholder wording,
+   listed in `docs/copy/01-home.md` as H6b.)
+2. **The scripted bot is visible.** A greyed "Scripted bot, reference, not
+   ranked" row in the leaderboard, and a dashed line on the learning chart.
+   Visitors still don't see the bot's replays in the run browser (`bot` in
+   `results.ts` is kept separately from `baselines`).
+3. **Learning chart.** Models that a paired test separates from at least one
+   other (`clearLeaders`: Opus and Sol in v1) keep their colours; the rest
+   share one grey and light up on hover. On phones the legend groups them as
+   "The other 5 models". The memory chart in the report is unchanged.
+4. **Plain `/watch`** opens the top model's best pull at the stretch the home
+   clip loops (Opus, group 2, pull 2, from 2:26), with a dismissible hint about
+   the glowing circle that hides itself after 20 seconds.
+5. **Viewer crowding.** At most three chat bubbles, newest first, fading out.
+   A bubble that would land in the top band (boss frame, warnings) or under a
+   panel is dropped. The version details in the scorecard fold behind
+   "Versions and reproduce", which gives the learning panel about 80 px back.
+   The chat log and learning panel fade at the bottom edge, so a clipped line
+   reads as "scroll for more".
+6. **Side by side** is linked under the home learning chart and in the
+   report's Figure 2 caption. It opens 3 s before the first party pulls Oruth,
+   and name labels are drawn last and steered clear of every dot and other
+   label.
+7. **Highlights** is a two-column grid (about 9,000 px, down from 20,500).
+   Each card shows a four-line summary and its first quote, with "Read more"
+   opening the full story across both columns. The filter rows are labelled.
+8. **Home page weight.** The 3D clip now waits for the page to finish loading
+   and the browser to go idle, and data-saver browsers keep the still. This
+   changes when the bytes load, not how many: about 12 MB uncompressed. The
+   compressed size on the live host hasn't been checked.
 
-### 3. The learning chart is a tangle below 37
-Five lines overlap between 30 and 37, and the colours pair up (two greens, two
-blues). The story is "two lines climb, five stay flat," but it reads as noise.
-Suggest Opus and Sol in colour, the other five in one grey, with hover to pick
-out any line.
+Smaller ones:
+- Bone Pyre grid on touch screens: a tap shows that Pyre's details with a
+  "Watch this Pyre" button, so a near miss costs nothing. The legend explains
+  the grey dash ("never reached Oruth").
+- Learning chart on touch: a tap shows that pull's values.
+- Report sidebar marks the section you're in.
+- Cost chart: the bot label moved to the right end, under the line, and
+  shortens to "Bot" on phones.
+- Viewer learning panel tabs fit on one line ("Talk" instead of "Party talk").
+- Phone menu dims the page behind it; tapping the dimmed area closes it.
 
-### 4. "Watch a run" opens on the dullest moment
-`/watch` opens Opus group 1, pull 1 at 0:01: the entrance corridor, with five
-speech bubbles covering the screen. Suggest opening on the same stretch the
-home clip loops (Sol's best pull, a Pyre soak), with one short hint about what
-to watch for.
+## Still open
 
-### 5. The viewer is crowded at common laptop sizes
-At 1280×720: speech bubbles cover each other, the boss health bar and the
-damage numbers; the chat log and learning panel are cut off at the bottom. At
-1440×900 the objective banner sits on top of the bubbles. Possible fixes: cap
-bubbles at two or three, fade older ones sooner, or keep them out of the top
-band.
-
-### 6. The best evidence of learning isn't linked
-`/compare` with no arguments shows Opus group 2, blind pull 1 against pull 2 on
-one clock. It's the clearest before-and-after on the site, and nothing a
-visitor sees links to it (only the viewer's learning panel does, for other
-pairs). It also opens paused, on two near-empty maps with overlapping name
-labels. Suggest linking it from the home learning section and the report, and
-starting at the boss.
-
-### 7. Highlights is about 20,500 px long
-Each of the 23 cards is full width, with a large image and every quote. Suggest
-a grid of compact cards (the home page already has that version) that expand
-or open the replay. The two rows of filter chips (kind, model) have no labels.
-
-### 8. The home page is heavy on desktop
-Before you scroll, the 3D clip pulls about 12 MB uncompressed (models,
-textures, the replay). Phones already get a still image. Suggest showing the
-still first and loading 3D after the page is idle, and checking the compressed
-size on the live host.
-
-### 9. Smaller things
-- Bone Pyre grid on phones: squares are about 6 px, but the note says "Click
-  one to watch it." Too small to tap.
-- Hover-only tooltips (`title=`) on the leaderboard and charts don't work on
-  touch.
-- The report's sidebar contents doesn't mark which section you're in.
-- Cost chart on phones: the "Scripted bot, 32.5" label sits on top of two dots.
-- Viewer learning panel: the character tabs wrap ("Wren" alone on a second
-  line).
-- The phone menu opens over the page without dimming what's behind it.
+- When Oruth is near the top of the screen, his floating health bar can sit
+  under the HUD warnings ("Desecrate: move out of the pools"). It's a world
+  plate that follows him, so moving it would hide him.
+- On a small laptop the first-visit hint card covers part of the lower arena
+  for up to 20 seconds.
+- Side-by-side labels can step a little way above their dot when three
+  players stand together.

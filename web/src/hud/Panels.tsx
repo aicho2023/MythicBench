@@ -109,18 +109,20 @@ function Reproduce() {
   const cmd = reproduceCommand(m)
   return (
     <div className="pointer-events-auto border-t border-line px-3 py-2 font-mono text-meta text-fg-faint">
-      <dl>
+      {/* Versions stay folded: they matter to someone reproducing a run, and the side column
+          needs the height for the learning panel on laptop screens. */}
+      <div className="flex items-center justify-between gap-4">
+        <span>Seed <span className="num text-fg-muted">{m.seed}</span></span>
+        <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="font-sans text-fg-faint transition-colors hover:text-fg">
+          {open ? 'Hide details' : cmd ? 'Versions and reproduce' : 'Versions'}
+        </button>
+      </div>
+      {open && <dl className="mt-1">
         <div className="flex justify-between gap-4"><dt>Policy</dt><dd className="truncate text-fg-muted">{m.policy}</dd></div>
-        <div className="flex justify-between gap-4"><dt>Seed</dt><dd className="num text-fg-muted">{m.seed}</dd></div>
         {r && <div className="flex justify-between gap-4"><dt>Harness</dt><dd className="num text-fg-muted">v{r.harness_version}{r.prompt_hash ? ` (${r.prompt_hash})` : ''}</dd></div>}
         <div className="flex justify-between gap-4"><dt>Sim / content</dt><dd className="num text-fg-muted">v{m.sim_version} / v{m.content_version}</dd></div>
         {r?.git_commit && <div className="flex justify-between gap-4"><dt>Commit</dt><dd className="num text-fg-muted">{r.git_commit}</dd></div>}
-      </dl>
-      {cmd && (
-        <button onClick={() => setOpen((v) => !v)} className="mt-1 font-sans text-fg-faint transition-colors hover:text-fg">
-          {open ? 'Hide' : 'Reproduce this replay'}
-        </button>
-      )}
+      </dl>}
       {open && cmd && (
         <div className="mt-1">
           <pre className="overflow-x-auto whitespace-pre rounded-md border border-line bg-surface-raised p-2 text-[11px] leading-4 text-fg-muted">{cmd}</pre>
@@ -289,7 +291,7 @@ export function DecisionLog() {
           : <span className="text-meta text-fg-faint">Click a row to rewind</span>}
       </div>
       {shown.length === 0 && <div className="px-3 py-2 text-[12px] text-fg-faint">{view === 'chat' ? 'Nobody has said anything yet' : 'Nothing yet, waiting for the pull'}</div>}
-      <div className={view === 'chat' ? 'max-h-[min(200px,calc(100vh-640px))] min-h-[90px] overflow-y-auto' : ''}>
+      <div className={view === 'chat' ? 'scroll-fade max-h-[min(200px,calc(100vh-640px))] min-h-[90px] overflow-y-auto' : ''}>
       {shown.map((r) => (
         <div key={r.key} className="group relative">
         <button

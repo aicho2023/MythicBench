@@ -87,7 +87,7 @@ export function LearningPanel({ onShowMeter }: { onShowMeter: () => void }) {
   const beforeSet = new Set(shownBefore.split('\n').map((l) => l.trim()).filter(Boolean))
 
   return (
-    <div className="card max-h-[calc(100vh-540px)] min-h-[200px] w-[272px] overflow-y-auto pb-3">
+    <div className="card scroll-fade max-h-[calc(100vh-540px)] min-h-[200px] w-[272px] overflow-y-auto">
       <div className="flex items-center justify-between px-3 pt-2">
         <span className="label">Learning</span>
         <button onClick={onShowMeter} className="text-meta text-fg-faint transition-colors hover:text-fg">Show meter</button>
@@ -110,11 +110,11 @@ export function LearningPanel({ onShowMeter }: { onShowMeter: () => void }) {
       </>}
 
       {perAgent && (
-        <div className="mx-3 mt-3 flex flex-wrap gap-1" role="tablist" aria-label="Notes and talk">
+        <div className="mx-3 mt-3 flex gap-1" role="tablist" aria-label="Notes and talk">
           {tabs.map((id) => (
             <button key={id} role="tab" aria-selected={active === id} onClick={() => setTab(id)}
-              className="rounded-md px-1.5 py-0.5 text-meta text-fg-faint transition-colors hover:text-fg aria-selected:bg-white/[0.08] aria-selected:text-fg">
-              {id === 'talk' ? 'Party talk' : <span style={{ color: active === id ? CLASS_COLORS[who(id)?.class ?? ''] : undefined }}>{who(id)?.name ?? id}</span>}
+              className="whitespace-nowrap rounded-md px-1 py-0.5 text-meta text-fg-faint transition-colors hover:text-fg aria-selected:bg-white/[0.08] aria-selected:text-fg">
+              {id === 'talk' ? 'Talk' : <span style={{ color: active === id ? CLASS_COLORS[who(id)?.class ?? ''] : undefined }}>{who(id)?.name ?? id}</span>}
             </button>
           ))}
         </div>

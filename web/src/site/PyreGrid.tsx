@@ -3,6 +3,7 @@
 // The colour says how many players stood inside: nobody, one (not enough), or
 // two or more (soaked). Click a square to watch that Pyre.
 // Data: web/public/insights/v1.json (scripts/build_insights.py).
+import { X } from 'lucide-react'
 import { useState } from 'react'
 import { fmtTime, modelName } from '../content/display'
 import { heat, useInsights, useWidth } from './PullGrid'
@@ -19,12 +20,15 @@ const kindOf = (inside: number) => (inside >= 2 ? KINDS[2] : inside === 1 ? KIND
 /** Seconds before the blast to start the replay: the circle appears 6 s before it goes off. */
 const LEAD_S = 8
 
-interface Hover { model: string; group: number; pull: number; k: number; n: number; inside: number; t: number | null; x: number; y: number }
+interface Hover { model: string; group: number; pull: number; k: number; n: number; inside: number; t: number | null; x: number; y: number; path: string }
 
 export function PyreGrid({ results }: { results: Results }) {
   const data = useInsights()
   const [ref, w] = useWidth()
   const [hover, setHover] = useState<Hover | null>(null)
+  // Touch screens: the squares are a few pixels wide, too small to aim a tap at one Pyre. A tap
+  // shows that square's details with a link to watch it, so a near miss costs nothing.
+  const [touch] = useState(() => typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches)
   const pulls = results.protocol.max_pulls
   const rows = results.leaderboard
     .map((r) => ({ row: r, groups: (data?.models[r.model] ?? []).filter((g) => g.ranked) }))
@@ -42,7 +46,7 @@ export function PyreGrid({ results }: { results: Results }) {
 
   if (!data) return <div ref={ref} className="h-[420px]" />
   return (
-    <div ref={ref} className="relative" onPointerLeave={() => setHover(null)}>
+    <div ref={ref} className="relative" onPointerLeave={touch ? undefined : () => setHover(null)}>
       {/* Pull headings, aligned with the columns below */}
       <div className="flex text-[11px] text-fg-faint" style={{ paddingLeft: labelW }}>
         {Array.from({ length: pulls }, (_, k) => (
@@ -76,15 +80,21 @@ export function PyreGrid({ results }: { results: Results }) {
                           const kind = kindOf(n)
                           const on = hover?.model === row.model && hover.group === g.episode && hover.pull === k + 1 && hover.k === i
                           const path = `/watch/${encodeURIComponent(row.model)}/${data.tier}/${g.episode}/${k + 1}${t != null ? `?t=${Math.max(0, Math.round(t - LEAD_S))}` : ''}`
+                          const show = (el: HTMLElement) => {
+                            const box = ref.current!.getBoundingClientRect()
+                            const c = el.getBoundingClientRect()
+                            setHover({ model: row.model, group: g.episode, pull: k + 1, k: i, n: ins.length, inside: n, t, x: c.left - box.left + c.width / 2, y: c.top - box.top, path })
+                          }
                           return (
                             <a key={i} href={path}
                               aria-label={`Group ${g.episode + 1}, pull ${k + 1}, Pyre ${i + 1}: ${kind.label}`}
-                              onClick={(e) => { if (e.metaKey || e.ctrlKey) return; e.preventDefault(); navigate(path) }}
-                              onPointerEnter={(e) => {
-                                const box = ref.current!.getBoundingClientRect()
-                                const c = e.currentTarget.getBoundingClientRect()
-                                setHover({ model: row.model, group: g.episode, pull: k + 1, k: i, n: ins.length, inside: n, t, x: c.left - box.left + c.width / 2, y: c.top - box.top })
+                              onClick={(e) => {
+                                if (e.metaKey || e.ctrlKey) return
+                                e.preventDefault()
+                                if (touch) show(e.currentTarget)
+                                else navigate(path)
                               }}
+                              onPointerEnter={touch ? undefined : (e) => show(e.currentTarget)}
                               className="block shrink-0 rounded-[2px] transition-transform duration-150 hover:z-10 hover:scale-150 focus-visible:z-10 focus-visible:scale-150"
                               style={{ width: cell, height: cell, background: kind.color, boxShadow: on ? '0 0 0 1.5px #ededef' : undefined }} />
                           )
@@ -105,12 +115,18 @@ export function PyreGrid({ results }: { results: Results }) {
             <span className="h-3 w-3 rounded-[2px]" style={{ background: k.color }} aria-hidden />{k.label}
           </span>
         ))}
-        <span className="text-fg-faint">Each line is one group; each square, one Pyre in the order it went off. Click one to watch it.</span>
+        <span className="flex items-center gap-2">
+          <span className="h-[2px] w-3 rounded-full bg-white/[0.08]" aria-hidden />never reached Oruth
+        </span>
+        <span className="text-fg-faint">Each line is one group; each square, one Pyre in the order it went off. {touch ? 'Tap one for details.' : 'Click one to watch it.'}</span>
       </div>
 
       {hover && (
-        <div className="pointer-events-none absolute z-20 w-[232px] rounded-lg border border-line bg-surface-raised px-3 py-2 text-[13px] leading-5 shadow-[0_6px_24px_rgba(0,0,0,0.5)]"
+        <div className={`${touch ? 'pointer-events-auto' : 'pointer-events-none'} absolute z-20 w-[232px] rounded-lg border border-line bg-surface-raised px-3 py-2 text-[13px] leading-5 shadow-[0_6px_24px_rgba(0,0,0,0.5)]`}
           style={{ left: Math.max(0, Math.min(w - 232, hover.x - 116)), top: hover.y - 8, transform: 'translateY(-100%)' }}>
+          {touch && (
+            <button onClick={() => setHover(null)} className="absolute right-1 top-1 grid h-8 w-8 place-items-center text-fg-faint" aria-label="Close"><X size={14} /></button>
+          )}
           <div className="text-fg">{modelName(hover.model)}</div>
           <div className="text-[12px] text-fg-faint">
             Group {hover.group + 1}, pull {hover.pull}, Pyre {hover.k + 1} of {hover.n}{hover.t != null ? `, at ${fmtTime(hover.t * 1000)}` : ''}
@@ -121,6 +137,12 @@ export function PyreGrid({ results }: { results: Results }) {
               : hover.inside === 1 ? 'One player inside: not enough, it hit everyone'
                 : `${hover.inside} players inside: soaked`}
           </div>
+          {touch && (
+            <a href={hover.path} onClick={(e) => { e.preventDefault(); navigate(hover.path) }}
+              className="mt-2 inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-[13px] text-fg">
+              Watch this Pyre
+            </a>
+          )}
         </div>
       )}
     </div>

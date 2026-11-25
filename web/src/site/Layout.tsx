@@ -63,6 +63,10 @@ export function SiteHeader({ after, center, right, overlay = false }: { after?: 
         </button>
       </div>
       {open && (
+        // Dims the page under the menu; a tap on it closes the menu.
+        <div className="fixed inset-x-0 bottom-0 top-14 bg-black/60 md:hidden" aria-hidden onClick={() => setOpen(false)} />
+      )}
+      {open && (
         <nav aria-label="Site" className="absolute inset-x-0 top-full border-b border-line bg-surface px-4 pb-4 pt-2 md:hidden">
           {NAV.map((n) => (
             <Link key={n.to} to={n.to} aria-current={isActive(path, n.to) ? 'page' : undefined}

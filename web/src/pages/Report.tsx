@@ -1,5 +1,5 @@
 import { ChevronDown } from 'lucide-react'
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { modelName } from '../content/display'
 import { BEHAVIOUR, EXPERT, LESSONS, MOMENTS, SOAKS } from '../content/findings'
 import { GroupScores, LearningCurves } from '../site/charts'
@@ -86,6 +86,20 @@ const LINKS: [string, string, boolean][] = [
  */
 export function Report() {
   const { results } = useResults()
+  // The section being read, marked in the sidebar contents: the last heading above the top fifth of the screen.
+  const [current, setCurrent] = useState<string | null>(null)
+  useEffect(() => {
+    const heads = TOC.map(([id]) => document.getElementById(id)).filter((el): el is HTMLElement => !!el)
+    const on = () => {
+      const line = innerHeight * 0.2
+      let at: string | null = null
+      for (const h of heads) if (h.getBoundingClientRect().top <= line) at = h.id
+      setCurrent(at)
+    }
+    on()
+    addEventListener('scroll', on, { passive: true })
+    return () => removeEventListener('scroll', on)
+  }, [results])
   // Arriving at /report#section (from another page): scroll there once the section
   // exists. The results sections only render after the results load.
   useEffect(() => {
@@ -103,7 +117,8 @@ export function Report() {
             <ol>
               {TOC.map(([id, n, title]) => (
                 <li key={id}>
-                  <a href={`#${id}`} className="flex gap-2 text-fg-muted transition-colors hover:text-fg">
+                  <a href={`#${id}`} aria-current={current === id ? 'location' : undefined}
+                    className={`flex gap-2 transition-colors hover:text-fg ${current === id ? 'text-fg' : 'text-fg-muted'}`}>
                     <span className="w-5 shrink-0 text-right font-mono text-[12px] text-fg-faint">{n}</span>{title}
                   </a>
                 </li>
@@ -596,7 +611,7 @@ function ResultsBody({ r }: { r: Results }) {
         {fmtScore(cell(top1)?.curve_mean?.[1])} on its second. GPT-6.2 Sol climbs more slowly, to{' '}
         {fmtScore(Math.max(...(cell(sol)?.curve_mean ?? [0])))} by its fourth. The other five stay about flat.
       </p>
-      <Figure n="2" caption="Mean +10 score at each pull, over each model's six groups. Hover for the values.">
+      <Figure n="2" caption={<>Mean +10 score at each pull, over each model's six groups; the dashed line is the scripted bot. Hover for the values. <Link to="/compare">Watch Claude Opus 5.5's first and second pull side by side</Link>.</>}>
         <LearningCurves results={r} tier={head} />
       </Figure>
 

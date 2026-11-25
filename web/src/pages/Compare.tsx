@@ -22,6 +22,25 @@ function TacticalMap({ engine, s, t }: { engine: ReplayEngine; s: ReplayState; t
   const cx = pts.reduce((m, p) => m + p[0], 0) / pts.length
   const cz = pts.reduce((m, p) => m + p[1], 0) / pts.length
   const h = VIEW_M / 2
+  // Name labels sit above each player; when two players stand close, later labels step up
+  // until they clear the ones already placed, so names never print on top of each other.
+  // Each label is a box [x0, x1] x [y - 0.65, y + 0.1] (y is the text baseline); so is each dot.
+  const labels: { id: string; name: string; color: string; x: number; y: number; alive: boolean }[] = []
+  const boxes = party.map((u) => {
+    const [x, z] = posAt(u, t)
+    const r = Math.max(0.45, u.info.radius)
+    return { x0: x - r, x1: x + r, y0: z - r, y1: z + r }
+  })
+  const hits = (b: { x0: number; x1: number; y0: number; y1: number }) =>
+    boxes.some((o) => b.x0 < o.x1 && b.x1 > o.x0 && b.y0 < o.y1 && b.y1 > o.y0)
+  for (const u of [...party].sort((p, q) => posAt(p, t)[0] - posAt(q, t)[0])) {
+    const [x, z] = posAt(u, t)
+    const w = u.info.name.length * 0.4 + 0.2
+    let y = z - Math.max(0.45, u.info.radius) - 0.35
+    for (let n = 0; n < 6 && hits({ x0: x - w / 2, x1: x + w / 2, y0: y - 0.65, y1: y + 0.1 }); n++) y -= 0.8
+    boxes.push({ x0: x - w / 2, x1: x + w / 2, y0: y - 0.65, y1: y + 0.1 })
+    labels.push({ id: u.info.id, name: u.info.name, color: CLASS_COLORS[u.info.class], x, y, alive: u.alive })
+  }
   return (
     <svg viewBox={`${cx - h} ${cz - h} ${VIEW_M} ${VIEW_M}`} className="aspect-square w-full rounded-lg border border-line bg-[#0c0c0e]" role="img"
       aria-label="Top-down map of the party, enemies and pools">
@@ -43,12 +62,14 @@ function TacticalMap({ engine, s, t }: { engine: ReplayEngine; s: ReplayState; t
           <g key={id} opacity={u.alive ? 1 : 0.35}>
             {u.auras.grave_mark && <circle cx={x} cy={z} r={6} fill="none" stroke="#fb923c" strokeWidth={0.12} strokeDasharray="0.5 0.4" />}
             <circle cx={x} cy={z} r={r} fill={color} stroke={u.cast ? '#fbbf24' : '#0c0c0e'} strokeWidth={u.cast ? 0.2 : 0.08} />
-            {u.info.kind === 'player' && (
-              <text x={x} y={z - r - 0.35} textAnchor="middle" fontSize={0.7} fill={color} className="font-sans">{u.info.name}</text>
-            )}
           </g>
         )
       })}
+      {/* Names last, so no dot is drawn over one */}
+      {labels.map((l) => (
+        <text key={l.id} x={l.x} y={l.y} textAnchor="middle" fontSize={0.7} fill={l.color} opacity={l.alive ? 1 : 0.35}
+          stroke="#0c0c0e" strokeWidth={0.18} paintOrder="stroke" className="font-sans">{l.name}</text>
+      ))}
     </svg>
   )
 }
@@ -128,7 +149,14 @@ export function Compare() {
     if (!entries[0] || !entries[1]) return
     let live = true
     Promise.all(entries.map((e) => fetchMaybeGzipJson<Replay>(e!.url ?? `${base}replays/${e!.file}`)))
-      .then((rs) => { if (live) setEngines(rs.map((r) => new ReplayEngine(r))) })
+      .then((rs) => {
+        if (!live) return
+        setEngines(rs.map((r) => new ReplayEngine(r)))
+        // Open just before the first of the two parties pulls Oruth: the corridor and trash
+        // before that look the same in both, and the boss is where they differ.
+        const boss = rs.flatMap((r) => r.events.flatMap((e) => (e.type === 'pull' && e.pack === 'boss' ? [e.t] : [])))
+        setT(boss.length ? Math.max(0, Math.min(...boss) - 3000) : 0)
+      })
       .catch((err) => setError(String(err)))
     return () => { live = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps

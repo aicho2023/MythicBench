@@ -4,9 +4,9 @@ import { modelName, pullLabel } from '../content/display'
 import { create } from 'zustand'
 import { ReplayEngine } from './engine'
 import type { Catalog, CatalogItem, CatalogRun, Replay, ReplayIndexEntry } from './types'
-import { fetchMaybeGzipJson, fetchResults, parseWatchPath, watchPath, type Results } from '../site/results'
+import { fetchMaybeGzipJson, fetchResults, parseWatchPath, topPull, watchPath, type Results } from '../site/results'
 import { resultsCatalogRuns, resultsIndexEntries } from '../site/watchData'
-import { FEATURED, REFERENCE_PROVIDERS, SHOW_REFERENCE_RUNS } from '../site/config'
+import { FEATURED, HERO_WINDOW_S, REFERENCE_PROVIDERS, SHOW_REFERENCE_RUNS } from '../site/config'
 
 /** Index id for one item (seed, or episode+pull) of a model run. */
 export const runItemId = (runId: string, it: Pick<CatalogItem, 'seed' | 'episode' | 'pull'>) =>
@@ -34,6 +34,9 @@ interface Playback {
   ensureIndex: () => Promise<void>
   /** Open what the address bar names, if anything; returns whether it named a replay. */
   openFromUrl: (opts?: { fallback?: boolean }) => Promise<boolean>
+  /** Opened from plain /watch onto the featured stretch: the viewer shows a one-time hint. */
+  landing: boolean
+  dismissLanding: () => void
   load: (id: string, opts?: LoadOptions) => Promise<void>
   seek: (t: number) => void
   advance: (dtMs: number) => void
@@ -103,6 +106,8 @@ export const usePlayback = create<Playback>((set, get) => ({
   t: 0,
   playing: false,
   speed: 1,
+  landing: false,
+  dismissLanding: () => set({ landing: false }),
   ensureIndex: () => {
     indexPromise ??= (async () => {
       try {
@@ -153,8 +158,17 @@ export const usePlayback = create<Playback>((set, get) => ({
       return true
     }
     if (fallback && (!engine || quietLoaded) && index.length) {
-      // Plain /watch: the leaderboard's top model on +10 if there is one, else (only
-      // when references are on) the first showcase. Visitors never land on a reference run.
+      // Plain /watch: the top model's best +10 pull, at the stretch of the boss fight the home
+      // clip loops (Bone Pyre soaks), not at 0:00 in the entrance corridor.
+      const best = await fetchResults().then(topPull, () => null)
+      const featured = best && index.find((e) => e.path === best.path)
+      if (featured) {
+        await get().load(featured.id, { startMs: HERO_WINDOW_S[0] * 1000 })
+        set({ landing: true })
+        return true
+      }
+      // Else the leaderboard's top model on +10 if there is one, else (only when references
+      // are on) the first showcase. Visitors never land on a reference run.
       const models = index.filter((e) => e.local)
       const top = models.find((e) => e.path?.includes('/plus10/')) ?? models[0]
         ?? index.find((e) => e.id === FEATURED.id) ?? (SHOW_REFERENCE_RUNS ? index[0] : undefined)
@@ -166,6 +180,7 @@ export const usePlayback = create<Playback>((set, get) => ({
   load: async (id, opts = {}) => {
     const entry = get().index.find((r) => r.id === id)
     if (!entry) return
+    set({ landing: false })
     let replay: Replay
     try {
       replay = await fetchMaybeGzipJson<Replay>(entry.url ?? `${base}replays/${entry.file}`)

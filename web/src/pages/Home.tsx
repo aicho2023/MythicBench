@@ -45,11 +45,38 @@ function useWide(): boolean {
   return wide
 }
 
+/**
+ * True once the page has loaded and the browser is idle. The hero's 3D clip (three.js, the
+ * character models and a replay: several MB) waits for this, so the text, leaderboard and charts
+ * come first and the still image stands in until then. Data-saver browsers keep the still.
+ */
+function useIdleAfterLoad(): boolean {
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return
+    let idle = 0
+    let timer = 0
+    const go = () => {
+      if (typeof requestIdleCallback === 'function') idle = requestIdleCallback(() => setReady(true), { timeout: 3000 })
+      else timer = setTimeout(() => setReady(true), 1000) as unknown as number
+    }
+    if (document.readyState === 'complete') go()
+    else window.addEventListener('load', go, { once: true })
+    return () => {
+      window.removeEventListener('load', go)
+      if (idle) cancelIdleCallback(idle)
+      clearTimeout(timer)
+    }
+  }, [])
+  return ready
+}
+
 export function Home() {
   const { results, error } = useResults()
   // The hero shows the top model's best +10 pull once there are results (see site/Teaser.tsx).
   const top = results ? topPull(results) : null
   const wide = useWide()
+  const idle = useIdleAfterLoad()
   return (
     <Page>
       {/* Hero: the question and two actions, the live crypt beside them */}
@@ -80,7 +107,7 @@ export function Home() {
             className="group relative block aspect-[16/10] overflow-hidden rounded-2xl border border-line bg-[#0d0a18]">
             {/* A still from the same pull: the poster while the 3D clip loads, and all phones get (no WebGL download) */}
             <img src={`${import.meta.env.BASE_URL}stills/closest.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
-            {wide && <Suspense fallback={null}><Teaser /></Suspense>}
+            {wide && idle && <Suspense fallback={null}><Teaser /></Suspense>}
             {top && (
               <span className="absolute left-3 top-3 max-w-[calc(100%-24px)] rounded-lg border border-line bg-[rgba(15,15,16,0.88)] px-3 py-1.5 text-[13px] leading-5 text-fg">
                 Watch for the glowing circle: players step inside to split the blast.
@@ -146,6 +173,9 @@ function ResultsBody({ results }: { results: Results }) {
         <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
           <LearningCurves results={results} tier={tier} />
         </div>
+        <Link to="/compare" className="mt-3 inline-flex items-center gap-1.5 text-[13px] text-fg-muted transition-colors hover:text-fg">
+          Watch Claude Opus 5.5's first and second pull side by side <ArrowRight size={14} />
+        </Link>
       </section>
 
       <section className="pt-20">

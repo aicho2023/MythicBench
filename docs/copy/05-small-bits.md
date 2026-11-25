@@ -74,6 +74,29 @@ pair.
 
 ---
 
+## S5. Interface text added in the UX pass
+
+Short labels and one hint, written plainly so the fixes could ship. Rewrite
+any of them.
+
+| Where | Text now |
+| --- | --- |
+| Replay viewer, first visit to plain `/watch` (dismissible card) | "{model, group, pull}, one of the best pulls in the benchmark. Watch the glowing circle on the floor: with two or more players inside, its blast is split between them; with fewer, it hits the whole party." |
+| Replay viewer, scorecard | "Seed 70102" and a "Versions and reproduce" toggle (the version list is folded now) |
+| Replay viewer, learning panel | The first tab is "Talk" (was "Party talk"), so the tabs fit on one line |
+| Highlights, filter rows | "Kind" and "Model" labels |
+| Highlights, cards | "Read more (4 quotes)" / "Show less" |
+| Home, Bone Pyre grid legend | "never reached Oruth" (the grey dash) |
+| Home, Bone Pyre grid on phones | "Tap one for details." and a "Watch this Pyre" button in the popup |
+| Home, cost chart on phones | "Bot, 32.5" (desktop keeps "Scripted bot, 32.5") |
+| Report, Figure 2 caption | adds "the dashed line is the scripted bot" and the side-by-side link |
+| Report, phones and tablets | a "Contents" dropdown |
+
+**Your versions:**
+
+
+---
+
 ## Not on this list, on purpose
 
 - **Ability names and tooltips** (party page, viewer): the agents read these

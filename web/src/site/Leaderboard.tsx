@@ -2,7 +2,7 @@ import { ChevronRight } from 'lucide-react'
 import { modelName } from '../content/display'
 import { CIAxis, CIBar, scoreDomain } from './charts'
 import {
-  costPerRun, episodeHeadlines, fmtScore, fmtUsd, headlineTier, labName, modelColor,
+  botRow, costPerRun, episodeHeadlines, fmtScore, fmtUsd, headlineTier, labName, modelColor,
   type LeaderboardRow, type Results,
 } from './results'
 import { navigate } from './router'
@@ -27,7 +27,10 @@ const STRIP = 200
 
 export function LeaderboardTable({ results }: { results: Results }) {
   const hard = headlineTier(results)
-  const baselines = results.baselines ?? []
+  // The reference rows: every baseline when they're shown, else just the scripted bot, which the
+  // results are read against ("level with the bot").
+  const bot = botRow(results)
+  const baselines = results.baselines?.length ? results.baselines : bot ? [bot] : []
   const rows = [...results.leaderboard, ...baselines]
   const [lo, hi] = scoreDomain(rows.flatMap((r) => [...(r.tiers[hard]?.episode_scores ?? []), ...(r.mythicbench_score_ci95 ?? [])]))
   const lead = results.leaderboard.find((r) => r.rank !== null)?.model
@@ -45,7 +48,7 @@ export function LeaderboardTable({ results }: { results: Results }) {
               <span className="block pb-1">Each group, with the 95% interval</span>
               <CIAxis width={STRIP} lo={lo} hi={hi} />
             </th>
-            <th className={`${TH} hidden text-right md:table-cell`} title="Mean score of the first pull: blind, before any wipe">First pull</th>
+            <th className={`${TH} hidden text-right md:table-cell`}>First pull</th>
             {anyClear && <th className={`${TH} hidden text-right lg:table-cell`}>Clears</th>}
             <th className={`${TH} hidden pr-0 text-right sm:table-cell`}>Cost per group</th>
             <th className="w-6" aria-hidden />
@@ -64,7 +67,7 @@ export function LeaderboardTable({ results }: { results: Results }) {
                     className="flex items-center gap-3 rounded">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: ref ? 'transparent' : modelColor(results, row.model), border: ref ? '1px solid #8b8b93' : undefined }} aria-hidden />
                     <span className="min-w-0">
-                      <span className={`block truncate text-[15px] leading-5 ${ref ? 'text-fg-muted' : 'text-fg'}`}>{row.name || modelName(row.model)}</span>
+                      <span className={`block truncate text-[15px] leading-5 ${ref ? 'text-fg-muted' : 'text-fg'}`}>{row.provider === 'scripted' ? 'Scripted bot' : row.name || modelName(row.model)}</span>
                       <span className="block text-[12px] leading-4 text-fg-faint">{ref ? 'Reference, not ranked' : labName(row.provider)}</span>
                     </span>
                   </a>
@@ -90,6 +93,26 @@ export function LeaderboardTable({ results }: { results: Results }) {
           })}
         </tbody>
       </table>
+      <LeaderboardKey />
     </div>
+  )
+}
+
+/** What each column means, in words visible on every device (hover tooltips don't exist on touch). */
+function LeaderboardKey() {
+  // [term, meaning, the breakpoint its column shows from]
+  const items: [string, string, string?][] = [
+    ['Score', 'the average over a model\'s groups. Under 70 measures how far the party got before it died; a clear scores 70 to 100.'],
+    ['Dots and bar', 'each dot is one group\'s score; the bar is the 95% interval, the white tick the average.', 'hidden sm:block'],
+    ['First pull', 'the blind first attempt, before any wipe to learn from.', 'hidden md:block'],
+    ['Cost per group', 'one group of up to five pulls, at list prices, thinking included.', 'hidden sm:block'],
+    ['Scripted bot', 'fixed rules played through the same controls: it interrupts and steps out of pools, and never learns.'],
+  ]
+  return (
+    <dl className="mt-4 grid gap-x-8 gap-y-1.5 text-[13px] leading-5 text-fg-faint md:grid-cols-2">
+      {items.map(([k, v, show]) => (
+        <div key={k} className={show}><dt className="inline text-fg-muted">{k}: </dt><dd className="inline">{v}</dd></div>
+      ))}
+    </dl>
   )
 }

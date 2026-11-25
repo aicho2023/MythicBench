@@ -103,6 +103,29 @@ short labeled items (e.g. "Score", "First pull", "Learning").
 
 ---
 
+## H6b. Leaderboard key (new, added in the UX pass)
+
+Small text under the table, so the columns make sense without hovering (hover
+doesn't exist on phones). Written plainly as a placeholder; yours replaces it.
+Each line only shows on screens wide enough to show its column.
+
+> - **Score:** the average over a model's groups. Under 70 measures how far
+>   the party got before it died; a clear scores 70 to 100.
+> - **Dots and bar:** each dot is one group's score; the bar is the 95%
+>   interval, the white tick the average.
+> - **First pull:** the blind first attempt, before any wipe to learn from.
+> - **Cost per group:** one group of up to five pulls, at list prices,
+>   thinking included.
+> - **Scripted bot:** fixed rules played through the same controls: it
+>   interrupts and steps out of pools, and never learns.
+
+The table also now has a greyed "Scripted bot / Reference, not ranked" row.
+
+**Your version:**
+
+
+---
+
 ## H7. Learning chart heading
 
 > Does it learn between wipes?
@@ -111,6 +134,12 @@ short labeled items (e.g. "Score", "First pull", "Learning").
 
 There's no explanation under this chart right now. Want one? If so, write a
 sentence on how to read it.
+
+New in the UX pass: Opus and Sol are in colour, the other five in grey, and a
+dashed line is the scripted bot. On phones the legend says "The other 5
+models". Under the chart there's a new link:
+
+> Watch Claude Opus 5.5's first and second pull side by side →
 
 **Your version:**
 

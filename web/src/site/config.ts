@@ -39,8 +39,8 @@ export const TEASER_REPLAY = FEATURED.id
 /** Where the clip starts playing, in seconds (just before Oruth is pulled). */
 export const TEASER_START_S = 62
 /**
- * The home clip once results exist: the top model's best +10 pull (GPT-6.2 Sol,
- * group 1, pull 4), looped over a stretch of the boss fight: desecrate pools, two
- * Bone Pyres soaked, a wave of adds. Seconds into the pull.
+ * The home clip once results exist, and where plain /watch opens: the top model's
+ * best +10 pull (Claude Opus 5.5, group 2, pull 2), over a stretch of the boss
+ * fight with a Bone Pyre soaked by the whole party. Seconds into the pull.
  */
 export const HERO_WINDOW_S: [number, number] = [146, 198]

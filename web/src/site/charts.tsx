@@ -4,7 +4,7 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { modelName } from '../content/display'
 import {
-  costPerRun, fmtScore, fmtUsd, headlineTier, modelColor, tierName, type CI, type Results,
+  botRow, clearLeaders, costPerRun, fmtScore, fmtUsd, headlineTier, modelColor, tierName, type CI, type Results,
 } from './results'
 
 const GRID = 'rgba(255,255,255,0.07)'
@@ -124,7 +124,9 @@ function Legend({ items }: { items: { key: string; label: string; color: string;
 // ---------------------------------------------------------------------------
 // Learning curves: mean score at each pull
 // ---------------------------------------------------------------------------
-interface Series { key: string; label: string; short: string; color: string; values: number[]; dashed?: boolean }
+interface Series { key: string; label: string; short: string; color: string; values: number[]; dashed?: boolean; muted?: boolean }
+/** Lines for models that aren't the point of a chart: one grey, so the few in colour read at a glance. */
+const MUTED = '#5c5c66'
 
 /**
  * view "models": each ranked model over its six leaderboard groups.
@@ -147,12 +149,27 @@ export function LearningCurves({ results, tier, view = 'models' }: { results: Re
         ]
       })
     }
-    return results.leaderboard.flatMap((row) => {
+    // Colour only the models a paired test separates from the rest; the others share one grey
+    // (hover or the tooltip still names each). With no clear leaders, every model keeps its colour.
+    const leaders = clearLeaders(results)
+    const muteRest = leaders.size > 0 && leaders.size < results.leaderboard.length
+    const models: Series[] = results.leaderboard.flatMap((row) => {
       const c = row.tiers[tier]?.curve_mean
       const name = modelName(row.model)
-      return c?.length ? [{ key: row.model, label: name, short: name, color: modelColor(results, row.model), values: c }] : []
+      const muted = muteRest && !leaders.has(row.model)
+      return c?.length ? [{ key: row.model, label: name, short: name, color: modelColor(results, row.model), values: c, muted }] : []
     })
+    // The scripted bot, drawn first so it sits behind: the level a model that doesn't learn stays at.
+    const bot = botRow(results)?.tiers[tier]?.curve_mean
+    return bot?.length ? [{ key: 'bot', label: 'Scripted bot', short: 'Scripted bot', color: AXIS, values: bot, dashed: true }, ...models] : models
   }, [results, tier, view])
+  const ink = (s: Series) => (s.muted && hover !== s.key ? MUTED : s.color)
+  const legend = useMemo(() => {
+    const muted = series.filter((s) => s.muted)
+    if (!muted.length) return series
+    const rest = { key: 'rest', label: `The other ${muted.length} models`, color: MUTED }
+    return [...series.filter((s) => !s.muted && !s.dashed), rest, ...series.filter((s) => s.dashed)]
+  }, [series])
 
   const [lo, hi] = scoreDomain(series.flatMap((s) => s.values))
   const narrow = w < 620
@@ -175,7 +192,7 @@ export function LearningCurves({ results, tier, view = 'models' }: { results: Re
   return (
     <figure className="m-0">
       <figcaption className="sr-only">Mean score at each pull on {tierName(results, tier)}</figcaption>
-      {narrow && <Legend items={series} />}
+      {narrow && <Legend items={legend} />}
       <div ref={ref} className="relative">
         {w > 0 && (
           <svg width={w} height={H} role="img" aria-label={`Mean score at each pull on ${tierName(results, tier)}`}>
@@ -203,18 +220,19 @@ export function LearningCurves({ results, tier, view = 'models' }: { results: Re
               const last = s.values[s.values.length - 1]
               return (
                 <g key={s.key} opacity={dim(s.key)} onPointerEnter={() => setHover(s.key)} onPointerLeave={() => setHover(null)}>
-                  <path d={d} fill="none" stroke={s.color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={s.dashed ? '6 5' : undefined} />
-                  {s.values.map((v, k) => <circle key={k} cx={x(k + 1)} cy={y(v)} r={3.5} fill={s.dashed ? SURFACE : s.color} stroke={s.color} strokeWidth={2} />)}
+                  <path d={d} fill="none" stroke={ink(s)} strokeWidth={s.dashed ? 1.5 : 2.5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={s.dashed ? '6 5' : undefined} />
+                  {!s.dashed && s.values.map((v, k) => <circle key={k} cx={x(k + 1)} cy={y(v)} r={3.5} fill={ink(s)} stroke={ink(s)} strokeWidth={2} />)}
                   {!narrow && (
                     <text x={m.l + iw + 14} y={ends[i]} dy="0.32em" fontSize={13} {...HALO}>
-                      <tspan fill={LABEL}>{s.short}</tspan>
+                      <tspan fill={s.muted || s.dashed ? AXIS : LABEL}>{s.short}</tspan>
                       <tspan fill={AXIS} fontFamily={MONO} fontSize={12} dx={8}>{fmtScore(last)}</tspan>
                     </text>
                   )}
                 </g>
               )
             })}
-            <rect x={m.l} y={m.t} width={iw} height={ih} fill="transparent" onPointerMove={onMove} onPointerLeave={() => setAt(null)} />
+            {/* pointerdown too: a tap on a touch screen fires no move, and should show that pull's values */}
+            <rect x={m.l} y={m.t} width={iw} height={ih} fill="transparent" onPointerMove={onMove} onPointerDown={onMove} onPointerLeave={() => setAt(null)} />
           </svg>
         )}
         {at !== null && (
@@ -223,7 +241,7 @@ export function LearningCurves({ results, tier, view = 'models' }: { results: Re
             {[...series].sort((a, b) => b.values[at - 1] - a.values[at - 1]).map((s) => (
               <div key={s.key} className="flex items-center justify-between gap-3 text-fg-muted">
                 <span className="flex items-center gap-2">
-                  <svg width={14} height={8} aria-hidden><line x1={0} x2={14} y1={4} y2={4} stroke={s.color} strokeWidth={2.5} strokeDasharray={s.dashed ? '3 2' : undefined} /></svg>
+                  <svg width={14} height={8} aria-hidden><line x1={0} x2={14} y1={4} y2={4} stroke={s.muted ? MUTED : s.color} strokeWidth={2.5} strokeDasharray={s.dashed ? '3 2' : undefined} /></svg>
                   {s.label}
                 </span>
                 <span className="num font-mono text-fg">{fmtScore(s.values[at - 1])}</span>
@@ -329,7 +347,8 @@ export function CostScatter({ results }: { results: Results }) {
             {bot != null && (
               <g>
                 <line x1={m.l} x2={m.l + iw} y1={y(bot)} y2={y(bot)} stroke={AXIS} strokeDasharray="4 4" opacity={0.6} />
-                <text x={m.l + 6} y={y(bot) + 15} fill={AXIS} fontSize={12}>Scripted bot, {fmtScore(bot)}</text>
+                {/* Right end, under the line: the cheap models crowd the left end at this level. */}
+                <text x={m.l + iw - 4} y={y(bot) + 15} textAnchor="end" fill={AXIS} fontSize={12} {...HALO}>{narrow ? 'Bot' : 'Scripted bot'}, {fmtScore(bot)}</text>
               </g>
             )}
             {note && (

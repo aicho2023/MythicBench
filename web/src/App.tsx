@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { TipLayer } from './hud/AbilityTip'
-import { AboutPanel, EndBanner, ReplayControls, TimelineLegend, TopBar } from './hud/Controls'
+import { AboutPanel, EndBanner, LandingHint, ReplayControls, TimelineLegend, TopBar } from './hud/Controls'
 import { DamageMeter, DecisionLog, RaidWarnings, Scorecard } from './hud/Panels'
 import { PartyFrames } from './hud/PartyFrames'
 import { LearningPanel } from './hud/LearningPanel'
@@ -74,6 +74,8 @@ export default function App({ path = '/watch' }: { path?: string }) {
           <div className="flex w-full flex-col items-center gap-2 [grid-area:transport]"><div className="no-phone"><TimelineLegend /></div><div className="phone-only w-full"><MomentBar /></div><ReplayControls /></div>
         </div>
         <div className="absolute left-1/2 top-[28%] z-10 -translate-x-1/2"><div className="hud-s"><EndBanner /></div></div>
+        {/* Just above the timeline legend, low over the floor rather than across the arena; on phones, under the party strip. */}
+        <div className="absolute bottom-[100px] left-1/2 z-10 -translate-x-1/2 max-sm:bottom-auto max-sm:top-[132px]"><LandingHint /></div>
         {about && <AboutPanel onClose={closeAbout} />}
         <CallInspector />
         <TipLayer />

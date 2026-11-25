@@ -15,8 +15,10 @@ import { ROLE_ICON, ROLE_TINT, chatText } from './bits'
 
 const MAX_TEXT = 44
 const MAX_PLATES = 16
-const MAX_BUBBLES = 5
-const BUBBLE_MS = 4000 // a chat bubble stays up this long
+const MAX_BUBBLES = 3 // the newest lines only: five at once cover the fight
+const BUBBLE_MS = 4000 // a chat bubble stays up this long, fading over its last second
+/** Bubbles never rise into the top band, where the boss frame, warnings and banners sit (px). */
+const BUBBLE_TOP = 150
 const ABILITY_MS = 1200 // how long an instant ability's name shows under the caster's name
 const TEXT_MS = 1100
 
@@ -28,7 +30,8 @@ const HEAD: Record<string, number> = { boss: 6.4, add: 2.2, player: 2.55 }
  * stacking nameplates. The plate nearest the camera (lowest on screen) keeps
  * its spot.
  */
-function stackPlates(placed: { el: HTMLDivElement; x: number; y: number }[]) {
+type Rect = { left: number; right: number; top: number; bottom: number }
+function stackPlates(placed: { el: HTMLDivElement; x: number; y: number; drop?: boolean }[], avoid: Rect[] = []) {
   const boxes = placed.map((q) => ({ ...q, w: q.el.offsetWidth, h: q.el.offsetHeight }))
   boxes.sort((a, b) => b.y - a.y)
   const done: { x: number; y: number; w: number; h: number }[] = []
@@ -44,6 +47,10 @@ function stackPlates(placed: { el: HTMLDivElement; x: number; y: number }[]) {
         }
       }
     }
+    // A chat bubble pushed up into the top band is dropped rather than drawn over the HUD.
+    // So is one that would land under a HUD panel (party frames, scorecard, chat log, controls).
+    const under = (r: Rect) => b.x - b.w / 2 < r.right && b.x + b.w / 2 > r.left && y - b.h < r.bottom && y > r.top
+    if (b.drop && (y - b.h < BUBBLE_TOP || avoid.some(under))) { b.el.style.display = 'none'; continue }
     done.push({ x: b.x, y, w: b.w, h: b.h })
     b.el.style.transform = `translate(${b.x}px, ${y}px) translate(-50%, -100%)`
   }
@@ -81,7 +88,7 @@ export function WorldOverlay() {
 
       // ---- nameplates
       let p = 0
-      const placed: { el: HTMLDivElement; x: number; y: number }[] = []
+      const placed: { el: HTMLDivElement; x: number; y: number; drop?: boolean }[] = []
       for (const id of s.order) {
         const u = s.units[id]
         if (!u.alive || u.info.kind === 'boss' || p >= MAX_PLATES) continue
@@ -150,10 +157,11 @@ export function WorldOverlay() {
       } else if (bp) bp.style.display = 'none'
 
       // ---- chat bubbles: each player's latest party-chat line, over its head
-      const said: Record<string, string> = {}
-      for (const { e } of engine.eventsBetween(t - BUBBLE_MS, t)) if (e.type === 'chat') said[e.unit] = chatText(s.units[e.unit]?.info.name ?? e.unit, e.text)
+      const said: Record<string, { text: string; t: number }> = {}
+      for (const { e } of engine.eventsBetween(t - BUBBLE_MS, t)) if (e.type === 'chat') said[e.unit] = { text: chatText(s.units[e.unit]?.info.name ?? e.unit, e.text), t: e.t }
+      const newest = Object.entries(said).sort((p, q) => q[1].t - p[1].t).slice(0, MAX_BUBBLES)
       let b = 0
-      for (const [id, text] of Object.entries(said)) {
+      for (const [id, { text, t: at }] of newest) {
         const u = s.units[id]
         const el = bubbles.current[b]
         if (!u?.alive || !el) continue
@@ -163,10 +171,17 @@ export function WorldOverlay() {
         b++
         if (el.textContent !== text) el.textContent = text
         el.style.display = 'block'
-        placed.push({ el, x: sp[0], y: sp[1] })
+        el.style.opacity = String(Math.min(1, (BUBBLE_MS - (t - at)) / 1000))
+        placed.push({ el, x: sp[0], y: sp[1], drop: true })
       }
       for (let i = b; i < MAX_BUBBLES; i++) if (bubbles.current[i]) bubbles.current[i].style.display = 'none'
-      stackPlates(placed)
+      // The HUD panels on screen, in this overlay's coordinates: chat bubbles stay out from under them.
+      const origin = root.current?.getBoundingClientRect()
+      const avoid = origin
+        ? [...document.querySelectorAll<HTMLElement>('.viewer .card')].map((el) => el.getBoundingClientRect())
+          .filter((r) => r.width > 0).map((r) => ({ left: r.left - origin.left, right: r.right - origin.left, top: r.top - origin.top, bottom: r.bottom - origin.top }))
+        : []
+      stackPlates(placed, avoid)
 
       // ---- floating combat text
       const items: { i: number; x: number; y: number; z: number; age: number; text: string; color: string; size: number }[] = []
