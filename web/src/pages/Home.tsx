@@ -1,7 +1,7 @@
 import { ArrowRight } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { HighlightCard, isRankedGroup } from './Highlights'
-import { HIGHLIGHTS } from '../content/highlights'
+import { HIGHLIGHTS, highlightPath } from '../content/highlights'
 import { PyreGrid } from '../site/PyreGrid'
 import { useInsights } from '../site/PullGrid'
 import { CostScatter, LearningCurves } from '../site/charts'
@@ -60,6 +60,11 @@ export function Home() {
   const top = results ? topPull(results) : null
   const wide = useWide()
   const idle = useIdleAfterLoad()
+  // The live clip (wide screens, once the page is idle) is the top model's best pull; until
+  // then, and on phones, the poster is the still of the closest pull of all. Label whichever shows.
+  const clip = wide && idle ? top : null
+  const poster = HIGHLIGHTS.find((h) => h.id === 'closest')
+  const heroModel = clip?.model ?? poster?.model ?? null
   return (
     <Page>
       {/* Hero: the question and two actions, the live crypt beside them */}
@@ -74,13 +79,17 @@ export function Home() {
             to put that to the test. Introducing: MythicBench. We wanted to see if seven AI models could learn how to clear a
             Mythic-style dungeon, all by themselves.
           </p>
+          <p className="mt-4 max-w-[520px] text-[17px] leading-7 text-fg-muted">
+            Five copies of one AI each play a character, go in blind, and get five tries, reading the combat log and
+            writing notes between wipes.
+          </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/watch" className="btn btn-primary h-11 px-5 text-[14px]">Watch a run</Link>
             <Link to="/report" className="btn h-11 px-5 text-[14px]">Read the report</Link>
           </div>
         </div>
         <figure className="m-0">
-          <Link to={top ? `${top.path}?t=${HERO_WINDOW_S[0]}` : '/watch'} aria-label="Open this replay in the viewer"
+          <Link to={clip ? `${clip.path}?t=${HERO_WINDOW_S[0]}` : poster ? highlightPath(poster) : '/watch'} aria-label="Open this replay in the viewer"
             className="group relative block aspect-[16/10] overflow-hidden rounded-2xl border border-line bg-scene">
             {/* A still from the same pull: the poster while the 3D clip loads, and all phones get (no WebGL download) */}
             <img src={`${import.meta.env.BASE_URL}stills/closest.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -89,11 +98,12 @@ export function Home() {
               Open in the viewer <ArrowRight size={16} className="text-fg-muted" />
             </span>
           </Link>
+          {heroModel && <figcaption className="mt-2 text-[13px] text-fg-muted">{modelName(heroModel)}'s best attempt</figcaption>}
         </figure>
       </section>
 
       {error && <p className="py-8 text-[14px] text-bad">{error}</p>}
-      {results && <Results results={results} />}
+      {results ? <Results results={results} /> : !error && <div className="min-h-[100vh]" aria-hidden />}
     </Page>
   )
 }
@@ -209,7 +219,7 @@ function ResultsBody({ results }: { results: Results }) {
           )}
         </SectionHead>
         <div className="mt-8">
-          <LearningCurves results={results} tier={tier} />
+          <LearningCurves results={results} tier={tier} bot={false} />
         </div>
       </section>
 

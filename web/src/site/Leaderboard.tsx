@@ -119,7 +119,7 @@ export function LeaderboardTable({ results }: { results: Results }) {
                 <td className={`${TD} text-right`}>
                   <span className={`num font-mono text-[17px] ${ref ? 'text-fg-muted' : 'text-fg'}`}>{fmtScore(row.mythicbench_score)}</span>
                   <span className="block font-mono text-[11px] text-fg-faint sm:hidden">
-                    {row.mythicbench_score_ci95 ? `${fmtScore(row.mythicbench_score_ci95[0])}–${fmtScore(row.mythicbench_score_ci95[1])}` : ''}
+                    {row.mythicbench_score_ci95 ? `95% range ${fmtScore(row.mythicbench_score_ci95[0])}–${fmtScore(row.mythicbench_score_ci95[1])}` : ''}
                   </span>
                 </td>
                 <td className={`${TD} hidden pl-8 sm:table-cell`}>

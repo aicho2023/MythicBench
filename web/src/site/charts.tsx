@@ -113,7 +113,7 @@ const MUTED = COLOR.off
  * view "memory": the two models with a memory-off control, memory on and off
  * over the same (paired) groups.
  */
-export function LearningCurves({ results, tier, view = 'models' }: { results: Results; tier: string; view?: 'models' | 'memory' }) {
+export function LearningCurves({ results, tier, view = 'models', bot: withBot = true }: { results: Results; tier: string; view?: 'models' | 'memory'; bot?: boolean }) {
   const [ref, w] = useWidth<HTMLDivElement>()
   const [hover, setHover] = useState<string | null>(null)
   const [at, setAt] = useState<number | null>(null)
@@ -140,9 +140,9 @@ export function LearningCurves({ results, tier, view = 'models' }: { results: Re
       return c?.length ? [{ key: row.model, label: name, short: name, color: modelColor(results, row.model), values: c, muted }] : []
     })
     // The scripted bot, drawn first so it sits behind: the level a model that doesn't learn stays at.
-    const bot = botRow(results)?.tiers[tier]?.curve_mean
+    const bot = withBot ? botRow(results)?.tiers[tier]?.curve_mean : undefined
     return bot?.length ? [{ key: 'bot', label: 'Scripted bot', short: 'Scripted bot', color: AXIS, values: bot, dashed: true }, ...models] : models
-  }, [results, tier, view])
+  }, [results, tier, view, withBot])
   const ink = (s: Series) => (s.muted && hover !== s.key ? MUTED : s.color)
   const legend = useMemo(() => {
     const muted = series.filter((s) => s.muted)
@@ -247,7 +247,8 @@ export function CostScatter({ results }: { results: Results }) {
     .filter((r) => r.mythicbench_score != null)
     .map((r) => ({ key: r.model, label: modelName(r.model), color: modelColor(results, r.model), cost: costPerRun(r, results) ?? 0, score: r.mythicbench_score!, ci: r.mythicbench_score_ci95 ?? null }))
   // The scripted bot: what fixed rules score, the level the models that didn't learn sit at.
-  const bot = results.bot_score ?? (results.baselines ?? []).find((b) => b.mythicbench_score != null)?.mythicbench_score ?? null
+  // The home page shows models only: no scripted-bot reference line here.
+  const bot: number | null = null
   const paid = pts.map((p) => p.cost).filter((c) => c > 0)
   const cLo = paid.length ? Math.min(...paid) / 2 : 0.01
   const cHi = paid.length ? Math.max(...paid) * 2 : 100
