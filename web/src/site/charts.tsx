@@ -155,7 +155,7 @@ export function LearningCurves({ results, tier, view = 'models' }: { results: Re
   const narrow = w < 620
   const labelW = Math.max(0, ...series.map((s) => textW(`${s.short}  00.0`))) + 20
   const H = narrow ? 304 : 364
-  const m = { l: 40, r: narrow ? 16 : labelW, t: 30, b: 54 }
+  const m = { l: 58, r: narrow ? 16 : labelW, t: 30, b: 54 }
   const iw = Math.max(1, w - m.l - m.r)
   const ih = H - m.t - m.b
   const x = (k: number) => m.l + (pulls === 1 ? iw / 2 : ((k - 1) / (pulls - 1)) * iw)
@@ -258,7 +258,7 @@ export function CostScatter({ results }: { results: Results }) {
   const [lo, hi] = scoreDomain([...pts.flatMap((p) => p.ci ? [p.ci[0], p.ci[1]] : [p.score]), ...(bot != null ? [bot] : [])], 10, 1)
   const narrow = w < 520
   const H = narrow ? 300 : 380
-  const m = { l: 40, r: 20, t: 20, b: 54 }
+  const m = { l: 58, r: 20, t: 20, b: 54 }
   const iw = Math.max(1, w - m.l - m.r)
   const ih = H - m.t - m.b
   const x = (c: number) => m.l + ((Math.log10(Math.max(c, cLo)) - Math.log10(cLo)) / (Math.log10(cHi) - Math.log10(cLo))) * iw

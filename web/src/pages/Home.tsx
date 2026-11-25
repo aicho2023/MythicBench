@@ -114,13 +114,14 @@ function Scoring({ results }: { results: Results }) {
   return (
     <section id="scoring" className="pt-20">
       <SectionHead title="Scoring formula" />
-      <p className="mt-3 max-w-[760px] text-[17px] leading-7 text-fg-muted">
+      <div className="mt-4 grid items-center gap-x-14 gap-y-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+      <p className="text-[17px] leading-7 text-fg-muted">
         Each attempt at the dungeon is called a pull, and every pull scores 0 to 100. A pull that ends in a wipe
         earns up to 70, depending on how far the party got. A clear earns 70, plus up to 30 the faster it finishes,
         and counts again for every pull it saved. A model's score is the average of all its pulls: six groups of
         five, on +10, the hardest difficulty.
       </p>
-      <div className="mt-8 max-w-[960px]">
+      <div>
         <p className="text-[14px] text-fg-muted">How far the party got is measured in health taken off. Each pack is worth 15%, Oruth 70%.</p>
         <div className="relative mt-3">
           <div className="flex h-9 overflow-hidden rounded-lg text-[12px]">
@@ -140,6 +141,7 @@ function Scoring({ results }: { results: Results }) {
             so it scored 70 × {far.toFixed(3)} = {best.score.toFixed(1)}.
           </p>
         )}
+      </div>
       </div>
     </section>
   )
