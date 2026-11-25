@@ -24,8 +24,11 @@ function useModelInk(): (model: string) => string {
 }
 
 /** The moment's kind as quiet text: colour on these cards belongs to the model. */
-function KindTag({ kind }: { kind: HighlightKind }) {
-  return <span className="text-[12px] text-fg-muted">{KIND_LABEL[kind]}</span>
+/** Groups 1 to 6 are the ranked ones; a few models played extra groups for the memory test, which aren't on the leaderboard. */
+const RANKED_GROUPS = 6
+export const isRankedGroup = (h: Highlight) => h.episode < RANKED_GROUPS && h.memory !== false && h.tier !== 'normal'
+function groupLabel(h: Highlight): string {
+  return h.episode < RANKED_GROUPS ? `group ${h.episode + 1}` : `memory test group ${h.episode - RANKED_GROUPS + 1}`
 }
 
 function Where({ h }: { h: Highlight }) {
@@ -36,7 +39,7 @@ function Where({ h }: { h: Highlight }) {
         <span className="h-2 w-2 rounded-full" style={{ background: modelInk(h.model) }} aria-hidden />{modelName(h.model)}
       </span>
       <span className="text-fg-faint">
-        group {h.episode + 1}, pull {h.pull}{h.memory === false ? ', memory off' : ''}{h.tier === 'normal' ? ', Normal' : ''}
+        {groupLabel(h)}, pull {h.pull}{h.memory === false ? ', memory off' : ''}{h.tier === 'normal' ? ', Normal' : ''}
       </span>
     </span>
   )
@@ -73,8 +76,7 @@ export function HighlightCard({ h, compact = false }: { h: Highlight; compact?: 
           </span>
         )}
         <span className="flex flex-1 flex-col p-5">
-        <KindTag kind={h.kind} />
-        <h3 className="mt-2 text-[17px] font-medium leading-6 text-fg">{h.title}</h3>
+        <h3 className="text-[17px] font-medium leading-6 text-fg">{h.title}</h3>
         <div className="mt-1"><Where h={h} /></div>
         {q
           ? <p className="mt-3 line-clamp-3 text-[14px] leading-[22px] text-fg-muted"><span style={{ color: CHAR[q.who] ? CLASS_COLORS[CHAR[q.who].cls] : undefined }}>{q.who}:</span> “{q.text}”</p>
@@ -106,11 +108,8 @@ function FullCard({ h, to }: { h: Highlight; to: string }) {
         </Link>
       )}
       <div className="p-5 sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <KindTag kind={h.kind} />
-          {h.stat && <span className="font-mono text-[13px] text-fg">{h.stat}</span>}
-        </div>
-        <h2 className="mt-2 text-[20px] font-medium leading-7 text-fg">{h.title}</h2>
+        {h.stat && <div className="font-mono text-[13px] text-fg">{h.stat}</div>}
+        <h2 className={`${h.stat ? 'mt-2' : ''} text-[20px] font-medium leading-7 text-fg`}>{h.title}</h2>
         <div className="mt-1.5"><Where h={h} /></div>
         <p className={`mt-4 text-[15px] leading-[26px] text-fg-muted ${open ? '' : 'line-clamp-4'}`}>{h.summary}</p>
         {quotes.length > 0 && <ul className="mt-5 space-y-4 border-l-2 border-line pl-4">{quotes.map((q, i) => <QuoteLine key={i} q={q} />)}</ul>}

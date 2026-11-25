@@ -77,9 +77,9 @@ export function LeaderboardTable({ results }: { results: Results }) {
           <tr>
             <th className={`${TH} w-[210px] pb-1 pl-0`}>Model</th>
             <th className={`${TH} w-[104px] pb-1 text-right`}><Head name="Score" sub="0 to 100" /></th>
-            <th className={`${TH} hidden pb-1 pl-8 text-right sm:table-cell`}><span className="block" style={{ width: STRIP }}><Head name="Each group's score" sub="dots, with the 95% interval" /></span></th>
+            <th className={`${TH} hidden pb-1 pl-8 text-right sm:table-cell`}><span className="block" style={{ width: STRIP }}><Head name="Each group's score" sub="one dot per group" /></span></th>
             <th className={`${TH} hidden w-[190px] pb-1 text-right md:table-cell`}><Head name="Oruth's health" sub="at the end of the best pull" /></th>
-            <th className={`${TH} hidden w-[150px] pb-1 text-right lg:table-cell`}><Head name="First pull" sub="blind, before learning" /></th>
+            <th className={`${TH} hidden w-[150px] pb-1 text-right lg:table-cell`}><Head name="First pull" sub="before any learning" /></th>
             {anyClear && <th className={`${TH} hidden w-[88px] pb-1 text-right lg:table-cell`}><Head name="Clears" sub="of six groups" /></th>}
             <th className={`${TH} hidden w-[112px] pb-1 pr-0 text-right sm:table-cell`}><Head name="Cost" sub="per group" /></th>
             <th className="w-6" aria-hidden />

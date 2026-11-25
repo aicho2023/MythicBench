@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
-import { HighlightCard } from './Highlights'
+import { HighlightCard, isRankedGroup } from './Highlights'
 import { HIGHLIGHTS } from '../content/highlights'
 import { PyreGrid } from '../site/PyreGrid'
 import { useInsights } from '../site/PullGrid'
@@ -99,10 +99,10 @@ export function Home() {
 }
 
 /**
- * How a score is made, before any score is shown, in three plain cards and
- * one bar: what "how far the party got" means. The numbers are the scoring
- * rule's (sim/mythicsim/metrics.py: dungeon_score, PROGRESS_WEIGHTS); the
- * marker is the top model's best +10 pull, from the insights file.
+ * How a score is made, before any score is shown: a paragraph, and one bar
+ * for what "how far the party got" means. The numbers are the scoring rule's
+ * (sim/mythicsim/metrics.py: dungeon_score, PROGRESS_WEIGHTS); the marker is
+ * the top model's best +10 pull, from the insights file.
  */
 function Scoring({ results }: { results: Results }) {
   const insights = useInsights()
@@ -110,43 +110,34 @@ function Scoring({ results }: { results: Results }) {
   const pulls = (insights?.models[top?.model ?? ''] ?? []).filter((g) => g.ranked).flatMap((g) => g.pulls)
   const best = pulls.length ? pulls.reduce((a, b) => (b.score > a.score ? b : a)) : null
   const far = best ? best.score / 70 : null // a wipe scores 70 x how far it got
-  const cards: [string, string, string][] = [
-    ['A wipe', 'up to 70', '70 × how far the party got through the dungeon.'],
-    ['A clear', '70 to 100', '70, plus up to 30 for speed. It ends the group and counts again for every pull it saved.'],
-    ['A model', 'the average', 'Of all its pulls: six groups of five, on +10, the hardest difficulty.'],
-  ]
   const segs: [string, number][] = [['Pack 1', 15], ['Pack 2', 15], ['Oruth, the boss', 70]]
   return (
     <section id="scoring" className="pt-20">
-      <SectionHead title="Scoring formula" caption="Every pull (attempt) scores 0 to 100." />
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        {cards.map(([k, v, note]) => (
-          <div key={k} className="rounded-2xl border border-line bg-surface p-4 sm:p-5">
-            <div className="text-[14px] text-fg-muted">{k}</div>
-            <div className="mt-1 text-[24px] leading-8 text-fg">{v}</div>
-            <p className="mt-2 text-[14px] leading-5 text-fg-muted">{note}</p>
-          </div>
-        ))}
-      </div>
-      <div className="mt-3 rounded-2xl border border-line bg-surface p-4 sm:p-5">
-        <div className="text-[14px] text-fg-muted">How far the party got: the share of each one's health removed</div>
+      <SectionHead title="Scoring formula" />
+      <p className="mt-3 max-w-[760px] text-[17px] leading-7 text-fg-muted">
+        Each attempt at the dungeon is called a pull, and every pull scores 0 to 100. A pull that ends in a wipe
+        earns up to 70, depending on how far the party got. A clear earns 70, plus up to 30 the faster it finishes,
+        and counts again for every pull it saved. A model's score is the average of all its pulls: six groups of
+        five, on +10, the hardest difficulty.
+      </p>
+      <div className="mt-8 max-w-[960px]">
+        <p className="text-[14px] text-fg-muted">How far the party got is measured in health taken off. Each pack is worth 15%, Oruth 70%.</p>
         <div className="relative mt-3">
           <div className="flex h-9 overflow-hidden rounded-lg text-[12px]">
             {segs.map(([name, w], i) => (
-              <div key={name} className="flex items-center justify-center border-r border-bg last:border-r-0"
+              <div key={name} className="flex items-center justify-center border-r-2 border-bg last:border-r-0"
                 style={{ width: `${w}%`, background: i < 2 ? 'rgba(255,255,255,0.07)' : 'rgba(208,70,59,0.22)' }}>
                 <span className="truncate px-2 text-fg-muted">{name}, {w}%</span>
               </div>
             ))}
           </div>
-          {far != null && (
-            <div className="absolute -bottom-1 top-[-4px] w-[2px] rounded bg-fg" style={{ left: `${far * 100}%` }} aria-hidden />
-          )}
+          {far != null && <div className="absolute -bottom-1 top-[-4px] w-[2px] rounded bg-fg" style={{ left: `${far * 100}%` }} aria-hidden />}
         </div>
         {far != null && best && (
           <p className="mt-3 text-[14px] leading-6 text-fg-muted">
-            <span className="text-fg">{top.name || modelName(top.model)}'s best pull</span> got {(far * 100).toFixed(1)}% of
-            the way (both packs, and Oruth down to {best.boss?.toFixed(1)}%), so it scored 70 × {far.toFixed(3)} = {best.score.toFixed(1)}.
+            The white line is <span className="text-fg">{top.name || modelName(top.model)}'s best pull</span>. It killed
+            both packs and got Oruth down to {best.boss?.toFixed(1)}%, which is {(far * 100).toFixed(1)}% of the way,
+            so it scored 70 × {far.toFixed(3)} = {best.score.toFixed(1)}.
           </p>
         )}
       </div>
@@ -199,16 +190,16 @@ function ResultsBody({ results }: { results: Results }) {
             </div>
           )}
         </SectionHead>
-        <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
+        <div className="mt-8">
           <LearningCurves results={results} tier={tier} />
         </div>
       </section>
 
       <section className="pt-20">
-        <SectionHead title="Only Opus and Sol learned how to handle a core game mechanic"
-          caption="Bone Pyre is the boss's key mechanic: a circle appears on the floor, and when it goes off the blast hits the whole party unless two players are standing inside it. Each square is one Pyre, in every group and pull, colored by how many players stood inside."
+        <SectionHead title="Only Opus and Sol learned to stand in the fire"
+          caption="Bone Pyre is the boss's key mechanic. A circle appears on the floor, and when it goes off, the blast hits the whole party unless two players are standing in it. Each square below is one Pyre, colored by how many players stood inside."
           link={['/report#pyre', 'Report']} />
-        <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
+        <div className="mt-8">
           <PyreGrid results={results} />
         </div>
       </section>
@@ -217,7 +208,7 @@ function ResultsBody({ results }: { results: Results }) {
         <SectionHead title="Sol scores like Opus at a fifth of the cost"
           caption="Each model's score against what one group costs to run, at list prices."
           link={['/report#cost', 'Report']} />
-        <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
+        <div className="mt-8">
           <CostScatter results={results} />
         </div>
       </section>
@@ -226,7 +217,7 @@ function ResultsBody({ results }: { results: Results }) {
         <section className="pt-20">
           <SectionHead title="Highlights" link={['/highlights', `All ${HIGHLIGHTS.length}`]} />
           <div className="mt-6 grid gap-3 md:grid-cols-3">
-            {HIGHLIGHTS.slice(0, 3).map((h) => <HighlightCard key={h.id} h={h} compact />)}
+            {HIGHLIGHTS.filter(isRankedGroup).slice(0, 3).map((h) => <HighlightCard key={h.id} h={h} compact />)}
           </div>
         </section>
       )}

@@ -65,7 +65,7 @@ export function PyreGrid({ results }: { results: Results }) {
       <div className="flex text-[11px] text-fg-faint" style={{ paddingLeft: labelW }}>
         {Array.from({ length: pulls }, (_, k) => (
           <div key={k} style={{ width: colW, marginRight: k < pulls - 1 ? colGap : 0 }} className="truncate">
-            {narrow ? `Pull ${k + 1}` : k === 0 ? 'Pull 1, blind' : `Pull ${k + 1}`}
+            {`Pull ${k + 1}`}
           </div>
         ))}
       </div>
