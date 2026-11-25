@@ -81,7 +81,7 @@ export function Home() {
           </p>
           <p className="mt-4 max-w-[520px] text-[17px] leading-7 text-fg-muted">
             Five copies of one AI each play a character, go in blind, and get five tries, reading the combat log and
-            writing notes between wipes.
+            writing notes after each wipe, when the whole party dies.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/watch" className="btn btn-primary h-11 px-5 text-[14px]">Watch a run</Link>
@@ -132,7 +132,7 @@ function Scoring({ results }: { results: Results }) {
         five, on +10, the hardest difficulty.
       </p>
       <div>
-        <p className="text-[14px] text-fg-muted">How far the party got is measured in health taken off. Each pack is worth 15%, Oruth 70%.</p>
+        <p className="text-[14px] text-fg-muted">How far the party got is measured in health taken off. Each of the two packs (groups of monsters before the boss) is worth 15%, Oruth 70%.</p>
         {far != null && best && (
           <div className="mt-5 flex items-baseline justify-between gap-3 text-[13px]">
             <span className="text-fg">{top.name || modelName(top.model)}'s best pull</span>

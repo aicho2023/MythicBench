@@ -16,7 +16,7 @@ import { COLOR } from './tokens'
 const KINDS = [
   { key: 'none', label: 'nobody inside', color: heat(0.06) },
   { key: 'one', label: 'one player: not enough', color: heat(0.45) },
-  { key: 'soak', label: 'two or more: soaked', color: heat(0.93) },
+  { key: 'soak', label: 'two or more inside: blast split', color: heat(0.93) },
 ] as const
 const kindOf = (inside: number) => (inside >= 2 ? KINDS[2] : inside === 1 ? KINDS[1] : KINDS[0])
 
@@ -137,7 +137,7 @@ export function PyreGrid({ results }: { results: Results }) {
             <span className="h-2.5 w-2.5 rounded-[2px]" style={{ background: kindOf(hover.inside).color }} aria-hidden />
             {hover.inside === 0 ? 'Nobody inside: it hit the whole party'
               : hover.inside === 1 ? 'One player inside: not enough, it hit everyone'
-                : `${hover.inside} players inside: soaked`}
+                : `${hover.inside} players inside: blast split`}
           </div>
           {touch && (
             <a href={hover.path} onClick={(e) => { e.preventDefault(); navigate(hover.path) }}
