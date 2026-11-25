@@ -2,6 +2,7 @@ import { Cross, Shield, Sword } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { ICONS, SCHOOL_COLORS } from '../content/display'
 import type { AbilityInfo } from '../replay/types'
+import { COLOR } from '../site/tokens'
 
 /** Square spell icon with an optional cooldown sweep. */
 export function AbilityIcon({
@@ -90,7 +91,7 @@ export function secs(ms: number): string {
  * text color; the class color next to them is the only hue on a unit.
  */
 export const ROLE_ICON = { tank: Shield, healer: Cross, dps: Sword } as const
-export const ROLE_TINT: Record<string, string> = { tank: '#c4c4ca', healer: '#c4c4ca', dps: '#c4c4ca' }
+export const ROLE_TINT: Record<string, string> = { tank: COLOR.fgMuted, healer: COLOR.fgMuted, dps: COLOR.fgMuted }
 
 export function RoleIcon({ role, size = 12 }: { role: string; size?: number }) {
   const Icon = ROLE_ICON[role as keyof typeof ROLE_ICON]
@@ -100,4 +101,14 @@ export function RoleIcon({ role, size = 12 }: { role: string; size?: number }) {
       <Icon size={size} strokeWidth={2} className="text-fg-faint" fill={role === 'healer' ? 'currentColor' : 'none'} />
     </span>
   )
+}
+
+/**
+ * A party-chat line for display. Models often start their own line with their
+ * character's name ("Brask: I'll kick"), which the log and bubbles already show,
+ * so it would read "Brask: Brask: I'll kick". The recorded text is unchanged.
+ */
+export function chatText(name: string, text: string): string {
+  const esc = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return text.replace(new RegExp(`^\\s*\\[?${esc}\\]?\\s*[:\\-–—]\\s*`, 'i'), '') || text
 }

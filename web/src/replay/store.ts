@@ -4,9 +4,9 @@ import { modelName, pullLabel } from '../content/display'
 import { create } from 'zustand'
 import { ReplayEngine } from './engine'
 import type { Catalog, CatalogItem, CatalogRun, Replay, ReplayIndexEntry } from './types'
-import { fetchMaybeGzipJson, fetchResults, parseWatchPath, watchPath, type Results } from '../site/results'
+import { fetchMaybeGzipJson, fetchResults, parseWatchPath, topPull, watchPath, type Results } from '../site/results'
 import { resultsCatalogRuns, resultsIndexEntries } from '../site/watchData'
-import { FEATURED, REFERENCE_PROVIDERS, SHOW_REFERENCE_RUNS } from '../site/config'
+import { HERO_WINDOW_S, REFERENCE_PROVIDERS, SHOW_REFERENCE_RUNS } from '../site/config'
 
 /** Index id for one item (seed, or episode+pull) of a model run. */
 export const runItemId = (runId: string, it: Pick<CatalogItem, 'seed' | 'episode' | 'pull'>) =>
@@ -34,6 +34,9 @@ interface Playback {
   ensureIndex: () => Promise<void>
   /** Open what the address bar names, if anything; returns whether it named a replay. */
   openFromUrl: (opts?: { fallback?: boolean }) => Promise<boolean>
+  /** Opened from plain /watch onto the featured stretch: the viewer shows a one-time hint. */
+  landing: boolean
+  dismissLanding: () => void
   load: (id: string, opts?: LoadOptions) => Promise<void>
   seek: (t: number) => void
   advance: (dtMs: number) => void
@@ -103,6 +106,8 @@ export const usePlayback = create<Playback>((set, get) => ({
   t: 0,
   playing: false,
   speed: 1,
+  landing: false,
+  dismissLanding: () => set({ landing: false }),
   ensureIndex: () => {
     indexPromise ??= (async () => {
       try {
@@ -124,12 +129,6 @@ export const usePlayback = create<Playback>((set, get) => ({
           ? { current_harness_version: local?.current_harness_version ?? results!.harness_version, runs: [...fromResults, ...(local?.runs ?? [])] }
           : null
         const entries = [...(results ? resultsIndexEntries(results) : []), ...(local?.runs ?? []).flatMap(runEntries)]
-        // The home page's featured clip (a real model's pull), loadable by id but not listed.
-        const featured: ReplayIndexEntry = {
-          id: FEATURED.id, policy: 'llm', seed: 0, label: FEATURED.label, blurb: FEATURED.caption,
-          file: FEATURED.file, url: `${base}${FEATURED.file}`, outcome: 'timeout', duration_s: 0,
-        }
-        entries.push(featured)
         set({ index: [...index, ...entries], catalog })
       } catch (err) {
         set({ error: `Could not load replays: ${String(err)}. Run \`npm run replays\`.` })
@@ -153,19 +152,29 @@ export const usePlayback = create<Playback>((set, get) => ({
       return true
     }
     if (fallback && (!engine || quietLoaded) && index.length) {
-      // Plain /watch: the leaderboard's top model on +10 if there is one, else (only
-      // when references are on) the first showcase. Visitors never land on a reference run.
+      // Plain /watch: the top model's best +10 pull, at the stretch of the boss fight the home
+      // clip loops (Bone Pyre soaks), not at 0:00 in the entrance corridor.
+      const best = await fetchResults().then(topPull, () => null)
+      const featured = best && index.find((e) => e.path === best.path)
+      if (featured) {
+        await get().load(featured.id, { startMs: HERO_WINDOW_S[0] * 1000 })
+        // Paused under a short note on what to watch; the note goes as soon as it plays.
+        set({ landing: true, playing: false })
+        return true
+      }
+      // Else (local runs only, no results) the first model run on +10, or with references
+      // on, the first showcase. Visitors never land on a reference run.
       const models = index.filter((e) => e.local)
-      const top = models.find((e) => e.path?.includes('/plus10/')) ?? models[0]
-        ?? index.find((e) => e.id === FEATURED.id) ?? (SHOW_REFERENCE_RUNS ? index[0] : undefined)
+      const top = models.find((e) => e.path?.includes('/plus10/')) ?? models[0] ?? (SHOW_REFERENCE_RUNS ? index[0] : undefined)
       if (top) await get().load(top.id, { deepLink: true })
-      else set({ error: 'No model runs to watch yet. The official results are coming soon.' })
+      else set({ error: 'No model runs to watch.' })
     }
     return false
   },
   load: async (id, opts = {}) => {
     const entry = get().index.find((r) => r.id === id)
     if (!entry) return
+    set({ landing: false })
     let replay: Replay
     try {
       replay = await fetchMaybeGzipJson<Replay>(entry.url ?? `${base}replays/${entry.file}`)

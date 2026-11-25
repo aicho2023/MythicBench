@@ -3,6 +3,7 @@ import { CLASS_COLORS, fmtNum, pullLabel } from '../content/display'
 import { runItemId, usePlayback } from '../replay/store'
 import type { CatalogItem } from '../replay/types'
 import { Link } from '../site/router'
+import { COLOR } from '../site/tokens'
 
 /** Models write their notes in light markdown: show **bold** as bold, not asterisks. */
 function Md({ text }: { text: string }) {
@@ -26,9 +27,10 @@ function Strip({ label, pulls, value, fmt, max, current, onPick, height = 24, ki
   const pts = vals.map((v, k) => (v === null ? null : `${x(k)},${y(v)}`)).filter(Boolean).join(' ')
   return (
     <div className="mx-3 mt-1.5">
-      <div className="flex justify-between text-meta leading-4 text-fg-faint">
+      <div className="flex flex-wrap justify-between gap-x-3 text-meta leading-4 text-fg-faint">
         <span>{label}</span>
-        <span className="num font-mono">{vals.map((v) => (v === null ? '-' : fmt(v))).join('  ')}</span>
+        {/* One unbroken row of values: if it doesn't fit beside the label, it moves to its own line. */}
+        <span className="num ml-auto whitespace-nowrap font-mono">{vals.map((v) => (v === null ? '-' : fmt(v))).join('  ')}</span>
       </div>
       <svg width={W} height={height} className="block" role="img" aria-label={`${label} per pull`}>
         {killLine !== undefined && <line x1={PAD} x2={W - PAD} y1={y(killLine)} y2={y(killLine)} stroke="rgba(255,255,255,0.12)" strokeDasharray="3 3" />}
@@ -36,8 +38,8 @@ function Strip({ label, pulls, value, fmt, max, current, onPick, height = 24, ki
         {pulls.map((p, k) => vals[k] === null ? null : (
           <g key={p.pull} onClick={() => onPick(p)} className="cursor-pointer">
             <circle cx={x(k)} cy={y(vals[k]!)} r={p.pull === current ? 4.5 : 3}
-              fill={p.outcome === 'victory' && p.in_time !== false ? '#4ade80' : p.outcome === 'victory' ? '#fbbf24' : '#f87171'}
-              stroke={p.pull === current ? '#ededef' : 'none'} strokeWidth={1.5} />
+              fill={p.outcome === 'victory' && p.in_time !== false ? COLOR.good : p.outcome === 'victory' ? COLOR.warn : COLOR.bad}
+              stroke={p.pull === current ? COLOR.fg : 'none'} strokeWidth={1.5} />
             <circle cx={x(k)} cy={y(vals[k]!)} r={10} fill="transparent" />
             <title>{`pull ${p.pull}: ${fmt(vals[k]!)}`}</title>
           </g>
@@ -86,7 +88,7 @@ export function LearningPanel({ onShowMeter }: { onShowMeter: () => void }) {
   const beforeSet = new Set(shownBefore.split('\n').map((l) => l.trim()).filter(Boolean))
 
   return (
-    <div className="card max-h-[calc(100vh-540px)] min-h-[200px] w-[272px] overflow-y-auto pb-3">
+    <div className="card scroll-fade max-h-[calc(100vh-540px)] min-h-[200px] w-[272px] overflow-y-auto">
       <div className="flex items-center justify-between px-3 pt-2">
         <span className="label">Learning</span>
         <button onClick={onShowMeter} className="text-meta text-fg-faint transition-colors hover:text-fg">Show meter</button>
@@ -109,11 +111,11 @@ export function LearningPanel({ onShowMeter }: { onShowMeter: () => void }) {
       </>}
 
       {perAgent && (
-        <div className="mx-3 mt-3 flex flex-wrap gap-1" role="tablist" aria-label="Notes and talk">
+        <div className="mx-3 mt-3 flex gap-1" role="tablist" aria-label="Notes and talk">
           {tabs.map((id) => (
             <button key={id} role="tab" aria-selected={active === id} onClick={() => setTab(id)}
-              className="rounded-md px-1.5 py-0.5 text-meta text-fg-faint transition-colors hover:text-fg aria-selected:bg-white/[0.08] aria-selected:text-fg">
-              {id === 'talk' ? 'Party talk' : <span style={{ color: active === id ? CLASS_COLORS[who(id)?.class ?? ''] : undefined }}>{who(id)?.name ?? id}</span>}
+              className="whitespace-nowrap rounded-md px-1 py-0.5 text-meta text-fg-faint transition-colors hover:text-fg aria-selected:bg-white/[0.08] aria-selected:text-fg">
+              {id === 'talk' ? 'Talk' : <span style={{ color: active === id ? CLASS_COLORS[who(id)?.class ?? ''] : undefined }}>{who(id)?.name ?? id}</span>}
             </button>
           ))}
         </div>

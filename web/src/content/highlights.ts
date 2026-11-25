@@ -29,8 +29,6 @@ export interface Highlight {
   t: number | null
   summary: string
   quotes: Quote[]
-  /** a number that makes it a record, e.g. "Oruth at 8.7%" */
-  stat?: string
   /** still from the viewer at the moment, under web/public/stills/ (default <id>.jpg) */
   image?: string
 }

@@ -7,6 +7,8 @@ import { useRef, useState, type ReactNode } from 'react'
 import { modelName } from '../content/display'
 import { heat, useInsights, type GroupFacts, type Insights } from './PullGrid'
 import { modelColor, type Results } from './results'
+import { Tip } from './Tooltip'
+import { COLOR } from './tokens'
 
 interface Cell { v: number | null; text: string; tip: ReactNode }
 interface Column { key: string; head: string; short?: string; sub?: string }
@@ -18,7 +20,7 @@ const shortName = (model: string) => modelName(model).replace(/^Claude /, '').re
 /** Dark ink on bright cells, light ink on dark ones. */
 function inkOn(rgb: string): string {
   const [r, g, b] = (rgb.match(/\d+/g) ?? ['0', '0', '0']).map(Number)
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 140 ? '#121214' : '#ededef'
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 140 ? COLOR.surface : COLOR.fg
 }
 
 function HeatTable({ results, columns, rows, extraHead, max = 1, caption, corner }: {
@@ -70,8 +72,8 @@ function HeatTable({ results, columns, rows, extraHead, max = 1, caption, corner
                         const r = e.currentTarget.getBoundingClientRect()
                         setTip({ r: ri, c: ci, x: r.left - b.left + r.width / 2, y: r.top - b.top })
                       }}
-                      className="h-11 rounded-[4px] text-center font-mono text-[13px] outline-none transition-shadow focus-visible:shadow-[0_0_0_2px_#ededef] sm:h-12"
-                      style={{ background: bg, color: cell.v == null ? '#6b6b73' : inkOn(bg), boxShadow: tip?.r === ri && tip.c === ci ? '0 0 0 2px #ededef' : undefined }}>
+                      className="h-11 rounded-[4px] text-center font-mono text-[13px] outline-none transition-shadow focus-visible:shadow-[0_0_0_2px_theme(colors.fg.DEFAULT)] sm:h-12"
+                      style={{ background: bg, color: cell.v == null ? COLOR.off : inkOn(bg), boxShadow: tip?.r === ri && tip.c === ci ? `0 0 0 2px ${COLOR.fg}` : undefined }}>
                       {cell.text}
                     </td>
                   )
@@ -82,11 +84,10 @@ function HeatTable({ results, columns, rows, extraHead, max = 1, caption, corner
           </tbody>
         </table>
         {tip && (
-          <div className="pointer-events-none absolute z-20 w-[220px] rounded-lg border border-line bg-surface-raised px-3 py-2 text-[13px] leading-5 shadow-[0_6px_24px_rgba(0,0,0,0.5)]"
-            style={{ left: Math.max(0, Math.min((box.current?.clientWidth ?? 0) - 220, tip.x - 110)), top: tip.y - 8, transform: 'translateY(-100%)' }}>
+          <Tip x={tip.x} y={tip.y} w={box.current?.clientWidth ?? 0}>
             <div className="text-fg">{modelName(rows[tip.r].model)}</div>
             <div className="text-[12px] text-fg-muted">{rows[tip.r].cells[tip.c].tip}</div>
-          </div>
+          </Tip>
         )}
       </div>
       <div className="mt-3 flex items-center gap-2 text-[12px] text-fg-muted">

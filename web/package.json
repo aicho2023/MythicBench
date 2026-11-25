@@ -10,7 +10,8 @@
     "test": "vitest run",
     "replays": "cd ../sim && python3 -m mythicsim generate --out ../web/public/replays",
     "typecheck": "tsc --noEmit",
-    "sample": "cd ../sim && python3 -m mythicsim campaign ../protocol/sample.json --workers 2 && python3 -m mythicsim results ../protocol/sample.json --out ../web/public/results/sample"
+    "sample": "cd ../sim && python3 -m mythicsim campaign ../protocol/sample.json --workers 2 && python3 -m mythicsim results ../protocol/sample.json --out ../web/test-data/sample",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",
@@ -27,6 +28,7 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@mdx-js/rollup": "^3.1.1",
     "@types/mdx": "^2.0.14",
     "@types/node": "^22.9.0",
@@ -35,9 +37,13 @@
     "@types/three": "^0.169.0",
     "@vitejs/plugin-react": "^4.3.3",
     "autoprefixer": "^10.4.20",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^15.14.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.14",
     "typescript": "^5.6.3",
+    "typescript-eslint": "^8.74.0",
     "vite": "^5.4.10",
     "vitest": "^2.1.4"
   }

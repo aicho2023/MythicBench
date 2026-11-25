@@ -2,7 +2,6 @@ import { Heart } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { GITHUB_URL, VENMO_HANDLE, VENMO_URL } from '../site/config'
 import { Page } from '../site/Layout'
-import { Link } from '../site/router'
 
 function Section({ id, title, children }: { id?: string; title: string; children: ReactNode }) {
   return (
@@ -19,92 +18,54 @@ export function About() {
       <div className="mx-auto max-w-[720px] space-y-12 py-12 md:py-16">
         <header>
           <h1 className="text-[28px] font-normal leading-[1.15] text-fg sm:text-[32px]">About MythicBench</h1>
-          <p className="mt-4 text-[17px] leading-7 text-fg-muted">
-            MythicBench tests whether a team of AI agents can learn something hard and new from its own failures.
-            The task is a boss fight.
-          </p>
         </header>
 
-        <Section title="Why a dungeon">
+        <Section id="why" title="Why did you build MythicBench?">
           <p>
-            Most agent benchmarks give a model one attempt at a task and score the result. Real work rarely goes like
-            that. You try, it goes wrong, you work out why, and you try again. MythicBench measures that loop.
-          </p>
-          <p>
-            A Mythic+ style dungeon suits it well. It needs five roles working together. Some of its mechanics punish
-            instinct. It runs on a timer. And failure is cheap and easy to read: every wipe leaves a combat log, and the
-            next pull shows whether anything was learned.
+            I recently got hooked on World of Warcraft and had really been enjoying progressing on Mythic+ dungeons. For
+            the uninitiated, Mythic+ dungeons are multi-stage battles against a timer that involve clearing both small groups of enemies
+            as well as strong bosses. I got curious about whether the latest models could clear them, and that's how
+            MythicBench was born. I got to combine my love for WoW with my interest in creating benchmarks!
           </p>
         </Section>
 
-        <Section title="How a run works">
+        <Section id="capabilities" title="What model capabilities were you trying to test?">
+          <p>There are a few capabilities I was interested in:</p>
           <ol>
-            <li><strong>Five agents, one model.</strong> Five copies of the same model each play one character: a tank, a healer and three damage dealers.</li>
-            <li><strong>They go in blind.</strong> Nobody tells them what the boss does. They see what their character would see, and can talk in party chat.</li>
-            <li><strong>They pull.</strong> Every few seconds of game time, each agent sends its orders: where to move, what to cast, and on whom. The game waits while they think.</li>
-            <li><strong>After a wipe, they debrief.</strong> They read the combat log, talk it over, and each rewrites its own notes. Those notes are all they carry into the next pull.</li>
+            <li>Are agents run by the same underlying model able to collaborate effectively?</li>
+            <li>Can agents learn how to complete a task over time, even when going in blind?</li>
+            <li>Do agents actually follow through with what they learned from previous attempts?</li>
           </ol>
           <p>
-            A group gets up to five pulls, each on a new random seed, so it has to learn the mechanics, not memorise
-            timings. Every model plays six fresh groups.
+            These capabilities were always in the back of my mind when designing this benchmark, and I think I ended up
+            with a decent result!
           </p>
         </Section>
 
-        <Section title="For WoW players">
+        <Section id="how" title="How does a run work?">
+          <ol>
+            <li><strong>Five agents run by one model:</strong> There are five players (1 tank, 1 healer, 3 DPS) that are all controlled by the same underlying model.</li>
+            <li><strong>Attempt the dungeon blind:</strong> The agents are not given any information about the enemies, like what abilities they have. They need to rely on their own observations and notes to complete the dungeon.</li>
+            <li><strong>Orders every few seconds:</strong> Every few seconds, each agent sends its orders: where to move, what to cast, and on whom. The game state waits for their response before progressing.</li>
+            <li><strong>Debrief after a wipe:</strong> After every wipe, the agents can read the combat log, deliberate, and jot down notes. These notes are all they carry into the next pull to help inform their next decisions.</li>
+          </ol>
           <p>
-            Think of a fresh key in a dungeon you've never run, with no guide. Each character has an interrupt, a
-            defensive and a cooldown. The <Link to="/party">party page</Link> lists every ability, and
-            the <Link to="/watch">replay viewer</Link> shows unit frames, the combat log and every order the agents gave.
-          </p>
-          <ul>
-            <li><strong>Two trash packs.</strong> One has a caster to kick, the other a healer to kill first.</li>
-            <li><strong>Oruth the Unburied.</strong> A cast to kick, a tank buster, pools, a soak, adds and a hard enrage.</li>
-            <li><strong>+10.</strong> Graves that heal the undead, stacking damage on every trash kill, and more adds, on a 4:15 timer.</li>
-          </ul>
-          <p>The names, numbers and art are original. The design is meant to feel familiar.</p>
-        </Section>
-
-        <Section title="Fair and checkable">
-          <ul>
-            <li>Every model gets the same rules, seeds, reasoning effort and call budget, all fixed in a public pre-registration before the run.</li>
-            <li>Every model reply is recorded, so every pull replays exactly and every number can be recomputed.</li>
-            <li>A memory-off control plays the same seeds without the debrief, to measure what carrying lessons across wipes is worth.</li>
-            <li>One model is called better than another only when it scores higher on the same seeds, by a margin a statistical test supports.</li>
-            <li>Problems found after the run are disclosed, in the report and the <Link to="/changelog">changelog</Link>.</li>
-            <li>Anyone can rebuild the leaderboard for free from the recorded replies: the <a href={`${GITHUB_URL}#readme`}>README</a> shows how.</li>
-          </ul>
-        </Section>
-
-        <Section title="Questions">
-          <h3>Don't the models already know World of Warcraft?</h3>
-          <p>
-            They know the genre. The dungeon is original, so no guide to it exists. But its mechanics are familiar
-            types, so the benchmark tests applying general game knowledge as well as learning from scratch.
-          </p>
-          <h3>Is it fair to make an AI play in real time?</h3>
-          <p>
-            It doesn't have to. The game pauses while the agents think, so reply speed never matters. Orders come every
-            few seconds of game time rather than every global cooldown, which makes the fight about decisions, not reflexes.
-          </p>
-          <h3>Why does nobody clear +10?</h3>
-          <p>
-            It is hard on purpose. Even the expert script clears it rarely, and only with near-perfect play. That leaves
-            room for stronger models to show progress, and a known solution for them to find.
+            The rules, models and seeds were fixed in a public <a href={`${GITHUB_URL}/blob/main/docs/PREREGISTRATION.md`}>pre-registration</a> before
+            the official run. Anyone can reproduce my results by following the <a href={`${GITHUB_URL}#readme`}>README</a>.
           </p>
         </Section>
 
-        <Section id="author" title="Who made this">
+        <Section id="author" title="Who made this?">
           <p>
-            MythicBench is built and run by Austin. Follow along, or get in touch, on X at{' '}
-            <a href="https://x.com/awstnnnn" target="_blank" rel="noopener noreferrer">@awstnnnn</a>.
+            MythicBench was created by Austin (<a href="https://x.com/awstnnnn" target="_blank" rel="noopener noreferrer">@awstnnnn</a>). Feel free to follow along and send messages on X.
           </p>
         </Section>
 
         <Section id="support" title="Support MythicBench">
           <p>
-            MythicBench is a personal project, and every run is paid for out of pocket: the official run of seven
-            models cost several hundred dollars in API fees. Donations go straight into running more models,
-            stronger ones, and harder experiments.
+            MythicBench is an independent, personal project. The official run of seven models cost several hundred
+            dollars in API fees. Any donations are greatly appreciated, and will go straight into running more models
+            and coming up with new experiments / benchmarks.
           </p>
           <p className="not-prose">
             <a href={VENMO_URL} target="_blank" rel="noopener noreferrer" className="btn h-10 px-4 text-[14px] !text-fg">
@@ -117,9 +78,13 @@ export function About() {
           <ul>
             <li>Characters, animations and dungeon art: <a href="https://www.kaylousberg.com">KayKit by Kay Lousberg</a>, released under CC0</li>
             <li>The format of this site is inspired by <a href="https://www.dwarkesh.com/p/clocktower">Clocktower Bench</a> by Dwarkesh Patel</li>
-            <li>Built with three.js, React Three Fiber, React, Tailwind CSS and Lucide icons; type is IBM Plex</li>
+            <li>Built with three.js, React Three Fiber, React, Tailwind CSS and Lucide icons, in the IBM Plex typeface</li>
           </ul>
           <p>Full list and licenses: <a href={`${GITHUB_URL}/blob/main/THIRD_PARTY.md`}>THIRD_PARTY.md</a>. The code is MIT-licensed.</p>
+          <p>
+            MythicBench is an independent project, not affiliated with or endorsed by Blizzard Entertainment. World of
+            Warcraft and Mythic+ are trademarks of Blizzard Entertainment, Inc.
+          </p>
         </Section>
 
       </div>

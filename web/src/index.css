@@ -175,3 +175,7 @@ body {
 .paper table.heat td:first-child { min-width: 0; }
 .paper figure figure { margin: 0; }
 .paper td.no { color: #5c5c63; }
+
+/* A scrolling HUD panel fades out at its bottom edge, so a clipped line reads as "more below",
+   not as a layout bug. The padding keeps the last line clear of the fade once scrolled down. */
+.scroll-fade { mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent); padding-bottom: 16px; }

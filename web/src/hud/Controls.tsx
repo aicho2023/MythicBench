@@ -1,15 +1,16 @@
 import { ChevronDown, Info, ListTree, Pause, Play, RotateCcw, SkipBack, SkipForward, X } from 'lucide-react'
 import { useEffect, useMemo, useRef } from 'react'
-import { CLASS_COLORS, fmtNum, fmtTime } from '../content/display'
+import { CLASS_COLORS, fmtNum, fmtTime, GRAVE_MARK } from '../content/display'
 import { usePlayback, useHud } from '../replay/store'
 import { SiteHeader } from '../site/Layout'
+import { COLOR } from '../site/tokens'
 
 const SPEEDS = [0.5, 1, 2, 4]
 
 // Each hue is one kind of event. Adds spawn in the bone-walker class color.
 const MARKER_COLOR: Record<string, string> = {
-  death: '#f87171', missed: '#fbbf24', raise: CLASS_COLORS.bonewalker, kick: '#7dd3fc', end: '#ededef', pull: '#a1a1aa',
-  pool: '#c084fc', mark: '#fb923c', soak: '#facc15',
+  death: COLOR.bad, missed: COLOR.warn, raise: CLASS_COLORS.bonewalker, kick: COLOR.info, end: COLOR.fg, pull: COLOR.fgMuted,
+  pool: '#c084fc', mark: GRAVE_MARK, soak: '#facc15',
 }
 
 // ---------------------------------------------------------------------------
@@ -44,7 +45,7 @@ export function TopBar({ onAbout, onRuns }: { onAbout: () => void; onRuns: () =>
           <ListTree size={16} className="shrink-0 text-fg-muted" />
           <span className="truncate">{watching ? watching.label : 'Choose a run'}</span>
           {watching?.id.startsWith('expert-') && <span className="shrink-0 text-meta text-accent/80">golden standard</span>}
-          {watching && !watching.local && !watching.id.startsWith('featured:') && !watching.id.startsWith('expert-') && <span className="shrink-0 text-meta text-fg-faint">reference</span>}
+          {watching && !watching.local && !watching.id.startsWith('expert-') && <span className="shrink-0 text-meta text-fg-faint">reference</span>}
           {catalogSize > 0 && <span className="hidden shrink-0 items-center gap-1 border-l border-line pl-2 text-meta text-fg-muted sm:inline-flex">All runs <ChevronDown size={14} /></span>}
         </button>
       }
@@ -115,7 +116,7 @@ export function ReplayControls() {
             style={{ left: `${(m.t / dur) * 100}%`, background: MARKER_COLOR[m.kind] ?? '#fff' }}
           />
         ))}
-        <div className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-fg ring-[3px] ring-[#111113]" style={{ left: `${(t / dur) * 100}%` }} />
+        <div className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-fg ring-[3px] ring-surface" style={{ left: `${(t / dur) * 100}%` }} />
       </div>
       <div className="seg max-sm:hidden">
         {SPEEDS.map((sp) => (
@@ -320,4 +321,32 @@ function Section({ n, title, children }: { n: string; title: string; children: R
 
 function Key({ children }: { children: React.ReactNode }) {
   return <kbd className="inline-grid h-5 min-w-5 place-items-center rounded border border-line bg-surface-raised px-1 font-mono text-meta text-fg-muted">{children}</kbd>
+}
+
+/**
+ * A one-time note for visitors who opened plain /watch: whose pull this is and what to look for.
+ * The replay waits, paused, under it; pressing play (here or anywhere) clears it, so it never
+ * covers the fight while it runs.
+ */
+export function LandingHint() {
+  const landing = usePlayback((p) => p.landing)
+  const playing = usePlayback((p) => p.playing)
+  const label = usePlayback((p) => p.index.find((e) => e.id === p.currentId)?.label)
+  const dismiss = usePlayback((p) => p.dismissLanding)
+  useEffect(() => { if (landing && playing) dismiss() }, [landing, playing, dismiss])
+  if (!landing || !label) return null
+  return (
+    <div className="card pointer-events-auto w-[480px] max-w-[calc(100vw-32px)] animate-[fadein_400ms_cubic-bezier(0.22,1,0.36,1)] px-4 py-3 text-[13px] leading-5">
+      <p className="text-fg-muted">
+        <span className="text-fg">{label}, one of the best pulls in the benchmark.</span> Watch the glowing circle on the
+        floor: with two or more players inside, its blast is split between them; with fewer, it hits the whole party.
+      </p>
+      <div className="mt-3 flex items-center gap-2">
+        <button onClick={() => usePlayback.getState().setPlaying(true)} className="btn btn-primary h-9 px-4 text-[13px]">
+          <Play size={14} fill="currentColor" /> Play
+        </button>
+        <button onClick={dismiss} className="btn h-9 px-3 text-[13px]">Dismiss</button>
+      </div>
+    </div>
+  )
 }

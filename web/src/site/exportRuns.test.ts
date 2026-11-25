@@ -9,7 +9,7 @@ import { buildExport, crc32, pullRefs, zip } from './exportRuns'
 import type { Results } from './results'
 import { resultsCatalogRuns } from './watchData'
 
-const dir = join(__dirname, '../../public/results/sample')
+const dir = join(__dirname, '../../test-data/sample')
 const results: Results = JSON.parse(readFileSync(join(dir, 'leaderboard.json'), 'utf8'))
 const read = async (file: string): Promise<Replay> => JSON.parse(gunzipSync(readFileSync(join(dir, file))).toString('utf8'))
 

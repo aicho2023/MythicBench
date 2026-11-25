@@ -1,33 +1,23 @@
 // Charts drawn as plain SVG: few marks, muted grid, mono numbers, and a direct
 // label on every series. Axes zoom to the data (every score here sits between
 // about 20 and 55, so a 0-100 axis would flatten the differences that matter).
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useMemo, useState } from 'react'
 import { modelName } from '../content/display'
 import {
-  costPerRun, fmtScore, fmtUsd, headlineTier, modelColor, tierName, type CI, type Results,
+  botRow, clearLeaders, costPerRun, fmtScore, fmtUsd, headlineTier, modelColor, tierName, type CI, type Results,
 } from './results'
+import { Tip } from './Tooltip'
+import { useWidth } from './useWidth'
+import { COLOR } from './tokens'
 
 const GRID = 'rgba(255,255,255,0.07)'
-const AXIS = '#8b8b93'
-const LABEL = '#d4d4d8'
-const SURFACE = '#111113'
+const AXIS = COLOR.fgFaint
+const LABEL = COLOR.fg
+const SURFACE = COLOR.surface
 /** A halo in the surface color behind chart labels, so lines never cut through text. */
 const HALO = { stroke: SURFACE, strokeWidth: 5, paintOrder: 'stroke' as const, strokeLinejoin: 'round' as const }
 const MONO = 'IBM Plex Mono'
 
-function useWidth<T extends HTMLElement>(): [React.RefObject<T>, number] {
-  const ref = useRef<T>(null)
-  const [w, setW] = useState(0)
-  useLayoutEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const ro = new ResizeObserver(([e]) => setW(Math.round(e.contentRect.width)))
-    ro.observe(el)
-    setW(el.clientWidth)
-    return () => ro.disconnect()
-  }, [])
-  return [ref, w]
-}
 
 /** Spreads label y positions so none are closer than `gap`, keeping their order. */
 function spread(ys: number[], gap: number, lo: number, hi: number): number[] {
@@ -63,13 +53,13 @@ export function CIBar({ mean, ci, accent = false, width = 160, dots = [], lo = 0
   const H = 18
   const x = (v: number) => (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * (width - 8) + 4
   const [a, b] = ci ?? [mean, mean]
-  const ink = color ?? (accent ? '#e6d3a3' : '#ededef')
+  const ink = color ?? (accent ? COLOR.accent : COLOR.fg)
   return (
     <svg width={width} height={H} className="block shrink-0" aria-hidden>
       <rect x={4} y={H / 2 - 1} width={width - 8} height={2} rx={1} fill="rgba(255,255,255,0.08)" />
       <rect x={x(a)} y={H / 2 - 3} width={Math.max(2, x(b) - x(a))} height={6} rx={3} fill={ink} opacity={0.28} />
       {dots.map((d, i) => <circle key={i} cx={x(d)} cy={H / 2} r={2.6} fill={ink} opacity={0.75} />)}
-      <rect x={x(mean) - 1.5} y={1} width={3} height={H - 2} rx={1.5} fill="#ededef" />
+      <rect x={x(mean) - 1.5} y={1} width={3} height={H - 2} rx={1.5} fill={COLOR.fg} />
     </svg>
   )
 }
@@ -90,19 +80,9 @@ export function CIAxis({ width = 160, lo, hi, step = 10 }: { width?: number; lo:
 function AxisTitles({ y, x, ml, iw, H }: { y?: string; x?: string; ml: number; iw: number; H: number }) {
   return (
     <g aria-hidden>
-      {y && <text x={0} y={11} fill={AXIS} fontSize={12}>{y}</text>}
+      {y && <text transform={`translate(11, ${(H - 54) / 2 + 10}) rotate(-90)`} textAnchor="middle" fill={AXIS} fontSize={12}>{y}</text>}
       {x && <text x={ml + iw / 2} y={H - 4} textAnchor="middle" fill={AXIS} fontSize={12}>{x}</text>}
     </g>
-  )
-}
-
-function Tooltip({ x, y, w, width = 260, children }: { x: number; y: number; w: number; width?: number; children: ReactNode }) {
-  const left = x + 16 + width > w ? Math.max(8, x - 16 - width) : x + 16
-  return (
-    <div className="pointer-events-none absolute z-10 rounded-lg border border-line bg-surface-raised px-3 py-2 text-[13px] leading-5 shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
-      style={{ left, top: Math.max(0, y - 8), width }}>
-      {children}
-    </div>
   )
 }
 
@@ -124,14 +104,16 @@ function Legend({ items }: { items: { key: string; label: string; color: string;
 // ---------------------------------------------------------------------------
 // Learning curves: mean score at each pull
 // ---------------------------------------------------------------------------
-interface Series { key: string; label: string; short: string; color: string; values: number[]; dashed?: boolean }
+interface Series { key: string; label: string; short: string; color: string; values: number[]; dashed?: boolean; muted?: boolean }
+/** Lines for models that aren't the point of a chart: one grey, so the few in colour read at a glance. */
+const MUTED = COLOR.off
 
 /**
  * view "models": each ranked model over its six leaderboard groups.
  * view "memory": the two models with a memory-off control, memory on and off
  * over the same (paired) groups.
  */
-export function LearningCurves({ results, tier, view = 'models' }: { results: Results; tier: string; view?: 'models' | 'memory' }) {
+export function LearningCurves({ results, tier, view = 'models', bot: withBot = true }: { results: Results; tier: string; view?: 'models' | 'memory'; bot?: boolean }) {
   const [ref, w] = useWidth<HTMLDivElement>()
   const [hover, setHover] = useState<string | null>(null)
   const [at, setAt] = useState<number | null>(null)
@@ -147,18 +129,33 @@ export function LearningCurves({ results, tier, view = 'models' }: { results: Re
         ]
       })
     }
-    return results.leaderboard.flatMap((row) => {
+    // Colour only the models a paired test separates from the rest; the others share one grey
+    // (hover or the tooltip still names each). With no clear leaders, every model keeps its colour.
+    const leaders = clearLeaders(results)
+    const muteRest = leaders.size > 0 && leaders.size < results.leaderboard.length
+    const models: Series[] = results.leaderboard.flatMap((row) => {
       const c = row.tiers[tier]?.curve_mean
       const name = modelName(row.model)
-      return c?.length ? [{ key: row.model, label: name, short: name, color: modelColor(results, row.model), values: c }] : []
+      const muted = muteRest && !leaders.has(row.model)
+      return c?.length ? [{ key: row.model, label: name, short: name, color: modelColor(results, row.model), values: c, muted }] : []
     })
-  }, [results, tier, view])
+    // The scripted bot, drawn first so it sits behind: the level a model that doesn't learn stays at.
+    const bot = withBot ? botRow(results)?.tiers[tier]?.curve_mean : undefined
+    return bot?.length ? [{ key: 'bot', label: 'Scripted bot', short: 'Scripted bot', color: AXIS, values: bot, dashed: true }, ...models] : models
+  }, [results, tier, view, withBot])
+  const ink = (s: Series) => (s.muted && hover !== s.key ? MUTED : s.color)
+  const legend = useMemo(() => {
+    const muted = series.filter((s) => s.muted)
+    if (!muted.length) return series
+    const rest = { key: 'rest', label: `The other ${muted.length} models`, color: MUTED }
+    return [...series.filter((s) => !s.muted && !s.dashed), rest, ...series.filter((s) => s.dashed)]
+  }, [series])
 
   const [lo, hi] = scoreDomain(series.flatMap((s) => s.values))
   const narrow = w < 620
   const labelW = Math.max(0, ...series.map((s) => textW(`${s.short}  00.0`))) + 20
   const H = narrow ? 304 : 364
-  const m = { l: 40, r: narrow ? 16 : labelW, t: 30, b: 54 }
+  const m = { l: 58, r: narrow ? 16 : labelW, t: 30, b: 54 }
   const iw = Math.max(1, w - m.l - m.r)
   const ih = H - m.t - m.b
   const x = (k: number) => m.l + (pulls === 1 ? iw / 2 : ((k - 1) / (pulls - 1)) * iw)
@@ -175,7 +172,7 @@ export function LearningCurves({ results, tier, view = 'models' }: { results: Re
   return (
     <figure className="m-0">
       <figcaption className="sr-only">Mean score at each pull on {tierName(results, tier)}</figcaption>
-      {narrow && <Legend items={series} />}
+      {narrow && <Legend items={legend} />}
       <div ref={ref} className="relative">
         {w > 0 && (
           <svg width={w} height={H} role="img" aria-label={`Mean score at each pull on ${tierName(results, tier)}`}>
@@ -192,7 +189,7 @@ export function LearningCurves({ results, tier, view = 'models' }: { results: Re
             {view === 'models' && pulls > 1 && (
               <g aria-hidden>
                 <rect x={x(1)} y={m.t} width={x(2) - x(1)} height={ih} fill="rgba(230,211,163,0.05)" />
-                <text x={(x(1) + x(2)) / 2} y={m.t + 14} textAnchor="middle" fill="#e6d3a3" fillOpacity={0.75} fontSize={11} fontFamily={MONO}>
+                <text x={(x(1) + x(2)) / 2} y={m.t + 14} textAnchor="middle" fill={COLOR.accent} fillOpacity={0.75} fontSize={11} fontFamily={MONO}>
                   {narrow ? 'debrief' : 'the first debrief'}
                 </text>
               </g>
@@ -203,33 +200,34 @@ export function LearningCurves({ results, tier, view = 'models' }: { results: Re
               const last = s.values[s.values.length - 1]
               return (
                 <g key={s.key} opacity={dim(s.key)} onPointerEnter={() => setHover(s.key)} onPointerLeave={() => setHover(null)}>
-                  <path d={d} fill="none" stroke={s.color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={s.dashed ? '6 5' : undefined} />
-                  {s.values.map((v, k) => <circle key={k} cx={x(k + 1)} cy={y(v)} r={3.5} fill={s.dashed ? SURFACE : s.color} stroke={s.color} strokeWidth={2} />)}
+                  <path d={d} fill="none" stroke={ink(s)} strokeWidth={s.dashed ? 1.5 : 2.5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={s.dashed ? '6 5' : undefined} />
+                  {!s.dashed && s.values.map((v, k) => <circle key={k} cx={x(k + 1)} cy={y(v)} r={3.5} fill={ink(s)} stroke={ink(s)} strokeWidth={2} />)}
                   {!narrow && (
                     <text x={m.l + iw + 14} y={ends[i]} dy="0.32em" fontSize={13} {...HALO}>
-                      <tspan fill={LABEL}>{s.short}</tspan>
+                      <tspan fill={s.muted || s.dashed ? AXIS : LABEL}>{s.short}</tspan>
                       <tspan fill={AXIS} fontFamily={MONO} fontSize={12} dx={8}>{fmtScore(last)}</tspan>
                     </text>
                   )}
                 </g>
               )
             })}
-            <rect x={m.l} y={m.t} width={iw} height={ih} fill="transparent" onPointerMove={onMove} onPointerLeave={() => setAt(null)} />
+            {/* pointerdown too: a tap on a touch screen fires no move, and should show that pull's values */}
+            <rect x={m.l} y={m.t} width={iw} height={ih} fill="transparent" onPointerMove={onMove} onPointerDown={onMove} onPointerLeave={() => setAt(null)} />
           </svg>
         )}
         {at !== null && (
-          <Tooltip x={x(at)} y={m.t} w={w}>
+          <Tip x={x(at)} y={m.t} w={w} place="side">
             <div className="mb-1 text-fg">Pull {at}</div>
             {[...series].sort((a, b) => b.values[at - 1] - a.values[at - 1]).map((s) => (
               <div key={s.key} className="flex items-center justify-between gap-3 text-fg-muted">
                 <span className="flex items-center gap-2">
-                  <svg width={14} height={8} aria-hidden><line x1={0} x2={14} y1={4} y2={4} stroke={s.color} strokeWidth={2.5} strokeDasharray={s.dashed ? '3 2' : undefined} /></svg>
+                  <svg width={14} height={8} aria-hidden><line x1={0} x2={14} y1={4} y2={4} stroke={s.muted ? MUTED : s.color} strokeWidth={2.5} strokeDasharray={s.dashed ? '3 2' : undefined} /></svg>
                   {s.label}
                 </span>
                 <span className="num font-mono text-fg">{fmtScore(s.values[at - 1])}</span>
               </div>
             ))}
-          </Tooltip>
+          </Tip>
         )}
       </div>
     </figure>
@@ -249,7 +247,8 @@ export function CostScatter({ results }: { results: Results }) {
     .filter((r) => r.mythicbench_score != null)
     .map((r) => ({ key: r.model, label: modelName(r.model), color: modelColor(results, r.model), cost: costPerRun(r, results) ?? 0, score: r.mythicbench_score!, ci: r.mythicbench_score_ci95 ?? null }))
   // The scripted bot: what fixed rules score, the level the models that didn't learn sit at.
-  const bot = results.bot_score ?? (results.baselines ?? []).find((b) => b.mythicbench_score != null)?.mythicbench_score ?? null
+  // The home page shows models only: no scripted-bot reference line here.
+  const bot: number | null = null
   const paid = pts.map((p) => p.cost).filter((c) => c > 0)
   const cLo = paid.length ? Math.min(...paid) / 2 : 0.01
   const cHi = paid.length ? Math.max(...paid) * 2 : 100
@@ -260,7 +259,7 @@ export function CostScatter({ results }: { results: Results }) {
   const [lo, hi] = scoreDomain([...pts.flatMap((p) => p.ci ? [p.ci[0], p.ci[1]] : [p.score]), ...(bot != null ? [bot] : [])], 10, 1)
   const narrow = w < 520
   const H = narrow ? 300 : 380
-  const m = { l: 40, r: 20, t: 20, b: 54 }
+  const m = { l: 58, r: 20, t: 20, b: 54 }
   const iw = Math.max(1, w - m.l - m.r)
   const ih = H - m.t - m.b
   const x = (c: number) => m.l + ((Math.log10(Math.max(c, cLo)) - Math.log10(cLo)) / (Math.log10(cHi) - Math.log10(cLo))) * iw
@@ -274,7 +273,7 @@ export function CostScatter({ results }: { results: Results }) {
   const ratio = cheap && dear && cheap.cost > 0 ? dear.cost / cheap.cost : 0
   const note = !narrow && cheap && dear && pair && !pair.claim && ratio >= 2
     ? { x1: x(cheap.cost), x2: x(dear.cost), y: y(Math.max(cheap.ci?.[1] ?? cheap.score, dear.ci?.[1] ?? dear.score)) - 10,
-        text: `${Math.round(ratio)}× the cost, no clear difference in score` }
+        text: `${modelName(cheap.key)} costs 1/${Math.round(ratio)} as much, no clear difference in score` }
     : null
 
   // Each name beside its own dot: right, else left, else above, else below,
@@ -329,7 +328,8 @@ export function CostScatter({ results }: { results: Results }) {
             {bot != null && (
               <g>
                 <line x1={m.l} x2={m.l + iw} y1={y(bot)} y2={y(bot)} stroke={AXIS} strokeDasharray="4 4" opacity={0.6} />
-                <text x={m.l + 6} y={y(bot) + 15} fill={AXIS} fontSize={12}>Scripted bot, {fmtScore(bot)}</text>
+                {/* Right end, under the line: the cheap models crowd the left end at this level. */}
+                <text x={m.l + iw - 4} y={y(bot) + 15} textAnchor="end" fill={AXIS} fontSize={12} {...HALO}>{narrow ? 'Bot' : 'Scripted bot'}, {fmtScore(bot)}</text>
               </g>
             )}
             {note && (
@@ -355,14 +355,13 @@ export function CostScatter({ results }: { results: Results }) {
           </svg>
         )}
         {tip && !narrow && (
-          <div className="pointer-events-none absolute z-20 rounded-lg border border-line bg-surface-raised px-3 py-2 text-[13px] leading-5 shadow-[0_6px_24px_rgba(0,0,0,0.5)]"
-            style={{ left: Math.max(0, Math.min(w - 220, x(tip.cost) - 110)), top: y(tip.score) - 14, width: 220, transform: 'translateY(-100%)' }}>
+          <Tip x={x(tip.cost)} y={y(tip.score) - 6} w={w}>
             <div className="text-fg">{tip.label}</div>
             <div className="mt-0.5 flex justify-between font-mono text-[12px] text-fg-muted">
               <span>Score {fmtScore(tip.score)}</span><span>{fmtUsd(tip.cost)} per group</span>
             </div>
             {tip.ci && <div className="font-mono text-[12px] text-fg-faint">95% interval {fmtScore(tip.ci[0])} to {fmtScore(tip.ci[1])}</div>}
-          </div>
+          </Tip>
         )}
       </div>
     </figure>
@@ -406,10 +405,10 @@ export function GroupScores({ results }: { results: Results }) {
                   <text x={m.l - 14} y={cy} dy="0.32em" textAnchor="end" fill={LABEL} fontSize={13}>{r.label}</text>
                   {r.ci && <rect x={x(r.ci[0])} y={cy - 5} width={Math.max(2, x(r.ci[1]) - x(r.ci[0]))} height={10} rx={5} fill={r.color} opacity={0.22} />}
                   {r.groups.map((g, k) => <circle key={k} cx={x(g)} cy={cy} r={4} fill={r.color} opacity={0.8} stroke={SURFACE} strokeWidth={1} />)}
-                  <rect x={x(r.mean) - 1.5} y={cy - 12} width={3} height={24} rx={1.5} fill="#ededef" />
+                  <rect x={x(r.mean) - 1.5} y={cy - 12} width={3} height={24} rx={1.5} fill={COLOR.fg} />
                   {!narrow && (
                     <text x={w - 8} y={cy} dy="0.32em" textAnchor="end" fontSize={12} fontFamily={MONO}>
-                      <tspan fill="#ededef">{fmtScore(r.mean)}</tspan>
+                      <tspan fill={COLOR.fg}>{fmtScore(r.mean)}</tspan>
                       <tspan fill={AXIS}>{r.ci ? `  ${fmtScore(r.ci[0])}–${fmtScore(r.ci[1])}` : ''}</tspan>
                     </text>
                   )}

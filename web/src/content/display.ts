@@ -117,3 +117,13 @@ export function fmtTime(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000))
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
+
+/** Party chat text in the viewer's logs. */
+export const PARTY_CHAT = '#aab4ff'
+/** Enemy names and the boss's cast text over the scene, as hostile names read in the game. */
+export const HOSTILE = '#fca5a5'
+/** Ability descriptions in tooltips: the gold of an MMO tooltip, on purpose. */
+export const TOOLTIP_GOLD = '#ffd479'
+/** Pools on the floor and the Grave Mark ring, as the 3D scene draws them, for the flat maps. */
+export const GROUND_COLORS: Record<string, string> = { desecrate: '#4ade80', grave: '#a78bfa' }
+export const GRAVE_MARK = '#fb923c'

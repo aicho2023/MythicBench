@@ -83,6 +83,9 @@ export interface Results {
   baselines?: LeaderboardRow[]
   /** The scripted bot's score, kept as a reference line when the bot's rows are hidden. */
   bot_score?: number | null
+  /** The scripted bot's row, kept for the reference marks (leaderboard row, learning-chart line)
+   * when baselines are hidden from the run browser. */
+  bot?: LeaderboardRow | null
   /** effort sweeps: other reasoning efforts of some models, unranked */
   configs?: ConfigRow[]
   controls: ControlRow[]
@@ -116,8 +119,19 @@ export function modelsOnly(r: Results): Results {
     controls: r.controls.filter((c) => models.has(c.model)),
     baselines: [],
     bot_score: r.baselines?.find((b) => b.mythicbench_score != null)?.mythicbench_score ?? null,
+    bot: botRow(r),
     configs: (r.configs ?? []).filter((c) => models.has(c.model)),
   }
+}
+
+/** The scripted bot's row (the reference everything is compared with), if the dataset has one. */
+export function botRow(r: Results): LeaderboardRow | null {
+  return r.bot ?? r.baselines?.find((b) => b.provider === 'scripted' && b.mythicbench_score != null) ?? null
+}
+
+/** Models a paired test says are better than at least one other: the ones the charts colour. */
+export function clearLeaders(r: Results): Set<string> {
+  return new Set((r.pairwise ?? []).flatMap((p) => (p.claim ? [p.claim] : [])))
 }
 
 /** The hero replay: the top model's best pull on the headline tier, or null before there are results. */

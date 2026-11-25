@@ -3,6 +3,7 @@ import { CLASS_COLORS, ROLE_LABEL, SCHOOL_COLORS, fmtNum } from '../content/disp
 import { useHud } from '../replay/store'
 import { TipTarget } from './AbilityTip'
 import { AbilityIcon, Bar, RoleIcon } from './bits'
+import { COLOR } from '../site/tokens'
 
 /** How long an instant ability stays highlighted after it's used. */
 const USED_MS = 1200
@@ -38,7 +39,7 @@ export function PartyFrames() {
               <RoleIcon role={u.info.role} size={12} />
               <span className="text-[13px] font-medium leading-5" style={{ color: col }}>{u.info.name}</span>
               {activeInfo ? (
-                <span className="truncate text-meta" style={{ color: SCHOOL_COLORS[activeInfo.school] ?? '#ededef' }}>
+                <span className="truncate text-meta" style={{ color: SCHOOL_COLORS[activeInfo.school] ?? COLOR.fg }}>
                   {u.cast ? `Casting ${activeInfo.name}` : activeInfo.name}
                 </span>
               ) : (
@@ -51,7 +52,7 @@ export function PartyFrames() {
             <Bar
               frac={u.hp / u.info.max_hp}
               absorbFrac={u.absorb / u.info.max_hp}
-              color={u.alive ? col : '#3f3f46'}
+              color={u.alive ? col : COLOR.off}
               height={5}
               className="mt-1"
             />

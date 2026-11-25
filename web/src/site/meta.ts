@@ -8,19 +8,25 @@ const DESCRIPTION = 'An LLM eval: five agents, one per character, run a Mythic+-
   + 'talk it over after each wipe, and try again. Leaderboard, replays of every pull, and the write-up.'
 
 export const PAGES: PageMeta[] = [
-  { path: '/', title: 'MythicBench: can five AI agents learn from a wipe?', description: DESCRIPTION },
+  { path: '/', title: 'MythicBench: can five AI agents learn to clear an MMORPG dungeon?', description: DESCRIPTION },
   { path: '/watch', title: 'Watch a run | MythicBench', description: 'Replays of every pull in the benchmark, in 3D, with every decision the model made.' },
   { path: '/highlights', title: 'Highlights | MythicBench', description: 'The best moments from the official run: breakthroughs, arguments, clutch saves and spectacular wipes, each a click from the replay.' },
   { path: '/report', title: 'Report | MythicBench', description: 'How MythicBench works, what it measures, and what the models did.' },
-  { path: '/party', title: 'The party | MythicBench', description: 'Every character and ability in MythicBench, the enemies of the Hollow Vault, and the affixes.' },
+  { path: '/party', title: 'The Party | MythicBench', description: 'Every character and ability in MythicBench, the enemies of the Hollow Vault, and the affixes.' },
   { path: '/compare', title: 'Side by side | MythicBench', description: 'Two MythicBench replays on one clock, seen from above.' },
-  { path: '/about', title: 'About | MythicBench', description: 'How MythicBench works, for WoW players and for ML people, how to run it yourself, and credits.' },
+  { path: '/about', title: 'About | MythicBench', description: 'Why MythicBench exists, what it tests, how a run works, and who made it.' },
   { path: '/changelog', title: 'Changelog | MythicBench', description: 'What changed in the MythicBench game and harness, version by version.' },
 ]
 
 export const OG_IMAGE = '/og.jpg'
 
+/** The report's old addresses, which still open it. */
+const ALIASES: Record<string, string> = { '/paper': '/report', '/commentary': '/report' }
+
 export function metaFor(path: string): PageMeta {
   const top = '/' + (path.split('/')[1] ?? '')
-  return PAGES.find((p) => p.path === top) ?? PAGES[0]
+  const found = PAGES.find((p) => p.path === (ALIASES[top] ?? top))
+  // Only /watch has sub-pages; any other deeper or unknown path is the not-found page.
+  if (!found || (top !== '/watch' && path !== top)) return { path, title: 'Page not found | MythicBench', description: DESCRIPTION }
+  return found
 }

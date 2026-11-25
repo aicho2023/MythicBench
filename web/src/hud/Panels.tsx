@@ -2,9 +2,11 @@ import { bossOf } from '../replay/engine'
 import { AlertTriangle, Megaphone } from 'lucide-react'
 import { useState } from 'react'
 import type { ReplayMeta } from '../replay/types'
-import { CLASS_COLORS, WARN_CASTS, dungeonProgress, dungeonScore, fmtNum, fmtTime, runScore } from '../content/display'
+import { CLASS_COLORS, PARTY_CHAT, WARN_CASTS, dungeonProgress, dungeonScore, fmtNum, fmtTime, runScore } from '../content/display'
 import { usePlayback, useHud } from '../replay/store'
 import { useInspector } from './CallInspector'
+import { chatText } from './bits'
+import { COLOR } from '../site/tokens'
 
 // ---------------------------------------------------------------------------
 // Scorecard: the eval's metrics, live as the replay plays.
@@ -108,18 +110,20 @@ function Reproduce() {
   const cmd = reproduceCommand(m)
   return (
     <div className="pointer-events-auto border-t border-line px-3 py-2 font-mono text-meta text-fg-faint">
-      <dl>
+      {/* Versions stay folded: they matter to someone reproducing a run, and the side column
+          needs the height for the learning panel on laptop screens. */}
+      <div className="flex items-center justify-between gap-4">
+        <span>Seed <span className="num text-fg-muted">{m.seed}</span></span>
+        <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="font-sans text-fg-faint transition-colors hover:text-fg">
+          {open ? 'Hide details' : cmd ? 'Versions and reproduce' : 'Versions'}
+        </button>
+      </div>
+      {open && <dl className="mt-1">
         <div className="flex justify-between gap-4"><dt>Policy</dt><dd className="truncate text-fg-muted">{m.policy}</dd></div>
-        <div className="flex justify-between gap-4"><dt>Seed</dt><dd className="num text-fg-muted">{m.seed}</dd></div>
         {r && <div className="flex justify-between gap-4"><dt>Harness</dt><dd className="num text-fg-muted">v{r.harness_version}{r.prompt_hash ? ` (${r.prompt_hash})` : ''}</dd></div>}
         <div className="flex justify-between gap-4"><dt>Sim / content</dt><dd className="num text-fg-muted">v{m.sim_version} / v{m.content_version}</dd></div>
         {r?.git_commit && <div className="flex justify-between gap-4"><dt>Commit</dt><dd className="num text-fg-muted">{r.git_commit}</dd></div>}
-      </dl>
-      {cmd && (
-        <button onClick={() => setOpen((v) => !v)} className="mt-1 font-sans text-fg-faint transition-colors hover:text-fg">
-          {open ? 'Hide' : 'Reproduce this replay'}
-        </button>
-      )}
+      </dl>}
       {open && cmd && (
         <div className="mt-1">
           <pre className="overflow-x-auto whitespace-pre rounded-md border border-line bg-surface-raised p-2 text-[11px] leading-4 text-fg-muted">{cmd}</pre>
@@ -238,7 +242,6 @@ export function RaidWarnings() {
 // Decision log: what the agents did and WHY (their stated reason)
 // ---------------------------------------------------------------------------
 /** WoW's party-chat colour, for the message text. */
-const PARTY_CHAT = '#aab4ff'
 
 export function DecisionLog() {
   const h = useHud()
@@ -255,7 +258,7 @@ export function DecisionLog() {
     if (view === 'chat') {
       if (e.type === 'chat') {
         const u = s.units[e.unit]
-        rows.push({ key: i, t: e.t, who: u?.info.name ?? e.unit, unit: e.unit, cls: u?.info.class ?? '', text: e.text, tone: 'chat' })
+        rows.push({ key: i, t: e.t, who: u?.info.name ?? e.unit, unit: e.unit, cls: u?.info.class ?? '', text: chatText(u?.info.name ?? e.unit, e.text), tone: 'chat' })
       }
       continue
     }
@@ -288,7 +291,7 @@ export function DecisionLog() {
           : <span className="text-meta text-fg-faint">Click a row to rewind</span>}
       </div>
       {shown.length === 0 && <div className="px-3 py-2 text-[12px] text-fg-faint">{view === 'chat' ? 'Nobody has said anything yet' : 'Nothing yet, waiting for the pull'}</div>}
-      <div className={view === 'chat' ? 'max-h-[min(200px,calc(100vh-640px))] min-h-[90px] overflow-y-auto' : ''}>
+      <div className={view === 'chat' ? 'scroll-fade max-h-[min(200px,calc(100vh-640px))] min-h-[90px] overflow-y-auto' : ''}>
       {shown.map((r) => (
         <div key={r.key} className="group relative">
         <button
@@ -299,11 +302,11 @@ export function DecisionLog() {
           <span className="num font-mono text-meta leading-5 text-fg-faint">{fmtTime(r.t)}</span>
           {r.tone === 'chat' ? (
             <span className="text-[12px] leading-[18px]" style={{ color: PARTY_CHAT }}>
-              [<span style={{ color: CLASS_COLORS[r.cls] ?? '#ededef' }}>{r.who}</span>]: {r.text}
+              [<span style={{ color: CLASS_COLORS[r.cls] ?? COLOR.fg }}>{r.who}</span>]: {r.text}
             </span>
           ) : (
             <span className="text-[12px] leading-5">
-              <span className="font-medium" style={{ color: r.tone === 'bad' && r.cls === 'boss' ? '#f87171' : CLASS_COLORS[r.cls] ?? '#ededef' }}>{r.who}</span>{' '}
+              <span className="font-medium" style={{ color: r.tone === 'bad' && r.cls === 'boss' ? COLOR.bad : CLASS_COLORS[r.cls] ?? COLOR.fg }}>{r.who}</span>{' '}
               <span className={r.tone === 'bad' ? 'text-bad' : 'text-fg'}>{r.text}</span>
               {r.sub && <span className="block text-[12px] leading-4 text-fg-faint">{r.sub}</span>}
             </span>
