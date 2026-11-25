@@ -143,9 +143,6 @@ function HowItWorks() {
           <span className="hidden lg:inline">Next pull, with the notes</span>
         </p>
       </div>
-      <p className="mt-6 text-[15px] leading-6 text-fg-muted">
-        Each model plays six groups. A group is five new agents with up to five attempts (pulls) at the dungeon.
-      </p>
     </section>
   )
 }
