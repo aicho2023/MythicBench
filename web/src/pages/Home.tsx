@@ -64,20 +64,18 @@ export function Home() {
       <section className="grid items-center gap-10 py-12 md:py-16 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12">
         <div>
           <h1 className="max-w-[560px] text-[32px] font-normal leading-[1.12] text-fg sm:text-[44px] sm:leading-[1.08] sm:tracking-[-0.02em] xl:text-[52px]">
-            Can five AI agents learn from a wipe?
+            Can five AI agents learn to clear an MMORPG dungeon?
           </h1>
           <p className="mt-6 max-w-[520px] text-[17px] leading-7 text-fg-muted">
-            Five AI agents, each playing one character, team up to clear a dungeon in a game like World of Warcraft:
-            two groups of monsters, then a boss, against the clock. They go in blind. When the whole party dies (a
-            wipe), they read the combat log, talk it over, write their own notes, and try again, up to five times.
+            We've all been there. Your character's corpse lies on the ground, alongside the rest of your group. Time is
+            running out, and you've probably thought, "Man, even bots would be better than this." That's what
+            MythicBench sets out to test. We wanted to see if seven AI models from four labs could learn how to clear a
+            Mythic-style dungeon, all by themselves.
           </p>
-          {results?.protocol.name === 'v1' && (
-            <p className="mt-5 max-w-[520px] border-l-2 border-accent pl-4 text-[17px] leading-7 text-fg">
-              Across 480 attempts by seven models from four labs, no AI team cleared the dungeon. But Claude Opus 5.5 and GPT-6.2 Sol each worked out how
-              to survive the boss's party-wide blast in every one of their groups: two players have to stand inside the
-              circle. <Link to="/report#pyre" className="underline decoration-accent/50 underline-offset-4 hover:decoration-accent">The other five almost never did.</Link>
-            </p>
-          )}
+          <p className="mt-4 max-w-[520px] text-[17px] leading-7 text-fg-muted">
+            Five agents, all one model, go in blind. After each wipe they read the combat log, talk it over and try
+            again, up to five times.
+          </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/watch" className="btn btn-primary h-11 px-5 text-[14px]">Watch a run</Link>
             <Link to="/report" className="btn h-11 px-5 text-[14px]">Read the report</Link>
@@ -107,15 +105,38 @@ export function Home() {
   )
 }
 
+/** How a score is made, before the table that shows them. Matches sim/mythicsim/metrics.py and the report. */
+function Scoring() {
+  const items: [string, string][] = [
+    ['Progress, up to 70', 'Health removed from the two packs (15% each) and from Oruth, the boss (70%).'],
+    ['Speed, up to 30 more', 'Only for a clear: more for the time left on the clock.'],
+    ['Group score', 'A group is one party\'s five pulls (attempts) at the dungeon. Its score is their average; a clear counts again for every pull it saves.'],
+    ['Model score', 'The average of its six groups, all on +10, the hardest difficulty.'],
+  ]
+  return (
+    <dl className="mt-6 grid gap-x-6 gap-y-4 rounded-2xl border border-line bg-surface p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-4">
+      {items.map(([k, v]) => (
+        <div key={k}>
+          <dt className="text-[14px] font-medium text-fg">{k}</dt>
+          <dd className="mt-1 text-[14px] leading-5 text-fg-muted">{v}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
 function Results({ results }: { results: Results }) {
   if (!results.leaderboard.length) return null
   return <ResultsBody results={results} />
 }
 
-function SectionHead({ title, link, children }: { title: string; link?: [string, string]; children?: ReactNode }) {
+function SectionHead({ title, caption, link, children }: { title: string; caption?: string; link?: [string, string]; children?: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-      <h2 className="text-[20px] font-medium text-fg">{title}</h2>
+    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div className="min-w-0 max-w-[760px]">
+        <h2 className="text-[20px] font-medium leading-7 text-fg">{title}</h2>
+        {caption && <p className="mt-1 text-[15px] leading-6 text-fg-muted">{caption}</p>}
+      </div>
       {children}
       {link && (
         <Link to={link[0]} className="flex items-center gap-1.5 text-[13px] text-fg-muted transition-colors hover:text-fg">
@@ -129,21 +150,19 @@ function SectionHead({ title, link, children }: { title: string; link?: [string,
 function ResultsBody({ results }: { results: Results }) {
   const tiers = Object.keys(results.tiers)
   const [tier, setTier] = useState(tiers.includes('plus10') ? 'plus10' : tiers[0])
-  const p = results.protocol
   return (
     <>
 
       <section id="leaderboard" className="pt-20">
-        <SectionHead title="Leaderboard" link={['/report#results', 'Results in the report']}>
-          <p className="text-[13px] text-fg-faint sm:ml-auto">
-            {tierName(results, 'plus10')}, {p.episodes} groups per model, up to {p.max_pulls} pulls each
-          </p>
-        </SectionHead>
-        <div className="mt-6"><LeaderboardTable results={results} /></div>
+        <SectionHead title="Leaderboard" link={['/report#results', 'Results in the report']} />
+        <Scoring />
+        <div className="mt-8"><LeaderboardTable results={results} /></div>
       </section>
 
       <section className="pt-20">
-        <SectionHead title="Does it learn between wipes?" link={['/report#learning', 'Learning in the report']}>
+        <SectionHead title="All seven start level. Only Opus and Sol pull ahead after the first wipe."
+          caption="Average score on each pull, 1 to 5, over each model's six groups. Pull 1 is blind."
+          link={['/report#learning', 'Learning in the report']}>
           {tiers.length > 1 && (
             <div className="seg" role="group" aria-label="Difficulty">
               {tiers.map((t) => <button key={t} aria-pressed={tier === t} onClick={() => setTier(t)}>{tierName(results, t)}</button>)}
@@ -159,18 +178,18 @@ function ResultsBody({ results }: { results: Results }) {
       </section>
 
       <section className="pt-20">
-        <SectionHead title="Learning to stand in the fire" link={['/report#pyre', 'Bone Pyre in the report']} />
-        <p className="mt-2 max-w-[720px] text-[15px] leading-6 text-fg-muted">
-          Bone Pyre's blast hits everyone unless two players stand inside its circle. Each square below is one Pyre.
-          After one wipe, Opus and Sol soak most of them. The other five almost never do, even when their notes say to.
-        </p>
+        <SectionHead title="Only Opus and Sol learned to stand in the fire."
+          caption="Bone Pyre's blast hits the whole party unless two players stand inside its circle. Each square is one Pyre. The other five almost never soak it, even when their notes say to."
+          link={['/report#pyre', 'Bone Pyre in the report']} />
         <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
           <PyreGrid results={results} />
         </div>
       </section>
 
       <section className="pt-20">
-        <SectionHead title="What a score costs" link={['/report#cost', 'Cost in the report']} />
+        <SectionHead title="Opus scores like Sol at five times the cost."
+          caption="Each model's score against what one group costs to run, at list prices."
+          link={['/report#cost', 'Cost in the report']} />
         <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
           <CostScatter results={results} />
         </div>

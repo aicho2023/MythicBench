@@ -121,7 +121,6 @@ export function PyreGrid({ results }: { results: Results }) {
         <span className="flex items-center gap-2">
           <span className="h-[2px] w-3 rounded-full bg-white/[0.08]" aria-hidden />never reached Oruth
         </span>
-        <span className="text-fg-faint">Each line is one group; each square, one Pyre in the order it went off. {touch ? 'Tap one for details.' : 'Click one to watch it.'}</span>
       </div>
 
       {hover && (
