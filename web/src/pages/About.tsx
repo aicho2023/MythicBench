@@ -47,7 +47,7 @@ export function About() {
             <li><strong>Five agents run by one model:</strong> There are five players (1 tank, 1 healer, 3 DPS) that are all controlled by the same underlying model.</li>
             <li><strong>Attempt the dungeon blind:</strong> The agents are not given any information about the enemies, like what abilities they have. They need to rely on their own observations and notes to complete the dungeon.</li>
             <li><strong>Orders every few seconds:</strong> Every few seconds, each agent sends its orders: where to move, what to cast, and on whom. The game state waits for their response before progressing.</li>
-            <li><strong>Debrief after a wipe:</strong> After every wipe, the agents can read the combat log, deliberate, and jot down notes. These notes are all they carry into the next pull to help inform their next decisions.</li>
+            <li><strong>Debrief after a failed pull:</strong> After every pull that doesn't clear (a wipe or running out of time), the agents can read the combat log, deliberate, and jot down notes. These notes are all they carry into the next pull to help inform their next decisions.</li>
           </ol>
           <p>
             The rules, models and seeds were fixed in a public <a href={`${GITHUB_URL}/blob/main/docs/PREREGISTRATION.md`}>pre-registration</a> before

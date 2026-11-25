@@ -74,7 +74,7 @@ export function Home() {
           <p className="mt-6 max-w-[520px] text-[17px] leading-7 text-fg-muted">
             We've all been there. Your character's corpse lies on the ground, alongside the rest of your group. Time is
             running out, and you've probably thought, "Even bots would be better than my teammates." Well, it's time
-            to put that to the test. Introducing: MythicBench. We wanted to see if seven AI models could learn how to clear a
+            to put that to the test. So I built MythicBench. I wanted to see if seven AI models could learn how to clear a
             Mythic-style dungeon, all by themselves.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">

@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react'
-import { CLASS_COLORS, ROLE_LABEL } from '../content/display'
+import { CLASS_COLORS, ROLE_LABEL, fmtNum } from '../content/display'
 import { AbilityIcon, RoleIcon } from '../hud/bits'
 import { Page } from '../site/Layout'
 import { COLOR } from '../site/tokens'
@@ -23,14 +23,6 @@ interface Guide {
   trash: { id: string; name: string; max_hp: number; melee: boolean; spells: GuideAbility[] }[]
   boss: { id: string; name: string; max_hp: number; abilities: GuideAbility[]; adds_at_pct: number[] }
   tiers: { id: string; name: string; enemy_hp: number; enemy_dmg: number; limit_s: number; affixes: { id: string; name: string; description: string }[] }[]
-}
-
-/** 42K, 1.5M, 9K: no trailing ".0". */
-function fmtNum(n: number): string {
-  const short = (x: number) => String(Number(x.toFixed(1)))
-  if (n >= 1e6) return `${short(n / 1e6)}M`
-  if (n >= 1e3) return `${short(n / 1e3)}K`
-  return `${Math.round(n)}`
 }
 
 /** On +10, the tier every score comes from, Hollow Tyrant moves Oruth's adds to these (sim TYRANT_RAISE_AT). */

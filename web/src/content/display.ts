@@ -107,9 +107,11 @@ export function dungeonScore(outcome: string | null, timerMs: number, progressPc
   return round1((70 * progressPct) / 100) // same operations as metrics.dungeon_score
 }
 
+/** 42K, 1.5M, 9.6K: short, with no trailing ".0". */
 export function fmtNum(n: number): string {
-  if (n >= 1e6) return `${(n / 1e6).toFixed(2)}M`
-  if (n >= 1e3) return `${(n / 1e3).toFixed(n >= 1e5 ? 0 : 1)}K`
+  const short = (x: number, d: number) => String(Number(x.toFixed(d)))
+  if (n >= 1e6) return `${short(n / 1e6, 2)}M`
+  if (n >= 1e3) return `${short(n / 1e3, n >= 1e5 ? 0 : 1)}K`
   return `${Math.round(n)}`
 }
 
