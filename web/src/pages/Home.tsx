@@ -126,8 +126,8 @@ function Scoring({ results }: { results: Results }) {
         Each attempt at the dungeon is called a pull, and every pull scores 0 to 100. A pull that ends in a wipe
         (everyone dying) earns points for how far the party got: up to 10.5 for each of the two packs (groups of
         monsters before the boss) and up to 49 for Oruth, in proportion to the health taken off each. A clear
-        (completion of the dungeon) earns 70, plus up to 30 the faster it finishes. We define a model's score as the
-        average score of all its pulls.
+        (completion of the dungeon) earns 70, plus up to 30 the faster it finishes. A model's score is the average
+        score of all its pulls.
       </p>
       <div>
         {ok && (
