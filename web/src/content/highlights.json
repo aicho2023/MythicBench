@@ -527,7 +527,7 @@
     "episode": 0,
     "pull": 3,
     "t": 40,
-    "summary": "Four of the five die on the first pack, three of them to Marrow Shards. Kit is left at 24% health with one Bonewalker standing, and his thinking spells out why it matters: fallen allies only get back up once combat ends. He kills it 1.6 seconds after Rook dies, and three seconds later all four are back on their feet. The party goes on to clear the second pack and reach Oruth. Compare Luna's Ivy, who walked into the next pack half a second before her party would have gotten back up.",
+    "summary": "Kit was left all alone on the first pack after the rest of his group died. He was at 24% health with one Bonewalker left. He needed to kill this Bonewalker to end combat so his teammates could revive. He is able to do so, saving the run from wiping on the first pack.",
     "quotes": [
       {
         "who": "Kit",
@@ -552,7 +552,7 @@
     "episode": 2,
     "pull": 1,
     "t": 82,
-    "summary": "Rook announces he's pulling Oruth, but he's caught on the corner of the corridor wall and doesn't move. The rest of the party, waiting at the boss room door, notices first, and four of them send him directions with coordinates. Their first route still clips the wall, so Brask works out that he has to step back into the open room first. Rook is stuck for 40 seconds and pulls Oruth 35 seconds later than he announced.",
+    "summary": "Rook unexpectedly gets caught on the corner of the corridor wall and doesn't move. The rest of his party notices and tries to send him coordinates to get him out, although the new route still gets him stuck at the same wall. Rook is stuck for 40 seconds before eventually pulling Oruth, 35 seconds later than intended.",
     "quotes": [
       {
         "who": "Rook",
@@ -582,14 +582,14 @@
   },
   {
     "id": "sol-everything",
-    "title": "Sol wakes Oruth in under a minute",
+    "title": "Sol invents a new strategy to wake Oruth in record time",
     "kind": "record",
     "model": "gpt-6.2-sol",
     "tier": "plus10",
     "episode": 1,
     "pull": 2,
     "t": 20,
-    "summary": "Rook walks the first pack's Bonewalkers into the second pack while they're still alive, so the party fights both at once. Half a minute later, Brask drags the last walkers toward the boss room and wakes Oruth at 0:57, with the second pack still up. No party in the benchmark reached the boss sooner. Sol's typical pull got there at 1:11, and every other model's typical pull took longer than 1:20. This pull ends with Oruth at 16.6%, Sol's third-best.",
+    "summary": "Rook takes the first pack's Bonewalkers into the second pack so that the party fights both at once. This strategy allows the party to wake Oruth at 0:57, while the second pack is still alive. No other party reaches the boss sooner.",
     "quotes": [
       {
         "who": "Rook",
@@ -620,7 +620,7 @@
     "episode": 0,
     "pull": 4,
     "t": 9,
-    "summary": "DeepSeek V4.1 Flash's agents keep reaching for World of Warcraft to fill in what the rules don't say: whether an interrupt can fire mid-cast, whether Oruth's summon can be kicked, whether to pull both packs at once. Its recorded thinking mentions WoW or Mythic+ 62 times across its six groups, five of them in this pull. No other model's recorded thinking does it more than once. (Sol and Luna don't record their thinking.)",
+    "summary": "DeepSeek V4.1 Flash's agents kept referencing World of Warcraft for rules on the game, such as how interrupts work and even information on our fictional boss. Overall, its thinking traces mention WoW or Mythic+ 62 times across six groups. No other model's recorded thinking does it more than once. (Sol and Luna don't record their thinking.)",
     "quotes": [
       {
         "who": "Rook",
@@ -644,14 +644,14 @@
   },
   {
     "id": "grok-quiet",
-    "title": "Four messages in three minutes",
+    "title": "Grok's agents don't communicate",
     "kind": "funny",
     "model": "grok-4.3",
     "tier": "plus10",
     "episode": 0,
     "pull": 1,
     "t": 110,
-    "summary": "Grok 4.3's agents barely talk. In this pull, the whole party's conversation is four short messages in 3 minutes 18 seconds, and nobody says anything before 1:52. Across its six groups, Grok's party sends about 3 messages a minute. Claude Opus 5.5's sends 23.",
+    "summary": "Unlike most of the other models, Grok 4.3's agents barely talk to one another. For example, in this pull, there were only four short messages in 3 minutes and 18 seconds. Compared to Claude Opus 5.5's party, which sends 23 messages a minute, Grok's party only sends 3.",
     "quotes": [
       {
         "who": "Ivy",
@@ -688,7 +688,7 @@
     "episode": 5,
     "pull": 2,
     "t": 128,
-    "summary": "In the debriefs, Opus's agents name their own mistakes, with the damage they took and when, and say what they'll do differently. Here Brask owns his death two pulls in a row and changes his plan each time. Across the six ranked groups, Opus's agents say \"my fault\" six times; the other six models say it once between them.",
+    "summary": "During the debriefs, Opus's agents own their mistakes, such as talking about the damage they took as well as saying how they will improve. In this pull, Brask owns his death and changes his plan. Across their runs, Opus's agents say \"my fault\" six times, whereas the other six models only say it once between them.",
     "quotes": [
       {
         "who": "Brask",
