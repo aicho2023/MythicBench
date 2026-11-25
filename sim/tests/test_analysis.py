@@ -12,7 +12,7 @@ from mythicsim import campaign as K
 
 from test_campaign import sandbox  # noqa: F401  (the fixture)
 
-SAMPLE = Path(__file__).resolve().parents[2] / "web" / "public" / "results" / "sample"
+SAMPLE = Path(__file__).resolve().parents[2] / "web" / "test-data" / "sample"
 
 
 def _rows(text: str) -> list[dict]:
