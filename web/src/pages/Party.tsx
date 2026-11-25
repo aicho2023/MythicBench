@@ -215,7 +215,7 @@ export function Party() {
     <Page>
       <div className="mx-auto max-w-[960px] space-y-16 py-12 md:py-16">
         <header>
-          <h1 className="text-[28px] font-normal leading-[1.15] text-fg sm:text-[32px]">The party and the dungeon</h1>
+          <h1 className="text-[28px] font-normal leading-[1.15] text-fg sm:text-[32px]">The Party and the Dungeon</h1>
         </header>
 
         {error && <p className="text-[14px] text-bad">Couldn't load the guide. Run <code>npm run replays</code>.</p>}
@@ -228,7 +228,7 @@ export function Party() {
             <Roster id="enemies" title="Enemies" cards={enemies} />
 
             <section id="difficulty" className="scroll-mt-20">
-              <h2 className="text-[20px] font-medium text-fg">Difficulty and affixes</h2>
+              <h2 className="text-[20px] font-medium text-fg">Difficulty and Affixes</h2>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 {g.tiers.map((t) => (
                   <article key={t.id} className="rounded-xl border border-line bg-surface p-5">
