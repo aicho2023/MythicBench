@@ -14,7 +14,7 @@ export const PAGES: PageMeta[] = [
   { path: '/report', title: 'Report | MythicBench', description: 'How MythicBench works, what it measures, and what the models did.' },
   { path: '/party', title: 'The party | MythicBench', description: 'Every character and ability in MythicBench, the enemies of the Hollow Vault, and the affixes.' },
   { path: '/compare', title: 'Side by side | MythicBench', description: 'Two MythicBench replays on one clock, seen from above.' },
-  { path: '/about', title: 'About | MythicBench', description: 'How MythicBench works, for WoW players and for ML people, how to run it yourself, and credits.' },
+  { path: '/about', title: 'About | MythicBench', description: 'Why MythicBench exists, what it tests, how a run works, and who made it.' },
   { path: '/changelog', title: 'Changelog | MythicBench', description: 'What changed in the MythicBench game and harness, version by version.' },
 ]
 
