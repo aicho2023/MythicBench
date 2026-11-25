@@ -51,8 +51,7 @@ export function About() {
           </ol>
           <p>
             The rules, models and seeds were fixed in a public <a href={`${GITHUB_URL}/blob/main/docs/PREREGISTRATION.md`}>pre-registration</a> before
-            the official run. Every model reply is recorded, so anyone can replay every pull and rebuild the leaderboard
-            for free. The <a href={`${GITHUB_URL}#readme`}>README</a> shows how.
+            the official run. Anyone can reproduce my results by following the <a href={`${GITHUB_URL}#readme`}>README</a>.
           </p>
         </Section>
 
