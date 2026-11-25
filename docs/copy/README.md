@@ -29,7 +29,7 @@ Highest traffic first. Status is updated as pages land.
 | --- | --- | --- | --- |
 | 1 | Home `/` | [01-home.md](01-home.md) | done |
 | 2 | About `/about` | [02-about.md](02-about.md) | done |
-| 3 | Highlights `/highlights` | [03-highlights.md](03-highlights.md) | waiting on your draft |
+| 3 | Highlights `/highlights` | [03-highlights.md](03-highlights.md) | done |
 | 4 | Party `/party` | [04-party.md](04-party.md) | waiting on your draft |
 | 5 | Small pages, footer, share cards | [05-small-bits.md](05-small-bits.md) | waiting on your draft |
 | 6 | Report `/report` | [06-report.md](06-report.md) | you write it in Google Docs, send the PDF |
