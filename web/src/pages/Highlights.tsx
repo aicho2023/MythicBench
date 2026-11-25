@@ -68,10 +68,14 @@ function QuoteLine({ q }: { q: Quote }) {
   )
 }
 
+/** The summary's opening sentence, for the small cards ("8.7%" and "0.7 m" aren't sentence ends). */
+function firstSentence(text: string): string {
+  return text.match(/^.+?[.!?](?=\s|$)/)?.[0] ?? text
+}
+
 export function HighlightCard({ h, compact = false }: { h: Highlight; compact?: boolean }) {
   const to = highlightPath(h)
   if (compact) {
-    const q = h.quotes[0]
     return (
       <Link to={to} className="group flex flex-col overflow-hidden rounded-xl border border-line bg-surface transition-colors hover:border-white/20">
         {h.image && (
@@ -83,9 +87,7 @@ export function HighlightCard({ h, compact = false }: { h: Highlight; compact?: 
         <KindTag kind={h.kind} />
         <h3 className="mt-1.5 text-[17px] font-medium leading-6 text-fg">{h.title}</h3>
         <div className="mt-1"><Where h={h} /></div>
-        {q
-          ? <p className="mt-3 text-[14px] leading-[22px] text-fg-muted"><span style={{ color: CHAR[q.who] ? CLASS_COLORS[CHAR[q.who].cls] : undefined }}>{q.who}:</span> “{q.text}”</p>
-          : <p className="mt-3 text-[14px] leading-[22px] text-fg-muted">{h.summary}</p>}
+        <p className="mt-3 text-[14px] leading-[22px] text-fg-muted">{firstSentence(h.summary)}</p>
         <span className="mt-auto flex items-center gap-1.5 pt-4 text-[13px] text-fg-muted transition-colors group-hover:text-fg">
           <Play size={13} /> Watch{h.t != null ? ` from ${fmtTime(h.t * 1000)}` : ''}
         </span>

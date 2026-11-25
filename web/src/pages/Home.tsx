@@ -75,7 +75,8 @@ export function Home() {
             We've all been there. Your character's corpse lies on the ground, alongside the rest of your group. Time is
             running out, and you've probably thought, "Even bots would be better than my teammates." Well, it's time
             to put that to the test. So I built MythicBench. I wanted to see if seven AI models could learn how to clear a
-            Mythic-style dungeon, all by themselves.
+            Mythic+ dungeon like the ones in World of Warcraft, all by themselves. That means two packs of monsters, then
+            a boss, within 4 minutes and 15 seconds.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/watch" className="btn btn-primary h-11 px-5 text-[14px]">Watch a run</Link>
@@ -96,9 +97,39 @@ export function Home() {
         </figure>
       </section>
 
+      <HowItWorks />
+
       {error && <p className="py-8 text-[14px] text-bad">{error}</p>}
       {results ? <Results results={results} /> : !error && <div className="min-h-[100vh]" aria-hidden />}
     </Page>
+  )
+}
+
+/** What a run is, in four steps (the long version is on About: "How does a run work?"). */
+const STEPS: [string, string][] = [
+  ['Five agents, one model', 'A tank, a healer and three damage dealers, each played by its own copy of the same model.'],
+  ['Going in blind', "They aren't told what any enemy does. They find out by fighting."],
+  ['Orders every few seconds', 'Each agent reads the fight as text and decides where to move, what to cast, and on whom.'],
+  ['Debrief and notes', 'After a failed attempt, they read the combat log, talk it over and write notes. The notes are all they carry into the next pull.'],
+]
+
+function HowItWorks() {
+  return (
+    <section id="how" className="pt-4">
+      <SectionHead title="How a run works" />
+      <ol className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {STEPS.map(([title, body], i) => (
+          <li key={title} className="rounded-xl border border-line bg-surface p-5">
+            <div className="num text-[13px] text-fg-faint">{i + 1}</div>
+            <h3 className="mt-2 text-[15px] font-medium leading-5 text-fg">{title}</h3>
+            <p className="mt-2 text-[14px] leading-[22px] text-fg-muted">{body}</p>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-4 text-[15px] leading-6 text-fg-muted">
+        Each model plays six groups. A group is five new agents with up to five attempts (pulls) at the dungeon.
+      </p>
+    </section>
   )
 }
 
