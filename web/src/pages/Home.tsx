@@ -115,51 +115,53 @@ function Scoring({ results }: { results: Results }) {
   const top = results.leaderboard[0]
   const pulls = (insights?.models[top?.model ?? ''] ?? []).filter((g) => g.ranked).flatMap((g) => g.pulls)
   const best = pulls.length ? pulls.reduce((a, b) => (b.score > a.score ? b : a)) : null
-  const far = best ? best.score / 70 : null // a wipe scores 70 x how far it got
-  const segs: [string, number][] = [['Pack 1', 15], ['Pack 2', 15], ['Oruth, the boss', 70]]
+  // The same rule as 70 x progress, multiplied out: 10.5 a pack, up to 49 for Oruth.
+  const segs: [string, string, number][] = [['Pack 1', '10.5', 10.5], ['Pack 2', '10.5', 10.5], ['Oruth, the boss', 'up to 49', 49]]
+  const share = best?.boss != null ? 1 - best.boss / 100 : null // of Oruth's health taken off
+  // The example reads right only when that pull killed both packs.
+  const ok = best && share != null && Math.abs(21 + 49 * share - best.score) < 0.15
   return (
     <section id="scoring" className="pt-20">
       <SectionHead title="Scoring formula" />
       <div className="mt-4 grid items-center gap-x-14 gap-y-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
       <p className="text-[17px] leading-7 text-fg-muted">
         Each attempt at the dungeon is called a pull, and every pull scores 0 to 100. A pull that ends in a wipe
-        earns up to 70, depending on how far the party got. A clear earns 70, plus up to 30 the faster it finishes,
-        and counts again for every pull it saved. A model's score is the average of all its pulls: six groups of
-        five, on +10, the hardest difficulty.
+        earns points for how far the party got: up to 10.5 for each of the two packs (groups of monsters before the
+        boss) and up to 49 for Oruth, in proportion to the health taken off each. That's 70 at most. A clear earns
+        70, plus up to 30 the faster it finishes, and counts again for every pull it saved. A model's score is the
+        average of all its pulls: six groups of five, on +10, the hardest difficulty.
       </p>
       <div>
-        <p className="text-[14px] text-fg-muted">How far the party got is measured in health taken off. Each of the two packs (groups of monsters before the boss) is worth 15%, Oruth 70%.</p>
-        {far != null && best && (
-          <div className="mt-5 flex items-baseline justify-between gap-3 text-[13px]">
+        {ok && (
+          <div className="flex items-baseline justify-between gap-3 text-[13px]">
             <span className="text-fg">{top.name || modelName(top.model)}'s best pull</span>
-            <span className="num font-mono text-fg-muted">{(far * 100).toFixed(1)}% of the way</span>
+            <span className="num font-mono text-fg-muted">{best.score.toFixed(1)} of 70 points</span>
           </div>
         )}
-        {/* The dungeon's health as a bar, filled as far as that pull got */}
+        {/* A wipe's 70 points as a bar, filled as far as that pull got */}
         <div className="mt-2 flex h-9 gap-[3px] text-[12px]">
-          {segs.map(([name, w], i) => {
-            const start = segs.slice(0, i).reduce((a, [, x]) => a + x, 0) / 100
-            const fill = far == null ? 0 : Math.max(0, Math.min(1, (far - start) / (w / 100)))
+          {segs.map(([name, label, pts], i) => {
             const boss = i === segs.length - 1
+            const fill = !ok ? 0 : boss ? share! : 1
             return (
-              <div key={name} className="relative overflow-hidden rounded-md" style={{ width: `${w}%`, background: boss ? 'rgba(208,70,59,0.14)' : 'rgba(255,255,255,0.05)' }}>
+              <div key={name} className="relative overflow-hidden rounded-md" style={{ width: `${(pts / 70) * 100}%`, background: boss ? 'rgba(208,70,59,0.14)' : 'rgba(255,255,255,0.05)' }}>
                 <div className="absolute inset-y-0 left-0" style={{ width: `${fill * 100}%`, background: boss ? 'rgba(208,70,59,0.6)' : 'rgba(255,255,255,0.2)' }} />
-                <span className="relative flex h-full items-center justify-center truncate px-2 text-fg">{name}, {w}%</span>
+                <span className="relative flex h-full items-center justify-center truncate px-2 text-fg">{name}, {label}</span>
               </div>
             )
           })}
         </div>
-        {far != null && best && (
+        {ok && (
           <>
-            <div className="mt-5 flex items-end gap-4 sm:gap-6">
-              {([[`${(far * 100).toFixed(1)}%`, 'how far it got'], ['×'], ['70', 'the most a wipe earns'], ['='], [best.score.toFixed(1), 'its score']] as [string, string?][]).map(([v, label], i) => (
+            <div className="mt-5 flex flex-wrap items-end gap-x-4 gap-y-3 sm:gap-x-5">
+              {([['10.5', 'pack 1'], ['+'], ['10.5', 'pack 2'], ['+'], [`49 × ${share!.toFixed(2)}`, `Oruth, ${(share! * 100).toFixed(0)}% of his health`], ['='], [best.score.toFixed(1), 'its score']] as [string, string?][]).map(([v, label], i, all) => (
                 label
-                  ? <div key={i}><div className={`num font-mono text-[24px] leading-8 ${i === 4 ? 'text-fg' : 'text-fg-muted'}`}>{v}</div><div className="text-[12px] text-fg-faint">{label}</div></div>
+                  ? <div key={i}><div className={`num font-mono text-[22px] leading-8 ${i === all.length - 1 ? 'text-fg' : 'text-fg-muted'}`}>{v}</div><div className="text-[12px] text-fg-faint">{label}</div></div>
                   : <div key={i} className="pb-5 font-mono text-[20px] text-fg-faint">{v}</div>
               ))}
             </div>
             <p className="mt-4 text-[13px] leading-5 text-fg-faint">
-              Both packs dead, and Oruth down to {best.boss?.toFixed(1)}% health when the party wiped.
+              Both packs dead, and Oruth down to {best.boss!.toFixed(1)}% health when the party wiped.
             </p>
           </>
         )}
