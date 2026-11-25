@@ -86,7 +86,7 @@ export function SiteFooter() {
     <footer className="mt-24 border-t border-line">
       <div className="mx-auto max-w-[1248px] px-4 sm:px-6">
         <div className="py-8 text-[13px] leading-5 text-fg-faint">
-          <div className="flex flex-wrap gap-x-6 gap-y-2">
+          <div className="flex flex-wrap justify-end gap-x-6 gap-y-2">
             <Link to="/changelog" className="transition-colors hover:text-fg">Changelog</Link>
             <Link to="/about#credits" className="transition-colors hover:text-fg">Credits</Link>
             <a href={GITHUB_URL} className="transition-colors hover:text-fg">GitHub</a>

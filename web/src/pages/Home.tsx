@@ -123,23 +123,39 @@ function Scoring({ results }: { results: Results }) {
       </p>
       <div>
         <p className="text-[14px] text-fg-muted">How far the party got is measured in health taken off. Each pack is worth 15%, Oruth 70%.</p>
-        <div className="relative mt-3">
-          <div className="flex h-9 overflow-hidden rounded-lg text-[12px]">
-            {segs.map(([name, w], i) => (
-              <div key={name} className="flex items-center justify-center border-r-2 border-bg last:border-r-0"
-                style={{ width: `${w}%`, background: i < 2 ? 'rgba(255,255,255,0.07)' : 'rgba(208,70,59,0.22)' }}>
-                <span className="truncate px-2 text-fg-muted">{name}, {w}%</span>
-              </div>
-            ))}
+        {far != null && best && (
+          <div className="mt-5 flex items-baseline justify-between gap-3 text-[13px]">
+            <span className="text-fg">{top.name || modelName(top.model)}'s best pull</span>
+            <span className="num font-mono text-fg-muted">{(far * 100).toFixed(1)}% of the way</span>
           </div>
-          {far != null && <div className="absolute -bottom-1 top-[-4px] w-[2px] rounded bg-fg" style={{ left: `${far * 100}%` }} aria-hidden />}
+        )}
+        {/* The dungeon's health as a bar, filled as far as that pull got */}
+        <div className="mt-2 flex h-9 gap-[3px] text-[12px]">
+          {segs.map(([name, w], i) => {
+            const start = segs.slice(0, i).reduce((a, [, x]) => a + x, 0) / 100
+            const fill = far == null ? 0 : Math.max(0, Math.min(1, (far - start) / (w / 100)))
+            const boss = i === segs.length - 1
+            return (
+              <div key={name} className="relative overflow-hidden rounded-md" style={{ width: `${w}%`, background: boss ? 'rgba(208,70,59,0.14)' : 'rgba(255,255,255,0.05)' }}>
+                <div className="absolute inset-y-0 left-0" style={{ width: `${fill * 100}%`, background: boss ? 'rgba(208,70,59,0.6)' : 'rgba(255,255,255,0.2)' }} />
+                <span className="relative flex h-full items-center justify-center truncate px-2 text-fg">{name}, {w}%</span>
+              </div>
+            )
+          })}
         </div>
         {far != null && best && (
-          <p className="mt-3 text-[14px] leading-6 text-fg-muted">
-            The white line is <span className="text-fg">{top.name || modelName(top.model)}'s best pull</span>. It killed
-            both packs and got Oruth down to {best.boss?.toFixed(1)}%, which is {(far * 100).toFixed(1)}% of the way,
-            so it scored 70 × {far.toFixed(3)} = {best.score.toFixed(1)}.
-          </p>
+          <>
+            <div className="mt-5 flex items-end gap-4 sm:gap-6">
+              {([[`${(far * 100).toFixed(1)}%`, 'how far it got'], ['×'], ['70', 'the most a wipe earns'], ['='], [best.score.toFixed(1), 'its score']] as [string, string?][]).map(([v, label], i) => (
+                label
+                  ? <div key={i}><div className={`num font-mono text-[24px] leading-8 ${i === 4 ? 'text-fg' : 'text-fg-muted'}`}>{v}</div><div className="text-[12px] text-fg-faint">{label}</div></div>
+                  : <div key={i} className="pb-5 font-mono text-[20px] text-fg-faint">{v}</div>
+              ))}
+            </div>
+            <p className="mt-4 text-[13px] leading-5 text-fg-faint">
+              Both packs dead, and Oruth down to {best.boss?.toFixed(1)}% health when the party wiped.
+            </p>
+          </>
         )}
       </div>
       </div>
