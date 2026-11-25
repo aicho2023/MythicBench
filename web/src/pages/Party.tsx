@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react'
-import { CLASS_COLORS, ROLE_LABEL, fmtNum } from '../content/display'
+import { CLASS_COLORS, ROLE_LABEL } from '../content/display'
 import { AbilityIcon, RoleIcon } from '../hud/bits'
 import { Page } from '../site/Layout'
 import { COLOR } from '../site/tokens'
@@ -24,6 +24,17 @@ interface Guide {
   boss: { id: string; name: string; max_hp: number; abilities: GuideAbility[]; adds_at_pct: number[] }
   tiers: { id: string; name: string; enemy_hp: number; enemy_dmg: number; limit_s: number; affixes: { id: string; name: string; description: string }[] }[]
 }
+
+/** 42K, 1.5M, 9K: no trailing ".0". */
+function fmtNum(n: number): string {
+  const short = (x: number) => String(Number(x.toFixed(1)))
+  if (n >= 1e6) return `${short(n / 1e6)}M`
+  if (n >= 1e3) return `${short(n / 1e3)}K`
+  return `${Math.round(n)}`
+}
+
+/** On +10, the tier every score comes from, Hollow Tyrant moves Oruth's adds to these (sim TYRANT_RAISE_AT). */
+const PLUS10_ADDS_AT = [80, 50, 25]
 
 const ENEMY = COLOR.bad
 /** Names short enough for the roster. */
@@ -190,14 +201,14 @@ export function Party() {
   const enemies: Character[] = g ? [
     ...g.trash.map((t) => ({
       id: t.id, name: t.name, color: ENEMY, abilities: t.spells, enemy: true,
-      kind: <>{t.melee ? 'Trash, melee' : 'Trash, caster'}</>,
+      kind: <>Trash</>,
       plates: [['Type', t.melee ? 'Melee' : 'Caster'], ['Health', fmtNum(t.max_hp)], ['Spells', String(t.spells.length)]] as [string, string][],
-      empty: 'No spells. It hits whoever it is attacking in melee.',
+      empty: 'It has no spells and just attacks in melee.',
     })),
     {
       id: g.boss.id, name: g.boss.name, color: BOSS, abilities: g.boss.abilities, enemy: true,
       kind: <>Boss</>,
-      plates: [['Type', 'Boss'], ['Health', fmtNum(g.boss.max_hp)], ['Adds at', g.boss.adds_at_pct.map((p) => `${p}%`).join(', ')]],
+      plates: [['Type', 'Boss'], ['Health', fmtNum(g.boss.max_hp)], ['Adds at', PLUS10_ADDS_AT.map((p) => `${p}%`).join(', ')]],
     },
   ] : []
 
@@ -217,16 +228,19 @@ export function Party() {
               intro="Five characters, each played by a copy of the same model." />
 
             <Roster id="enemies" title="Enemies" cards={enemies}
-              intro="The Hollow Vault: two packs of undead, then Oruth. The agents start without any of this." />
+              intro="Two packs of undead, then the boss, Oruth. The agents go in without knowing what any of them do." />
 
             <section id="difficulty" className="scroll-mt-20">
               <h2 className="text-[20px] font-medium text-fg">Difficulty and affixes</h2>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 {g.tiers.map((t) => (
                   <article key={t.id} className="rounded-xl border border-line bg-surface p-5">
-                    <h3 className="text-[17px] text-fg">{t.name}</h3>
+                    <h3 className="flex items-center gap-2 text-[17px] text-fg">
+                      {t.name}
+                      {t.id === 'plus10' && <span className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[12px] text-fg-muted">Scored</span>}
+                    </h3>
                     <p className="num mt-1 text-[13px] text-fg-faint">
-                      enemy health ×{t.enemy_hp}, damage ×{t.enemy_dmg}, timer {Math.floor(t.limit_s / 60)}:{String(t.limit_s % 60).padStart(2, '0')}
+                      Enemy health ×{t.enemy_hp} · Damage ×{t.enemy_dmg} · Timer {Math.floor(t.limit_s / 60)}:{String(t.limit_s % 60).padStart(2, '0')}
                     </p>
                     {t.affixes.length ? (
                       <ul className="mt-3 space-y-3">
