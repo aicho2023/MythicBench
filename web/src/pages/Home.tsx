@@ -1,7 +1,7 @@
 import { ArrowRight } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { HighlightCard, isRankedGroup } from './Highlights'
-import { HIGHLIGHTS, highlightPath } from '../content/highlights'
+import { HIGHLIGHTS } from '../content/highlights'
 import { PyreGrid } from '../site/PyreGrid'
 import { useInsights } from '../site/PullGrid'
 import { CostScatter, LearningCurves } from '../site/charts'
@@ -60,11 +60,9 @@ export function Home() {
   const top = results ? topPull(results) : null
   const wide = useWide()
   const idle = useIdleAfterLoad()
-  // The live clip (wide screens, once the page is idle) is the top model's best pull; until
-  // then, and on phones, the poster is the still of the closest pull of all. Label whichever shows.
-  const clip = wide && idle ? top : null
-  const poster = HIGHLIGHTS.find((h) => h.id === 'closest')
-  const heroModel = clip?.model ?? poster?.model ?? null
+  // The live clip (wide screens, once the page is idle) and its poster (stills/hero.jpg, all
+  // phones get) are both the top model's best pull.
+  const heroModel = top?.model ?? null
   return (
     <Page>
       {/* Hero: the question and two actions, the live crypt beside them */}
@@ -85,10 +83,10 @@ export function Home() {
           </div>
         </div>
         <figure className="m-0">
-          <Link to={clip ? `${clip.path}?t=${HERO_WINDOW_S[0]}` : poster ? highlightPath(poster) : '/watch'} aria-label="Open this replay in the viewer"
+          <Link to={top ? `${top.path}?t=${HERO_WINDOW_S[0]}` : '/watch'} aria-label="Open this replay in the viewer"
             className="group relative block aspect-[16/10] overflow-hidden rounded-2xl border border-line bg-scene">
             {/* A still from the same pull: the poster while the 3D clip loads, and all phones get (no WebGL download) */}
-            <img src={`${import.meta.env.BASE_URL}stills/closest.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            <img src={`${import.meta.env.BASE_URL}stills/hero.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
             {wide && idle && <Suspense fallback={null}><Teaser /></Suspense>}
             <span className="absolute bottom-3 right-3 inline-flex items-center gap-2 rounded-lg border border-line bg-[rgba(15,15,16,0.88)] px-3 py-2 text-[13px] text-fg transition-colors group-hover:bg-surface-raised">
               Open in the viewer <ArrowRight size={16} className="text-fg-muted" />
@@ -146,18 +144,21 @@ function Scoring({ results }: { results: Results }) {
             return (
               <div key={name} className="relative overflow-hidden rounded-md" style={{ width: `${(pts / 70) * 100}%`, background: boss ? 'rgba(208,70,59,0.14)' : 'rgba(255,255,255,0.05)' }}>
                 <div className="absolute inset-y-0 left-0" style={{ width: `${fill * 100}%`, background: boss ? 'rgba(208,70,59,0.6)' : 'rgba(255,255,255,0.2)' }} />
-                <span className="relative flex h-full items-center justify-center truncate px-2 text-fg">{name}, {label}</span>
+                <span className="relative flex h-full items-center justify-center truncate px-2 text-fg">
+                  {/* Phones: just the points in the narrow pack sections */}
+                  {boss ? `${name}, ${label}` : <><span className="hidden sm:inline">{name}, </span>{label}</>}
+                </span>
               </div>
             )
           })}
         </div>
         {ok && (
           <>
-            <div className="mt-5 flex flex-wrap items-end gap-x-4 gap-y-3 sm:gap-x-5">
+            <div className="mt-5 flex flex-wrap items-end gap-x-2.5 gap-y-3 sm:gap-x-5">
               {([['10.5', 'pack 1'], ['+'], ['10.5', 'pack 2'], ['+'], [`49 × ${share!.toFixed(2)}`, `Oruth, ${(share! * 100).toFixed(0)}% of his health`], ['='], [best.score.toFixed(1), '']] as [string, string?][]).map(([v, label], i, all) => (
                 label !== undefined
-                  ? <div key={i}><div className={`num font-mono text-[22px] leading-8 ${i === all.length - 1 ? 'text-fg' : 'text-fg-muted'}`}>{v}</div><div className="text-[12px] text-fg-faint">{label || '\u00a0'}</div></div>
-                  : <div key={i} className="pb-5 font-mono text-[20px] text-fg-faint">{v}</div>
+                  ? <div key={i}><div className={`num font-mono text-[17px] leading-7 sm:text-[22px] sm:leading-8 ${i === all.length - 1 ? 'text-fg' : 'text-fg-muted'}`}>{v}</div><div className="text-[12px] text-fg-faint">{label || '\u00a0'}</div></div>
+                  : <div key={i} className="pb-5 font-mono text-[16px] text-fg-faint sm:text-[20px]">{v}</div>
               ))}
             </div>
           </>
