@@ -79,8 +79,8 @@ export function HighlightCard({ h, compact = false }: { h: Highlight; compact?: 
         <h3 className="text-[17px] font-medium leading-6 text-fg">{h.title}</h3>
         <div className="mt-1"><Where h={h} /></div>
         {q
-          ? <p className="mt-3 line-clamp-3 text-[14px] leading-[22px] text-fg-muted"><span style={{ color: CHAR[q.who] ? CLASS_COLORS[CHAR[q.who].cls] : undefined }}>{q.who}:</span> “{q.text}”</p>
-          : <p className="mt-3 line-clamp-3 text-[14px] leading-[22px] text-fg-muted">{h.summary}</p>}
+          ? <p className="mt-3 text-[14px] leading-[22px] text-fg-muted"><span style={{ color: CHAR[q.who] ? CLASS_COLORS[CHAR[q.who].cls] : undefined }}>{q.who}:</span> “{q.text}”</p>
+          : <p className="mt-3 text-[14px] leading-[22px] text-fg-muted">{h.summary}</p>}
         <span className="mt-auto flex items-center gap-1.5 pt-4 text-[13px] text-fg-muted transition-colors group-hover:text-fg">
           <Play size={13} /> Watch{h.t != null ? ` from ${fmtTime(h.t * 1000)}` : ''}
         </span>
@@ -95,7 +95,7 @@ export function HighlightCard({ h, compact = false }: { h: Highlight; compact?: 
 function FullCard({ h, to }: { h: Highlight; to: string }) {
   const [open, setOpen] = useState(() => location.hash === `#${h.id}`)
   const quotes = open ? h.quotes : h.quotes.slice(0, 1)
-  const more = h.quotes.length > 1 || h.summary.length > 220
+  const more = h.quotes.length > 1
   return (
     <article id={h.id} className={`scroll-mt-24 overflow-hidden rounded-2xl border border-line bg-surface ${open ? 'md:col-span-2' : ''}`}>
       {h.image && (
@@ -109,9 +109,9 @@ function FullCard({ h, to }: { h: Highlight; to: string }) {
       )}
       <div className="p-5 sm:p-6">
         {h.stat && <div className="font-mono text-[13px] text-fg">{h.stat}</div>}
-        <h2 className={`${h.stat ? 'mt-2' : ''} text-[20px] font-medium leading-7 text-fg`}>{h.title}</h2>
+        <h2 className={`${h.stat ? 'mt-2' : ''} text-[17px] font-medium leading-6 text-fg sm:text-[20px] sm:leading-7`}>{h.title}</h2>
         <div className="mt-1.5"><Where h={h} /></div>
-        <p className={`mt-4 text-[15px] leading-[26px] text-fg-muted ${open ? '' : 'line-clamp-4'}`}>{h.summary}</p>
+        <p className="mt-4 text-[15px] leading-[26px] text-fg-muted">{h.summary}</p>
         {quotes.length > 0 && <ul className="mt-5 space-y-4 border-l-2 border-line pl-4">{quotes.map((q, i) => <QuoteLine key={i} q={q} />)}</ul>}
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <Link to={to} className="btn h-10 px-4 text-[14px]">
@@ -149,10 +149,6 @@ export function Highlights() {
       <div className="mx-auto max-w-[1120px] py-12 md:py-16">
         <header>
           <h1 className="text-[28px] font-normal leading-[1.15] text-fg sm:text-[32px]">Highlights</h1>
-          <p className="mt-4 max-w-[640px] text-[17px] leading-7 text-fg-muted">
-            The moments worth seeing from the official run: breakthroughs, arguments, clutch saves and spectacular wipes.
-            Each one opens in the <Link to="/watch" className="text-fg underline decoration-accent/50 underline-offset-4 hover:decoration-accent">replay viewer</Link> at the moment it happens.
-          </p>
         </header>
 
         <div className="mt-8 flex flex-wrap items-center gap-2" role="group" aria-label="Filter by kind">
