@@ -3,11 +3,13 @@ import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { HighlightCard } from './Highlights'
 import { HIGHLIGHTS } from '../content/highlights'
 import { PyreGrid } from '../site/PyreGrid'
+import { useInsights } from '../site/PullGrid'
 import { CostScatter, LearningCurves } from '../site/charts'
 import { LeaderboardTable } from '../site/Leaderboard'
 import { Page } from '../site/Layout'
 import { HERO_WINDOW_S } from '../site/config'
 import { tierName, topPull, type Results } from '../site/results'
+import { modelName } from '../content/display'
 import { Link } from '../site/router'
 import { useResults } from '../site/useResults'
 
@@ -96,6 +98,63 @@ export function Home() {
   )
 }
 
+/**
+ * How a score is made, spelled out before any score is shown. The numbers are
+ * the scoring rule's (sim/mythicsim/metrics.py: dungeon_score, PROGRESS_WEIGHTS);
+ * the worked example is the top model's best +10 pull, from the insights file.
+ */
+function Scoring({ results }: { results: Results }) {
+  const insights = useInsights()
+  const top = results.leaderboard[0]
+  const pulls = (insights?.models[top?.model ?? ''] ?? []).filter((g) => g.ranked).flatMap((g) => g.pulls)
+  const best = pulls.length ? pulls.reduce((a, b) => (b.score > a.score ? b : a)) : null
+  // The example only reads right when that pull cleared both packs (score = 70 × (0.3 + 0.7 × Oruth's share)).
+  const removed = best?.boss != null ? 1 - best.boss / 100 : null
+  const example = best && removed != null && Math.abs(70 * (0.3 + 0.7 * removed) - best.score) < 0.15 ? { best, removed } : null
+  const Row = ({ k, v, note }: { k: string; v: string; note?: string }) => (
+    <div className="grid gap-x-6 gap-y-0.5 py-3 sm:grid-cols-[150px_minmax(0,1fr)]">
+      <dt className="text-[14px] font-medium text-fg">{k}</dt>
+      <dd>
+        <span className="font-mono text-[14px] text-fg">{v}</span>
+        {note && <span className="mt-0.5 block text-[13px] leading-5 text-fg-muted">{note}</span>}
+      </dd>
+    </div>
+  )
+  return (
+    <section id="scoring" className="pt-20">
+      <SectionHead title="How the score works"
+        caption="Every pull is scored from 0 to 100, on how far the party got and, for a clear, how fast. Nothing else counts: handling a mechanic only helps by keeping the party alive." />
+      <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+        <dl className="divide-y divide-line rounded-2xl border border-line bg-surface px-4 sm:px-5">
+          <Row k="A pull that wipes" v="70 × progress" />
+          <Row k="A pull that clears" v="70 + 30 × speed" />
+          <Row k="Progress" v="0.15 × pack 1 + 0.15 × pack 2 + 0.70 × Oruth" note="The share of each one's health removed." />
+          <Row k="Speed" v="time left ÷ 1:04, at most 1" note="Full marks with a quarter of the 4:15 timer left." />
+          <Row k="Group score" v="average of its 5 pulls" note="A clear counts again for every pull it saves." />
+          <Row k="Model score" v="average of its 6 groups" note="All on +10, the hardest difficulty." />
+        </dl>
+        {example && (
+          <div className="rounded-2xl border border-line bg-surface p-4 sm:p-5">
+            <div className="text-[14px] font-medium text-fg">Example: {top.name || modelName(top.model)}'s best pull</div>
+            <p className="mt-1 text-[14px] leading-6 text-fg-muted">
+              Both packs dead, and Oruth down to {example.best.boss!.toFixed(1)}% health when the party wiped.
+            </p>
+            <div className="mt-4 space-y-2 font-mono text-[14px] leading-6 text-fg">
+              <div>progress = 0.15 + 0.15 + 0.70 × {example.removed.toFixed(3)}<br /><span className="text-fg-muted">= {(0.3 + 0.7 * example.removed).toFixed(3)}</span></div>
+              <div>score = 70 × {(0.3 + 0.7 * example.removed).toFixed(3)} <span className="text-fg-muted">= {example.best.score.toFixed(1)}</span></div>
+            </div>
+            {results.leaderboard.every((r) => !r.tiers.plus10?.clears) && (
+              <p className="mt-4 text-[13px] leading-5 text-fg-faint">
+                No model cleared the dungeon, so every score below is a wipe's: at most 70.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
 function Results({ results }: { results: Results }) {
   if (!results.leaderboard.length) return null
   return <ResultsBody results={results} />
@@ -123,6 +182,8 @@ function ResultsBody({ results }: { results: Results }) {
   const [tier, setTier] = useState(tiers.includes('plus10') ? 'plus10' : tiers[0])
   return (
     <>
+
+      <Scoring results={results} />
 
       <section id="leaderboard" className="pt-20">
         <SectionHead title="Leaderboard" link={['/report#results', 'Report']} />

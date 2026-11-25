@@ -2,7 +2,7 @@ import { ChevronRight } from 'lucide-react'
 import { modelName } from '../content/display'
 import { CIAxis, CIBar, scoreDomain } from './charts'
 import {
-  botRow, costPerRun, episodeHeadlines, fmtScore, fmtUsd, headlineTier, labName, modelColor,
+  costPerRun, episodeHeadlines, fmtScore, fmtUsd, headlineTier, labName, modelColor,
   type LeaderboardRow, type Results,
 } from './results'
 import { navigate } from './router'
@@ -54,11 +54,9 @@ function BossLeft({ pct }: { pct: number }) {
 
 export function LeaderboardTable({ results }: { results: Results }) {
   const hard = headlineTier(results)
-  // The reference rows: every baseline when they're shown, else just the scripted bot, which the
-  // results are read against ("level with the bot").
-  const bot = botRow(results)
-  const baselines = results.baselines?.length ? results.baselines : bot ? [bot] : []
-  const rows = [...results.leaderboard, ...baselines]
+  // Models only: the scripted bot is a reference line on the charts, not a row here.
+  const baselines: LeaderboardRow[] = []
+  const rows = results.leaderboard
   const [lo, hi] = scoreDomain(rows.flatMap((r) => [...(r.tiers[hard]?.episode_scores ?? []), ...(r.mythicbench_score_ci95 ?? [])]))
   const lead = results.leaderboard.find((r) => r.rank !== null)?.model
   // A column of "0 of 6" says nothing the page doesn't: it appears once any model clears.
@@ -149,10 +147,9 @@ export function LeaderboardTable({ results }: { results: Results }) {
 function LeaderboardKey() {
   // [term, meaning, the breakpoint its column shows from]
   const items: [string, string, string?][] = [
-    ['Group score', 'the average of its five pulls, where a pull that wipes scores 70 × how far the party got (each pack 15%, Oruth\'s health removed 70%) and a clear scores 70, plus up to 30 for speed (all 30 with a quarter of the timer left). A clear counts again for every pull it saves. A model\'s score is the average of its six groups.'],
+    ['Each group\'s score', 'one dot per group; the white tick is the model\'s average, the bar its 95% interval.', 'hidden sm:block'],
     ['Oruth\'s health', 'no model got the boss to zero; Opus and Sol came closest.', 'hidden md:block'],
     ['Cost', 'one group of up to five pulls, at list prices, thinking included.', 'hidden sm:block'],
-    ['Scripted bot', 'fixed rules played through the same controls: it interrupts and steps out of pools, and never learns.'],
   ]
   return (
     <dl className="mt-4 max-w-[760px] space-y-1.5 text-[13px] leading-5 text-fg-faint">
