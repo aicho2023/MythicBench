@@ -322,24 +322,30 @@ function Key({ children }: { children: React.ReactNode }) {
   return <kbd className="inline-grid h-5 min-w-5 place-items-center rounded border border-line bg-surface-raised px-1 font-mono text-meta text-fg-muted">{children}</kbd>
 }
 
-/** A one-time note for visitors who opened plain /watch: whose pull this is and what to look for. */
+/**
+ * A one-time note for visitors who opened plain /watch: whose pull this is and what to look for.
+ * The replay waits, paused, under it; pressing play (here or anywhere) clears it, so it never
+ * covers the fight while it runs.
+ */
 export function LandingHint() {
   const landing = usePlayback((p) => p.landing)
+  const playing = usePlayback((p) => p.playing)
   const label = usePlayback((p) => p.index.find((e) => e.id === p.currentId)?.label)
   const dismiss = usePlayback((p) => p.dismissLanding)
-  useEffect(() => {
-    if (!landing) return
-    const id = setTimeout(dismiss, 20000)
-    return () => clearTimeout(id)
-  }, [landing, dismiss])
+  useEffect(() => { if (landing && playing) dismiss() }, [landing, playing, dismiss])
   if (!landing || !label) return null
   return (
-    <div className="card pointer-events-auto flex w-[480px] max-w-[calc(100vw-32px)] animate-[fadein_400ms_cubic-bezier(0.22,1,0.36,1)] items-start gap-3 px-4 py-3 text-[13px] leading-5">
+    <div className="card pointer-events-auto w-[480px] max-w-[calc(100vw-32px)] animate-[fadein_400ms_cubic-bezier(0.22,1,0.36,1)] px-4 py-3 text-[13px] leading-5">
       <p className="text-fg-muted">
         <span className="text-fg">{label}, one of the best pulls in the benchmark.</span> Watch the glowing circle on the
         floor: with two or more players inside, its blast is split between them; with fewer, it hits the whole party.
       </p>
-      <button onClick={dismiss} className="icon-btn -mr-1 shrink-0" aria-label="Dismiss"><X size={14} /></button>
+      <div className="mt-3 flex items-center gap-2">
+        <button onClick={() => usePlayback.getState().setPlaying(true)} className="btn btn-primary h-9 px-4 text-[13px]">
+          <Play size={14} fill="currentColor" /> Play
+        </button>
+        <button onClick={dismiss} className="btn h-9 px-3 text-[13px]">Dismiss</button>
+      </div>
     </div>
   )
 }

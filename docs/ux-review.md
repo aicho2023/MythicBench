@@ -69,7 +69,16 @@ Smaller ones:
 - Viewer learning panel tabs fit on one line ("Talk" instead of "Party talk").
 - Phone menu dims the page behind it; tapping the dimmed area closes it.
 
-## Still open
+## Fixed in the third pass
+
+- Oruth's floating health bar drops under his feet whenever the HUD warnings
+  would cover it.
+- The first-visit hint opens with the replay paused and a Play button; it
+  disappears as soon as the replay plays, so it never covers a running fight.
+- Side-by-side names try above, below, right and left of their dot before
+  stepping further out, and draw a thin leader line when they do.
+
+## Previously open (now fixed)
 
 - When Oruth is near the top of the screen, his floating health bar can sit
   under the HUD warnings ("Desecrate: move out of the pools"). It's a world

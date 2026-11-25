@@ -136,7 +136,17 @@ export function WorldOverlay() {
       const bsp = boss?.alive ? (() => { const bpos = posAt(boss, t); return project(bpos[0], HEAD.boss, bpos[1]) })() : null
       if (bp && boss && bsp) {
         bp.style.display = 'block'
-        placed.push({ el: bp, x: bsp[0], y: bsp[1] })
+        // Over his head, as in the game, unless that lands under the HUD warnings at the top of the
+        // screen (Oruth near the top edge): then under his feet instead, where nothing covers it.
+        const origin = root.current?.getBoundingClientRect()
+        const warn = document.querySelector<HTMLElement>('.viewer [data-hud="warnings"]')?.getBoundingClientRect()
+        const w2 = bp.offsetWidth / 2
+        const blocked = !!(origin && warn && warn.height > 0
+          && bsp[0] - w2 < warn.right - origin.left && bsp[0] + w2 > warn.left - origin.left
+          && bsp[1] - bp.offsetHeight < warn.bottom - origin.top + 6)
+        const bpos = posAt(boss, t)
+        const feet = blocked ? project(bpos[0], 0, bpos[1]) : null
+        placed.push(feet ? { el: bp, x: feet[0], y: feet[1] + 12 + bp.offsetHeight } : { el: bp, x: bsp[0], y: bsp[1] })
         const q = (k: string) => bp.querySelector(`[data-k="${k}"]`) as HTMLElement
         if (q('name').textContent !== boss.info.name) q('name').textContent = boss.info.name
         const pct = `${((100 * boss.hp) / boss.info.max_hp).toFixed(1)}%`

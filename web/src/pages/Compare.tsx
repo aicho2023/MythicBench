@@ -24,8 +24,10 @@ function TacticalMap({ engine, s, t }: { engine: ReplayEngine; s: ReplayState; t
   const h = VIEW_M / 2
   // Name labels sit above each player; when two players stand close, later labels step up
   // until they clear the ones already placed, so names never print on top of each other.
-  // Each label is a box [x0, x1] x [y - 0.65, y + 0.1] (y is the text baseline); so is each dot.
-  const labels: { id: string; name: string; color: string; x: number; y: number; alive: boolean }[] = []
+  // Each label is a box around its text; so is each dot. A label tries above its dot, then below,
+  // right and left, and only steps further out (with a leader line back) if all four are taken.
+  type Anchor = 'middle' | 'start' | 'end'
+  const labels: { id: string; name: string; color: string; x: number; y: number; anchor: Anchor; dot: [number, number]; far: boolean; alive: boolean }[] = []
   const boxes = party.map((u) => {
     const [x, z] = posAt(u, t)
     const r = Math.max(0.45, u.info.radius)
@@ -36,10 +38,25 @@ function TacticalMap({ engine, s, t }: { engine: ReplayEngine; s: ReplayState; t
   for (const u of [...party].sort((p, q) => posAt(p, t)[0] - posAt(q, t)[0])) {
     const [x, z] = posAt(u, t)
     const w = u.info.name.length * 0.4 + 0.2
-    let y = z - Math.max(0.45, u.info.radius) - 0.35
-    for (let n = 0; n < 6 && hits({ x0: x - w / 2, x1: x + w / 2, y0: y - 0.65, y1: y + 0.1 }); n++) y -= 0.8
-    boxes.push({ x0: x - w / 2, x1: x + w / 2, y0: y - 0.65, y1: y + 0.1 })
-    labels.push({ id: u.info.id, name: u.info.name, color: CLASS_COLORS[u.info.class], x, y, alive: u.alive })
+    const r = Math.max(0.45, u.info.radius)
+    // [text x, baseline y, anchor]; the box is the text's extent from its anchor
+    const spots: [number, number, Anchor][] = [
+      [x, z - r - 0.35, 'middle'], [x, z + r + 0.75, 'middle'], [x + r + 0.3, z + 0.25, 'start'], [x - r - 0.3, z + 0.25, 'end'],
+    ]
+    const box = ([lx, ly, a]: [number, number, Anchor]) => {
+      const x0 = a === 'middle' ? lx - w / 2 : a === 'start' ? lx : lx - w
+      return { x0, x1: x0 + w, y0: ly - 0.65, y1: ly + 0.1 }
+    }
+    let spot = spots.find((sp) => !hits(box(sp)))
+    let far = false
+    if (!spot) {
+      far = true
+      let y = spots[0][1]
+      for (let n = 0; n < 6 && hits(box([x, y, 'middle'])); n++) y -= 0.8
+      spot = [x, y, 'middle']
+    }
+    boxes.push(box(spot))
+    labels.push({ id: u.info.id, name: u.info.name, color: CLASS_COLORS[u.info.class], x: spot[0], y: spot[1], anchor: spot[2], dot: [x, z - r], far, alive: u.alive })
   }
   return (
     <svg viewBox={`${cx - h} ${cz - h} ${VIEW_M} ${VIEW_M}`} className="aspect-square w-full rounded-lg border border-line bg-[#0c0c0e]" role="img"
@@ -67,8 +84,11 @@ function TacticalMap({ engine, s, t }: { engine: ReplayEngine; s: ReplayState; t
       })}
       {/* Names last, so no dot is drawn over one */}
       {labels.map((l) => (
-        <text key={l.id} x={l.x} y={l.y} textAnchor="middle" fontSize={0.7} fill={l.color} opacity={l.alive ? 1 : 0.35}
-          stroke="#0c0c0e" strokeWidth={0.18} paintOrder="stroke" className="font-sans">{l.name}</text>
+        <g key={l.id} opacity={l.alive ? 1 : 0.35}>
+          {l.far && <line x1={l.dot[0]} y1={l.dot[1]} x2={l.x} y2={l.y + 0.1} stroke={l.color} strokeWidth={0.06} opacity={0.6} />}
+          <text x={l.x} y={l.y} textAnchor={l.anchor} fontSize={0.7} fill={l.color}
+            stroke="#0c0c0e" strokeWidth={0.18} paintOrder="stroke" className="font-sans">{l.name}</text>
+        </g>
       ))}
     </svg>
   )

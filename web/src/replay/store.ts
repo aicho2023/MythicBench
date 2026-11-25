@@ -164,7 +164,8 @@ export const usePlayback = create<Playback>((set, get) => ({
       const featured = best && index.find((e) => e.path === best.path)
       if (featured) {
         await get().load(featured.id, { startMs: HERO_WINDOW_S[0] * 1000 })
-        set({ landing: true })
+        // Paused under a short note on what to watch; the note goes as soon as it plays.
+        set({ landing: true, playing: false })
         return true
       }
       // Else the leaderboard's top model on +10 if there is one, else (only when references

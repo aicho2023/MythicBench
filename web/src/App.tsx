@@ -54,7 +54,7 @@ export default function App({ path = '/watch' }: { path?: string }) {
         <div className="hud-top absolute inset-x-4 top-[72px]">
           <div className="hud-s no-phone justify-self-start [grid-area:party]"><PartyFrames /></div>
           <div className="phone-only [grid-area:party]"><CompactParty /></div>
-          <div className="hud-s relative justify-self-center [grid-area:boss]">
+          <div className="hud-s relative justify-self-center [grid-area:boss]" data-hud="warnings">
             <RaidWarnings />
           </div>
           <div className="hud-s hud-side flex flex-col gap-2 justify-self-end [grid-area:side]">

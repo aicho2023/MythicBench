@@ -652,7 +652,7 @@ function ResultsBody({ r }: { r: Results }) {
       <p>
         Figure 4 shows what killed each party. Bone Pyre causes 55% of GPT-6 Luna's deaths and 30 to 40% of every other
         model's. Opus and Sol, whose parties gather in the middle to soak it, lose more characters to the Desecrate pools
-        that land there: 30% and 28% of their deaths, against 5% for Luna.
+        that land there: 30% and 27% of their deaths, against 5% for Luna.
       </p>
       <Figure n="4" caption="What killed each model's characters, as a share of its deaths over its six ranked +10 groups. Hover a cell for the count; Other lists the rest.">
         <DeathCauses results={r} />
