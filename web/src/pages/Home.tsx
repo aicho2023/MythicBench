@@ -126,10 +126,10 @@ function Scoring({ results }: { results: Results }) {
       <div className="mt-4 grid items-center gap-x-14 gap-y-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
       <p className="text-[17px] leading-7 text-fg-muted">
         Each attempt at the dungeon is called a pull, and every pull scores 0 to 100. A pull that ends in a wipe
-        earns points for how far the party got: up to 10.5 for each of the two packs (groups of monsters before the
-        boss) and up to 49 for Oruth, in proportion to the health taken off each. That's 70 at most. A clear earns
-        70, plus up to 30 the faster it finishes, and counts again for every pull it saved. A model's score is the
-        average of all its pulls: six groups of five, on +10, the hardest difficulty.
+        (everyone dying) earns points for how far the party got: up to 10.5 for each of the two packs (groups of
+        monsters before the boss) and up to 49 for Oruth, in proportion to the health taken off each. A clear
+        (completion of the dungeon) earns 70, plus up to 30 the faster it finishes. We define a model's score as the
+        average score of all its pulls.
       </p>
       <div>
         {ok && (
@@ -154,15 +154,12 @@ function Scoring({ results }: { results: Results }) {
         {ok && (
           <>
             <div className="mt-5 flex flex-wrap items-end gap-x-4 gap-y-3 sm:gap-x-5">
-              {([['10.5', 'pack 1'], ['+'], ['10.5', 'pack 2'], ['+'], [`49 × ${share!.toFixed(2)}`, `Oruth, ${(share! * 100).toFixed(0)}% of his health`], ['='], [best.score.toFixed(1), 'its score']] as [string, string?][]).map(([v, label], i, all) => (
-                label
-                  ? <div key={i}><div className={`num font-mono text-[22px] leading-8 ${i === all.length - 1 ? 'text-fg' : 'text-fg-muted'}`}>{v}</div><div className="text-[12px] text-fg-faint">{label}</div></div>
+              {([['10.5', 'pack 1'], ['+'], ['10.5', 'pack 2'], ['+'], [`49 × ${share!.toFixed(2)}`, `Oruth, ${(share! * 100).toFixed(0)}% of his health`], ['='], [best.score.toFixed(1), '']] as [string, string?][]).map(([v, label], i, all) => (
+                label !== undefined
+                  ? <div key={i}><div className={`num font-mono text-[22px] leading-8 ${i === all.length - 1 ? 'text-fg' : 'text-fg-muted'}`}>{v}</div><div className="text-[12px] text-fg-faint">{label || '\u00a0'}</div></div>
                   : <div key={i} className="pb-5 font-mono text-[20px] text-fg-faint">{v}</div>
               ))}
             </div>
-            <p className="mt-4 text-[13px] leading-5 text-fg-faint">
-              Both packs dead, and Oruth down to {best.boss!.toFixed(1)}% health when the party wiped.
-            </p>
           </>
         )}
       </div>
