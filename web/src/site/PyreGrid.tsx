@@ -50,6 +50,17 @@ export function PyreGrid({ results }: { results: Results }) {
   if (!data) return <div ref={ref} className="h-[420px]" />
   return (
     <div ref={ref} className="relative" onPointerLeave={touch ? undefined : () => setHover(null)}>
+      {/* The key, before the grid it explains */}
+      <div className="mb-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] text-fg-muted">
+        {KINDS.map((k) => (
+          <span key={k.key} className="flex items-center gap-2">
+            <span className="h-3 w-3 rounded-[2px]" style={{ background: k.color }} aria-hidden />{k.label}
+          </span>
+        ))}
+        <span className="flex items-center gap-2">
+          <span className="h-[2px] w-3 rounded-full bg-white/[0.08]" aria-hidden />never reached Oruth
+        </span>
+      </div>
       {/* Pull headings, aligned with the columns below */}
       <div className="flex text-[11px] text-fg-faint" style={{ paddingLeft: labelW }}>
         {Array.from({ length: pulls }, (_, k) => (
@@ -112,16 +123,6 @@ export function PyreGrid({ results }: { results: Results }) {
         ))}
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] text-fg-muted">
-        {KINDS.map((k) => (
-          <span key={k.key} className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-[2px]" style={{ background: k.color }} aria-hidden />{k.label}
-          </span>
-        ))}
-        <span className="flex items-center gap-2">
-          <span className="h-[2px] w-3 rounded-full bg-white/[0.08]" aria-hidden />never reached Oruth
-        </span>
-      </div>
 
       {hover && (
         <Tip x={hover.x} y={hover.y} w={w} interactive={touch}>

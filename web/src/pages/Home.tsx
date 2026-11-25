@@ -99,56 +99,55 @@ export function Home() {
 }
 
 /**
- * How a score is made, spelled out before any score is shown. The numbers are
- * the scoring rule's (sim/mythicsim/metrics.py: dungeon_score, PROGRESS_WEIGHTS);
- * the worked example is the top model's best +10 pull, from the insights file.
+ * How a score is made, before any score is shown, in three plain cards and
+ * one bar: what "how far the party got" means. The numbers are the scoring
+ * rule's (sim/mythicsim/metrics.py: dungeon_score, PROGRESS_WEIGHTS); the
+ * marker is the top model's best +10 pull, from the insights file.
  */
 function Scoring({ results }: { results: Results }) {
   const insights = useInsights()
   const top = results.leaderboard[0]
   const pulls = (insights?.models[top?.model ?? ''] ?? []).filter((g) => g.ranked).flatMap((g) => g.pulls)
   const best = pulls.length ? pulls.reduce((a, b) => (b.score > a.score ? b : a)) : null
-  // The example only reads right when that pull cleared both packs (score = 70 × (0.3 + 0.7 × Oruth's share)).
-  const removed = best?.boss != null ? 1 - best.boss / 100 : null
-  const example = best && removed != null && Math.abs(70 * (0.3 + 0.7 * removed) - best.score) < 0.15 ? { best, removed } : null
-  const Row = ({ k, v, note }: { k: string; v: string; note?: string }) => (
-    <div className="grid gap-x-6 gap-y-0.5 py-3 sm:grid-cols-[150px_minmax(0,1fr)]">
-      <dt className="text-[14px] font-medium text-fg">{k}</dt>
-      <dd>
-        <span className="font-mono text-[14px] text-fg">{v}</span>
-        {note && <span className="mt-0.5 block text-[13px] leading-5 text-fg-muted">{note}</span>}
-      </dd>
-    </div>
-  )
+  const far = best ? best.score / 70 : null // a wipe scores 70 x how far it got
+  const cards: [string, string, string][] = [
+    ['A wipe', 'up to 70', '70 × how far the party got through the dungeon.'],
+    ['A clear', '70 to 100', '70, plus up to 30 for speed. It ends the group and counts again for every pull it saved.'],
+    ['A model', 'the average', 'Of all its pulls: six groups of five, on +10, the hardest difficulty.'],
+  ]
+  const segs: [string, number][] = [['Pack 1', 15], ['Pack 2', 15], ['Oruth, the boss', 70]]
   return (
     <section id="scoring" className="pt-20">
-      <SectionHead title="How the score works"
-        caption="Every pull is scored from 0 to 100, on how far the party got and, for a clear, how fast. Nothing else counts: handling a mechanic only helps by keeping the party alive." />
-      <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
-        <dl className="divide-y divide-line rounded-2xl border border-line bg-surface px-4 sm:px-5">
-          <Row k="A pull that wipes" v="70 × progress" />
-          <Row k="A pull that clears" v="70 + 30 × speed" />
-          <Row k="Progress" v="0.15 × pack 1 + 0.15 × pack 2 + 0.70 × Oruth" note="The share of each one's health removed." />
-          <Row k="Speed" v="time left ÷ 1:04, at most 1" note="Full marks with a quarter of the 4:15 timer left." />
-          <Row k="Group score" v="average of its 5 pulls" note="A clear counts again for every pull it saves." />
-          <Row k="Model score" v="average of its 6 groups" note="All on +10, the hardest difficulty." />
-        </dl>
-        {example && (
-          <div className="rounded-2xl border border-line bg-surface p-4 sm:p-5">
-            <div className="text-[14px] font-medium text-fg">Example: {top.name || modelName(top.model)}'s best pull</div>
-            <p className="mt-1 text-[14px] leading-6 text-fg-muted">
-              Both packs dead, and Oruth down to {example.best.boss!.toFixed(1)}% health when the party wiped.
-            </p>
-            <div className="mt-4 space-y-2 font-mono text-[14px] leading-6 text-fg">
-              <div>progress = 0.15 + 0.15 + 0.70 × {example.removed.toFixed(3)}<br /><span className="text-fg-muted">= {(0.3 + 0.7 * example.removed).toFixed(3)}</span></div>
-              <div>score = 70 × {(0.3 + 0.7 * example.removed).toFixed(3)} <span className="text-fg-muted">= {example.best.score.toFixed(1)}</span></div>
-            </div>
-            {results.leaderboard.every((r) => !r.tiers.plus10?.clears) && (
-              <p className="mt-4 text-[13px] leading-5 text-fg-faint">
-                No model cleared the dungeon, so every score below is a wipe's: at most 70.
-              </p>
-            )}
+      <SectionHead title="Scoring formula" caption="Every pull (attempt) scores 0 to 100." />
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        {cards.map(([k, v, note]) => (
+          <div key={k} className="rounded-2xl border border-line bg-surface p-4 sm:p-5">
+            <div className="text-[14px] text-fg-muted">{k}</div>
+            <div className="mt-1 text-[24px] leading-8 text-fg">{v}</div>
+            <p className="mt-2 text-[14px] leading-5 text-fg-muted">{note}</p>
           </div>
+        ))}
+      </div>
+      <div className="mt-3 rounded-2xl border border-line bg-surface p-4 sm:p-5">
+        <div className="text-[14px] text-fg-muted">How far the party got: the share of each one's health removed</div>
+        <div className="relative mt-3">
+          <div className="flex h-9 overflow-hidden rounded-lg text-[12px]">
+            {segs.map(([name, w], i) => (
+              <div key={name} className="flex items-center justify-center border-r border-bg last:border-r-0"
+                style={{ width: `${w}%`, background: i < 2 ? 'rgba(255,255,255,0.07)' : 'rgba(208,70,59,0.22)' }}>
+                <span className="truncate px-2 text-fg-muted">{name}, {w}%</span>
+              </div>
+            ))}
+          </div>
+          {far != null && (
+            <div className="absolute -bottom-1 top-[-4px] w-[2px] rounded bg-fg" style={{ left: `${far * 100}%` }} aria-hidden />
+          )}
+        </div>
+        {far != null && best && (
+          <p className="mt-3 text-[14px] leading-6 text-fg-muted">
+            <span className="text-fg">{top.name || modelName(top.model)}'s best pull</span> got {(far * 100).toFixed(1)}% of
+            the way (both packs, and Oruth down to {best.boss?.toFixed(1)}%), so it scored 70 × {far.toFixed(3)} = {best.score.toFixed(1)}.
+          </p>
         )}
       </div>
     </section>
