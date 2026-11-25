@@ -79,10 +79,6 @@ export function Home() {
             to put that to the test. Introducing: MythicBench. We wanted to see if seven AI models could learn how to clear a
             Mythic-style dungeon, all by themselves.
           </p>
-          <p className="mt-4 max-w-[520px] text-[17px] leading-7 text-fg-muted">
-            Five copies of one AI each play a character, go in blind, and get five tries, reading the combat log and
-            writing notes after each wipe, when the whole party dies.
-          </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/watch" className="btn btn-primary h-11 px-5 text-[14px]">Watch a run</Link>
             <Link to="/report" className="btn h-11 px-5 text-[14px]">Read the report</Link>
