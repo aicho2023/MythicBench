@@ -1,3 +1,5 @@
+import { COLOR } from './src/site/tokens'
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
@@ -8,18 +10,18 @@ export default {
         mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
       },
       colors: {
-        // Graphite surfaces; the 3D scene supplies the color.
-        bg: '#0a0a0c',
-        surface: { DEFAULT: '#111113', raised: '#1a1a1d' },
-        fg: { DEFAULT: '#ededef', muted: '#a1a1aa', faint: '#8b8b93' },
-        line: 'rgba(255,255,255,0.08)',
-        // Bone, from the crypt: marks what a model learned. Used rarely.
-        accent: '#e6d3a3',
-        // Semantic colors only ever mean one thing.
-        good: '#4ade80',
-        bad: '#f87171',
-        warn: '#fbbf24',
-        info: '#7dd3fc',
+        // One source for every colour: src/site/tokens.ts (code that needs a value imports it too).
+        bg: COLOR.bg,
+        surface: { DEFAULT: COLOR.surface, raised: COLOR.raised },
+        scene: COLOR.scene,
+        fg: { DEFAULT: COLOR.fg, muted: COLOR.fgMuted, faint: COLOR.fgFaint },
+        off: COLOR.off,
+        line: COLOR.line,
+        accent: COLOR.accent,
+        good: COLOR.good,
+        bad: COLOR.bad,
+        warn: COLOR.warn,
+        info: COLOR.info,
       },
       fontSize: {
         // Small meta and panel titles. Never below 11px over the scene.

@@ -7,11 +7,12 @@
  */
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
-import { CLASS_COLORS, SCHOOL_COLORS, fmtNum } from '../content/display'
+import { CLASS_COLORS, HOSTILE, SCHOOL_COLORS, fmtNum } from '../content/display'
 import { posAt, bossOf } from '../replay/engine'
 import { frameState } from '../replay/store'
 import { sceneBridge } from '../scene/Scene'
 import { ROLE_ICON, ROLE_TINT, chatText } from './bits'
+import { COLOR } from '../site/tokens'
 
 const MAX_TEXT = 44
 const MAX_PLATES = 16
@@ -114,7 +115,7 @@ export function WorldOverlay() {
           : `${abInfo.name}${u.cast?.interruptible ? ' (kick)' : ''}`
         if (doing.textContent !== doingText) doing.textContent = doingText
         doing.style.display = doingText ? 'block' : 'none'
-        if (abInfo) doing.style.color = player ? SCHOOL_COLORS[abInfo.school] ?? '#ededef' : u.cast?.interruptible ? '#fbbf24' : '#fca5a5'
+        if (abInfo) doing.style.color = player ? SCHOOL_COLORS[abInfo.school] ?? COLOR.fg : u.cast?.interruptible ? COLOR.warn : HOSTILE
         const label = u.info.kind === 'player' ? u.info.name : ''
         if (name.textContent !== label) name.textContent = label
         const role = u.info.kind === 'player' ? u.info.role : ''
@@ -122,7 +123,7 @@ export function WorldOverlay() {
           icons.dataset.role = role
           for (const c of Array.from(icons.children) as HTMLElement[]) c.style.display = c.dataset.role === role ? 'inline-flex' : 'none'
         }
-        name.style.color = u.info.kind === 'player' ? CLASS_COLORS[u.info.class] : '#fca5a5'
+        name.style.color = u.info.kind === 'player' ? CLASS_COLORS[u.info.class] : HOSTILE
         const showBar = u.info.kind !== 'player'
         bar.style.display = showBar ? 'block' : 'none'
         if (showBar) (bar.firstElementChild as HTMLElement).style.width = `${(100 * u.hp) / u.info.max_hp}%`
@@ -213,14 +214,14 @@ export function WorldOverlay() {
           items.push({
             i, x: pos[0], y: HEAD[tgt.info.kind] - (toPlayer ? 0.2 : tgt.info.kind === 'boss' ? 2.6 : 0.6), z: pos[1], age,
             text,
-            color: heal ? '#4ade80' : toPlayer ? '#f87171' : crit ? '#fbbf24' : '#ffffff',
+            color: heal ? COLOR.good : toPlayer ? COLOR.bad : crit ? COLOR.warn : '#ffffff',
             size: (toPlayer || heal ? 13 : 15) * (crit ? 1.45 : 1),
           })
         } else if (e.type === 'cast_interrupted' && e.reason === 'interrupt') {
           const u = s.units[e.unit]
           if (!u) continue
           const pos = posAt(u, t)
-          items.push({ i, x: pos[0], y: u.info.kind === 'boss' ? 3.6 : 5.4, z: pos[1], age, text: 'Interrupted', color: '#7dd3fc', size: 20 })
+          items.push({ i, x: pos[0], y: u.info.kind === 'boss' ? 3.6 : 5.4, z: pos[1], age, text: 'Interrupted', color: COLOR.info, size: 20 })
         }
       }
       const shown = items.slice(-MAX_TEXT)
@@ -263,17 +264,17 @@ export function WorldOverlay() {
           </div>
           <div className="hidden whitespace-nowrap font-sans text-[11px] font-medium leading-[14px] [text-shadow:0_1px_2px_#000,0_0_3px_#000]" />
           <div className="mx-auto mt-0.5 h-[6px] overflow-hidden rounded-sm bg-black/80 ring-1 ring-black">
-            <div className="h-full bg-[#e5484d]" />
+            <div className="h-full bg-bad" />
           </div>
         </div>
       ))}
       <div ref={bossPlate} className="absolute left-0 top-0 hidden w-[240px] font-sans [text-shadow:0_1px_2px_#000,0_0_3px_#000]">
         <div className="flex items-baseline justify-between gap-2 text-[13px] font-medium">
-          <span className="text-[#fca5a5]"><span data-k="name" /> <span data-k="fury" className="hidden text-[11px] text-bad">Enraged</span></span>
+          <span style={{ color: HOSTILE }}><span data-k="name" /> <span data-k="fury" className="hidden text-[11px] text-bad">Enraged</span></span>
           <span data-k="pct" className="num font-mono text-[12px] text-white" />
         </div>
         <div className="mt-0.5 h-[9px] overflow-hidden rounded-sm bg-black/80 ring-1 ring-black">
-          <div data-k="hp" className="h-full bg-[#e5484d]" />
+          <div data-k="hp" className="h-full bg-bad" />
         </div>
         <div data-k="cast" className="mt-1 hidden">
           <div className="relative h-[16px] overflow-hidden rounded-sm bg-black/80 ring-1 ring-black">

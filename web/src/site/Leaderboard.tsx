@@ -6,6 +6,7 @@ import {
   type LeaderboardRow, type Results,
 } from './results'
 import { navigate } from './router'
+import { COLOR } from './tokens'
 
 /** A pull's best score and, when it reached Oruth, how much of him was left (from the scoring rule). */
 export function bestPull(r: Results, row: LeaderboardRow): { score: number; bossLeft: number | null } | null {
@@ -65,7 +66,7 @@ export function LeaderboardTable({ results }: { results: Results }) {
                 <td className={`${TD} pl-0`}>
                   <a href={ref ? undefined : `/watch/${encodeURIComponent(row.model)}`} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) e.preventDefault() }}
                     className="flex items-center gap-3 rounded">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: ref ? 'transparent' : modelColor(results, row.model), border: ref ? '1px solid #8b8b93' : undefined }} aria-hidden />
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: ref ? 'transparent' : modelColor(results, row.model), border: ref ? `1px solid ${COLOR.fgFaint}` : undefined }} aria-hidden />
                     <span className="min-w-0">
                       <span className={`block truncate text-[15px] leading-5 ${ref ? 'text-fg-muted' : 'text-fg'}`}>{row.provider === 'scripted' ? 'Scripted bot' : row.name || modelName(row.model)}</span>
                       <span className="block text-[12px] leading-4 text-fg-faint">{ref ? 'Reference, not ranked' : labName(row.provider)}</span>
@@ -81,7 +82,7 @@ export function LeaderboardTable({ results }: { results: Results }) {
                 <td className={`${TD} hidden sm:table-cell`}>
                   <span title={row.mythicbench_score_ci95 ? `95% interval ${fmtScore(row.mythicbench_score_ci95[0])} to ${fmtScore(row.mythicbench_score_ci95[1])}` : undefined}>
                     <CIBar mean={row.mythicbench_score} ci={row.mythicbench_score_ci95} dots={episodeHeadlines(results, row)}
-                      lo={lo} hi={hi} width={STRIP} color={ref ? '#8b8b93' : modelColor(results, row.model)} accent={row.model === lead} />
+                      lo={lo} hi={hi} width={STRIP} color={ref ? COLOR.fgFaint : modelColor(results, row.model)} accent={row.model === lead} />
                   </span>
                 </td>
                 <td className={`${TD} ${NUM} hidden md:table-cell ${ink}`}>{fmtScore(cell?.first_pull_score_mean)}</td>

@@ -2,10 +2,13 @@
 // group, each cell colored by the pull's score and ringed where the party
 // stood in Bone Pyre. Click a cell to open that pull in the viewer.
 // Data: web/public/insights/v1.json (scripts/build_insights.py).
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { modelName } from '../content/display'
 import { fmtScore, modelColor, type Results } from './results'
 import { navigate } from './router'
+import { Tip } from './Tooltip'
+import { useWidth } from './useWidth'
+import { COLOR } from './tokens'
 
 export interface PullFacts {
   pull: number; score: number; dur: number; boss: number | null; deaths: number
@@ -49,19 +52,6 @@ export function heat(v: number): string {
   return `rgb(${c0.map((c, i) => Math.round(c + (c1[i] - c) * u)).join(',')})`
 }
 
-export function useWidth(): [React.RefObject<HTMLDivElement>, number] {
-  const ref = useRef<HTMLDivElement>(null)
-  const [w, setW] = useState(0)
-  useLayoutEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const ro = new ResizeObserver(([e]) => setW(Math.round(e.contentRect.width)))
-    ro.observe(el)
-    setW(el.clientWidth)
-    return () => ro.disconnect()
-  }, [])
-  return [ref, w]
-}
 
 interface Hover { model: string; g: GroupFacts; p: PullFacts; x: number; y: number }
 
@@ -117,9 +107,9 @@ export function PullGrid({ results }: { results: Results }) {
                           setHover({ model: row.model, g, p, x: c.left - box.left + c.width / 2, y: c.top - box.top })
                         }}
                         className="relative grid place-items-center rounded-[3px] transition-transform duration-150 hover:z-10 hover:scale-125 focus-visible:z-10 focus-visible:scale-125"
-                        style={{ width: cell, height: cell, background: scoreColor(p.score), boxShadow: on ? '0 0 0 2px #ededef' : undefined }}>
+                        style={{ width: cell, height: cell, background: scoreColor(p.score), boxShadow: on ? `0 0 0 2px ${COLOR.fg}` : undefined }}>
                         {p.soaked > 0 && (
-                          <span aria-hidden className="rounded-full border-[1.5px] border-[#0a0a0c]/80"
+                          <span aria-hidden className="rounded-full border-[1.5px] border-bg/80"
                             style={{ width: Math.max(4, cell * 0.42), height: Math.max(4, cell * 0.42) }} />
                         )}
                       </a>
@@ -142,7 +132,7 @@ export function PullGrid({ results }: { results: Results }) {
         </span>
         <span className="flex items-center gap-2">
           <span className="grid h-3.5 w-3.5 place-items-center rounded-[3px]" style={{ background: scoreColor(45) }}>
-            <span className="h-1.5 w-1.5 rounded-full border-[1.5px] border-[#0a0a0c]/80" />
+            <span className="h-1.5 w-1.5 rounded-full border-[1.5px] border-bg/80" />
           </span>
           the party stood in Bone Pyre
         </span>
@@ -150,8 +140,7 @@ export function PullGrid({ results }: { results: Results }) {
       </div>
 
       {hover && (
-        <div className="pointer-events-none absolute z-20 w-[248px] rounded-lg border border-line bg-surface-raised px-3 py-2 text-[13px] leading-5 shadow-[0_6px_24px_rgba(0,0,0,0.5)]"
-          style={{ left: Math.max(0, Math.min(w - 248, hover.x - 124)), top: hover.y - 8, transform: 'translateY(-100%)' }}>
+        <Tip x={hover.x} y={hover.y} w={w}>
           <div className="flex items-baseline justify-between gap-2">
             <span className="text-fg">{modelName(hover.model)}</span>
             <span className="font-mono text-[15px] text-fg">{fmtScore(hover.p.score)}</span>
@@ -163,7 +152,7 @@ export function PullGrid({ results }: { results: Results }) {
             <dt>Casts interrupted</dt><dd className="text-right font-mono text-fg">{hover.p.kicks[0]} of {hover.p.kicks[1]}</dd>
             <dt>Deaths</dt><dd className="text-right font-mono text-fg">{hover.p.deaths} of 5</dd>
           </dl>
-        </div>
+        </Tip>
       )}
     </div>
   )
@@ -176,7 +165,7 @@ export function BossBar({ left, width }: { left: number | null; width?: number }
     <div className="mt-2" style={{ width }}>
       <div className="flex justify-between text-[11px] text-fg-faint"><span>Oruth</span><span className="font-mono">{left.toFixed(left < 10 ? 1 : 0)}% left</span></div>
       <div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
-        <div className="h-full rounded-full bg-[#d0463b]" style={{ width: `${Math.max(1, left)}%` }} />
+        <div className="h-full rounded-full bg-bad" style={{ width: `${Math.max(1, left)}%` }} />
       </div>
     </div>
   )

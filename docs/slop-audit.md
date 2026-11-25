@@ -48,10 +48,21 @@ tooltips).
 The Python simulator wasn't audited in depth. A quick scan found no TODOs, five
 broad `except` clauses and no oversized functions worth flagging.
 
-## Suggested order
+## What was done
 
-1. C7 (a privacy issue, five minutes).
-2. C1 (correctness: the typed numbers are where the site can be wrong).
-3. D1 to D5 and C3 together, as one polish pass on tokens and components.
-4. C2, then C4.
-5. C5 when your report rewrite lands.
+| # | Outcome |
+| --- | --- |
+| D1 | Highlight kinds are plain text. Model colours on the highlights page now come from the results (a hand-typed copy of the model list there would have given any new model Haiku's colour) |
+| D2 | 16 font sizes down to 12: section headings 20, page titles 28 / 32 everywhere, the one display size kept for the home question |
+| D3 | `src/site/tokens.ts` holds every interface colour; `tailwind.config.js` reads it, and code that needs a value imports it. No interface hex is typed in a component any more. Game colours (classes, schools, enemies, pools, the gold tooltip text) are named in `content/display.ts` |
+| D4 | `good` / `bad` / `warn` / `info` toned: `#4cc38a`, `#e5484d`, `#e2a336`, `#6cb8e6` |
+| D5 | No hover zoom; the play button changes colour instead |
+| D6 | Kept on purpose: the character render is the party page's one rich moment, and the wash is its light |
+| D7 | One `Tip` component (`site/Tooltip.tsx`), one width, one shadow |
+| C1 | Tables 5 and 7 are computed from `insights/v1.json` (`site/facts.ts`). `site/facts.test.ts` recomputes nine numbers the prose states and fails if a sentence and the data disagree. The expert-script figures come from the simulator, not the published data, so they stay typed |
+| C2 | ESLint (TypeScript recommended plus the rules of hooks), `npm run lint`, run in CI. It found two warnings, both fixed |
+| C3 | One `useWidth`, one `PARTY_CHAT`, one time formatter |
+| C4 | The pilot clip and its fallback paths, and the pre-launch sample notice, are gone. The sample dataset moved to `web/test-data/` (tests use it; it no longer deploys). **Correction:** `public/replays/` is not a leftover. CI's determinism check regenerates it, the report links the expert's clears in it, and nothing there downloads unless opened |
+| C5 | Waits for the report rewrite, as planned |
+| C6 | Kept |
+| C7 | `docs/HANDOFF.md` deleted. It's still in the git history; removing it from there means rewriting history, which needs your go-ahead |

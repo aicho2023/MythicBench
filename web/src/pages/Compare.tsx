@@ -1,12 +1,13 @@
 import { Pause, Play, RotateCcw } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CLASS_COLORS, dungeonProgress, dungeonScore, fmtNum, fmtTime, runScore } from '../content/display'
+import { CLASS_COLORS, dungeonProgress, dungeonScore, fmtNum, fmtTime, GRAVE_MARK, GROUND_COLORS, runScore } from '../content/display'
 import { ReplayEngine, posAt, type ReplayState, bossOf } from '../replay/engine'
 import { usePlayback } from '../replay/store'
 import type { Replay, ReplayIndexEntry } from '../replay/types'
 import { Page } from '../site/Layout'
 import { Link } from '../site/router'
 import { fetchMaybeGzipJson } from '../site/results'
+import { COLOR } from '../site/tokens'
 
 const VIEW_M = 34 // metres shown across each map; the view follows the party
 const SPEEDS = [1, 2, 4, 8]
@@ -59,26 +60,26 @@ function TacticalMap({ engine, s, t }: { engine: ReplayEngine; s: ReplayState; t
     labels.push({ id: u.info.id, name: u.info.name, color: CLASS_COLORS[u.info.class], x: spot[0], y: spot[1], anchor: spot[2], dot: [x, z - r], far, alive: u.alive })
   }
   return (
-    <svg viewBox={`${cx - h} ${cz - h} ${VIEW_M} ${VIEW_M}`} className="aspect-square w-full rounded-lg border border-line bg-[#0c0c0e]" role="img"
+    <svg viewBox={`${cx - h} ${cz - h} ${VIEW_M} ${VIEW_M}`} className="aspect-square w-full rounded-lg border border-line bg-bg" role="img"
       aria-label="Top-down map of the party, enemies and pools">
-      {a.rooms ? a.rooms.map((r) => <circle key={r.id} cx={r.center[0]} cy={r.center[1]} r={r.radius} fill="#17171a" stroke="#2a2a2f" strokeWidth={0.15} />)
-        : <circle cx={0} cy={0} r={a.radius} fill="#17171a" stroke="#2a2a2f" strokeWidth={0.15} />}
-      {a.corridors?.map((c, i) => <rect key={i} x={-c.x_half} y={c.z_min} width={2 * c.x_half} height={c.z_max - c.z_min} fill="#17171a" />)}
+      {a.rooms ? a.rooms.map((r) => <circle key={r.id} cx={r.center[0]} cy={r.center[1]} r={r.radius} fill={COLOR.raised} stroke={COLOR.line} strokeWidth={0.15} />)
+        : <circle cx={0} cy={0} r={a.radius} fill={COLOR.raised} stroke={COLOR.line} strokeWidth={0.15} />}
+      {a.corridors?.map((c, i) => <rect key={i} x={-c.x_half} y={c.z_min} width={2 * c.x_half} height={c.z_max - c.z_min} fill={COLOR.raised} />)}
       {Object.values(s.ground).map((g) => (
         <circle key={g.id} cx={g.pos[0]} cy={g.pos[1]} r={g.radius}
           fill={g.kind === 'grave' ? 'rgba(167,139,250,0.28)' : 'rgba(74,222,128,0.22)'}
-          stroke={t >= g.t0 + g.armMs ? (g.kind === 'grave' ? '#a78bfa' : '#4ade80') : 'rgba(255,255,255,0.25)'} strokeWidth={0.12} strokeDasharray={t >= g.t0 + g.armMs ? undefined : '0.4 0.3'} />
+          stroke={t >= g.t0 + g.armMs ? (GROUND_COLORS[g.kind] ?? GROUND_COLORS.desecrate) : 'rgba(255,255,255,0.25)'} strokeWidth={0.12} strokeDasharray={t >= g.t0 + g.armMs ? undefined : '0.4 0.3'} />
       ))}
       {s.order.map((id) => {
         const u = s.units[id]
         if (u.info.kind !== 'player' && (!u.alive || !u.engaged)) return null
         const [x, z] = posAt(u, t)
         const r = u.info.kind === 'boss' ? u.info.radius : Math.max(0.45, u.info.radius)
-        const color = u.info.kind === 'player' ? CLASS_COLORS[u.info.class] : u.info.kind === 'boss' ? '#7fe6ff' : '#f87171'
+        const color = u.info.kind === 'player' ? CLASS_COLORS[u.info.class] : u.info.kind === 'boss' ? CLASS_COLORS.boss : COLOR.bad
         return (
           <g key={id} opacity={u.alive ? 1 : 0.35}>
-            {u.auras.grave_mark && <circle cx={x} cy={z} r={6} fill="none" stroke="#fb923c" strokeWidth={0.12} strokeDasharray="0.5 0.4" />}
-            <circle cx={x} cy={z} r={r} fill={color} stroke={u.cast ? '#fbbf24' : '#0c0c0e'} strokeWidth={u.cast ? 0.2 : 0.08} />
+            {u.auras.grave_mark && <circle cx={x} cy={z} r={6} fill="none" stroke={GRAVE_MARK} strokeWidth={0.12} strokeDasharray="0.5 0.4" />}
+            <circle cx={x} cy={z} r={r} fill={color} stroke={u.cast ? COLOR.warn : COLOR.bg} strokeWidth={u.cast ? 0.2 : 0.08} />
           </g>
         )
       })}
@@ -87,7 +88,7 @@ function TacticalMap({ engine, s, t }: { engine: ReplayEngine; s: ReplayState; t
         <g key={l.id} opacity={l.alive ? 1 : 0.35}>
           {l.far && <line x1={l.dot[0]} y1={l.dot[1]} x2={l.x} y2={l.y + 0.1} stroke={l.color} strokeWidth={0.06} opacity={0.6} />}
           <text x={l.x} y={l.y} textAnchor={l.anchor} fontSize={0.7} fill={l.color}
-            stroke="#0c0c0e" strokeWidth={0.18} paintOrder="stroke" className="font-sans">{l.name}</text>
+            stroke={COLOR.bg} strokeWidth={0.18} paintOrder="stroke" className="font-sans">{l.name}</text>
         </g>
       ))}
     </svg>
@@ -203,7 +204,7 @@ export function Compare() {
   return (
     <Page>
       <div className="py-8">
-        <h1 className="text-[24px] font-normal text-fg">Side by side</h1>
+        <h1 className="text-[28px] font-normal leading-[1.15] text-fg sm:text-[32px]">Side by side</h1>
         <p className="mt-1 text-[14px] text-fg-muted">
           {preset
             ? 'Claude Opus 5.5, group 2: the blind first pull against the second, after one debrief. Two replays on one clock, seen from above.'

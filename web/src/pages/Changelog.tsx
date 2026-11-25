@@ -12,7 +12,7 @@ function Entry({ e }: { e: ChangelogEntry }) {
         <p className="mt-1 text-[12px] text-accent/80">{KIND[e.kind]}</p>
       </div>
       <div>
-        <h2 className="text-[18px] font-medium text-fg">{e.title}</h2>
+        <h2 className="text-[17px] font-medium text-fg">{e.title}</h2>
         {(e.versions || e.tag) && (
           <div className="mt-3 flex flex-wrap gap-2 font-mono text-[12px]">
             {e.versions && (['harness', 'sim', 'content'] as const).map((k) => (

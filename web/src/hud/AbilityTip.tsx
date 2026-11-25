@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 import { create } from 'zustand'
-import { SCHOOL_COLORS } from '../content/display'
+import { SCHOOL_COLORS, TOOLTIP_GOLD } from '../content/display'
 import { useHud } from '../replay/store'
 import { AbilityIcon } from './bits'
+import { COLOR } from '../site/tokens'
 
 /**
  * WoW-style spell tooltips for the viewer's HUD. Hovering an ability or aura
@@ -64,7 +65,7 @@ export function TipLayer() {
             </div>
           </div>
         </div>
-        <p className="mt-2 text-[13px] leading-5 text-[#ffd479]">{a.description}</p>
+        <p className="mt-2 text-[13px] leading-5" style={{ color: TOOLTIP_GOLD }}>{a.description}</p>
         <div className={`mt-2 text-meta ${casting ? 'text-info' : rem > 0 ? 'text-fg-muted' : 'text-good'}`}>
           {casting ? `${u?.info.name} is casting this now` : rem > 0 ? `Ready in ${secsText(Math.ceil(rem / 100) * 100)}` : 'Ready'}
         </div>
@@ -76,8 +77,8 @@ export function TipLayer() {
     if (!a) return null
     body = (
       <>
-        <div className="text-[14px] font-medium" style={{ color: a.harmful ? '#f87171' : SCHOOL_COLORS.holy }}>{a.name}</div>
-        {a.description && <p className="mt-1 text-[13px] leading-5 text-[#ffd479]">{a.description}</p>}
+        <div className="text-[14px] font-medium" style={{ color: a.harmful ? COLOR.bad : SCHOOL_COLORS.holy }}>{a.name}</div>
+        {a.description && <p className="mt-1 text-[13px] leading-5" style={{ color: TOOLTIP_GOLD }}>{a.description}</p>}
         {on && (
           <div className="mt-2 text-meta text-fg-muted">
             {on.stacks && on.stacks > 1 ? `${on.stacks} stacks, ` : ''}{secsText(Math.max(0, on.t0 + on.dur - t))} left
@@ -88,7 +89,7 @@ export function TipLayer() {
   }
   return (
     <div
-      className="pointer-events-none fixed z-50 w-[260px] rounded-lg border border-white/15 bg-[#121214] px-3 py-2.5 shadow-xl"
+      className="pointer-events-none fixed z-50 w-[260px] rounded-lg border border-white/15 bg-surface px-3 py-2.5 shadow-xl"
       style={{ left: tip.x + 10, top: Math.max(8, tip.y - 8) }}
       role="tooltip"
     >

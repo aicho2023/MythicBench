@@ -5,14 +5,14 @@
 // learning panel and decision log need a wider screen.
 import { ChevronUp, X } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { CLASS_COLORS, dungeonProgress, dungeonScore, fmtTime } from '../content/display'
+import { CLASS_COLORS, PARTY_CHAT, dungeonProgress, dungeonScore, fmtTime } from '../content/display'
 import { bossOf, type ReplayEngine } from '../replay/engine'
 import { usePlayback, useHud } from '../replay/store'
 import { HIGHLIGHTS, highlightPath } from '../content/highlights'
 import { useInspector } from './CallInspector'
 import { Bar, chatText } from './bits'
+import { COLOR } from '../site/tokens'
 
-const PARTY_CHAT = '#aab4ff'
 /** How far back the drawer looks for key events and chat. */
 const EVENTS_MS = 20000
 const CHAT_MS = 45000
@@ -183,7 +183,7 @@ function MomentDrawer({ onClose }: { onClose: () => void }) {
           <button key={i} onClick={() => go(c.t)} className="grid w-full grid-cols-[40px_1fr] gap-2 py-1 text-left">
             <span className="num font-mono text-[12px] leading-5 text-fg-faint">{fmtTime(c.t)}</span>
             <span className="text-[13px] leading-5" style={{ color: PARTY_CHAT }}>
-              [<span style={{ color: CLASS_COLORS[c.cls] ?? '#ededef' }}>{c.who}</span>]: {c.text}
+              [<span style={{ color: CLASS_COLORS[c.cls] ?? COLOR.fg }}>{c.who}</span>]: {c.text}
             </span>
           </button>
         ))}

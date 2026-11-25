@@ -1,15 +1,16 @@
 import { ChevronDown, Info, ListTree, Pause, Play, RotateCcw, SkipBack, SkipForward, X } from 'lucide-react'
 import { useEffect, useMemo, useRef } from 'react'
-import { CLASS_COLORS, fmtNum, fmtTime } from '../content/display'
+import { CLASS_COLORS, fmtNum, fmtTime, GRAVE_MARK } from '../content/display'
 import { usePlayback, useHud } from '../replay/store'
 import { SiteHeader } from '../site/Layout'
+import { COLOR } from '../site/tokens'
 
 const SPEEDS = [0.5, 1, 2, 4]
 
 // Each hue is one kind of event. Adds spawn in the bone-walker class color.
 const MARKER_COLOR: Record<string, string> = {
-  death: '#f87171', missed: '#fbbf24', raise: CLASS_COLORS.bonewalker, kick: '#7dd3fc', end: '#ededef', pull: '#a1a1aa',
-  pool: '#c084fc', mark: '#fb923c', soak: '#facc15',
+  death: COLOR.bad, missed: COLOR.warn, raise: CLASS_COLORS.bonewalker, kick: COLOR.info, end: COLOR.fg, pull: COLOR.fgMuted,
+  pool: '#c084fc', mark: GRAVE_MARK, soak: '#facc15',
 }
 
 // ---------------------------------------------------------------------------
@@ -44,7 +45,7 @@ export function TopBar({ onAbout, onRuns }: { onAbout: () => void; onRuns: () =>
           <ListTree size={16} className="shrink-0 text-fg-muted" />
           <span className="truncate">{watching ? watching.label : 'Choose a run'}</span>
           {watching?.id.startsWith('expert-') && <span className="shrink-0 text-meta text-accent/80">golden standard</span>}
-          {watching && !watching.local && !watching.id.startsWith('featured:') && !watching.id.startsWith('expert-') && <span className="shrink-0 text-meta text-fg-faint">reference</span>}
+          {watching && !watching.local && !watching.id.startsWith('expert-') && <span className="shrink-0 text-meta text-fg-faint">reference</span>}
           {catalogSize > 0 && <span className="hidden shrink-0 items-center gap-1 border-l border-line pl-2 text-meta text-fg-muted sm:inline-flex">All runs <ChevronDown size={14} /></span>}
         </button>
       }
@@ -115,7 +116,7 @@ export function ReplayControls() {
             style={{ left: `${(m.t / dur) * 100}%`, background: MARKER_COLOR[m.kind] ?? '#fff' }}
           />
         ))}
-        <div className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-fg ring-[3px] ring-[#111113]" style={{ left: `${(t / dur) * 100}%` }} />
+        <div className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-fg ring-[3px] ring-surface" style={{ left: `${(t / dur) * 100}%` }} />
       </div>
       <div className="seg max-sm:hidden">
         {SPEEDS.map((sp) => (

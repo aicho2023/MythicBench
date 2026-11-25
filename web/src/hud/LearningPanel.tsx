@@ -3,6 +3,7 @@ import { CLASS_COLORS, fmtNum, pullLabel } from '../content/display'
 import { runItemId, usePlayback } from '../replay/store'
 import type { CatalogItem } from '../replay/types'
 import { Link } from '../site/router'
+import { COLOR } from '../site/tokens'
 
 /** Models write their notes in light markdown: show **bold** as bold, not asterisks. */
 function Md({ text }: { text: string }) {
@@ -37,8 +38,8 @@ function Strip({ label, pulls, value, fmt, max, current, onPick, height = 24, ki
         {pulls.map((p, k) => vals[k] === null ? null : (
           <g key={p.pull} onClick={() => onPick(p)} className="cursor-pointer">
             <circle cx={x(k)} cy={y(vals[k]!)} r={p.pull === current ? 4.5 : 3}
-              fill={p.outcome === 'victory' && p.in_time !== false ? '#4ade80' : p.outcome === 'victory' ? '#fbbf24' : '#f87171'}
-              stroke={p.pull === current ? '#ededef' : 'none'} strokeWidth={1.5} />
+              fill={p.outcome === 'victory' && p.in_time !== false ? COLOR.good : p.outcome === 'victory' ? COLOR.warn : COLOR.bad}
+              stroke={p.pull === current ? COLOR.fg : 'none'} strokeWidth={1.5} />
             <circle cx={x(k)} cy={y(vals[k]!)} r={10} fill="transparent" />
             <title>{`pull ${p.pull}: ${fmt(vals[k]!)}`}</title>
           </g>

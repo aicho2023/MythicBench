@@ -6,9 +6,12 @@
 import { X } from 'lucide-react'
 import { useState } from 'react'
 import { fmtTime, modelName } from '../content/display'
-import { heat, useInsights, useWidth } from './PullGrid'
+import { heat, useInsights } from './PullGrid'
 import { modelColor, type Results } from './results'
 import { navigate } from './router'
+import { Tip } from './Tooltip'
+import { useWidth } from './useWidth'
+import { COLOR } from './tokens'
 
 const KINDS = [
   { key: 'none', label: 'nobody inside', color: heat(0.06) },
@@ -96,7 +99,7 @@ export function PyreGrid({ results }: { results: Results }) {
                               }}
                               onPointerEnter={touch ? undefined : (e) => show(e.currentTarget)}
                               className="block shrink-0 rounded-[2px] transition-transform duration-150 hover:z-10 hover:scale-150 focus-visible:z-10 focus-visible:scale-150"
-                              style={{ width: cell, height: cell, background: kind.color, boxShadow: on ? '0 0 0 1.5px #ededef' : undefined }} />
+                              style={{ width: cell, height: cell, background: kind.color, boxShadow: on ? `0 0 0 1.5px ${COLOR.fg}` : undefined }} />
                           )
                         })}
                       </div>
@@ -122,8 +125,7 @@ export function PyreGrid({ results }: { results: Results }) {
       </div>
 
       {hover && (
-        <div className={`${touch ? 'pointer-events-auto' : 'pointer-events-none'} absolute z-20 w-[232px] rounded-lg border border-line bg-surface-raised px-3 py-2 text-[13px] leading-5 shadow-[0_6px_24px_rgba(0,0,0,0.5)]`}
-          style={{ left: Math.max(0, Math.min(w - 232, hover.x - 116)), top: hover.y - 8, transform: 'translateY(-100%)' }}>
+        <Tip x={hover.x} y={hover.y} w={w} interactive={touch}>
           {touch && (
             <button onClick={() => setHover(null)} className="absolute right-1 top-1 grid h-8 w-8 place-items-center text-fg-faint" aria-label="Close"><X size={14} /></button>
           )}
@@ -143,7 +145,7 @@ export function PyreGrid({ results }: { results: Results }) {
               Watch this Pyre
             </a>
           )}
-        </div>
+        </Tip>
       )}
     </div>
   )

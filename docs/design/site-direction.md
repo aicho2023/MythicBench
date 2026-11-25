@@ -34,8 +34,11 @@ It extends the HUD direction rather than inventing a second one.
   name, and hovering a model dims the others
 - Scripted bots are reference marks: neutral grey, dashed, labeled expert / competent / sloppy
 - IBM Plex Sans for text, Plex Mono for figures, run ids and meta. Weights 400 and 500.
-  Sizes: 12 meta, 13 captions, 15 body (paper body 16 for long reading), 20 section, 28 page
-  title, 44 to 52 the home question (32 on mobile)
+  Sizes, and only these: 11 dense viewer meta, 12 meta, 13 captions, 14 controls, 15 body
+  (16 for the paper's long reading), 17 lead text and card titles, 20 section, 28 page title
+  (32 from `sm`), 44 to 52 the home question (32 on mobile)
+- Every interface colour comes from `src/site/tokens.ts` (Tailwind reads the same file).
+  Game colours are named in `src/content/display.ts`
 - Sentence case everywhere. No uppercase tracked labels, no "·" separators, no exclamation
   marks, no trailing periods on short strings
 - Layout: content capped at 1200px with 24px gutters (16px on phones). Home hero is an

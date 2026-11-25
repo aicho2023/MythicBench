@@ -1,33 +1,23 @@
 // Charts drawn as plain SVG: few marks, muted grid, mono numbers, and a direct
 // label on every series. Axes zoom to the data (every score here sits between
 // about 20 and 55, so a 0-100 axis would flatten the differences that matter).
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useMemo, useState } from 'react'
 import { modelName } from '../content/display'
 import {
   botRow, clearLeaders, costPerRun, fmtScore, fmtUsd, headlineTier, modelColor, tierName, type CI, type Results,
 } from './results'
+import { Tip } from './Tooltip'
+import { useWidth } from './useWidth'
+import { COLOR } from './tokens'
 
 const GRID = 'rgba(255,255,255,0.07)'
-const AXIS = '#8b8b93'
-const LABEL = '#d4d4d8'
-const SURFACE = '#111113'
+const AXIS = COLOR.fgFaint
+const LABEL = COLOR.fg
+const SURFACE = COLOR.surface
 /** A halo in the surface color behind chart labels, so lines never cut through text. */
 const HALO = { stroke: SURFACE, strokeWidth: 5, paintOrder: 'stroke' as const, strokeLinejoin: 'round' as const }
 const MONO = 'IBM Plex Mono'
 
-function useWidth<T extends HTMLElement>(): [React.RefObject<T>, number] {
-  const ref = useRef<T>(null)
-  const [w, setW] = useState(0)
-  useLayoutEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const ro = new ResizeObserver(([e]) => setW(Math.round(e.contentRect.width)))
-    ro.observe(el)
-    setW(el.clientWidth)
-    return () => ro.disconnect()
-  }, [])
-  return [ref, w]
-}
 
 /** Spreads label y positions so none are closer than `gap`, keeping their order. */
 function spread(ys: number[], gap: number, lo: number, hi: number): number[] {
@@ -63,13 +53,13 @@ export function CIBar({ mean, ci, accent = false, width = 160, dots = [], lo = 0
   const H = 18
   const x = (v: number) => (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * (width - 8) + 4
   const [a, b] = ci ?? [mean, mean]
-  const ink = color ?? (accent ? '#e6d3a3' : '#ededef')
+  const ink = color ?? (accent ? COLOR.accent : COLOR.fg)
   return (
     <svg width={width} height={H} className="block shrink-0" aria-hidden>
       <rect x={4} y={H / 2 - 1} width={width - 8} height={2} rx={1} fill="rgba(255,255,255,0.08)" />
       <rect x={x(a)} y={H / 2 - 3} width={Math.max(2, x(b) - x(a))} height={6} rx={3} fill={ink} opacity={0.28} />
       {dots.map((d, i) => <circle key={i} cx={x(d)} cy={H / 2} r={2.6} fill={ink} opacity={0.75} />)}
-      <rect x={x(mean) - 1.5} y={1} width={3} height={H - 2} rx={1.5} fill="#ededef" />
+      <rect x={x(mean) - 1.5} y={1} width={3} height={H - 2} rx={1.5} fill={COLOR.fg} />
     </svg>
   )
 }
@@ -96,16 +86,6 @@ function AxisTitles({ y, x, ml, iw, H }: { y?: string; x?: string; ml: number; i
   )
 }
 
-function Tooltip({ x, y, w, width = 260, children }: { x: number; y: number; w: number; width?: number; children: ReactNode }) {
-  const left = x + 16 + width > w ? Math.max(8, x - 16 - width) : x + 16
-  return (
-    <div className="pointer-events-none absolute z-10 rounded-lg border border-line bg-surface-raised px-3 py-2 text-[13px] leading-5 shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
-      style={{ left, top: Math.max(0, y - 8), width }}>
-      {children}
-    </div>
-  )
-}
-
 function Legend({ items }: { items: { key: string; label: string; color: string; dashed?: boolean }[] }) {
   return (
     <ul className="mb-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[13px] text-fg-muted">
@@ -126,7 +106,7 @@ function Legend({ items }: { items: { key: string; label: string; color: string;
 // ---------------------------------------------------------------------------
 interface Series { key: string; label: string; short: string; color: string; values: number[]; dashed?: boolean; muted?: boolean }
 /** Lines for models that aren't the point of a chart: one grey, so the few in colour read at a glance. */
-const MUTED = '#5c5c66'
+const MUTED = COLOR.off
 
 /**
  * view "models": each ranked model over its six leaderboard groups.
@@ -209,7 +189,7 @@ export function LearningCurves({ results, tier, view = 'models' }: { results: Re
             {view === 'models' && pulls > 1 && (
               <g aria-hidden>
                 <rect x={x(1)} y={m.t} width={x(2) - x(1)} height={ih} fill="rgba(230,211,163,0.05)" />
-                <text x={(x(1) + x(2)) / 2} y={m.t + 14} textAnchor="middle" fill="#e6d3a3" fillOpacity={0.75} fontSize={11} fontFamily={MONO}>
+                <text x={(x(1) + x(2)) / 2} y={m.t + 14} textAnchor="middle" fill={COLOR.accent} fillOpacity={0.75} fontSize={11} fontFamily={MONO}>
                   {narrow ? 'debrief' : 'the first debrief'}
                 </text>
               </g>
@@ -236,7 +216,7 @@ export function LearningCurves({ results, tier, view = 'models' }: { results: Re
           </svg>
         )}
         {at !== null && (
-          <Tooltip x={x(at)} y={m.t} w={w}>
+          <Tip x={x(at)} y={m.t} w={w} place="side">
             <div className="mb-1 text-fg">Pull {at}</div>
             {[...series].sort((a, b) => b.values[at - 1] - a.values[at - 1]).map((s) => (
               <div key={s.key} className="flex items-center justify-between gap-3 text-fg-muted">
@@ -247,7 +227,7 @@ export function LearningCurves({ results, tier, view = 'models' }: { results: Re
                 <span className="num font-mono text-fg">{fmtScore(s.values[at - 1])}</span>
               </div>
             ))}
-          </Tooltip>
+          </Tip>
         )}
       </div>
     </figure>
@@ -374,14 +354,13 @@ export function CostScatter({ results }: { results: Results }) {
           </svg>
         )}
         {tip && !narrow && (
-          <div className="pointer-events-none absolute z-20 rounded-lg border border-line bg-surface-raised px-3 py-2 text-[13px] leading-5 shadow-[0_6px_24px_rgba(0,0,0,0.5)]"
-            style={{ left: Math.max(0, Math.min(w - 220, x(tip.cost) - 110)), top: y(tip.score) - 14, width: 220, transform: 'translateY(-100%)' }}>
+          <Tip x={x(tip.cost)} y={y(tip.score) - 6} w={w}>
             <div className="text-fg">{tip.label}</div>
             <div className="mt-0.5 flex justify-between font-mono text-[12px] text-fg-muted">
               <span>Score {fmtScore(tip.score)}</span><span>{fmtUsd(tip.cost)} per group</span>
             </div>
             {tip.ci && <div className="font-mono text-[12px] text-fg-faint">95% interval {fmtScore(tip.ci[0])} to {fmtScore(tip.ci[1])}</div>}
-          </div>
+          </Tip>
         )}
       </div>
     </figure>
@@ -425,10 +404,10 @@ export function GroupScores({ results }: { results: Results }) {
                   <text x={m.l - 14} y={cy} dy="0.32em" textAnchor="end" fill={LABEL} fontSize={13}>{r.label}</text>
                   {r.ci && <rect x={x(r.ci[0])} y={cy - 5} width={Math.max(2, x(r.ci[1]) - x(r.ci[0]))} height={10} rx={5} fill={r.color} opacity={0.22} />}
                   {r.groups.map((g, k) => <circle key={k} cx={x(g)} cy={cy} r={4} fill={r.color} opacity={0.8} stroke={SURFACE} strokeWidth={1} />)}
-                  <rect x={x(r.mean) - 1.5} y={cy - 12} width={3} height={24} rx={1.5} fill="#ededef" />
+                  <rect x={x(r.mean) - 1.5} y={cy - 12} width={3} height={24} rx={1.5} fill={COLOR.fg} />
                   {!narrow && (
                     <text x={w - 8} y={cy} dy="0.32em" textAnchor="end" fontSize={12} fontFamily={MONO}>
-                      <tspan fill="#ededef">{fmtScore(r.mean)}</tspan>
+                      <tspan fill={COLOR.fg}>{fmtScore(r.mean)}</tspan>
                       <tspan fill={AXIS}>{r.ci ? `  ${fmtScore(r.ci[0])}–${fmtScore(r.ci[1])}` : ''}</tspan>
                     </text>
                   )}

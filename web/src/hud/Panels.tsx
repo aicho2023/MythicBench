@@ -2,10 +2,11 @@ import { bossOf } from '../replay/engine'
 import { AlertTriangle, Megaphone } from 'lucide-react'
 import { useState } from 'react'
 import type { ReplayMeta } from '../replay/types'
-import { CLASS_COLORS, WARN_CASTS, dungeonProgress, dungeonScore, fmtNum, fmtTime, runScore } from '../content/display'
+import { CLASS_COLORS, PARTY_CHAT, WARN_CASTS, dungeonProgress, dungeonScore, fmtNum, fmtTime, runScore } from '../content/display'
 import { usePlayback, useHud } from '../replay/store'
 import { useInspector } from './CallInspector'
 import { chatText } from './bits'
+import { COLOR } from '../site/tokens'
 
 // ---------------------------------------------------------------------------
 // Scorecard: the eval's metrics, live as the replay plays.
@@ -241,7 +242,6 @@ export function RaidWarnings() {
 // Decision log: what the agents did and WHY (their stated reason)
 // ---------------------------------------------------------------------------
 /** WoW's party-chat colour, for the message text. */
-const PARTY_CHAT = '#aab4ff'
 
 export function DecisionLog() {
   const h = useHud()
@@ -302,11 +302,11 @@ export function DecisionLog() {
           <span className="num font-mono text-meta leading-5 text-fg-faint">{fmtTime(r.t)}</span>
           {r.tone === 'chat' ? (
             <span className="text-[12px] leading-[18px]" style={{ color: PARTY_CHAT }}>
-              [<span style={{ color: CLASS_COLORS[r.cls] ?? '#ededef' }}>{r.who}</span>]: {r.text}
+              [<span style={{ color: CLASS_COLORS[r.cls] ?? COLOR.fg }}>{r.who}</span>]: {r.text}
             </span>
           ) : (
             <span className="text-[12px] leading-5">
-              <span className="font-medium" style={{ color: r.tone === 'bad' && r.cls === 'boss' ? '#f87171' : CLASS_COLORS[r.cls] ?? '#ededef' }}>{r.who}</span>{' '}
+              <span className="font-medium" style={{ color: r.tone === 'bad' && r.cls === 'boss' ? COLOR.bad : CLASS_COLORS[r.cls] ?? COLOR.fg }}>{r.who}</span>{' '}
               <span className={r.tone === 'bad' ? 'text-bad' : 'text-fg'}>{r.text}</span>
               {r.sub && <span className="block text-[12px] leading-4 text-fg-faint">{r.sub}</span>}
             </span>

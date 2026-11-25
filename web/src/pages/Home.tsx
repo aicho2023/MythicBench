@@ -6,31 +6,12 @@ import { PyreGrid } from '../site/PyreGrid'
 import { CostScatter, LearningCurves } from '../site/charts'
 import { LeaderboardTable } from '../site/Leaderboard'
 import { Page } from '../site/Layout'
-import { FEATURED, HERO_WINDOW_S } from '../site/config'
+import { HERO_WINDOW_S } from '../site/config'
 import { tierName, topPull, type Results } from '../site/results'
 import { Link } from '../site/router'
 import { useResults } from '../site/useResults'
 
 const Teaser = lazy(() => import('../site/Teaser'))
-
-export function SampleNotice({ results }: { results: Results }) {
-  if (results.protocol.name === 'v1') return null
-  if (!results.leaderboard.length) {
-    return (
-      <p className="rounded-xl border border-line bg-surface px-4 py-3 text-[13px] leading-5 text-fg-muted">
-        <span className="text-fg">Results are coming soon.</span> The official run of seven models fills in the
-        leaderboard and charts on launch.
-      </p>
-    )
-  }
-  return (
-    <p className="rounded-xl border border-line bg-surface px-4 py-3 text-[13px] leading-5 text-fg-muted">
-      <span className="text-fg">Sample data.</span> These numbers come from the <span className="font-mono text-[12px]">{results.protocol.name}</span> protocol:
-      a mock model that makes no API calls, and the scripted commander. They exist so the site can be built and checked.
-      The official run of seven models replaces them on launch.
-    </p>
-  )
-}
 
 /** True from tablet width up: only then does the hero load the live 3D clip. */
 function useWide(): boolean {
@@ -103,8 +84,8 @@ export function Home() {
           </div>
         </div>
         <figure className="m-0">
-          <Link to={top ? `${top.path}?t=${HERO_WINDOW_S[0]}` : `/watch?replay=${encodeURIComponent(FEATURED.id)}`} aria-label="Open this replay in the viewer"
-            className="group relative block aspect-[16/10] overflow-hidden rounded-2xl border border-line bg-[#0d0a18]">
+          <Link to={top ? `${top.path}?t=${HERO_WINDOW_S[0]}` : '/watch'} aria-label="Open this replay in the viewer"
+            className="group relative block aspect-[16/10] overflow-hidden rounded-2xl border border-line bg-scene">
             {/* A still from the same pull: the poster while the 3D clip loads, and all phones get (no WebGL download) */}
             <img src={`${import.meta.env.BASE_URL}stills/closest.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
             {wide && idle && <Suspense fallback={null}><Teaser /></Suspense>}
@@ -127,14 +108,14 @@ export function Home() {
 }
 
 function Results({ results }: { results: Results }) {
-  if (!results.leaderboard.length) return <div className="pt-16"><SampleNotice results={results} /></div>
+  if (!results.leaderboard.length) return null
   return <ResultsBody results={results} />
 }
 
 function SectionHead({ title, link, children }: { title: string; link?: [string, string]; children?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-      <h2 className="text-[22px] font-medium text-fg">{title}</h2>
+      <h2 className="text-[20px] font-medium text-fg">{title}</h2>
       {children}
       {link && (
         <Link to={link[0]} className="flex items-center gap-1.5 text-[13px] text-fg-muted transition-colors hover:text-fg">
@@ -151,7 +132,6 @@ function ResultsBody({ results }: { results: Results }) {
   const p = results.protocol
   return (
     <>
-      <SampleNotice results={results} />
 
       <section id="leaderboard" className="pt-20">
         <SectionHead title="Leaderboard" link={['/report#results', 'Results in the report']}>

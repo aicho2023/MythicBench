@@ -1,7 +1,9 @@
 import { ChevronDown } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { modelName } from '../content/display'
-import { BEHAVIOUR, EXPERT, LESSONS, MOMENTS, SOAKS } from '../content/findings'
+import { EXPERT, LESSONS, MOMENTS } from '../content/findings'
+import { behaviourRows, soakRows } from '../site/facts'
+import { useInsights } from '../site/PullGrid'
 import { GroupScores, LearningCurves } from '../site/charts'
 import { DeathCauses, SoakByPull } from '../site/HeatTables'
 import { Cite, References } from '../site/Cite'
@@ -130,7 +132,7 @@ export function Report() {
         <article className="min-w-0">
           <header>
             <p className="font-mono text-[12px] text-fg-faint">Report, v1, November 2026</p>
-            <h1 className="mt-3 text-[32px] font-normal leading-[1.12] tracking-[-0.01em] text-fg sm:text-[40px]">
+            <h1 className="mt-3 text-[28px] font-normal leading-[1.15] text-fg sm:text-[32px]">
               MythicBench: can language-model agents learn a boss fight from failure?
             </h1>
             <p className="mt-5 text-[17px] leading-7 text-fg-muted">
@@ -165,7 +167,7 @@ export function Report() {
 
           <section aria-label="Abstract" className="mt-6 xl:mt-10 rounded-2xl border border-line bg-surface px-6 py-5">
             <p className="text-[13px] font-medium text-fg-muted">Abstract</p>
-            <p className="mt-2 text-[16px] leading-7 text-[#c4c4ca]" style={{ fontFamily: "'IBM Plex Serif', Georgia, serif" }}>
+            <p className="mt-2 text-[16px] leading-7 text-fg" style={{ fontFamily: "'IBM Plex Serif', Georgia, serif" }}>
               Most agent benchmarks ask a model to finish a task once. MythicBench asks whether a team of agents can fail
               at a task, work out why, and do better on the next try. Five copies of one model each play one character
               in a five-person party, run a Mythic+-style dungeon they have never seen, and get up to five attempts.
@@ -534,6 +536,11 @@ python -m mythicsim run --policy expert --tier +10 --seed 10043   # the expert's
 function ResultsBody({ r }: { r: Results }) {
   const head = headlineTier(r)
   const rows = r.leaderboard
+  // Tables 5 and 7 are computed from the per-pull facts (insights/v1.json), not typed in.
+  const insights = useInsights()
+  const order = rows.map((x) => x.model)
+  const soaks = insights ? soakRows(insights, order) : []
+  const behaviour = insights ? behaviourRows(insights, order) : []
   const cell = (x: LeaderboardRow) => x.tiers[head]
   const [top1, top2] = rows
   const pairs = r.pairwise ?? []
@@ -627,7 +634,7 @@ function ResultsBody({ r }: { r: Results }) {
         <table>
           <thead><tr><th>Model</th><th>Groups that soaked at least once</th><th className="r">Pyres soaked, pulls 2 to 5</th></tr></thead>
           <tbody>
-            {SOAKS.map((s) => (
+            {soaks.map((s) => (
               <tr key={s.model}><td>{modelName(s.model)}</td><td>{s.groups}{s.note ? <span className="text-fg-faint">, {s.note}</span> : null}</td><td className="r m">{s.soaked}</td></tr>
             ))}
           </tbody>
@@ -720,7 +727,7 @@ function ResultsBody({ r }: { r: Results }) {
         <table>
           <thead><tr><th>Model</th><th className="r">Casts interrupted</th><th className="r">Chat lines / pull</th><th className="r">Deaths / pull</th></tr></thead>
           <tbody>
-            {BEHAVIOUR.map((b) => (
+            {behaviour.map((b) => (
               <tr key={b.model}><td>{modelName(b.model)}</td><td className="r m">{b.kicks}</td><td className="r m">{b.chat}</td><td className="r m">{b.deaths.toFixed(1)}</td></tr>
             ))}
           </tbody>

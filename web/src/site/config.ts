@@ -24,21 +24,6 @@ export const VENMO_HANDLE = 'ach1492'
 export const VENMO_URL = `https://venmo.com/u/${VENMO_HANDLE}`
 
 /**
- * The home page's clip until official results exist (then it's the top model's
- * best +10 pull, automatically). A real model, never a scripted run: GPT-6.2
- * Sol's pilot pull on an earlier, easier tuning of +10 (content 1.4.0), until
- * the official run replaces it.
- */
-export const FEATURED = {
-  id: 'featured:sol-pilot',
-  file: 'featured/sol-pilot.json.gz',
-  label: 'GPT-6.2 Sol, +10 pilot pull',
-  caption: 'GPT-6.2 Sol\'s five agents in a pilot pull, on an earlier, easier tuning of +10. The official run replaces this clip',
-}
-export const TEASER_REPLAY = FEATURED.id
-/** Where the clip starts playing, in seconds (just before Oruth is pulled). */
-export const TEASER_START_S = 62
-/**
  * The home clip once results exist, and where plain /watch opens: the top model's
  * best +10 pull (Claude Opus 5.5, group 2, pull 2), over a stretch of the boss
  * fight with a Bone Pyre soaked by the whole party. Seconds into the pull.

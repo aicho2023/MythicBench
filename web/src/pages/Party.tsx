@@ -4,6 +4,7 @@ import { CLASS_COLORS, ROLE_LABEL, fmtNum } from '../content/display'
 import { AbilityIcon, RoleIcon } from '../hud/bits'
 import { Page } from '../site/Layout'
 import { Link } from '../site/router'
+import { COLOR } from '../site/tokens'
 
 // web/public/replays/game.json, written by `python -m mythicsim generate` from the
 // simulator's own content (sim/mythicsim/guide.py), so this page can't drift from the game.
@@ -38,10 +39,10 @@ const BLURB: Record<string, string> = {
   oruth: 'The last boss. A cast to kick, a tank buster, pools, adds, a hard enrage, and Bone Pyre: the circle you have to stand in.',
 }
 
-const ENEMY = '#f87171'
+const ENEMY = COLOR.bad
 /** Names short enough for the roster. */
 const SHORT: Record<string, string> = { bonewalker: 'Bonewalker', oruth: 'Oruth' }
-const BOSS = '#7dd3fc'
+const BOSS = CLASS_COLORS.boss
 
 interface Character {
   id: string; name: string; color: string; kind: ReactNode; blurb: string
@@ -67,7 +68,7 @@ function AbilityCard({ a, enemy = false }: { a: GuideAbility; enemy?: boolean })
           <div className="text-[15px] leading-5 text-fg">{a.name}</div>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12px] text-fg-faint">
             {a.kind_name}
-            {a.interruptible && <span className="rounded bg-[rgba(127,208,255,0.12)] px-1.5 text-[#7fd0ff]">Interrupt this</span>}
+            {a.interruptible && <span className="rounded bg-info/10 px-1.5 text-info">Interrupt this</span>}
           </div>
         </div>
       </div>
@@ -126,7 +127,7 @@ function Roster({ id, title, intro, cards, footnote }: { id: string; title: stri
   return (
     <section id={id} ref={ref} className="scroll-mt-20 outline-none" tabIndex={-1} onKeyDown={onKey} aria-roledescription="carousel" aria-label={title}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-        <h2 className="text-[22px] font-medium text-fg">{title}</h2>
+        <h2 className="text-[20px] font-medium text-fg">{title}</h2>
         <p className="font-mono text-[12px] text-fg-faint">{i + 1} of {cards.length}</p>
       </div>
       <p className="mt-2 max-w-[680px] text-[15px] leading-6 text-fg-muted">{intro}</p>
@@ -134,7 +135,7 @@ function Roster({ id, title, intro, cards, footnote }: { id: string; title: stri
       {/* The stage */}
       <div className="relative mt-6 touch-pan-y select-none overflow-hidden rounded-2xl border border-line"
         onPointerDown={down} onPointerUp={up} onPointerCancel={() => { swipe.current = null }}
-        style={{ background: `radial-gradient(ellipse 60% 80% at 25% 70%, ${c.color}2e, transparent 70%), linear-gradient(180deg, #121214, #0b0b0d)` }}>
+        style={{ background: `radial-gradient(ellipse 60% 80% at 25% 70%, ${c.color}2e, transparent 70%), linear-gradient(180deg, ${COLOR.surface}, ${COLOR.bg})` }}>
         <button className={`${arrow} left-3`} onClick={() => go(i - 1)} aria-label="Previous"><ChevronLeft size={18} /></button>
         <button className={`${arrow} right-3`} onClick={() => go(i + 1)} aria-label="Next"><ChevronRight size={18} /></button>
         <div key={c.id} className="stage-in grid items-center gap-2 px-14 pb-8 pt-6 sm:gap-8 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:py-10"
@@ -147,7 +148,7 @@ function Roster({ id, title, intro, cards, footnote }: { id: string; title: stri
           </div>
           <div className="min-w-0 text-center md:text-left">
             <div className="flex items-center justify-center gap-2 text-[13px] md:justify-start" style={{ color: c.color }}>{c.kind}</div>
-            <h3 className="mt-1 text-[32px] font-normal leading-tight text-fg sm:text-[40px]">{c.name}</h3>
+            <h3 className="mt-1 text-[28px] font-normal leading-tight text-fg sm:text-[32px]">{c.name}</h3>
             <p className="mx-auto mt-3 max-w-[460px] text-[15px] leading-6 text-fg-muted md:mx-0">{c.blurb}</p>
             <dl className="mx-auto mt-5 grid max-w-[460px] grid-cols-3 gap-2 md:mx-0">
               {c.plates.map(([k, v]) => (
@@ -241,7 +242,7 @@ export function Party() {
               footnote="On +10, Hollow Tyrant makes Oruth summon adds three times (at 80%, 50% and 25% health) and adds Grave Mark." />
 
             <section id="difficulty" className="scroll-mt-20">
-              <h2 className="text-[22px] font-medium text-fg">Difficulty and affixes</h2>
+              <h2 className="text-[20px] font-medium text-fg">Difficulty and affixes</h2>
               <p className="mt-2 max-w-[680px] text-[15px] leading-6 text-fg-muted">
                 The score is on +10; Normal is a check. Affixes are always visible to the agents, as in the game.{' '}
                 <Link to="/watch" className="text-fg underline decoration-white/30 underline-offset-4">Watch a run</Link> to see them in play.
@@ -249,7 +250,7 @@ export function Party() {
               <div className="mt-6 grid gap-3 md:grid-cols-2">
                 {g.tiers.map((t) => (
                   <article key={t.id} className="rounded-xl border border-line bg-surface p-5">
-                    <h3 className="text-[18px] text-fg">{t.name}</h3>
+                    <h3 className="text-[17px] text-fg">{t.name}</h3>
                     <p className="mt-1 font-mono text-[12px] text-fg-faint">
                       enemy health ×{t.enemy_hp}, damage ×{t.enemy_dmg}, timer {Math.floor(t.limit_s / 60)}:{String(t.limit_s % 60).padStart(2, '0')}
                     </p>

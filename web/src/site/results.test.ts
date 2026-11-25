@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { resultsIndexEntries } from './watchData'
 import { costPerRun, gunzipIfNeeded, headlineTier, modelsOnly, parseWatchPath, topPull, watchPath, type Results } from './results'
 
-const sample: Results = JSON.parse(readFileSync(new URL('../../public/results/sample/leaderboard.json', import.meta.url), 'utf8'))
+const sample: Results = JSON.parse(readFileSync(new URL('../../test-data/sample/leaderboard.json', import.meta.url), 'utf8'))
 
 describe('watch paths', () => {
   it('round-trips a pull address, memory on and off', () => {

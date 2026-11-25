@@ -71,7 +71,7 @@ export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const runs = catalog?.runs ?? []
+  const runs = useMemo(() => catalog?.runs ?? [], [catalog])
   const currentHarness = catalog?.current_harness_version
   const providers = useMemo(() => ['any', ...new Set(runs.map((r) => r.provider))], [runs])
   const oldCount = runs.filter((r) => r.harness_version !== currentHarness).length
@@ -90,9 +90,7 @@ export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void
   // The expert script's clears are the golden standard, shown to everyone. The
   // scripted commander's replays are a reference for local work, not shown to visitors.
   const gold = index.filter((r) => r.id.startsWith('expert-'))
-  const refs = SHOW_REFERENCE_RUNS ? index.filter((r) => !r.local && !r.id.startsWith('featured:') && !r.id.startsWith('expert-')) : []
-  // Pulls picked out to show (the home page's clip), listed until the official runs replace them.
-  const featured = index.filter((r) => r.id.startsWith('featured:'))
+  const refs = SHOW_REFERENCE_RUNS ? index.filter((r) => !r.local && !r.id.startsWith('expert-')) : []
 
   const exportRuns = async (what: string, list: CatalogRun[], name: string) => {
     if (exporting || !list.length) return
@@ -170,22 +168,7 @@ export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void
         </div>
 
         <div className="flex-1 overflow-y-auto px-3 py-3">
-          {runs.length === 0 && featured.length > 0 && (
-            <section className="px-2 pb-2 pt-1">
-              <h3 className="text-[13px] font-medium text-fg">Pilot pulls</h3>
-              <p className="mt-1 text-[12px] leading-5 text-fg-faint">The official runs aren't in yet. These pulls were played by real models before them, to test the harness.</p>
-              <div className="mt-2">
-                {featured.map((f) => (
-                  <button key={f.id} onClick={() => load(f.id)} title={f.blurb}
-                    className={`block w-full rounded-md px-2 py-2 text-left transition-colors ${current === f.id ? 'bg-white/[0.08]' : 'hover:bg-white/[0.04]'}`}>
-                    <span className="block text-[13px] text-fg">{f.label}</span>
-                    {f.blurb && <span className="mt-0.5 block text-[12px] leading-5 text-fg-faint">{f.blurb}</span>}
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
-          {runs.length === 0 && featured.length === 0 && (
+          {runs.length === 0 && (
             <p className="px-2 py-4 text-[13px] leading-5 text-fg-muted">
               No model runs yet. Play some with <code className="font-mono text-fg">python -m mythicsim progress --model …</code> and they show up here.
             </p>
@@ -225,7 +208,7 @@ export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void
                     </span>
                   </span>
                   <span className="shrink-0 text-right">
-                    <span className="num block font-mono text-[18px] leading-6 text-fg">{r.summary.score_mean?.toFixed(1) ?? '–'}</span>
+                    <span className="num block font-mono text-[17px] leading-6 text-fg">{r.summary.score_mean?.toFixed(1) ?? '–'}</span>
                     <span className={`block text-[12px] leading-5 ${res.good ? 'text-good' : 'text-fg-faint'}`}>{res.text}</span>
                   </span>
                 </button>
