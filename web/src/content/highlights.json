@@ -8,7 +8,7 @@
     "episode": 6,
     "pull": 4,
     "t": 115,
-    "summary": "In this run, Ivy calls for the party to stand in the Pyre, which Wren helps with. Wren's shield absorbs 11.4k damage while the other three party members take no damage. When the next Pyre goes off, only Ivy is inside it, resulting in Wren and Kit's deaths. After the wipe, Wren writes that the Pyre actually does not protect anybody because they died. As a result, in the next pull, Brask tells everyone to stay out of the Bone Pyre. This is an example of how the team observed the soak work, watched it fail, and carried the wrong lesson forward.",
+    "summary": "In this run, Ivy calls for the party to stand in the Pyre, which Wren helps with. Wren's shield absorbs 11.4k damage while the other three party members take no damage. When the next Pyre goes off, only Ivy is inside it, resulting in Wren and Kit's deaths. After the wipe, Wren writes that the Pyre actually does not protect anybody because they died. As a result, in the next pull, Brask tells everyone to stay out of the Bone Pyre. The team saw the soak work, watched it fail, and carried the wrong lesson forward.",
     "quotes": [
       {
         "who": "Ivy",
@@ -43,7 +43,7 @@
     "episode": 0,
     "pull": 1,
     "t": 106,
-    "summary": "On the first blind pull, Wren tells everyone to stay out of the Bone Pyre circle, causing Brask to stay clear of the soak and ultimately resulting in his death six seconds later. During the debrief, Rook analyzes the combat log and notices that no one had stood inside the Pyre. He correctly concludes that the Bone Pyre needs to be soaked, which the entire party agrees with. As a result, in the second pull, four members of the party soak the Bone Pyre.",
+    "summary": "On the first blind pull, Wren tells everyone to stay out of the Bone Pyre circle, causing Brask to stay clear of the soak and ultimately resulting in his death six seconds later. During the debrief, Rook analyzes the combat log and notices that no one had stood inside the Pyre. He correctly concludes that the Bone Pyre needs to be soaked, which the entire party agrees with. In the second pull, four members of the party soak the Bone Pyre.",
     "quotes": [
       {
         "who": "Wren",
@@ -72,7 +72,7 @@
     "episode": 1,
     "pull": 4,
     "t": 150,
-    "summary": "Just like Opus, Sonnet also sees that when the Pyre went off and nobody was inside, it hit everyone. However, it draws a different conclusion and decides that the Bone Pyre damage cannot be avoided and instead should be healed through. As a result, all of the agents steer clear of the circle.",
+    "summary": "Just like Opus, Sonnet also sees that when the Pyre went off and nobody was inside, it hit everyone. However, it draws a different conclusion and decides that the Bone Pyre damage cannot be avoided and instead should be healed through. All of the agents steer clear of the circle.",
     "quotes": [
       {
         "who": "Ivy",
@@ -144,7 +144,7 @@
     "episode": 0,
     "pull": 4,
     "t": 225,
-    "summary": "This was the best run in the benchmark, with only 8.7% of Oruth's health left when the timer runs out. The next best run was by Claude Opus 5.5, leaving Oruth with 9.0%.",
+    "summary": "This is the best run in the benchmark, with only 8.7% of Oruth's health left when the timer runs out. The next best run is by Claude Opus 5.5, leaving Oruth with 9.0%.",
     "quotes": []
   },
   {
@@ -156,7 +156,7 @@
     "episode": 3,
     "pull": 3,
     "t": 225,
-    "summary": "Sol's party was able to get every mechanic right during the run, including soaks and interrupting the correct casts. Unfortunately, the timer runs out with Oruth at 14.8%.",
+    "summary": "Sol's party was able to get every mechanic right during the run, including soaks and interrupting the correct casts. But the timer runs out with Oruth at 14.8%.",
     "quotes": [
       {
         "who": "Brask",
@@ -245,7 +245,7 @@
     "episode": 4,
     "pull": 1,
     "t": 160,
-    "summary": "With the rest of the party dead, Ivy decides to run away from the boss room, all the way to the dungeon entrance. She correctly determines that surviving will not change the group's score. Unfortunately, Oruth ends up killing her after casting Requiem.",
+    "summary": "With the rest of the party dead, Ivy decides to run away from the boss room, all the way to the dungeon entrance. She correctly determines that surviving will not change the group's score. Oruth ends up killing her after casting Requiem.",
     "quotes": [
       {
         "who": "Ivy",
@@ -270,7 +270,7 @@
   {
     "id": "no-kicks-left",
     "title": "Kicks too close together",
-    "kind": "clutch",
+    "kind": "blunder",
     "model": "gpt-6.2-sol",
     "tier": "plus10",
     "episode": 5,
@@ -313,7 +313,7 @@
     "episode": 9,
     "pull": 5,
     "t": 133,
-    "summary": "Group after group, Luna's parties keep on agreeing that the Pyre will hit everyone no matter what. Kit writes down a note in group 10 that one player who stood inside the Pyre took half damage, but still advises avoiding it. After pull 4, Rook is able to identify the soak mechanic, and in pull 5, all five players stand in the circle. This resulted in Luna's best run.",
+    "summary": "Group after group, Luna's parties keep on agreeing that the Pyre will hit everyone no matter what. Kit writes down a note in group 10 that one player who stood inside the Pyre took half damage, but still advises avoiding it. After pull 4, Rook is able to identify the soak mechanic, and in pull 5, all five players stand in the circle. It is Luna's best run.",
     "quotes": [
       {
         "who": "Kit",
@@ -342,7 +342,7 @@
     "episode": 1,
     "pull": 2,
     "t": 240,
-    "summary": "With twenty seconds left and Oruth at about 17% health, Rook stands in the last Pyre and asks Wren to join him. Wren says she will join but ends up 0.7 m outside the circle, resulting in the group taking massive damage since there were not enough people for the soak.",
+    "summary": "With twenty seconds left and Oruth at about 17% health, Rook stands in the last Pyre and asks Wren to join him. Wren says she will join but ends up 0.7 m outside the circle, so the soak fails and the group takes massive damage.",
     "quotes": [
       {
         "who": "Rook",
@@ -367,7 +367,7 @@
     "episode": 2,
     "pull": 4,
     "t": 186,
-    "summary": "This is quite an interesting edge case where, during the pull, four of Sol's agents pick the same spot to soak the Pyre. Unfortunately, the Desecrate pools land on all of them at once, instantly killing four of them. During the debrief, the log says that the Pyre hit Wren for 698 damage, but that was only because that was all the health she had left. In reality, the damage was much higher. As a result, the agents determine that they should spread out and enter the Pyre late, which, of course, led to another wipe.",
+    "summary": "During the pull, four of Sol's agents pick the same spot to soak the Pyre. Unfortunately, the Desecrate pools land on all of them at once, instantly killing four of them. During the debrief, the log says that the Pyre hit Wren for 698 damage, but that was only because that was all the health she had left. In reality, the damage was much higher. As a result, the agents determine that they should spread out and enter the Pyre late, which leads to another wipe.",
     "quotes": [
       {
         "who": "Rook",
@@ -390,7 +390,7 @@
     "episode": 5,
     "pull": 3,
     "t": 20,
-    "summary": "With all of their notes filled with plans on how to handle Oruth, the party ends up wiping on the first trash pack, which is quite rare. During the Bone Chanter's Grave Volley, every interrupt in the party was on cooldown or out of range, and each agent reasoned that since they couldn't do the kick, another party member would. After this run, the agents determined a numbered kick order to ensure they had a kick for every situation moving forward.",
+    "summary": "With all of their notes filled with plans on how to handle Oruth, the party ends up wiping on the first trash pack, which is quite rare. During the Bone Chanter's Grave Volley, every interrupt in the party is on cooldown or out of range, and each agent reasons that since they can't do the kick, another party member will. After this run, the agents agree on a numbered kick order so every cast has a kick.",
     "quotes": [
       {
         "who": "Wren",
@@ -445,7 +445,7 @@
     "episode": 7,
     "pull": 3,
     "t": 136,
-    "summary": "Before the Pyre lands, Brask begs for an emergency heal. As no one stood inside the Pyre, the entire group wipes. During the debrief, the party agrees that the Pyre cannot be avoided and that more healing is needed.",
+    "summary": "Before the Pyre lands, Brask begs for an emergency heal. As no one stands inside the Pyre, the entire group wipes. During the debrief, the party agrees that the Pyre cannot be avoided and that more healing is needed.",
     "quotes": [
       {
         "who": "Brask",
@@ -474,7 +474,7 @@
     "episode": 1,
     "pull": 2,
     "t": 110,
-    "summary": "This is the only instance where DeepSeek V4.1 Flash's group figures out the soak mechanic after wiping due to missed soaks. It was interesting to see Rook turning the soak mechanic into a rule the group should follow, which was very successful.",
+    "summary": "This is the only instance where DeepSeek V4.1 Flash's group figures out the soak mechanic after wiping due to missed soaks. Rook turns the soak mechanic into a rule for the group, and it works.",
     "quotes": [
       {
         "who": "Ivy",
@@ -497,7 +497,7 @@
   },
   {
     "id": "grok-plan-once",
-    "title": "Grok's plan holds for one Pyre",
+    "title": "Grok's plan works only twice",
     "kind": "blunder",
     "model": "grok-4.3",
     "tier": "plus10",
@@ -527,7 +527,7 @@
     "episode": 0,
     "pull": 3,
     "t": 40,
-    "summary": "Kit was left all alone on the first pack after the rest of his group died. He was at 24% health with one Bonewalker left. He needed to kill this Bonewalker to end combat so his teammates could revive. He is able to do so, saving the run from wiping on the first pack.",
+    "summary": "Kit is left all alone on the first pack after the rest of his group dies. He is at 24% health with one Bonewalker left. He needs to kill this Bonewalker to end combat so his teammates can revive. He is able to do so, saving the run from wiping on the first pack.",
     "quotes": [
       {
         "who": "Kit",
@@ -582,14 +582,14 @@
   },
   {
     "id": "sol-everything",
-    "title": "Sol invents a new strategy to wake Oruth in record time",
+    "title": "Sol reaches Oruth in record time",
     "kind": "record",
     "model": "gpt-6.2-sol",
     "tier": "plus10",
     "episode": 1,
     "pull": 2,
     "t": 20,
-    "summary": "Rook takes the first pack's Bonewalkers into the second pack so that the party fights both at once. This strategy allows the party to wake Oruth at 0:57, while the second pack is still alive. No other party reaches the boss sooner.",
+    "summary": "Rook takes the first pack's Bonewalkers into the second pack so that the party fights both at once. The party wakes Oruth at 0:57, while the second pack is still alive. No other party reaches the boss sooner.",
     "quotes": [
       {
         "who": "Rook",
@@ -620,7 +620,7 @@
     "episode": 0,
     "pull": 4,
     "t": 9,
-    "summary": "DeepSeek V4.1 Flash's agents kept referencing World of Warcraft for rules on the game, such as how interrupts work and even information on our fictional boss. Overall, its thinking traces mention WoW or Mythic+ 62 times across six groups. No other model's recorded thinking does it more than once. (Sol and Luna don't record their thinking.)",
+    "summary": "DeepSeek V4.1 Flash's agents keep referencing World of Warcraft for rules on the game, such as how interrupts work and even information on our fictional boss. Overall, its thinking traces mention WoW or Mythic+ 62 times across six groups. No other model's recorded thinking does it more than once. (Sol and Luna don't record their thinking.)",
     "quotes": [
       {
         "who": "Rook",
@@ -651,7 +651,7 @@
     "episode": 0,
     "pull": 1,
     "t": 110,
-    "summary": "Unlike most of the other models, Grok 4.3's agents barely talk to one another. For example, in this pull, there were only four short messages in 3 minutes and 18 seconds. Compared to Claude Opus 5.5's party, which sends 23 messages a minute, Grok's party only sends 3.",
+    "summary": "Unlike most of the other models, Grok 4.3's agents barely talk to one another. For example, in this pull, there are only four short messages in 3 minutes and 18 seconds. Compared to Claude Opus 5.5's party, which sends 23 messages a minute, Grok's party only sends 3.",
     "quotes": [
       {
         "who": "Ivy",
