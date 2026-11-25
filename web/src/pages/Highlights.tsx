@@ -163,7 +163,7 @@ export function Highlights() {
           ))}
         </div>
 
-        <div className="mt-10 grid gap-6 md:grid-cols-2">
+        <div className="mt-10 grid gap-6 md:auto-rows-fr md:grid-cols-2">
           {shown.map((h) => <HighlightCard key={h.id} h={h} />)}
           {!shown.length && <p className="text-[14px] text-fg-faint">Nothing matches both filters.</p>}
         </div>
