@@ -35,7 +35,7 @@ function Head({ name, sub }: { name: string; sub: string }) {
   return (
     <>
       <span className="block text-fg-muted">{name}</span>
-      <span className="block font-normal text-fg-faint">{sub}</span>
+      <span className="block whitespace-nowrap font-normal text-fg-faint">{sub}</span>
     </>
   )
 }
@@ -76,20 +76,28 @@ export function LeaderboardTable({ results }: { results: Results }) {
     <div className="overflow-x-auto">
       <table className="w-full min-w-[320px] border-collapse">
         <thead>
-          <tr className="border-b border-line">
-            <th className={`${TH} w-[210px] pl-0`}>Model</th>
-            <th className={`${TH} w-[104px] text-right`}><Head name="Score" sub="0 to 100" /></th>
-            <th className={`${TH} hidden pl-8 sm:table-cell`}>
-              <div ref={stripRef} className="w-full">
-                <span className="block pb-1"><Head name="Each group's score" sub="dots, with the 95% interval" /></span>
-                <CIAxis width={STRIP} lo={lo} hi={hi} />
-              </div>
-            </th>
-            <th className={`${TH} hidden w-[190px] text-right md:table-cell`}><Head name="Oruth's health" sub="at the end of the best pull" /></th>
-            <th className={`${TH} hidden w-[150px] text-right lg:table-cell`}><Head name="First pull" sub="blind, before learning" /></th>
-            {anyClear && <th className={`${TH} hidden w-[88px] text-right lg:table-cell`}><Head name="Clears" sub="of six groups" /></th>}
-            <th className={`${TH} hidden w-[112px] pr-0 text-right sm:table-cell`}><Head name="Cost" sub="per group" /></th>
+          <tr>
+            <th className={`${TH} w-[210px] pb-1 pl-0`}>Model</th>
+            <th className={`${TH} w-[104px] pb-1 text-right`}><Head name="Score" sub="0 to 100" /></th>
+            <th className={`${TH} hidden pb-1 pl-8 sm:table-cell`}><Head name="Each group's score" sub="dots, with the 95% interval" /></th>
+            <th className={`${TH} hidden w-[190px] pb-1 text-right md:table-cell`}><Head name="Oruth's health" sub="at the end of the best pull" /></th>
+            <th className={`${TH} hidden w-[150px] pb-1 text-right lg:table-cell`}><Head name="First pull" sub="blind, before learning" /></th>
+            {anyClear && <th className={`${TH} hidden w-[88px] pb-1 text-right lg:table-cell`}><Head name="Clears" sub="of six groups" /></th>}
+            <th className={`${TH} hidden w-[112px] pb-1 pr-0 text-right sm:table-cell`}><Head name="Cost" sub="per group" /></th>
             <th className="w-6" aria-hidden />
+          </tr>
+          {/* The dot plot's scale, on its own line so every heading above sits on one baseline */}
+          <tr className="border-b border-line" aria-hidden>
+            <th className="pl-0" />
+            <th />
+            <th className="hidden pb-2 pl-8 sm:table-cell">
+              <div ref={stripRef} className="w-full"><CIAxis width={STRIP} lo={lo} hi={hi} /></div>
+            </th>
+            <th className="hidden md:table-cell" />
+            <th className="hidden lg:table-cell" />
+            {anyClear && <th className="hidden lg:table-cell" />}
+            <th className="hidden sm:table-cell" />
+            <th />
           </tr>
         </thead>
         <tbody>
@@ -141,7 +149,7 @@ export function LeaderboardTable({ results }: { results: Results }) {
 function LeaderboardKey() {
   // [term, meaning, the breakpoint its column shows from]
   const items: [string, string, string?][] = [
-    ['Each group\'s score', 'a dot per group; the bar is the 95% interval, the white tick the average.', 'hidden sm:block'],
+    ['Group score', 'the average of its five pulls, where a pull that wipes scores 70 × how far the party got (each pack 15%, Oruth\'s health removed 70%) and a clear scores 70, plus up to 30 for speed (all 30 with a quarter of the timer left). A clear counts again for every pull it saves. A model\'s score is the average of its six groups.'],
     ['Oruth\'s health', 'no model got the boss to zero; Opus and Sol came closest.', 'hidden md:block'],
     ['Cost', 'one group of up to five pulls, at list prices, thinking included.', 'hidden sm:block'],
     ['Scripted bot', 'fixed rules played through the same controls: it interrupts and steps out of pools, and never learns.'],

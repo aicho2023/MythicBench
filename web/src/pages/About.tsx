@@ -120,6 +120,10 @@ export function About() {
             <li>Built with three.js, React Three Fiber, React, Tailwind CSS and Lucide icons; type is IBM Plex</li>
           </ul>
           <p>Full list and licenses: <a href={`${GITHUB_URL}/blob/main/THIRD_PARTY.md`}>THIRD_PARTY.md</a>. The code is MIT-licensed.</p>
+          <p>
+            MythicBench is an independent project, not affiliated with or endorsed by Blizzard Entertainment. World of
+            Warcraft and Mythic+ are trademarks of Blizzard Entertainment, Inc.
+          </p>
         </Section>
 
       </div>

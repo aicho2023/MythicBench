@@ -85,12 +85,8 @@ export function SiteFooter() {
   return (
     <footer className="mt-24 border-t border-line">
       <div className="mx-auto max-w-[1248px] px-4 sm:px-6">
-        <div className="grid gap-6 py-8 text-[13px] leading-5 text-fg-faint md:grid-cols-[1fr_auto]">
-          <p className="max-w-[640px]">
-            MythicBench is an independent project, not affiliated with or endorsed by Blizzard Entertainment. World of
-            Warcraft and Mythic+ are trademarks of Blizzard Entertainment, Inc. Art: KayKit by Kay Lousberg (CC0).
-          </p>
-          <div className="flex gap-6 md:justify-end">
+        <div className="py-8 text-[13px] leading-5 text-fg-faint">
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
             <Link to="/changelog" className="transition-colors hover:text-fg">Changelog</Link>
             <Link to="/about#credits" className="transition-colors hover:text-fg">Credits</Link>
             <a href={GITHUB_URL} className="transition-colors hover:text-fg">GitHub</a>

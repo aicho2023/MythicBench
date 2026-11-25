@@ -68,8 +68,8 @@ export function Home() {
           </h1>
           <p className="mt-6 max-w-[520px] text-[17px] leading-7 text-fg-muted">
             We've all been there. Your character's corpse lies on the ground, alongside the rest of your group. Time is
-            running out, and you've probably thought, "Man, even bots would be better than this." That's what
-            MythicBench sets out to test. We wanted to see if seven AI models could learn how to clear a
+            running out, and you've probably thought, "Even bots would be better than my teammates." Well, it's time
+            to put that to the test. Introducing: MythicBench. We wanted to see if seven AI models could learn how to clear a
             Mythic-style dungeon, all by themselves.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -125,13 +125,12 @@ function ResultsBody({ results }: { results: Results }) {
     <>
 
       <section id="leaderboard" className="pt-20">
-        <SectionHead title="Leaderboard" link={['/report#results', 'Report']}
-          caption="Each model played six groups of up to five pulls (attempts) on +10, the hardest difficulty. A pull that wipes scores up to 70 for how far the party got: the two packs are 30% of the way, Oruth the boss 70%. A clear scores 70, plus up to 30 for speed." />
+        <SectionHead title="Leaderboard" link={['/report#results', 'Report']} />
         <div className="mt-8"><LeaderboardTable results={results} /></div>
       </section>
 
       <section className="pt-20">
-        <SectionHead title="After five pulls, only Opus and Sol had clearly improved their scores."
+        <SectionHead title="After five pulls, only Opus and Sol had clearly improved their scores"
           caption="Average score on each pull, 1 to 5, over each model's six groups."
           link={['/report#learning', 'Report']}>
           {tiers.length > 1 && (
@@ -143,14 +142,11 @@ function ResultsBody({ results }: { results: Results }) {
         <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
           <LearningCurves results={results} tier={tier} />
         </div>
-        <Link to="/compare" className="mt-3 inline-flex items-center gap-1.5 text-[13px] text-fg-muted transition-colors hover:text-fg">
-          Watch Claude Opus 5.5's first and second pull side by side <ArrowRight size={14} />
-        </Link>
       </section>
 
       <section className="pt-20">
-        <SectionHead title="Only Opus and Sol learned how to handle a core game mechanic."
-          caption="Bone Pyre's blast hits the whole party unless two players stand inside its circle. Each square is one Pyre. The other five almost never soak it, even when their notes say to."
+        <SectionHead title="Only Opus and Sol learned how to handle a core game mechanic"
+          caption="Bone Pyre is the boss's key mechanic: a circle appears on the floor, and when it goes off the blast hits the whole party unless two players are standing inside it. Each square is one Pyre, in every group and pull, colored by how many players stood inside."
           link={['/report#pyre', 'Report']} />
         <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
           <PyreGrid results={results} />
@@ -158,7 +154,7 @@ function ResultsBody({ results }: { results: Results }) {
       </section>
 
       <section className="pt-20">
-        <SectionHead title="Sol scores like Opus at a fifth of the cost."
+        <SectionHead title="Sol scores like Opus at a fifth of the cost"
           caption="Each model's score against what one group costs to run, at list prices."
           link={['/report#cost', 'Report']} />
         <div className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:p-6">
