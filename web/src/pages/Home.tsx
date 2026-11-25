@@ -1,4 +1,5 @@
-import { ArrowRight } from 'lucide-react'
+import { ArrowDown, ArrowRight, ChevronUp, RotateCcw } from 'lucide-react'
+import { RUN_STEPS } from '../content/runSteps'
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { HighlightCard, isRankedGroup } from './Highlights'
 import { HIGHLIGHTS } from '../content/highlights'
@@ -105,28 +106,44 @@ export function Home() {
   )
 }
 
-/** What a run is, in four steps (the long version is on About: "How does a run work?"). */
-const STEPS: [string, string][] = [
-  ['Five agents, one model', 'A tank, a healer and three damage dealers, each played by its own copy of the same model.'],
-  ['Going in blind', "They aren't told what any enemy does. They find out by fighting."],
-  ['Orders every few seconds', 'Each agent reads the fight as text and decides where to move, what to cast, and on whom.'],
-  ['Debrief and notes', 'After a failed attempt, they read the combat log, talk it over and write notes. The notes are all they carry into the next pull.'],
-]
+/** The steps as a flow chart: four cards in a row, and a loop from the debrief back to the next pull. Wide screens only get the drawn loop. */
+const FLOW_COLS = 'lg:grid-cols-[minmax(0,1fr)_28px_minmax(0,1fr)_28px_minmax(0,1fr)_28px_minmax(0,1fr)]'
+const LINE = 'border-white/25'
 
 function HowItWorks() {
   return (
     <section id="how" className="pt-4">
       <SectionHead title="How a run works" />
-      <ol className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {STEPS.map(([title, body], i) => (
-          <li key={title} className="rounded-xl border border-line bg-surface p-5">
+      <div className={`mt-5 grid grid-cols-1 ${FLOW_COLS}`}>
+        {RUN_STEPS.flatMap(({ title, body }, i) => [
+          i > 0 && (
+            <div key={`to${i}`} className="flex h-8 items-center justify-center text-fg-faint lg:h-auto" aria-hidden>
+              <ArrowDown size={16} className="lg:hidden" /><ArrowRight size={16} className="hidden lg:block" />
+            </div>
+          ),
+          <div key={title} className="rounded-xl border border-line bg-surface p-5">
             <div className="num text-[13px] text-fg-faint">{i + 1}</div>
             <h3 className="mt-2 text-[15px] font-medium leading-5 text-fg">{title}</h3>
             <p className="mt-2 text-[14px] leading-[22px] text-fg-muted">{body}</p>
-          </li>
-        ))}
-      </ol>
-      <p className="mt-4 text-[15px] leading-6 text-fg-muted">
+          </div>,
+        ])}
+      </div>
+      {/* The loop: from the debrief (4) back into the next pull's orders (3) */}
+      <div className={`hidden h-9 lg:grid ${FLOW_COLS}`} aria-hidden>
+        <div className={`relative col-start-5 ml-[50%] rounded-bl-lg border-b border-l ${LINE}`}>
+          <ChevronUp size={14} className="absolute -left-[7.5px] -top-[7px] text-white/40" />
+        </div>
+        <div className={`col-start-6 border-b ${LINE}`} />
+        <div className={`col-start-7 mr-[50%] rounded-br-lg border-b border-r ${LINE}`} />
+      </div>
+      <div className={`grid ${FLOW_COLS}`}>
+        <p className="flex items-center justify-center gap-2 pt-3 text-[13px] text-fg-muted lg:col-span-3 lg:col-start-5 lg:pt-2">
+          <RotateCcw size={14} className="text-fg-faint lg:hidden" aria-hidden />
+          <span className="lg:hidden">Back to step 3 for the next pull, with the notes</span>
+          <span className="hidden lg:inline">Next pull, with the notes</span>
+        </p>
+      </div>
+      <p className="mt-6 text-[15px] leading-6 text-fg-muted">
         Each model plays six groups. A group is five new agents with up to five attempts (pulls) at the dungeon.
       </p>
     </section>
