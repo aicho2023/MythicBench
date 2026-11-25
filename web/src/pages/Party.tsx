@@ -84,7 +84,7 @@ const portrait = (id: string) => `${import.meta.env.BASE_URL}portraits/${id}.png
  * to pick from, and its abilities below. Arrows, the arrow keys and a swipe
  * move through the roster; /party#<id> opens on that character.
  */
-function Roster({ id, title, intro, cards }: { id: string; title: string; intro: ReactNode; cards: Character[] }) {
+function Roster({ id, title, cards }: { id: string; title: string; cards: Character[] }) {
   const pick = () => Math.max(0, cards.findIndex((c) => `#${c.id}` === location.hash))
   const [i, setI] = useState(pick)
   const [dir, setDir] = useState(1)
@@ -127,10 +127,9 @@ function Roster({ id, title, intro, cards }: { id: string; title: string; intro:
         <h2 className="text-[20px] font-medium text-fg">{title}</h2>
         <p className="num text-[12px] text-fg-faint">{i + 1} of {cards.length}</p>
       </div>
-      <p className="mt-2 max-w-[680px] text-[15px] leading-6 text-fg-muted">{intro}</p>
 
       {/* The stage */}
-      <div className="relative mt-6 touch-pan-y select-none overflow-hidden rounded-2xl border border-line"
+      <div className="relative mt-4 touch-pan-y select-none overflow-hidden rounded-2xl border border-line"
         onPointerDown={down} onPointerUp={up} onPointerCancel={() => { swipe.current = null }}
         style={{ background: `radial-gradient(ellipse 60% 80% at 25% 70%, ${c.color}2e, transparent 70%), linear-gradient(180deg, ${COLOR.surface}, ${COLOR.bg})` }}>
         <button className={`${arrow} left-3`} onClick={() => go(i - 1)} aria-label="Previous"><ChevronLeft size={18} /></button>
@@ -224,11 +223,9 @@ export function Party() {
 
         {g && (
           <>
-            <Roster id="party" title="The party" cards={party}
-              intro="Five characters, each played by a copy of the same model." />
+            <Roster id="party" title="The Party" cards={party} />
 
-            <Roster id="enemies" title="Enemies" cards={enemies}
-              intro="Two packs of undead, then the boss, Oruth. The agents go in without knowing what any of them do." />
+            <Roster id="enemies" title="Enemies" cards={enemies} />
 
             <section id="difficulty" className="scroll-mt-20">
               <h2 className="text-[20px] font-medium text-fg">Difficulty and affixes</h2>
@@ -239,8 +236,10 @@ export function Party() {
                       {t.name}
                       {t.id === 'plus10' && <span className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[12px] text-fg-muted">Scored</span>}
                     </h3>
-                    <p className="num mt-1 text-[13px] text-fg-faint">
-                      Enemy health ×{t.enemy_hp} · Damage ×{t.enemy_dmg} · Timer {Math.floor(t.limit_s / 60)}:{String(t.limit_s % 60).padStart(2, '0')}
+                    <p className="num mt-1 flex flex-wrap gap-x-4 text-[13px] text-fg-faint">
+                      <span>Enemy health ×{t.enemy_hp}</span>
+                      <span>Damage ×{t.enemy_dmg}</span>
+                      <span>Timer {Math.floor(t.limit_s / 60)}:{String(t.limit_s % 60).padStart(2, '0')}</span>
                     </p>
                     {t.affixes.length ? (
                       <ul className="mt-3 space-y-3">
