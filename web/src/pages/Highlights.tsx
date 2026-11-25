@@ -24,6 +24,10 @@ function useModelInk(): (model: string) => string {
 }
 
 /** The moment's kind as quiet text: colour on these cards belongs to the model. */
+function KindTag({ kind }: { kind: HighlightKind }) {
+  return <span className="block text-[12px] text-fg-muted">{KIND_LABEL[kind]}</span>
+}
+
 /** Groups 1 to 6 are the ranked ones; a few models played extra groups for the memory test, which aren't on the leaderboard. */
 const RANKED_GROUPS = 6
 export const isRankedGroup = (h: Highlight) => h.episode < RANKED_GROUPS && h.memory !== false && h.tier !== 'normal'
@@ -76,7 +80,8 @@ export function HighlightCard({ h, compact = false }: { h: Highlight; compact?: 
           </span>
         )}
         <span className="flex flex-1 flex-col p-5">
-        <h3 className="text-[17px] font-medium leading-6 text-fg">{h.title}</h3>
+        <KindTag kind={h.kind} />
+        <h3 className="mt-1.5 text-[17px] font-medium leading-6 text-fg">{h.title}</h3>
         <div className="mt-1"><Where h={h} /></div>
         {q
           ? <p className="mt-3 text-[14px] leading-[22px] text-fg-muted"><span style={{ color: CHAR[q.who] ? CLASS_COLORS[CHAR[q.who].cls] : undefined }}>{q.who}:</span> “{q.text}”</p>
@@ -91,15 +96,12 @@ export function HighlightCard({ h, compact = false }: { h: Highlight; compact?: 
   return <FullCard h={h} to={to} />
 }
 
-/** A card in the highlights grid: the first quote and a short summary, opening to the whole story. */
+/** A card in the highlights grid: the whole story, every quote shown. */
 function FullCard({ h, to }: { h: Highlight; to: string }) {
-  const [open, setOpen] = useState(() => location.hash === `#${h.id}`)
-  const quotes = open ? h.quotes : h.quotes.slice(0, 1)
-  const more = h.quotes.length > 1
   return (
-    <article id={h.id} className={`scroll-mt-24 overflow-hidden rounded-2xl border border-line bg-surface ${open ? 'md:col-span-2' : ''}`}>
+    <article id={h.id} className="scroll-mt-24 overflow-hidden rounded-2xl border border-line bg-surface">
       {h.image && (
-        <Link to={to} className={`group relative block ${open ? 'aspect-[16/7]' : 'aspect-[16/8]'} overflow-hidden border-b border-line bg-scene`} aria-label={`Watch: ${h.title}`}>
+        <Link to={to} className="group relative block aspect-[16/8] overflow-hidden border-b border-line bg-scene" aria-label={`Watch: ${h.title}`}>
           <img src={`${import.meta.env.BASE_URL}${h.image}`} alt="" loading="lazy" className="h-full w-full object-cover" />
           <span className="absolute inset-0 bg-gradient-to-t from-[rgba(10,10,12,0.7)] via-transparent to-transparent" aria-hidden />
           <span className="absolute bottom-3 left-4 grid h-10 w-10 place-items-center rounded-full bg-fg text-bg transition-colors group-hover:bg-white">
@@ -108,21 +110,15 @@ function FullCard({ h, to }: { h: Highlight; to: string }) {
         </Link>
       )}
       <div className="p-5 sm:p-6">
-        {h.stat && <div className="font-mono text-[13px] text-fg">{h.stat}</div>}
-        <h2 className={`${h.stat ? 'mt-2' : ''} text-[17px] font-medium leading-6 text-fg sm:text-[20px] sm:leading-7`}>{h.title}</h2>
+        <KindTag kind={h.kind} />
+        <h2 className="mt-1.5 text-[17px] font-medium leading-6 text-fg sm:text-[20px] sm:leading-7">{h.title}</h2>
         <div className="mt-1.5"><Where h={h} /></div>
         <p className="mt-4 text-[15px] leading-[26px] text-fg-muted">{h.summary}</p>
-        {quotes.length > 0 && <ul className="mt-5 space-y-4 border-l-2 border-line pl-4">{quotes.map((q, i) => <QuoteLine key={i} q={q} />)}</ul>}
-        <div className="mt-6 flex flex-wrap items-center gap-3">
+        {h.quotes.length > 0 && <ul className="mt-5 space-y-4 border-l-2 border-line pl-4">{h.quotes.map((q, i) => <QuoteLine key={i} q={q} />)}</ul>}
+        <div className="mt-6">
           <Link to={to} className="btn h-10 px-4 text-[14px]">
             <Play size={14} /> Watch{h.t != null ? ` from ${fmtTime(h.t * 1000)}` : ' the pull'} <ArrowRight size={14} className="text-fg-muted" />
           </Link>
-          {more && (
-            <button onClick={() => setOpen((o) => !o)} aria-expanded={open}
-              className="h-10 px-2 text-[14px] text-fg-muted underline decoration-white/20 underline-offset-4 transition-colors hover:text-fg">
-              {open ? 'Show less' : `Read more${h.quotes.length > 1 ? ` (${h.quotes.length} quotes)` : ''}`}
-            </button>
-          )}
         </div>
       </div>
     </article>
