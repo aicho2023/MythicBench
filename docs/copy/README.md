@@ -27,7 +27,7 @@ Highest traffic first. Status is updated as pages land.
 
 | # | Page | File | Status |
 | --- | --- | --- | --- |
-| 1 | Home `/` | [01-home.md](01-home.md) | first pass in, in review |
+| 1 | Home `/` | [01-home.md](01-home.md) | done |
 | 2 | About `/about` | [02-about.md](02-about.md) | waiting on your draft |
 | 3 | Highlights `/highlights` | [03-highlights.md](03-highlights.md) | waiting on your draft |
 | 4 | Party `/party` | [04-party.md](04-party.md) | waiting on your draft |
