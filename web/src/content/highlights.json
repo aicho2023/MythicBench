@@ -517,5 +517,189 @@
         "text": "Pyre soak failed (only Brask in 2nd)."
       }
     ]
+  },
+  {
+    "id": "kit-finishes-alone",
+    "title": "Kit finishes the pack alone",
+    "kind": "clutch",
+    "model": "grok-4.3",
+    "tier": "plus10",
+    "episode": 0,
+    "pull": 3,
+    "t": 40,
+    "summary": "Four of the five die on the first pack, three of them to Marrow Shards. Kit is left at 24% health with one Bonewalker standing, and his thinking spells out why it matters: fallen allies only get back up once combat ends. He kills it 1.6 seconds after Rook dies, and three seconds later all four are back on their feet. The party goes on to clear the second pack and reach Oruth. Compare Luna's Ivy, who walked into the next pack half a second before her party would have gotten back up.",
+    "quotes": [
+      {
+        "who": "Kit",
+        "where": "thinking",
+        "t": 44.3,
+        "text": "Killing it ends combat. Revives will not activate while combat continues."
+      },
+      {
+        "who": "Kit",
+        "where": "thinking",
+        "t": 46.0,
+        "text": "Reviving the four dead allies would add 40 seconds to the timer. That is still safe."
+      }
+    ]
+  },
+  {
+    "id": "stuck-on-wall",
+    "title": "Rook gets stuck on a wall",
+    "kind": "funny",
+    "model": "claude-opus-5-5",
+    "tier": "plus10",
+    "episode": 2,
+    "pull": 1,
+    "t": 82,
+    "summary": "Rook announces he's pulling Oruth, but he's caught on the corner of the corridor wall and doesn't move. The rest of the party, waiting at the boss room door, notices first, and four of them send him directions with coordinates. Their first route still clips the wall, so Brask works out that he has to step back into the open room first. Rook is stuck for 40 seconds and pulls Oruth 35 seconds later than he announced.",
+    "quotes": [
+      {
+        "who": "Rook",
+        "where": "chat",
+        "t": 82.7,
+        "text": "Pulling Oruth now, come in. I'll hold him at the dais. Spread 6m+ on Grave Mark, adds to me."
+      },
+      {
+        "who": "Ivy",
+        "where": "chat",
+        "t": 90.7,
+        "text": "Rook, you're still behind us at (-3,23). We're all holding at z=12. Walk in and pull; shield and heals on you."
+      },
+      {
+        "who": "Rook",
+        "where": "chat",
+        "t": 94.7,
+        "text": "Sorry, was snagged on corridor wall. Walking in now to pull, wait till I have him."
+      },
+      {
+        "who": "Brask",
+        "where": "chat",
+        "t": 110.7,
+        "text": "Rook: (0,21) clips the wall from where you are. move_to [0,25] first, THEN [0,6]. Holding at z=12."
+      }
+    ]
+  },
+  {
+    "id": "sol-everything",
+    "title": "Sol wakes Oruth in under a minute",
+    "kind": "record",
+    "model": "gpt-6.2-sol",
+    "tier": "plus10",
+    "episode": 1,
+    "pull": 2,
+    "t": 20,
+    "summary": "Rook walks the first pack's Bonewalkers into the second pack while they're still alive, so the party fights both at once. Half a minute later, Brask drags the last walkers toward the boss room and wakes Oruth at 0:57, with the second pack still up. No party in the benchmark reached the boss sooner. Sol's typical pull got there at 1:11, and every other model's typical pull took longer than 1:20. This pull ends with Oruth at 16.6%, Sol's third-best.",
+    "quotes": [
+      {
+        "who": "Rook",
+        "where": "chat",
+        "t": 14.4,
+        "text": "Dragging walkers south out of the grave. Focus walker 1 and cleave."
+      },
+      {
+        "who": "Ivy",
+        "where": "chat",
+        "t": 24.1,
+        "text": "Ossuary pulled. Save kicks for Mend Bones, and drag walkers off the graves."
+      },
+      {
+        "who": "Brask",
+        "where": "chat",
+        "t": 57.3,
+        "text": "Oruth woke. Finish walkers first. Requiem kicks: Rook first, me second, Kit third; Wren backup."
+      }
+    ]
+  },
+  {
+    "id": "deepseek-wow",
+    "title": "DeepSeek thinks in WoW terms",
+    "kind": "reasoning",
+    "model": "deepseek-flash",
+    "tier": "plus10",
+    "episode": 0,
+    "pull": 4,
+    "t": 9,
+    "summary": "DeepSeek V4.1 Flash's agents keep reaching for World of Warcraft to fill in what the rules don't say: whether an interrupt can fire mid-cast, whether Oruth's summon can be kicked, whether to pull both packs at once. Its recorded thinking mentions WoW or Mythic+ 62 times across its six groups, five of them in this pull. No other model's recorded thinking does it more than once. (Sol and Luna don't record their thinking.)",
+    "quotes": [
+      {
+        "who": "Rook",
+        "where": "thinking",
+        "t": 9.3,
+        "text": "combining the two packs: 9 mobs at once, AoE. That's a big speed gain and often how M+ goes."
+      },
+      {
+        "who": "Wren",
+        "where": "thinking",
+        "t": 51.6,
+        "text": "In WoW, you can't cast while casting, but instant abilities also can't be used during a cast (GCD)."
+      },
+      {
+        "who": "Rook",
+        "where": "thinking",
+        "t": 139.4,
+        "text": "Actually, in WoW, summon casts often not interruptible."
+      }
+    ]
+  },
+  {
+    "id": "grok-quiet",
+    "title": "Four messages in three minutes",
+    "kind": "funny",
+    "model": "grok-4.3",
+    "tier": "plus10",
+    "episode": 0,
+    "pull": 1,
+    "t": 110,
+    "summary": "Grok 4.3's agents barely talk. In this pull, the whole party's conversation is four short messages in 3 minutes 18 seconds, and nobody says anything before 1:52. Across its six groups, Grok's party sends about 3 messages a minute. Claude Opus 5.5's sends 23.",
+    "quotes": [
+      {
+        "who": "Ivy",
+        "where": "chat",
+        "t": 112.8,
+        "text": "Move out of graves!"
+      },
+      {
+        "who": "Brask",
+        "where": "chat",
+        "t": 139.1,
+        "text": "Grave mark, moving away from group"
+      },
+      {
+        "who": "Ivy",
+        "where": "chat",
+        "t": 157.2,
+        "text": "Rook low, shielding"
+      },
+      {
+        "who": "Ivy",
+        "where": "chat",
+        "t": 168.3,
+        "text": "Wren low, moving from grave mark"
+      }
+    ]
+  },
+  {
+    "id": "my-fault",
+    "title": "Opus's agents own their mistakes",
+    "kind": "teamwork",
+    "model": "claude-opus-5-5",
+    "tier": "plus10",
+    "episode": 5,
+    "pull": 2,
+    "t": 128,
+    "summary": "In the debriefs, Opus's agents name their own mistakes, with the damage they took and when, and say what they'll do differently. Here Brask owns his death two pulls in a row and changes his plan each time. Across the six ranked groups, Opus's agents say \"my fault\" six times; the other six models say it once between them.",
+    "quotes": [
+      {
+        "who": "Brask",
+        "where": "debrief talk",
+        "text": "My death was my fault: I stood in Desecrate for 5 ticks. This time I'll use 'safe' the moment it lands under me."
+      },
+      {
+        "who": "Brask",
+        "where": "debrief talk",
+        "text": "Agreed. My death was my fault: I stood in Desecrate during the Pyre. From now on I step to a clean part of the circle on the first tick."
+      }
+    ]
   }
 ]
