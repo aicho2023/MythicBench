@@ -62,8 +62,7 @@ export function About() {
         <Section id="ai-use" title="Did you use AI to build this?">
           <p>
             Yes. Portions of the report, the harness, and the website were made with the assistance of Claude Opus 5.5
-            and GPT-6.2 Sol. The protocol was frozen before the official run, and all of the code and data are public,
-            so anyone can check the results independently.
+            and GPT-6.2 Sol.
           </p>
         </Section>
 
