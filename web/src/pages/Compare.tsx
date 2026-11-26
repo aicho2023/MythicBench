@@ -1,7 +1,7 @@
 import { Pause, Play, RotateCcw } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CLASS_COLORS, dungeonProgress, dungeonScore, fmtNum, fmtTime, GRAVE_MARK, GROUND_COLORS, runScore } from '../content/display'
-import { ReplayEngine, posAt, type ReplayState, bossOf } from '../replay/engine'
+import { EPILOGUE_MS, ReplayEngine, posAt, type ReplayState, bossOf } from '../replay/engine'
 import { usePlayback } from '../replay/store'
 import type { Replay, ReplayIndexEntry } from '../replay/types'
 import { Page } from '../site/Layout'
@@ -219,7 +219,7 @@ export function Compare() {
                 className="grid h-8 w-8 place-items-center rounded-lg bg-fg text-bg" aria-label={playing ? 'Pause' : 'Play'}>
                 {playing ? <Pause size={16} fill="currentColor" /> : t >= dur ? <RotateCcw size={16} /> : <Play size={16} fill="currentColor" />}
               </button>
-              <span className="num w-24 font-mono text-[12px] text-fg-faint"><span className="text-fg">{fmtTime(t)}</span> / {fmtTime(dur)}</span>
+              <span className="num w-24 font-mono text-[12px] text-fg-faint"><span className="text-fg">{fmtTime(Math.min(t, dur - EPILOGUE_MS))}</span> / {fmtTime(dur - EPILOGUE_MS)}</span>
               <input type="range" min={0} max={dur} step={100} value={t} onChange={(e) => setT(Number(e.target.value))}
                 className="flex-1 accent-white" aria-label="Time" />
               <div className="seg" role="group" aria-label="Speed">

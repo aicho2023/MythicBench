@@ -70,7 +70,7 @@ export function Home() {
       <section className="grid items-center gap-10 py-12 md:py-16 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12">
         <div>
           <h1 className="max-w-[560px] text-[32px] font-normal leading-[1.12] text-fg sm:text-[44px] sm:leading-[1.08] sm:tracking-[-0.02em] xl:text-[52px]">
-            Can five AI agents learn to clear an MMORPG dungeon?
+            Can AI Agents Learn How to Defeat MMORPG Dungeons?
           </h1>
           <p className="mt-6 max-w-[520px] text-[17px] leading-7 text-fg-muted">
             We've all been there. Your character's corpse lies on the ground, alongside the rest of your group. Time is
@@ -94,7 +94,7 @@ export function Home() {
               Open in the viewer <ArrowRight size={16} className="text-fg-muted" />
             </span>
           </Link>
-          {heroModel && <figcaption className="mt-2 text-[13px] text-fg-muted">{modelName(heroModel)}'s best attempt</figcaption>}
+          {heroModel && <figcaption className="mt-2 text-[13px] text-fg-muted">{modelName(heroModel)}'s best pull</figcaption>}
         </figure>
       </section>
 

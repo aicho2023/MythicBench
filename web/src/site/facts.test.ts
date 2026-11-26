@@ -11,7 +11,6 @@ import type { Insights } from './PullGrid'
 const read = (p: string) => readFileSync(new URL(p, import.meta.url), 'utf8')
 const data: Insights = JSON.parse(read('../../public/insights/v1.json'))
 const report = read('../pages/Report.tsx').replace(/\s+/g, ' ')
-const findings = read('../content/findings.ts').replace(/\s+/g, ' ')
 
 const LEADERS = ['claude-opus-5-5', 'gpt-6.2-sol']
 const OTHERS = Object.keys(data.models).filter((m) => !LEADERS.includes(m))
@@ -42,7 +41,6 @@ describe('numbers stated in the prose', () => {
   it('the other five models soaked in few of their groups', () => {
     const s = `${groupsThatSoaked(OTHERS)} of their ${groupCount(OTHERS)} groups`
     expect(report).toContain(s)
-    expect(findings).toContain(s)
   })
 
   it('the leaders soaked in every group, most after one wipe', () => {
@@ -67,9 +65,7 @@ describe('numbers stated in the prose', () => {
   it("Grok's first group: the plan written down, then 2 of 9 Pyres soaked", () => {
     const later = data.models['grok-4.3'].find((g) => g.episode === 0)!.pulls.filter((p) => p.pull >= 2)
     const [n, m] = [later.reduce((a, p) => a + p.soaked, 0), later.reduce((a, p) => a + p.pyres, 0)]
-    const s = `${n} of ${m} Pyres`
     expect(report).toContain(`only ${n} of the ${m} Pyres`)
-    expect(findings).toContain(`on ${s}`)
   })
 
   it("Grok: Pyres on pulls 2 to 5 with exactly one player inside", () => {

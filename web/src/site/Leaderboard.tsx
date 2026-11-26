@@ -67,11 +67,16 @@ export function LeaderboardTable({ results }: { results: Results }) {
     const left = (insights?.models[model] ?? []).filter((g) => g.ranked).flatMap((g) => g.pulls.map((p) => p.boss)).filter((b): b is number => b != null)
     return left.length ? Math.min(...left) : null
   }
-  const [stripRef, stripW] = useWidth()
-  const STRIP = Math.min(STRIP_MAX, Math.max(STRIP_MIN, stripW))
+  // The strip gets what the table's other columns leave. It is worked out from the
+  // container's width, not measured from its own cell: a cell sized by its contents
+  // could grow with the window but never shrink back.
+  const [boxRef, boxW] = useWidth()
+  const vw = typeof window === 'undefined' ? 1280 : window.innerWidth
+  const others = 210 + 104 + 44 + 24 + (vw >= 640 ? 112 : 0) + (vw >= 768 ? 190 : 0) + (vw >= 1024 ? 150 + (anyClear ? 88 : 0) : 0)
+  const STRIP = Math.min(STRIP_MAX, Math.max(STRIP_MIN, boxW - others))
 
   return (
-    <div className="overflow-x-auto">
+    <div ref={boxRef} className="overflow-x-auto">
       <table className="w-full min-w-[320px] border-collapse">
         <thead>
           <tr>
@@ -89,7 +94,7 @@ export function LeaderboardTable({ results }: { results: Results }) {
             <th className="pl-0" />
             <th />
             <th className="hidden pb-2 pl-8 sm:table-cell">
-              <div ref={stripRef} className="w-full"><CIAxis width={STRIP} lo={lo} hi={hi} /></div>
+              <div className="w-full"><CIAxis width={STRIP} lo={lo} hi={hi} /></div>
             </th>
             <th className="hidden md:table-cell" />
             <th className="hidden lg:table-cell" />

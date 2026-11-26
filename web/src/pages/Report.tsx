@@ -499,6 +499,8 @@ export function Report() {
             <p>
               <strong>Equal Settings Do Not Mean Equal Compute:</strong> Despite every model being run on "medium" effort
               with an 8000-token cap, "medium" is ultimately subjective and can mean different things at each lab.
+              DeepSeek V4.1 Flash also had 6.6% of its replies cut off at the 8000-token cap, far more than any other
+              model, and those replies count against it.
             </p>
             <p>
               <strong>Text, Not Vision:</strong> The agents receive a robust text description of the world around them
