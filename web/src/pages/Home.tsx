@@ -69,7 +69,7 @@ export function Home() {
       {/* Hero: the question and two actions, the live crypt beside them */}
       <section className="grid items-center gap-10 py-12 md:py-16 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12">
         <div>
-          <h1 className="max-w-[560px] text-[32px] font-normal leading-[1.12] text-fg sm:text-[44px] sm:leading-[1.08] sm:tracking-[-0.02em] xl:text-[52px]">
+          <h1 className="max-w-[600px] text-balance text-[32px] font-normal leading-[1.12] text-fg sm:text-[42px] sm:leading-[1.08] sm:tracking-[-0.02em] xl:text-[48px]">
             Can AI Agents Learn How to Defeat MMORPG Dungeons?
           </h1>
           <p className="mt-6 max-w-[520px] text-[17px] leading-7 text-fg-muted">
@@ -191,7 +191,7 @@ function Scoring({ results }: { results: Results }) {
                 <div className="absolute inset-y-0 left-0" style={{ width: `${fill * 100}%`, background: boss ? 'rgba(208,70,59,0.6)' : 'rgba(255,255,255,0.2)' }} />
                 <span className="relative flex h-full items-center justify-center truncate px-2 text-fg">
                   {/* Phones: just the points in the narrow pack sections */}
-                  {boss ? `${name}, ${label}` : <><span className="hidden sm:inline">{name}, </span>{label}</>}
+                  {boss ? `${name}, ${label}` : <><span className="hidden sm:inline">{name},&nbsp;</span>{label}</>}
                 </span>
               </div>
             )
@@ -266,11 +266,14 @@ function ResultsBody({ results }: { results: Results }) {
 
       <section className="pt-20">
         <SectionHead title="Only Opus and Sol learned to stand in the fire"
-          caption="Bone Pyre is the boss's key mechanic. A circle appears on the floor, and when it goes off, the blast hits the whole party unless two players are standing in it. Each square below is one Pyre, colored by how many players stood inside."
+          caption="Bone Pyre is the boss's key mechanic. A circle appears on the floor, and when it goes off, the blast hits the whole party unless at least two players are standing in it. Each square below is one Pyre, colored by how many players stood inside."
           link={['/report#pyre', 'Report']} />
         <div className="mt-8">
           <PyreGrid results={results} />
         </div>
+        <Link to="/compare" className="mt-5 inline-flex items-center gap-1.5 text-[14px] text-fg-muted transition-colors hover:text-fg">
+          Watch the difference: Claude Opus 5.5's first and second pull, side by side <ArrowRight size={14} />
+        </Link>
       </section>
 
       <section className="pt-20">

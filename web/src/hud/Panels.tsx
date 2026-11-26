@@ -208,7 +208,7 @@ export function RaidWarnings() {
       const tgt = e.target ? s.units[e.target]?.info.name ?? '' : ''
       items.push({ key: i, text: WARN_CASTS[e.ability].replace('{target}', tgt), style: 'warning', age, dur: e.cast_ms + 10000 })
     } else if (e.type === 'cast_success' && e.ability === 'bone_pyre' && age < 3000) {
-      items.push({ key: i, text: 'Bone Pyre: two players must stand in it', style: 'warning', age, dur: 3000 })
+      items.push({ key: i, text: 'Bone Pyre: at least two players must stand in it', style: 'warning', age, dur: 3000 })
     } else if (e.type === 'cast_success' && e.ability === 'desecrate' && age < 2000) {
       items.push({ key: i, text: 'Desecrate: move out of the pools', style: 'warning', age, dur: 2000 })
     }

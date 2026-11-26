@@ -263,7 +263,7 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
         <Section n="1" title="The task">
           Clear the crypt like a Mythic+ key: two trash packs (a caster to <b>kick</b>, a healer to <b>kill first</b>), then
           Oruth, on one 4:15 timer; resting and reviving between pulls costs time. Each boss ability tests one skill: an <b>interruptible cast</b> (react in time),
-          a <b>tank buster</b> (use defensives), <b>pools on the ground</b> (move out), a <b>circle two players must stand in</b> (the one rule that has to be learned), and <b>adds</b> (switch targets).
+          a <b>tank buster</b> (use defensives), <b>pools on the ground</b> (move out), a <b>circle at least two players must stand in</b> (the one rule that has to be learned), and <b>adds</b> (switch targets).
         </Section>
         <Section n="2" title="The agent under test">
           Each of the five characters is driven by the policy. Every 100 ms it receives a JSON observation from that
