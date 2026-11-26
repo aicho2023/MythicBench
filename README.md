@@ -1,6 +1,6 @@
 # MythicBench
 
-Can a team of AI agents learn a boss fight from failing at it?
+Can AI Agents Learn How to Defeat MMORPG Dungeons?
 
 Five agents, one per character and all the same model, run a Mythic+-style
 dungeon they have never seen. After each wipe they read the same combat log,

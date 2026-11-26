@@ -36,8 +36,8 @@ jsonschema.
 
 ## Fonts
 
-IBM Plex Sans and IBM Plex Mono, by IBM, under the SIL Open Font License 1.1
-(via Fontsource).
+IBM Plex Sans and IBM Plex Mono, by IBM, and Inter, by Rasmus Andersson, all under
+the SIL Open Font License 1.1 (via Fontsource).
 
 ## Inspiration
 

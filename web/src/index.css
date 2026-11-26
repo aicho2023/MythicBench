@@ -119,23 +119,23 @@ body {
 .prose .not-prose li + li { margin-top: 0; }
 
 /*
- * The report as a paper: serif body for long reading, sans headings numbered
+ * The report as a paper: Inter body for long reading, Plex Sans headings numbered
  * like sections, figures and tables with captions, numbers in tabular mono.
  */
-.paper { font-family: 'IBM Plex Serif', Georgia, serif; font-size: 17px; line-height: 30px; color: #c4c4ca; }
-.paper > * + * { margin-top: 18px; }
-.paper h2 { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 22px; line-height: 30px; font-weight: 500; color: #ededef; margin-top: 64px; scroll-margin-top: 88px; }
-.paper h3 { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 17px; line-height: 26px; font-weight: 500; color: #ededef; margin-top: 40px; scroll-margin-top: 88px; }
-.paper h2 + *, .paper h3 + * { margin-top: 12px; }
+.paper { font-family: 'Inter', system-ui, sans-serif; font-size: 17px; line-height: 30px; color: #d4d4d8; }
+.paper > * + * { margin-top: 24px; }
+.paper h2 { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 22px; line-height: 30px; font-weight: 500; color: #ededef; margin-top: 96px; scroll-margin-top: 88px; }
+.paper h3 { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 17px; line-height: 26px; font-weight: 500; color: #ededef; margin-top: 56px; scroll-margin-top: 88px; }
+.paper h2 + *, .paper h3 + * { margin-top: 16px; }
 .paper h2 .n, .paper h3 .n { color: #e6d3a3; margin-right: 12px; font-variant-numeric: tabular-nums; }
-.paper strong { font-weight: 500; color: #ededef; }
+.paper strong { font-weight: 600; color: #ededef; }
 .paper em { font-style: italic; }
 .paper a { color: #ededef; text-decoration: underline; text-decoration-color: rgba(230, 211, 163, 0.5); text-underline-offset: 4px; }
 .paper a:hover { text-decoration-color: #e6d3a3; }
 .paper ul, .paper ol { padding-left: 22px; }
 .paper ul { list-style: disc; }
 .paper ol { list-style: decimal; }
-.paper li + li { margin-top: 8px; }
+.paper li + li { margin-top: 14px; }
 .paper li::marker { color: #8b8b93; }
 .paper blockquote { border-left: 2px solid rgba(230, 211, 163, 0.45); padding-left: 18px; color: #ededef; font-style: italic; }
 .paper code { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 14px; color: #ededef; background: #1a1a1d; border-radius: 4px; padding: 1px 4px; }
@@ -143,7 +143,7 @@ body {
 .paper pre code { background: none; padding: 0; font-size: 13px; }
 /* Figures, tables and callouts: back to the interface face. */
 .paper figure, .paper .ui { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
-.paper figure { margin-top: 32px; margin-bottom: 32px; }
+.paper figure { margin-top: 48px; margin-bottom: 48px; }
 .paper figcaption { font-size: 14px; line-height: 22px; color: #a1a1aa; margin-top: 12px; }
 .paper figcaption b { font-weight: 500; color: #ededef; }
 .paper table { width: 100%; border-collapse: collapse; font-size: 14px; line-height: 20px; }

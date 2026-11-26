@@ -76,7 +76,7 @@ export function About() {
           <ul>
             <li>Characters, animations and dungeon art: <a href="https://www.kaylousberg.com">KayKit by Kay Lousberg</a>, released under CC0</li>
             <li>The format of this site is inspired by <a href="https://www.dwarkesh.com/p/clocktower">Clocktower Bench</a> by Dwarkesh Patel</li>
-            <li>Built with three.js, React Three Fiber, React, Tailwind CSS and Lucide icons, in the IBM Plex typeface</li>
+            <li>Built with three.js, React Three Fiber, React, Tailwind CSS and Lucide icons, in the IBM Plex and Inter typefaces</li>
           </ul>
           <p>Full list and licenses: <a href={`${GITHUB_URL}/blob/main/THIRD_PARTY.md`}>THIRD_PARTY.md</a>. The code is MIT-licensed.</p>
           <p>

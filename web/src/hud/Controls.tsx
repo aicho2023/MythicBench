@@ -1,6 +1,7 @@
 import { ChevronDown, Info, ListTree, Pause, Play, RotateCcw, SkipBack, SkipForward, X } from 'lucide-react'
 import { useEffect, useMemo, useRef } from 'react'
 import { CLASS_COLORS, fmtNum, fmtTime, GRAVE_MARK } from '../content/display'
+import { EPILOGUE_MS } from '../replay/engine'
 import { usePlayback, useHud } from '../replay/store'
 import { SiteHeader } from '../site/Layout'
 import { COLOR } from '../site/tokens'
@@ -86,6 +87,8 @@ export function ReplayControls() {
   if (!engine || !h) return null
   const dur = engine.duration
   const t = h.t
+  // The clock shows the run itself (it ends at the timer at most); the few seconds after it, for the final animations, don't count.
+  const runEnd = dur - EPILOGUE_MS
   const scrubTo = (clientX: number) => {
     const r = track.current!.getBoundingClientRect()
     seek(((clientX - r.left) / r.width) * dur)
@@ -98,7 +101,7 @@ export function ReplayControls() {
       </button>
       <button onClick={() => seek(t + 10000)} className="icon-btn" title="Forward 10 s"><SkipForward size={16} /></button>
       <span className="num w-20 shrink-0 text-center font-mono text-meta text-fg-faint">
-        <span className="text-fg">{fmtTime(t)}</span> / {fmtTime(dur)}
+        <span className="text-fg">{fmtTime(Math.min(t, runEnd))}</span> / {fmtTime(runEnd)}
       </span>
       <div
         ref={track}
@@ -260,7 +263,7 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
         <Section n="1" title="The task">
           Clear the crypt like a Mythic+ key: two trash packs (a caster to <b>kick</b>, a healer to <b>kill first</b>), then
           Oruth, on one 4:15 timer; resting and reviving between pulls costs time. Each boss ability tests one skill: an <b>interruptible cast</b> (react in time),
-          a <b>tank buster</b> (use defensives), <b>pools on the ground</b> (move out), a <b>circle two players must stand in</b> (the one rule that has to be learned), and <b>adds</b> (switch targets).
+          a <b>tank buster</b> (use defensives), <b>pools on the ground</b> (move out), a <b>circle at least two players must stand in</b> (the one rule that has to be learned), and <b>adds</b> (switch targets).
         </Section>
         <Section n="2" title="The agent under test">
           Each of the five characters is driven by the policy. Every 100 ms it receives a JSON observation from that

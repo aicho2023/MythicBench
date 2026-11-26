@@ -25,6 +25,20 @@ const V1: Versions = { harness: '1.0.0', sim: '0.11.0', content: '1.8.0' }
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 'report-paper',
+    date: '2026-11-25',
+    title: "Report: the write-up is now Austin's paper",
+    kind: 'docs',
+    summary: "The report page now carries Austin's paper. Nothing that plays changed, and no score moved.",
+    items: [
+      'The report is the paper: abstract, introduction, methodology, results, limitations, conclusion and next steps. Every figure and table still reads from the published results.',
+      'The case studies, "Beyond the game", the validity section and the comparison with related benchmarks are no longer in the report. The moments they described are on the Highlights page.',
+      'The reference list holds only the works the paper cites, with LLM-Hanabi and Collab-Overcooked added.',
+      "The paper's title is now the site's title, and the share image shows the current game.",
+      'Report body text is set in Inter, in a narrower column.',
+    ],
+  },
+  {
     id: 'site-polish',
     date: '2026-11-24',
     title: 'Site: new highlights, the party page and next steps',
