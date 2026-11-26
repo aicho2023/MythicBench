@@ -179,9 +179,9 @@ export function Report() {
             </ol>
           </details>
 
-          <section aria-label="Abstract" className="mt-6 xl:mt-10 rounded-2xl border border-line bg-surface px-6 py-5">
+          <section aria-label="Abstract" className="mt-6 xl:mt-10 rounded-2xl border border-line bg-surface px-6 py-6 sm:px-8 sm:py-7">
             <p className="text-[13px] font-medium text-fg-muted">Abstract</p>
-            <div className="mt-2 space-y-4 text-[16px] leading-7 text-fg" style={{ fontFamily: "'IBM Plex Serif', Georgia, serif" }}>
+            <div className="mt-3 space-y-5 text-[17px] leading-[30px] text-fg" style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}>
               <p>
                 Most AI agent benchmarks score a single attempt at a task. This was valuable when people used agents for
                 one-off tasks, but as agents are increasingly used for long-horizon tasks, they are expected to improve over
@@ -208,7 +208,7 @@ export function Report() {
             </div>
           </section>
 
-          <div className="paper mt-4">
+          <div className="paper mt-6">
             <H2 id="introduction">Introduction</H2>
             <p>
               Recent advancements in Large Language Models (LLMs) have made them increasingly integrated into our daily
