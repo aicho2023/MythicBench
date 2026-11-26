@@ -119,10 +119,10 @@ body {
 .prose .not-prose li + li { margin-top: 0; }
 
 /*
- * The report as a paper: serif body for long reading, sans headings numbered
+ * The report as a paper: Inter body for long reading, Plex Sans headings numbered
  * like sections, figures and tables with captions, numbers in tabular mono.
  */
-.paper { font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; line-height: 32px; color: #c4c4ca; }
+.paper { font-family: 'Inter', system-ui, sans-serif; font-size: 17px; line-height: 30px; color: #d4d4d8; }
 .paper > * + * { margin-top: 24px; }
 .paper h2 { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 22px; line-height: 30px; font-weight: 500; color: #ededef; margin-top: 96px; scroll-margin-top: 88px; }
 .paper h3 { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 17px; line-height: 26px; font-weight: 500; color: #ededef; margin-top: 56px; scroll-margin-top: 88px; }

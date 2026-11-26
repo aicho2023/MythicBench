@@ -131,7 +131,7 @@ export function Report() {
   }, [results])
   return (
     <Page>
-      <div className="mx-auto grid max-w-[1120px] gap-16 py-12 md:py-16 xl:grid-cols-[200px_minmax(0,720px)]">
+      <div className="mx-auto grid max-w-[1080px] gap-16 py-12 md:py-16 xl:grid-cols-[200px_minmax(0,680px)]">
         <aside className="hidden xl:block">
           <nav aria-label="Contents" className="sticky top-24 text-[13px] leading-6">
             <p className="mb-2 font-medium text-fg">Contents</p>
@@ -148,7 +148,7 @@ export function Report() {
           </nav>
         </aside>
 
-        <article className="min-w-0">
+        <article className="mx-auto w-full min-w-0 max-w-[680px]">
           <header>
             <p className="font-mono text-[12px] text-fg-faint">Report, v1, November 2026</p>
             <h1 className="mt-3 text-[28px] font-normal leading-[1.15] text-fg sm:text-[32px]">
@@ -181,7 +181,7 @@ export function Report() {
 
           <section aria-label="Abstract" className="mt-6 xl:mt-10 rounded-2xl border border-line bg-surface px-6 py-6 sm:px-8 sm:py-7">
             <p className="text-[13px] font-medium text-fg-muted">Abstract</p>
-            <div className="mt-3 space-y-5 text-[17px] leading-[30px] text-fg" style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}>
+            <div className="mt-3 space-y-5 text-[16px] leading-[28px] text-fg" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
               <p>
                 Most AI agent benchmarks score a single attempt at a task. This was valuable when people used agents for
                 one-off tasks, but as agents are increasingly used for long-horizon tasks, they are expected to improve over

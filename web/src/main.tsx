@@ -3,9 +3,9 @@ import '@fontsource/ibm-plex-sans/500.css'
 import '@fontsource/ibm-plex-sans/600.css' // floating combat text only
 import '@fontsource/ibm-plex-mono/400.css'
 import '@fontsource/ibm-plex-mono/500.css'
-import '@fontsource/source-serif-4/400.css' // the report's body text
-import '@fontsource/source-serif-4/400-italic.css'
-import '@fontsource/source-serif-4/600.css' // bold lead-ins in the report
+import '@fontsource/inter/400.css' // the report's body text
+import '@fontsource/inter/400-italic.css'
+import '@fontsource/inter/600.css' // bold lead-ins in the report
 import { Component, lazy, StrictMode, Suspense, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { About } from './pages/About'
