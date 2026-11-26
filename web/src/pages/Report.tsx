@@ -583,6 +583,7 @@ python -m mythicsim export ../web/public/results/v1 --zip       # flat files for
 python -m mythicsim run --policy expert --tier +10 --seed 10043   # the expert's +10 clear`}</code></pre>
 
             <H2 id="cite">Citing</H2>
+            <p>If you use MythicBench, its data or its findings, please cite:</p>
             <pre><code>{`@misc{mythicbench2026,
   title        = {MythicBench: Can AI Agents Learn How to Defeat MMORPG Dungeons?},
   author       = {Ho, Austin},
@@ -590,6 +591,11 @@ python -m mythicsim run --policy expert --tier +10 --seed 10043   # the expert's
   howpublished = {\\url{https://mythicbench.com/report}},
   note         = {Version 1. Code and data: ${GITHUB_URL}}
 }`}</code></pre>
+            <p>
+              The code is under the <a href={`${GITHUB_URL}/blob/main/LICENSE`}>MIT License</a>. The data, replays,
+              recorded model replies and this paper are under <a href={`${GITHUB_URL}/blob/main/LICENSE-DATA.md`}>CC BY 4.0</a>:
+              use them for anything, as long as you credit Austin Ho and link the source.
+            </p>
           </div>
         </article>
       </div>

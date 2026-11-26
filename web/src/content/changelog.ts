@@ -25,6 +25,18 @@ const V1: Versions = { harness: '1.0.0', sim: '0.11.0', content: '1.8.0' }
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 'license',
+    date: '2026-11-26',
+    title: 'Licenses and how to cite',
+    kind: 'docs',
+    summary: 'Clearer terms for reusing MythicBench. Nothing that plays changed, and no score moved.',
+    items: [
+      'The code stays under the MIT License, now in Austin Ho\'s name.',
+      'The data (leaderboard, replays, recorded model replies), the highlights and the paper are now under CC BY 4.0: free to use for anything, with credit.',
+      'A CITATION.cff file gives GitHub\'s "Cite this repository" button, and the README and the report say how to cite.',
+    ],
+  },
+  {
     id: 'report-paper',
     date: '2026-11-25',
     title: "Report: the write-up is now Austin's paper",

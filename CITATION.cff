@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use MythicBench, its data or its findings, please cite the paper below."
+title: "MythicBench"
+abstract: "A deterministic simulation of a World of Warcraft-inspired Mythic+ dungeon that tests whether a team of AI agents can learn from its own failures."
+type: software
+authors:
+  - family-names: Ho
+    given-names: Austin
+repository-code: "https://github.com/aicho2023/MythicBench"
+url: "https://mythicbench.com"
+license: MIT
+keywords:
+  - benchmark
+  - large language models
+  - agents
+  - multi-agent
+  - learning from failure
+preferred-citation:
+  type: report
+  title: "MythicBench: Can AI Agents Learn How to Defeat MMORPG Dungeons?"
+  authors:
+    - family-names: Ho
+      given-names: Austin
+  year: 2026
+  url: "https://mythicbench.com/report"
+  repository-code: "https://github.com/aicho2023/MythicBench"

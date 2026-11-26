@@ -90,7 +90,7 @@ export function SiteFooter() {
             <Link to="/changelog" className="transition-colors hover:text-fg">Changelog</Link>
             <Link to="/about#credits" className="transition-colors hover:text-fg">Credits</Link>
             <a href={GITHUB_URL} className="transition-colors hover:text-fg">GitHub</a>
-            <a href={`${GITHUB_URL}/blob/main/LICENSE`} className="transition-colors hover:text-fg">MIT license</a>
+            <a href={`${GITHUB_URL}#credits-and-license`} className="transition-colors hover:text-fg">License</a>
           </div>
         </div>
       </div>
