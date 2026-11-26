@@ -1,6 +1,7 @@
 # Credits and third-party material
 
-MythicBench's code is MIT-licensed (see `LICENSE`). It builds on other
+MythicBench's code is MIT-licensed (see `LICENSE`), and its data and paper are under
+CC BY 4.0 (see `LICENSE-DATA.md`). It builds on other
 people's work, credited here.
 
 ## Art

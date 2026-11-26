@@ -129,9 +129,30 @@ web/           the site and 3D replay viewer (React, three.js)
 docs/          architecture, pre-registration, cloud runs
 ```
 
+## Citing
+
+If you use MythicBench, its data or its findings, please cite the paper:
+
+```bibtex
+@misc{mythicbench2026,
+  title        = {MythicBench: Can AI Agents Learn How to Defeat MMORPG Dungeons?},
+  author       = {Ho, Austin},
+  year         = {2026},
+  howpublished = {\url{https://mythicbench.com/report}},
+  note         = {Code and data: https://github.com/aicho2023/MythicBench}
+}
+```
+
+GitHub's "Cite this repository" button gives the same entry, from
+[CITATION.cff](CITATION.cff).
+
 ## Credits and license
 
-MIT-licensed, code and data. Characters,
+The code is under the [MIT License](LICENSE). The data (everything under
+`web/public/results/` and `web/public/insights/`, including the replays and
+recorded model replies), the highlights and the paper are under
+[CC BY 4.0](LICENSE-DATA.md): use them for anything, as long as you credit
+Austin Ho and link the source. Characters,
 animations and dungeon pieces are KayKit packs by Kay Lousberg (CC0). The idea
 of a careful, readable game-based eval owes a lot to Dwarkesh Patel's
 [Clocktower Bench](https://www.dwarkesh.com/p/clocktower). Full credits are in
