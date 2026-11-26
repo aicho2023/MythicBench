@@ -32,9 +32,9 @@ export function Cite({ k, t = false }: { k: string | string[]; t?: boolean }) {
   return t ? <>{links}</> : <>({links})</>
 }
 
-/** The numbered-by-order reference list, alphabetical by first author. */
-export function References() {
-  const sorted = [...REFS].sort((a, b) => a.full.localeCompare(b.full))
+/** The reference list, alphabetical by first author: every entry, or only the keys a page cites. */
+export function References({ only }: { only?: string[] } = {}) {
+  const sorted = REFS.filter((r) => !only || only.includes(r.key)).sort((a, b) => a.full.localeCompare(b.full))
   return (
     <ol className="refs">
       {sorted.map((r) => (

@@ -1,6 +1,7 @@
 // The report's reference list: only works the report's argument rests on, or
 // whose method it uses. Every entry was checked against its source on
-// 2026-11-24 (title, authors, year, venue, link): arXiv's own records for the
+// 2026-11-24 (title, authors, year, venue, link; LLM-Hanabi and Collab-Overcooked
+// against arXiv on 2026-11-25): arXiv's own records for the
 // preprints, OpenReview for the venues, and the DOI registry for the journals.
 // Years are the year of the venue that published the paper, or of the arXiv
 // preprint if it has none.
@@ -30,6 +31,8 @@ export const REFS: Ref[] = [
   { key: 'balrog', cite: 'Paglieri et al., 2025', full: 'Paglieri, D., et al. (2025). BALROG: Benchmarking Agentic LLM and VLM Reasoning On Games. ICLR 2025.', url: 'https://arxiv.org/abs/2411.13543' },
   { key: 'arc-agi-3', cite: 'ARC Prize Foundation, 2026', full: 'ARC Prize Foundation (2026). ARC-AGI-3: A New Challenge for Frontier Agentic Intelligence. arXiv:2603.24621.', url: 'https://arxiv.org/abs/2603.24621' },
   { key: 'hanabi', cite: 'Bard et al., 2020', full: 'Bard, N., et al. (2020). The Hanabi Challenge: A New Frontier for AI Research. Artificial Intelligence, 280, 103216.', url: 'https://doi.org/10.1016/j.artint.2019.103216' },
+  { key: 'llm-hanabi', cite: 'Liang et al., 2025', full: 'Liang, F., et al. (2025). LLM-Hanabi: Evaluating Multi-Agent Gameplays with Theory-of-Mind and Rationale Inference in Imperfect Information Collaboration Game. EMNLP 2025 Wordplay Workshop.', url: 'https://arxiv.org/abs/2510.04980' },
+  { key: 'collab-overcooked', cite: 'Sun et al., 2025', full: 'Sun, H., et al. (2025). Collab-Overcooked: Benchmarking and Evaluating Large Language Models as Collaborative Agents. EMNLP 2025.', url: 'https://arxiv.org/abs/2502.20073' },
   { key: 'overcooked-ai', cite: 'Carroll et al., 2019', full: 'Carroll, M., et al. (2019). On the Utility of Learning about Humans for Human-AI Coordination. NeurIPS 2019.', url: 'https://arxiv.org/abs/1910.05789' },
   { key: 'mast', cite: 'Cemri et al., 2025', full: 'Cemri, M., et al. (2025). Why Do Multi-Agent LLM Systems Fail? NeurIPS 2025 Datasets and Benchmarks Track.', url: 'https://arxiv.org/abs/2503.13657' },
   { key: 'clocktower-bench', cite: 'Patel, 2026', full: 'Patel, D. (2026, November 5). The benchmark where AIs have to lie to win. dwarkesh.com.', url: 'https://www.dwarkesh.com/p/clocktower' },

@@ -48,32 +48,33 @@ describe('numbers stated in the prose', () => {
   it('the leaders soaked in every group, most after one wipe', () => {
     const afterOne = LEADERS.reduce((a, m) => a + data.models[m].filter((g) => g.pulls.find((p) => p.soaked > 0)?.pull === 2).length, 0)
     expect(afterOne).toBe(11)
-    expect(report).toContain('eleven of them after the first wipe')
+    expect(report).toContain('eleven of them after a single wipe')
   })
 
   it('Desecrate deaths, leaders against Luna', () => {
     const [o, s, l] = ['claude-opus-5-5', 'gpt-6.2-sol', 'gpt-6-luna'].map((m) => deathShare(data, m, 'desecrate'))
-    expect(report).toContain(`${o}% and ${s}% of their deaths, against ${l}% for Luna`)
+    expect(report).toContain(`${o}% and ${s}% of their deaths, compared with ${l}% for Luna`)
   })
 
   it('Bone Pyre deaths: Luna, and the range for everyone else', () => {
     const luna = deathShare(data, 'gpt-6-luna', 'bone_pyre')
     const rest = MODELS.filter((m) => m !== 'gpt-6-luna').map((m) => deathShare(data, m, 'bone_pyre'))
-    expect(report).toContain(`Bone Pyre causes ${luna}% of GPT-6 Luna's deaths and 30 to 40% of every other model's`)
+    expect(report).toContain(`Bone Pyre caused ${luna}% of the deaths in GPT-6 Luna's groups, compared to about 30-40% for all the other models`)
     for (const v of rest) expect(v).toBeGreaterThanOrEqual(30)
     for (const v of rest) expect(v).toBeLessThanOrEqual(40)
   })
 
   it("Grok's first group: the plan written down, then 2 of 9 Pyres soaked", () => {
     const later = data.models['grok-4.3'].find((g) => g.episode === 0)!.pulls.filter((p) => p.pull >= 2)
-    const s = `${later.reduce((a, p) => a + p.soaked, 0)} of ${later.reduce((a, p) => a + p.pyres, 0)} Pyres`
-    expect(report).toContain(`on ${s}`)
+    const [n, m] = [later.reduce((a, p) => a + p.soaked, 0), later.reduce((a, p) => a + p.pyres, 0)]
+    const s = `${n} of ${m} Pyres`
+    expect(report).toContain(`only ${n} of the ${m} Pyres`)
     expect(findings).toContain(`on ${s}`)
   })
 
   it("Grok: Pyres on pulls 2 to 5 with exactly one player inside", () => {
     const inside = data.models['grok-4.3'].filter((g) => g.ranked).flatMap((g) => g.pulls.filter((p) => p.pull >= 2).flatMap((p) => p.pyre_inside ?? []))
-    expect(report).toContain(`${inside.filter((n) => n === 1).length} of the ${inside.length} Pyres on pulls 2 to 5 had exactly one player`)
+    expect(report).toContain(`${inside.filter((n) => n === 1).length} of the ${inside.length} Pyres on attempts 2 to 5 had exactly one player`)
   })
 
   it('Sol gets two agents in on about three Pyres in four', () => {
