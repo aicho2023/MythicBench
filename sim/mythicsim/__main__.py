@@ -389,9 +389,6 @@ def run_runs(args) -> None:
         runs_mod.publish(only=None)
         print(f"rescored {n} replays with the current scoring and refreshed the catalog")
     elif args.runs_cmd == "spend":
-        if args.backfill:
-            for rid, usd in spend.backfill():
-                print(f"  added estimate for {rid}: ${usd:.2f}")
         led = spend.summarize_ledger()
         print(f"spent ${led['spent_usd']:.2f} of ${led['cap_usd']:.2f} "
               f"(${led['remaining_usd']:.2f} left): {led['calls']} logged API calls"
@@ -404,10 +401,6 @@ def run_runs(args) -> None:
             for k, v in list(led["by_run"].items())[:10]:
                 print(f"  {k:<52} ${v:8.2f}")
         print("change the cap with MYTHICBENCH_TOTAL_BUDGET_USD in .env")
-    elif args.runs_cmd == "import-legacy":
-        made = runs_mod.import_legacy()
-        runs_mod.publish()
-        print(f"imported {len(made)} legacy runs" + "".join(f"\n  {r}" for r in made))
 
 
 def add_money_args(p) -> None:
@@ -486,10 +479,7 @@ def main() -> None:
     rp = rsub.add_parser("publish", help="copy runs into the viewer and rebuild its catalog")
     rp.add_argument("runs", nargs="*", help="run ids (default: refresh the catalog only)")
     rp.add_argument("--all", action="store_true", help="copy every run's replays")
-    rsp = rsub.add_parser("spend", help="real API spend so far, against the project cap")
-    rsp.add_argument("--backfill", action="store_true",
-                     help="first add estimated spend for runs made before the spend log existed")
-    rsub.add_parser("import-legacy", help="convert old runs/<model>/ folders into run folders")
+    rsub.add_parser("spend", help="real API spend so far, against the project cap")
     rsub.add_parser("rescore", help="recompute every saved run's scores with the current scoring")
     cp = sub.add_parser("campaign", help="play the official protocol: every model on every tier (resumable)")
     cp.add_argument("protocol", type=Path, help="e.g. ../protocol/v1.json")

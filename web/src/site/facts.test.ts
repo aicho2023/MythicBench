@@ -5,7 +5,7 @@
 // expected sentences here along with it.
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { behaviourRows, deathShare, soakRows } from './facts'
+import { behaviourRows, DEATH_CAUSES, deathShare, soakRows } from './facts'
 import type { Insights } from './insights'
 
 const read = (p: string) => readFileSync(new URL(p, import.meta.url), 'utf8')
@@ -49,14 +49,17 @@ describe('numbers stated in the prose', () => {
     expect(report).toContain('eleven of them after a single wipe')
   })
 
+  // Figure 5's columns and these sentences count deaths the same way (DEATH_CAUSES).
+  const cause = (key: string) => DEATH_CAUSES.find((c) => c.key === key)!.ids
+
   it('Desecrate deaths, leaders against Luna', () => {
-    const [o, s, l] = ['claude-opus-5-5', 'gpt-6.2-sol', 'gpt-6-luna'].map((m) => deathShare(data, m, 'desecrate'))
+    const [o, s, l] = ['claude-opus-5-5', 'gpt-6.2-sol', 'gpt-6-luna'].map((m) => deathShare(data, m, cause('pools')))
     expect(report).toContain(`${o}% and ${s}% of their deaths, compared with ${l}% for Luna`)
   })
 
   it('Bone Pyre deaths: Luna, and the range for everyone else', () => {
-    const luna = deathShare(data, 'gpt-6-luna', 'bone_pyre')
-    const rest = MODELS.filter((m) => m !== 'gpt-6-luna').map((m) => deathShare(data, m, 'bone_pyre'))
+    const luna = deathShare(data, 'gpt-6-luna', cause('pyre'))
+    const rest = MODELS.filter((m) => m !== 'gpt-6-luna').map((m) => deathShare(data, m, cause('pyre')))
     expect(report).toContain(`Bone Pyre caused ${luna}% of the deaths in GPT-6 Luna's groups, compared to about 30-40% for all the other models`)
     for (const v of rest) expect(v).toBeGreaterThanOrEqual(30)
     for (const v of rest) expect(v).toBeLessThanOrEqual(40)

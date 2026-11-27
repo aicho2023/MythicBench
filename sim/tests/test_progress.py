@@ -211,7 +211,7 @@ def test_progression_items_publish_without_collisions(tmp_path):
             (run.dir / f).write_text(json.dumps(p.replay))
             items.append({"episode": e, "pull": p.pull, "seed": p.seed, "file": f, "outcome": "wipe",
                           "score": p.metrics["score"], "duration_s": 1})
-    R.finish_run(run, {"score_mean": 1}, items, tmp_path)
+    R.finish_run(run, {"score_mean": 1}, items)
     pub = tmp_path / "pub"
     R.publish(tmp_path, pub)
     cat = json.loads((pub / "catalog.json").read_text())

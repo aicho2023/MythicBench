@@ -53,13 +53,24 @@ export function behaviourRows(data: Insights, models: string[]): BehaviourRow[] 
   })
 }
 
-/** Share of a model's deaths on its ranked groups caused by one ability, as a whole percent. */
-export function deathShare(data: Insights, model: string, cause: string): number {
+/** The causes of death the report names, and the abilities each one counts (Figure 5's columns). */
+export const DEATH_CAUSES: { key: string; head: string; short: string; sub: string; ids: string[] }[] = [
+  { key: 'pyre', head: 'Bone Pyre', short: 'Pyre', sub: 'the circle', ids: ['bone_pyre'] },
+  { key: 'pools', head: 'Desecrate', short: 'Pools', sub: 'floor pools', ids: ['desecrate'] },
+  { key: 'boss', head: 'Oruth’s hits', short: 'Oruth', sub: 'on the tank', ids: ['hollow_strike', 'soul_rend'] },
+  { key: 'adds', head: 'Adds', short: 'Adds', sub: 'undead melee', ids: ['bone_claw'] },
+]
+
+/** How many deaths each ability caused over these groups' pulls. */
+export function killedBy(groups: GroupFacts[]): Record<string, number> {
   const by: Record<string, number> = {}
-  for (const g of data.models[model] ?? []) {
-    if (!g.ranked) continue
-    for (const p of g.pulls) for (const [id, n] of Object.entries(p.killed_by ?? {})) by[id] = (by[id] ?? 0) + n
-  }
+  for (const g of groups) for (const p of g.pulls) for (const [id, n] of Object.entries(p.killed_by ?? {})) by[id] = (by[id] ?? 0) + n
+  return by
+}
+
+/** Share of a model's deaths on its ranked groups caused by these abilities, as a whole percent. */
+export function deathShare(data: Insights, model: string, ids: string[]): number {
+  const by = killedBy((data.models[model] ?? []).filter((g) => g.ranked))
   const total = Object.values(by).reduce((a, b) => a + b, 0)
-  return total ? Math.round((100 * (by[cause] ?? 0)) / total) : 0
+  return total ? Math.round((100 * ids.reduce((a, id) => a + (by[id] ?? 0), 0)) / total) : 0
 }

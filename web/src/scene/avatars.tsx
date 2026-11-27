@@ -1,13 +1,12 @@
 /**
- * Procedural placeholder characters (built from primitives).
+ * Procedural characters built from primitives: the fallback art, shown while
+ * the KayKit models load, when they are missing, and with ?art=procedural.
  *
  * Each rig exposes named joints (arms, legs, head...) and an `animate`
- * function that poses them from a `Pose`. When the KayKit GLB models are
- * added, a GLB rig can implement the same contract and replace these
- * without touching the replay or HUD code.
+ * function that poses them from a `Pose`.
  */
 import { Outlines } from '@react-three/drei'
-import { useMemo, useRef, type ReactNode } from 'react'
+import { useRef } from 'react'
 import * as THREE from 'three'
 import { SCHOOL_COLORS } from '../content/display'
 import { glow, toon } from './materials'
@@ -134,12 +133,6 @@ export function animateHumanoid(r: RigRefs, p: Pose, style: 'melee' | 'caster' |
     bob.rotation.x -= p.hit * 0.18
     bob.position.z -= p.hit * 0.06
   }
-  const fx = r.fx.current
-  if (fx) {
-    const on = p.mode === 'cast'
-    fx.visible = on
-    if (on) fx.scale.setScalar(0.6 + 0.6 * p.k + Math.sin(t * 20) * 0.05)
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -234,7 +227,7 @@ function Headgear({ cls, look }: { cls: string; look: Look }) {
   }
 }
 
-function Weapon({ cls, look, school }: { cls: string; look: Look; school: string }) {
+function Weapon({ cls, look }: { cls: string; look: Look }) {
   const steel = toon('#dfe7f2')
   const wood = toon('#8b5a33')
   switch (cls) {
@@ -250,7 +243,7 @@ function Weapon({ cls, look, school }: { cls: string; look: Look; school: string
       return (
         <group>
           <Part mat={toon('#f4e4c1')} position={[0, 0.15, 0.04]}><cylinderGeometry args={[0.028, 0.032, 1.25, 8]} /></Part>
-          <mesh material={glow(SCHOOL_COLORS[school] ?? '#ffe58a', 3.5)} position={[0, 0.82, 0.04]}><icosahedronGeometry args={[0.11, 1]} /></mesh>
+          <mesh material={glow(SCHOOL_COLORS.holy, 3.5)} position={[0, 0.82, 0.04]}><icosahedronGeometry args={[0.11, 1]} /></mesh>
           <Part mat={toon(look.trim)} position={[0, 0.72, 0.04]} rotation={[Math.PI / 2, 0, 0]} outline={false}><torusGeometry args={[0.1, 0.02, 6, 16]} /></Part>
         </group>
       )
@@ -284,7 +277,7 @@ function OffHand({ cls }: { cls: string }) {
         </group>
       )
     case 'shadowblade':
-      return <Weapon cls="shadowblade" look={LOOKS.shadowblade} school="nature" />
+      return <Weapon cls="shadowblade" look={LOOKS.shadowblade} />
     case 'ranger':
       return (
         <group position={[0, 0, 0.05]} rotation={[0, Math.PI / 2, 0]}>
@@ -297,7 +290,7 @@ function OffHand({ cls }: { cls: string }) {
   }
 }
 
-export function ChibiModel({ cls, rig, school }: { cls: string; rig: RigRefs; school: string }) {
+export function ChibiModel({ cls, rig }: { cls: string; rig: RigRefs }) {
   const look = LOOKS[cls] ?? LOOKS.guardian
   const robe = cls === 'lightweaver'
   return (
@@ -335,7 +328,7 @@ export function ChibiModel({ cls, rig, school }: { cls: string; rig: RigRefs; sc
       <group ref={rig.armR} position={[0.31, 0.74, 0]}>
         <Part mat={toon(look.body)} position={[0, -0.16, 0]}><capsuleGeometry args={[0.08, 0.18, 4, 10]} /></Part>
         <Part mat={toon(look.skin)} position={[0, -0.33, 0]}><sphereGeometry args={[0.085, 12, 8]} /></Part>
-        <group position={[0, -0.34, 0]}><Weapon cls={cls} look={look} school={school} /></group>
+        <group position={[0, -0.34, 0]}><Weapon cls={cls} look={look} /></group>
       </group>
       {/* head */}
       <group ref={rig.head} position={[0, 1.12, 0]}>
@@ -354,7 +347,10 @@ export const CLASS_STYLE: Record<string, 'melee' | 'caster' | 'archer' | 'dual'>
 // Oruth the Unburied
 // ---------------------------------------------------------------------------
 
-export function BossModel({ rig, castColor }: { rig: RigRefs; castColor: string }) {
+/** The orb in Oruth's hand before his first cast recolours it (Units.tsx). */
+const ORB = '#c77dff'
+
+export function BossModel({ rig }: { rig: RigRefs }) {
   const armor = toon('#3a4562')
   const plate = toon('#56658a')
   const bone = toon('#ece5d0')
@@ -422,13 +418,10 @@ export function BossModel({ rig, castColor }: { rig: RigRefs; castColor: string 
         <Part mat={armor} position={[0, -0.22, 0]}><capsuleGeometry args={[0.1, 0.3, 4, 10]} /></Part>
         <Part mat={plate} position={[0, -0.45, 0]}><sphereGeometry args={[0.13, 12, 8]} /></Part>
         <group ref={rig.fx} position={[0, -0.7, 0]}>
-          <mesh material={glow(castColor, 4)}><icosahedronGeometry args={[0.16, 1]} /></mesh>
-          <pointLight color={castColor} intensity={6} distance={9} />
+          <mesh material={glow(ORB, 4)}><icosahedronGeometry args={[0.16, 1]} /></mesh>
+          <pointLight color={ORB} intensity={6} distance={9} />
         </group>
       </group>
-      {/* unused leg refs keep the rig contract */}
-      <group ref={rig.legL} />
-      <group ref={rig.legR} />
     </group>
   )
 }
@@ -485,11 +478,12 @@ export function animateBoss(r: RigRefs, p: Pose) {
 // Bonewalker (add) — also reused as dormant statue NPCs around the crypt
 // ---------------------------------------------------------------------------
 
+const RIBS = [0.62, 0.72, 0.82]
+
 export function SkeletonModel({ rig, stone = false }: { rig: RigRefs; stone?: boolean }) {
   const bone = toon(stone ? '#6f6a80' : '#efe8d4')
   const dark = toon(stone ? '#4b4660' : '#4a3b2e')
   const eyes = glow(stone ? '#a07bff' : '#9dff6b', 3.5)
-  const ribs = useMemo(() => [0.62, 0.72, 0.82], [])
   return (
     <group ref={rig.bob}>
       {([[-1, rig.legL], [1, rig.legR]] as const).map(([s, ref]) => (
@@ -500,7 +494,7 @@ export function SkeletonModel({ rig, stone = false }: { rig: RigRefs; stone?: bo
       ))}
       <Part mat={bone} position={[0, 0.44, 0]} scale={[1.4, 0.6, 1]} outline={0.02}><sphereGeometry args={[0.11, 10, 8]} /></Part>
       <Part mat={bone} position={[0, 0.7, -0.02]} outline={false}><cylinderGeometry args={[0.03, 0.03, 0.5, 6]} /></Part>
-      {ribs.map((y, k) => (
+      {RIBS.map((y, k) => (
         <Part key={y} mat={bone} position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[1 - k * 0.08, 0.8, 1]} outline={0.015}>
           <torusGeometry args={[0.17, 0.028, 6, 16]} />
         </Part>
@@ -524,7 +518,6 @@ export function SkeletonModel({ rig, stone = false }: { rig: RigRefs; stone?: bo
           </group>
         ))}
       </group>
-      <group ref={rig.fx} />
     </group>
   )
 }
@@ -564,12 +557,11 @@ export function animateSkeleton(r: RigRefs, p: Pose) {
   if (p.hit > 0 && p.mode !== 'dead') bob.rotation.x -= p.hit * 0.25
 }
 
-export function Bubble({ color, radius, opacity = 0.18, children }: { color: string; radius: number; opacity?: number; children?: ReactNode }) {
+export function Bubble({ color, radius, opacity }: { color: string; radius: number; opacity: number }) {
   return (
     <mesh>
       <sphereGeometry args={[radius, 24, 16]} />
       <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} toneMapped={false} />
-      {children}
     </mesh>
   )
 }

@@ -150,9 +150,9 @@ function UnitActor({ id }: { id: string }) {
 
   const procedural = (
     <group scale={scale}>
-      {isBoss ? <BossModel rig={rig} castColor="#c77dff" />
+      {isBoss ? <BossModel rig={rig} />
         : isAdd ? <SkeletonModel rig={rig} />
-          : <ChibiModel cls={info.class} rig={rig} school="holy" />}
+          : <ChibiModel cls={info.class} rig={rig} />}
     </group>
   )
 

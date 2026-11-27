@@ -56,3 +56,14 @@ def test_read_state_parses_a_real_prompt(expert_party):
     assert s["boss"] and s["boss"]["id"] == "oruth"
     assert set(s["party"]) == {"rook", "ivy", "brask", "kit", "wren"}
     assert s["in_combat"]
+
+
+def test_scripted_players_are_chosen_by_name():
+    """`scripted:expert` plays the expert's rules, not the commander's under its label."""
+    from mythicsim.llm.clients import ClientError, make_client
+    from mythicsim.llm.scripted import ScriptedCommander
+    assert type(make_client("scripted:expert")) is expert.ExpertScript
+    assert type(make_client("scripted:commander")) is ScriptedCommander
+    assert make_client("scripted:expert").spec == "scripted:expert"
+    with pytest.raises(ClientError):
+        make_client("scripted:nobody")

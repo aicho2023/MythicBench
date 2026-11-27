@@ -1,7 +1,9 @@
 # Vibe-code audit, November 2026
 
 Two questions: does the site *look* AI-generated, and does the code? Copy is
-out of scope here (it's being rewritten by hand, see `docs/copy/`).
+out of scope here (it's being rewritten by hand, see `docs/copy/`). The findings
+name files as they were at the time; a later pass removed some of them
+(`PullGrid.tsx`, for one).
 
 ## Verdict
 
@@ -42,7 +44,7 @@ tooltips).
 | C3 | **Duplicated helpers.** Two `useWidth` hooks, two `PARTY_CHAT` constants, two `clock()` formatters next to a shared `fmtTime`. | `charts.tsx` + `PullGrid.tsx`, `Panels.tsx` + `MobileMoment.tsx`, `Highlights.tsx` + `exportRuns.ts` | Classic generated-code drift: each file solved the same problem again. One copy each |
 | C4 | **Leftovers from before the official run.** The sample-data notice on the home page, the GPT-6.2 Sol "pilot pull" featured replay (and its fallback path in the store), the scripted-bot showcase replays (2.1 MB) and the sample dataset (1.6 MB) all still ship to visitors, though the official results replaced them. | `pages/Home.tsx` `SampleNotice`, `site/config.ts` `FEATURED`, `replay/store.ts`, `public/replays/`, `public/results/sample/` | Dead paths to maintain and bytes nobody needs. The sample dataset is used by tests, so move it out of `public/` rather than delete it |
 | C5 | **A 730-line page component** with the whole report as JSX, including tables. | `pages/Report.tsx` | Fine for now; when your rewritten report lands, put the prose in MDX (the project already has the MDX plugin) and keep only the live tables and figures in TSX |
-| C6 | **DOM queries inside the viewer's animation loop.** The bubble and boss-plate placement I added in the UX pass reads panel positions from the DOM every frame. It's cheap (about six elements), but it couples the 3D overlay to the HUD's class names. | `hud/WorldOverlay.tsx` | Fine to keep; if it ever shows up in a profile, measure the panels on resize instead |
+| C6 | **DOM queries inside the viewer's animation loop.** The bubble and boss-plate placement reads panel positions from the DOM every frame. It's cheap (about six elements), but it couples the 3D overlay to the HUD's class names. | `hud/WorldOverlay.tsx` | Fine to keep; if it ever shows up in a profile, measure the panels on resize instead |
 | C7 | **An AI session handoff in the public repo.** `docs/HANDOFF.md` is a note from one Claude session to the next. It's stale (it describes the project as "can better training data teach a small AI model…", and an unmerged PR #3), and it includes notes about you personally: your job, your startup and your career goals. | `docs/HANDOFF.md` | Delete it, or move it out of the repo. It's the most obviously AI-written file a visitor could open |
 
 The Python simulator wasn't audited in depth. A quick scan found no TODOs, five
@@ -54,15 +56,15 @@ broad `except` clauses and no oversized functions worth flagging.
 | --- | --- |
 | D1 | Highlight kinds are plain text. Model colours on the highlights page now come from the results (a hand-typed copy of the model list there would have given any new model Haiku's colour) |
 | D2 | 16 font sizes down to 12: section headings 20, page titles 28 / 32 everywhere, the one display size kept for the home question |
-| D3 | `src/site/tokens.ts` holds every interface colour; `tailwind.config.js` reads it, and code that needs a value imports it. No interface hex is typed in a component any more. Game colours (classes, schools, enemies, pools, the gold tooltip text) are named in `content/display.ts` |
+| D3 | `src/site/tokens.ts` holds the interface colours; `tailwind.config.js` reads it, and code that needs a value imports it. Components import them from there; a few one-off values are still typed in place (Oruth's health-bar red, some translucent surfaces). Game colours (classes, schools, enemies, pools, the gold tooltip text) are named in `content/display.ts` |
 | D4 | `good` / `bad` / `warn` / `info` toned: `#4cc38a`, `#e5484d`, `#e2a336`, `#6cb8e6` |
 | D5 | No hover zoom; the play button changes colour instead |
 | D6 | Kept on purpose: the character render is the party page's one rich moment, and the wash is its light |
 | D7 | One `Tip` component (`site/Tooltip.tsx`), one width, one shadow |
-| C1 | Tables 5 and 7 are computed from `insights/v1.json` (`site/facts.ts`). `site/facts.test.ts` recomputes nine numbers the prose states and fails if a sentence and the data disagree. The expert-script figures come from the simulator, not the published data, so they stay typed |
+| C1 | The Bone Pyre and behaviour tables (now Tables 3 and 5) are computed from `insights/v1.json` (`site/facts.ts`), and Figure 5 and the sentences about it count deaths with one shared definition. `site/facts.test.ts` recomputes nine numbers the prose states and fails if a sentence and the data disagree. The expert-script figures come from the simulator, not the published data, so they stay typed |
 | C2 | ESLint (TypeScript recommended plus the rules of hooks), `npm run lint`, run in CI. It found two warnings, both fixed |
 | C3 | One `useWidth`, one `PARTY_CHAT`, one time formatter |
-| C4 | The pilot clip and its fallback paths, and the pre-launch sample notice, are gone. The sample dataset moved to `web/test-data/` (tests use it; it no longer deploys). **Correction:** `public/replays/` is not a leftover. CI's determinism check regenerates it, the report links the expert's clears in it, and nothing there downloads unless opened |
+| C4 | The pilot clip and its fallback paths, and the pre-launch sample notice, are gone. The sample dataset moved to `web/test-data/` (tests use it; it no longer deploys). **Correction:** `public/replays/` is not a leftover. CI's determinism check regenerates it, the run list shows the expert's clears from it, and nothing there downloads unless opened |
 | C5 | Waits for the report rewrite, as planned |
 | C6 | Kept |
 | C7 | `docs/HANDOFF.md` deleted. It's still in the git history; removing it from there means rewriting history, which needs your go-ahead |

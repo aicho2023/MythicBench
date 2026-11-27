@@ -567,8 +567,13 @@ def make_client(spec: str, effort: str | None = None) -> ChatClient:
     if provider == "mock":
         return MockClient(model)
     if provider == "scripted":
-        from .scripted import ScriptedCommander
-        return ScriptedCommander(model)
+        if model == "commander":
+            from .scripted import ScriptedCommander
+            return ScriptedCommander()
+        if model == "expert":
+            from .expert import ExpertScript
+            return ExpertScript()
+        raise ClientError(f"unknown scripted player {model!r} (use commander or expert)", fatal=True)
     raise ClientError(f"unknown provider {provider!r} (use anthropic, openai, google, xai, deepseek, alibaba, "
                       "scripted, or mock)")
 

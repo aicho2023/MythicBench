@@ -27,7 +27,6 @@ def sandbox(tmp_path, monkeypatch):
     runs_dir = tmp_path / "runs"
     monkeypatch.setattr(R, "RUNS_DIR", runs_dir)
     monkeypatch.setattr(R, "new_run", functools.partial(R.new_run, runs_dir=runs_dir))
-    monkeypatch.setattr(R, "finish_run", functools.partial(R.finish_run, runs_dir=runs_dir))
     monkeypatch.setattr(R, "publish", functools.partial(R.publish, runs_dir=runs_dir, out_dir=tmp_path / "local"))
     monkeypatch.setattr(spend, "LEDGER", tmp_path / "spend.jsonl")
     proto = json.loads(json.dumps(PROTO))

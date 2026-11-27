@@ -1,7 +1,7 @@
 # Design direction: the public site
 
-Scope: the pages around the replay viewer (`/`, `/paper`, `/about`, and the header and
-footer shared with `/watch`). The viewer HUD went through an unslop pass already;
+Scope: the pages around the replay viewer (`/`, `/report`, `/highlights`, `/party`, `/about`,
+`/changelog`, and the header and footer shared with `/watch`). The viewer HUD went through an unslop pass already;
 these pages are new, so this is a direction to build to, not an audit.
 It extends the HUD direction rather than inventing a second one.
 
@@ -16,27 +16,28 @@ It extends the HUD direction rather than inventing a second one.
   figures with error bars, footnoted claims, a BibTeX block
 - **Moments.** Two. The live 3D replay in the home hero, framed like a window into the crypt:
   it carries all the saturated color. And the learning-curves chart, the one chart that is
-  clearly the biggest thing on the page, where each hue is one model and the scripted bots
-  are dashed grey rules behind them
+  clearly the biggest thing on the page, where each hue is one model and the scripted bot,
+  where it is shown, is a dashed grey rule behind them
 - **Signature.** The confidence interval drawn as a thin bar on a 0 to 100 track, wherever a
-  score appears with its 95% CI. Bone (the accent) marks the mean tick on the leading row and
-  nothing else in the tables
+  score appears with its 95% CI. The bar and its dots take the model's colour; the mean is a
+  tick in the text colour
 
 ## Decisions that follow
 
 - Same tokens as the HUD (`tailwind.config.js`): graphite ramp `bg` / `surface` /
   `surface-raised`, three text roles `fg` / `fg-muted` / `fg-faint`, hairlines at 8%. Bone
   `#e6d3a3` is the only chrome accent. No new colors in the chrome
-- Model series colors come from one fixed categorical order (`MODEL_COLORS` in
+- Model series colors come from one fixed categorical order (`SERIES` in
   `src/site/results.ts`), assigned by the model's position in the protocol, never by rank, so
   a model keeps its color on every chart. Validated for the dark surface: adjacent pairs pass;
   all pairs at 7 series do not, so every line and dot is also direct-labeled with the model
   name, and hovering a model dims the others
-- Scripted bots are reference marks: neutral grey, dashed, labeled expert / competent / sloppy
-- IBM Plex Sans for text, Plex Mono for figures, run ids and meta. Weights 400 and 500.
+- The scripted bot is a reference mark: neutral grey, dashed, never a row in a table
+- IBM Plex Sans for text, Plex Mono for figures, run ids and meta. Weights 400 and 500
+  (600 for floating combat text and a few viewer headings).
   Sizes, and only these: 11 dense viewer meta, 12 meta, 13 captions, 14 controls, 15 body
   (16 for the paper's long reading), 17 lead text and card titles, 20 section, 28 page title
-  (32 from `sm`), 44 to 52 the home question (32 on mobile)
+  (32 from `sm`), 42 to 48 the home question (32 on mobile)
 - Every interface colour comes from `src/site/tokens.ts` (Tailwind reads the same file).
   Game colours are named in `src/content/display.ts`
 - Sentence case everywhere. No uppercase tracked labels, no "·" separators, no exclamation
@@ -45,8 +46,7 @@ It extends the HUD direction rather than inventing a second one.
   asymmetric split, the question and two actions on the left, the framed replay on the right
   at more than half the width. Below it: leaderboard, then the learning curves at full width,
   then the cost scatter at two thirds with its note beside it
-- Every chart has a short "How to read this" note under it, in secondary text
-- Tables: header in muted 12px, rows 48px, numbers right-aligned in mono with tabular
-  figures; the bot rows sit under a quiet divider, in secondary text
+- Tables: header in muted 12px, rows 56px, numbers right-aligned in mono with tabular
+  figures
 - Motion: hover is a color or surface step at 150ms on the shared curve. No entrance
   animations on these pages

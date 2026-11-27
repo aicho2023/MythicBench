@@ -287,7 +287,7 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
         <div className="mt-6 rounded-lg border border-line bg-surface-raised p-4">
           <div className="label !text-fg">Status</div>
           <p className="mt-2 text-[13px] leading-5 text-fg-muted">
-            The official run of five models is next. Until then, the run list has pilot pulls by real models.
+            The official run is published: seven models from four labs, six groups each on +10. The run list has every pull.
           </p>
         </div>
 
