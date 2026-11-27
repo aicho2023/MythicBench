@@ -5,13 +5,16 @@ reads the same observations and returns the same ``Action``s, so models are
 judged by exactly the same rules.
 
 Pieces:
-  clients.py  - tiny stdlib HTTP clients for Anthropic and OpenAI, plus a
-                response cache that makes model runs replayable
+  clients.py  - tiny stdlib HTTP clients for each lab's API, plus a response
+                cache that makes model runs replayable
   prompt.py   - game rules -> system prompt, observation -> state text,
                 model reply -> validated orders
   policy.py   - five agents, one per character: when each is asked, party
                 chat, and turning its orders into per-tick actions
   progress.py - pulls, the party's talk between pulls, each agent's notes
+  debrief.py  - the factual report of a wipe, from the event log
+  scripted.py - the scripted commander: fixed rules through the agents' interface
+  expert.py   - the expert script: a clear through the same interface
 """
 
 # Bump whenever anything the model sees or can do changes (prompt text, state

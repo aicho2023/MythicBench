@@ -9,7 +9,7 @@ out of scope here (it's being rewritten by hand, see `docs/copy/`).
 (`docs/design/site-direction.md`): one graphite ramp, one bone accent, IBM Plex,
 lucide icons, tabular figures, sentence case, no glows, no gradient text, no
 emoji, no looping animation. The replay viewer went through an unslop pass
-earlier (`docs/design/unslop-audit.md`). What's left is drift: the system
+earlier. What's left is drift: the system
 exists, but parts of the code stopped using it. That's a polish pass, not a
 redesign.
 

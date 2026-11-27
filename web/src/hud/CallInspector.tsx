@@ -52,7 +52,7 @@ export function CallInspector() {
   const calls = useMemo(() => engine?.replay.calls ?? [], [engine])
   const units = engine?.replay.units ?? []
   const names: Record<string, { name: string; cls: string }> = Object.fromEntries(units.map((u) => [u.id, { name: u.name, cls: u.class }]))
-  const agents = [...new Set(calls.map((c) => c.agent))]
+  const agents = useMemo(() => [...new Set(calls.map((c) => c.agent))], [calls])
   const [agent, setAgent] = useState<string | null>(null)
   const [sel, setSel] = useState(-1)
   const [rules, setRules] = useState(false)
@@ -72,8 +72,7 @@ export function CallInspector() {
     setAgent(a)
     setSel(callAt(calls, a, wantT ?? usePlayback.getState().t))
     setRules(false)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, wantAgent, wantT, calls])
+  }, [open, wantAgent, wantT, calls, agents])
 
   useEffect(() => {
     if (!open) return

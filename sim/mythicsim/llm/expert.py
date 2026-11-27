@@ -42,8 +42,6 @@ _ENEMY = re.compile(r"(\w+) \(([^)]+)\) (\d+)% HP at \((-?[\d.]+), (-?[\d.]+)\) 
 _BOSS = re.compile(r"^BOSS oruth ([\d.]+)% HP at \((-?[\d.]+), (-?[\d.]+)\), attacking (\w+)(?:, casting (\w+))?")
 _POOL = re.compile(r"(\w+) \((\w+)\) at \((-?[\d.]+), (-?[\d.]+)\) r=([\d.]+)(?: goes off in ([\d.]+)s)?")
 _MARK = re.compile(r"grave_mark (\d+)s")
-_READY = re.compile(r"Ready: ([\w, ]+?)(?:\.|$)")
-_IDLE = re.compile(r"(\w+) \(([^)]+)\) at \((-?[\d.]+), (-?[\d.]+)\)")
 
 ROLE_OF = {m.id: C.CLASSES[m.cls].role for m in C.PARTY}
 CLASS_OF = {m.id: m.cls for m in C.PARTY}
@@ -68,20 +66,15 @@ PACK_EDGE = {p.id: max(z for _, (_, z) in p.members) for p in C.PACKS}  # the me
 
 def read_state(state: str) -> dict:
     lines = state.splitlines()
-    s: dict = {"party": {}, "enemies": [], "pools": [], "idle": [], "boss": None,
-               "in_combat": "IN COMBAT" in lines[0], "packs": {}, "ready": set(), "boss_asleep": False}
+    s: dict = {"party": {}, "enemies": [], "pools": [], "boss": None,
+               "in_combat": "IN COMBAT" in lines[0], "packs": {}}
     section = None
     for line in lines:
         if line.startswith("PACK "):
-            m = re.match(r"PACK .*\((\w+)\): (\w+)", line)
-            if m:
-                s["packs"][m.group(1)] = m.group(2).lower()
             pid = re.search(r"\((chapel|ossuary)\)", line)
             if pid:
                 s["packs"]["pack1" if pid.group(1) == "chapel" else "pack2"] = line.split(": ")[1].split(",")[0].lower()
-        elif line.startswith("BOSS oruth is asleep"):
-            s["boss_asleep"] = True
-        elif line.startswith("BOSS oruth"):
+        elif line.startswith("BOSS oruth"):  # "is asleep" has no numbers to read: boss stays None
             b = _BOSS.match(line)
             if b:
                 s["boss"] = {"id": "oruth", "name": "Oruth", "hp": float(b.group(1)),
@@ -90,9 +83,6 @@ def read_state(state: str) -> dict:
             s["enemies"] = [{"id": m.group(1), "name": m.group(2), "hp": int(m.group(3)),
                              "pos": (float(m.group(4)), float(m.group(5))), "on": m.group(6), "casting": m.group(7)}
                             for m in _ENEMY.finditer(line)]
-        elif line.startswith("NOT YET PULLED:"):
-            s["idle"] = [{"id": m.group(1), "pos": (float(m.group(3)), float(m.group(4)))}
-                         for m in _IDLE.finditer(line)]
         elif line.startswith("POOLS:"):
             s["pools"] = [{"id": m.group(1), "kind": m.group(2), "pos": (float(m.group(3)), float(m.group(4))),
                            "r": float(m.group(5)), "fuse": float(m.group(6)) if m.group(6) else None}
@@ -104,19 +94,16 @@ def read_state(state: str) -> dict:
         elif section == "party":
             m = _PARTY_LINE.match(line)
             if m:
-                s["party"][m.group(1)] = {"class": m.group(2), "hp": int(m.group(3)), "pos": (float(m.group(7)),
+                s["party"][m.group(1)] = {"hp": int(m.group(3)), "pos": (float(m.group(7)),
                                           float(m.group(8))), "marked": "grave_mark" in line,
                                           "casting": ", casting " in line, "moving": " moving" in line,
                                           "line": line, "in_pool": "STANDING IN POOL" in line}
                 mk = _MARK.search(line)
                 s["party"][m.group(1)]["mark_s"] = float(mk.group(1)) if mk else None
-                if "(YOU)" in line:
-                    r = _READY.search(line)
-                    s["ready"] = set(x.strip() for x in r.group(1).split(",")) if r else set()
             else:
                 d = _DEAD_LINE.match(line)
                 if d:
-                    s["party"][d.group(1)] = {"class": d.group(2), "hp": 0, "pos": None, "marked": False,
+                    s["party"][d.group(1)] = {"hp": 0, "pos": None, "marked": False,
                                               "casting": False, "moving": False, "line": line, "in_pool": False}
     return s
 

@@ -57,23 +57,21 @@ export const ICONS: Record<string, LucideIcon> = {
   requiem: Ghost, desecrate: Biohazard, raise: Skull, claw: Bone, fury: Flame,
 }
 
-/** Abilities shown on each party frame's cooldown tracker. */
-
 /** Boss casts important enough to flash a raid warning. */
 export const WARN_CASTS: Record<string, string> = {
   requiem_of_bones: 'Requiem of Bones: interrupt it',
   soul_rend: 'Soul Rend on {target}: use a defensive',
 }
 
+/** Python's round(x, 1): rounds the number actually stored, so 31.149999… (from 70 × 44.5 / 100) gives
+ * 31.1. Math.round(x * 10) / 10 would round it to 31.2, since multiplying by 10 lands on exactly 311.5. */
+export const round1 = (x: number) => Number(x.toFixed(1))
+
 /**
  * The 0-100 pull score (mirror of sim/mythicsim/metrics.py run_score):
  * a wipe earns up to 70 for boss health removed; a kill earns 70 plus up to 30
  * for speed (the full 30 with a quarter of the timer or more left).
  */
-/** Python's round(x, 1): rounds the number actually stored, so 31.149999… (from 70 × 44.5 / 100) gives
- * 31.1. Math.round(x * 10) / 10 would round it to 31.2, since multiplying by 10 lands on exactly 311.5. */
-export const round1 = (x: number) => Number(x.toFixed(1))
-
 export function runScore(outcome: string | null, endMs: number, bossHpPctLeft: number, limitMs: number): number {
   if (outcome === 'victory') {
     const speed = Math.min(1, Math.max(0, limitMs - endMs) / (0.25 * limitMs))
@@ -119,6 +117,12 @@ export function fmtTime(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000))
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
+
+/** The glow of each of Oruth's casts, and of any other. */
+export const BOSS_CAST_COLORS: Record<string, string> = {
+  requiem_of_bones: '#c77dff', soul_rend: '#ff4d6d', raise_dead: '#9dff6b',
+}
+export const BOSS_CAST_DEFAULT = '#8fe8ff'
 
 /** Party chat text in the viewer's logs. */
 export const PARTY_CHAT = '#aab4ff'

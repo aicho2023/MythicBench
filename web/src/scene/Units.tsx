@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber'
 import { Suspense, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { CLASS_COLORS, SCHOOL_COLORS } from '../content/display'
+import { BOSS_CAST_COLORS, BOSS_CAST_DEFAULT, CLASS_COLORS, SCHOOL_COLORS } from '../content/display'
 import { posAt, bossOf } from '../replay/engine'
 import { frameState, usePlayback } from '../replay/store'
 import {
@@ -9,6 +9,7 @@ import {
   animateSkeleton, useRig,
 } from './avatars'
 import { runeCircleTexture, softCircleTexture } from './materials'
+import { BEAM_MS, HEAL_KINDS } from './Effects'
 import { AssetBoundary, USE_KAYKIT } from './ErrorBoundary'
 import { KayKitAvatar } from './kaykit/KayKitAvatar'
 import { poseOf, walkAt } from './pose'
@@ -28,18 +29,11 @@ export function Units() {
   )
 }
 
-/** How long a healer keeps facing the ally she just healed: as long as the heal beam shows (Effects BEAM_MS). */
-const HEAL_FACE_MS = 600
-
 function dampAngle(cur: number, target: number, lambda: number, dt: number) {
   let d = target - cur
   while (d > Math.PI) d -= Math.PI * 2
   while (d < -Math.PI) d += Math.PI * 2
   return cur + d * (1 - Math.exp(-lambda * dt))
-}
-
-const BOSS_CAST_COLORS: Record<string, string> = {
-  requiem_of_bones: '#c77dff', soul_rend: '#ff4d6d', raise_dead: '#9dff6b',
 }
 
 function UnitActor({ id }: { id: string }) {
@@ -89,8 +83,7 @@ function UnitActor({ id }: { id: string }) {
       // landed (its beam is still showing): face them, so the beam leaves her front.
       const la = u.lastAction
       const healKind = la ? engine.replay.abilities[la.ability]?.kind : undefined
-      const healing = la && la.target && la.target !== id && t - la.t < HEAL_FACE_MS
-        && (healKind === 'heal' || healKind === 'hot' || healKind === 'absorb')
+      const healing = la && la.target && la.target !== id && t - la.t < BEAM_MS && HEAL_KINDS.has(healKind ?? '')
       // The heal that just landed wins until its beam fades, then the next cast's target.
       const tid = (healing ? la!.target : null) ?? u.cast?.target ?? u.target
       const tgt = tid ? s.units[tid] : undefined
@@ -111,7 +104,7 @@ function UnitActor({ id }: { id: string }) {
       animateBoss(rig, pose)
       const orb = rig.fx.current
       if (orb && u.cast) {
-        const c = BOSS_CAST_COLORS[u.cast.ability] ?? '#8fe8ff'
+        const c = BOSS_CAST_COLORS[u.cast.ability] ?? BOSS_CAST_DEFAULT
         const m = orb.children[0] as THREE.Mesh
         ;(m.material as THREE.MeshBasicMaterial).color.set(c).multiplyScalar(4)
         ;(orb.children[1] as THREE.PointLight).color.set(c)
@@ -125,7 +118,7 @@ function UnitActor({ id }: { id: string }) {
       circle.current.visible = casting
       if (casting) {
         const ab = engine.replay.abilities[u.cast!.ability]
-        const col = isBoss ? BOSS_CAST_COLORS[u.cast!.ability] ?? '#8fe8ff' : SCHOOL_COLORS[ab?.school ?? 'holy']
+        const col = isBoss ? BOSS_CAST_COLORS[u.cast!.ability] ?? BOSS_CAST_DEFAULT : SCHOOL_COLORS[ab?.school ?? 'holy']
         circleMat.color.set(col).multiplyScalar(2.2)
         const base = isBoss ? 4.4 : 1.5
         circle.current.scale.setScalar(base * (0.75 + 0.25 * Math.min(1, pose.k * 3)))

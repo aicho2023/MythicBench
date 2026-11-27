@@ -1,8 +1,6 @@
 import { Cross, Shield, Sword } from 'lucide-react'
-import type { ReactNode } from 'react'
 import { ICONS, SCHOOL_COLORS } from '../content/display'
 import type { AbilityInfo } from '../replay/types'
-import { COLOR } from '../site/tokens'
 
 /** Square spell icon with an optional cooldown sweep. */
 export function AbilityIcon({
@@ -44,14 +42,13 @@ export function AbilityIcon({
   )
 }
 
-/** Flat progress bar. Text children are laid out left/right inside it. */
+/** Flat progress bar, with an optional striped stretch after the fill for a shield. */
 export function Bar({
-  frac, color, height = 8, children, absorbFrac = 0, className = '', track = 'rgba(255,255,255,0.07)',
+  frac, color, height = 8, absorbFrac = 0, className = '', track = 'rgba(255,255,255,0.07)',
 }: {
   frac: number
   color: string
   height?: number
-  children?: ReactNode
   absorbFrac?: number
   className?: string
   track?: string
@@ -72,18 +69,8 @@ export function Bar({
           }}
         />
       )}
-      {children && (
-        <div className="num absolute inset-0 flex items-center justify-between px-2 text-[11px] font-medium text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.6)]">
-          {children}
-        </div>
-      )}
     </div>
   )
-}
-
-export function secs(ms: number): string {
-  if (ms >= 60000) return `${Math.ceil(ms / 60000)}m`
-  return ms >= 3000 ? `${Math.ceil(ms / 1000)}` : (ms / 1000).toFixed(1)
 }
 
 /**
@@ -91,7 +78,6 @@ export function secs(ms: number): string {
  * text color; the class color next to them is the only hue on a unit.
  */
 export const ROLE_ICON = { tank: Shield, healer: Cross, dps: Sword } as const
-export const ROLE_TINT: Record<string, string> = { tank: COLOR.fgMuted, healer: COLOR.fgMuted, dps: COLOR.fgMuted }
 
 export function RoleIcon({ role, size = 12 }: { role: string; size?: number }) {
   const Icon = ROLE_ICON[role as keyof typeof ROLE_ICON]

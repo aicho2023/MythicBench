@@ -93,7 +93,7 @@ Put API keys in `.env` (copy `.env.example`), then from `sim/`:
 ```bash
 python -m mythicsim progress --model mock:basic --episodes 0 --max-pulls 2       # free, no API
 python -m mythicsim progress --model anthropic:claude-haiku-5-5@medium --episodes 0-2 --max-pulls 5
-python -m mythicsim campaign ../protocol/v1.json --dry-run                       # what's left, worst-case cost
+python -m mythicsim campaign ../protocol/v1.json --dry-run                       # what's left, estimated cost
 python -m mythicsim campaign ../protocol/v1.json                                 # resumable
 python -m mythicsim results ../protocol/v1.json --out ../web/public/results/v1
 ```

@@ -1,5 +1,5 @@
 // Turns the results dataset into the viewer's run list (Catalog) and replay
-// index, so the existing run browser and player work on it unchanged.
+// index, so the run browser and player read it like any other run.
 import { modelName, pullLabel } from '../content/display'
 import type { CatalogRun, ReplayIndexEntry } from '../replay/types'
 import { resultsUrl } from './config'

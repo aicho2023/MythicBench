@@ -1,5 +1,5 @@
 // Dev only (/dev/portraits?id=rook, &k=2.4 for the boss): one party member, posed, on a flat
-// green background, for taking the Party page's portrait pictures. The magenta
+// magenta background, for taking the Party page's portrait pictures. The magenta
 // is keyed out afterwards; the site itself never loads three.js for them.
 import { Canvas } from '@react-three/fiber'
 import { Suspense, useEffect, useState } from 'react'

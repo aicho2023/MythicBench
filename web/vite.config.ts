@@ -4,9 +4,7 @@ import react from '@vitejs/plugin-react'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
-import { OG_IMAGE, PAGES } from './src/site/meta'
-
-const SITE_URL = 'https://mythicbench.com'
+import { OG_IMAGE, PAGES, SITE_URL } from './src/site/meta'
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 
@@ -16,7 +14,7 @@ function withMeta(html: string, p: (typeof PAGES)[number]): string {
     .replace(/<title>.*?<\/title>/, `<title>${esc(p.title)}</title>`)
     .replace(/__TITLE__/g, esc(p.title))
     .replace(/__DESCRIPTION__/g, esc(p.description))
-    .replace(/__URL__/g, SITE_URL + (p.path === '/' ? '/' : p.path))
+    .replace(/__URL__/g, SITE_URL + p.path)
     .replace(/__IMAGE__/g, SITE_URL + OG_IMAGE)
 }
 

@@ -18,6 +18,7 @@ export const PAGES: PageMeta[] = [
   { path: '/changelog', title: 'Changelog | MythicBench', description: 'What changed in the MythicBench game and harness, version by version.' },
 ]
 
+export const SITE_URL = 'https://mythicbench.com'
 export const OG_IMAGE = '/og.jpg'
 
 /** The report's old addresses, which still open it. */

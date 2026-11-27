@@ -6,7 +6,7 @@
 import { X } from 'lucide-react'
 import { useState } from 'react'
 import { fmtTime, modelName } from '../content/display'
-import { heat, useInsights } from './PullGrid'
+import { heat, useInsights } from './insights'
 import { modelColor, type Results } from './results'
 import { navigate } from './router'
 import { Tip } from './Tooltip'

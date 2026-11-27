@@ -4,7 +4,7 @@ from mythicsim.stats import clopper_pearson, holm, paired, t_p_two_sided
 
 
 def test_clopper_pearson_known_values():
-    assert clopper_pearson(0, 6) == [0.0, 0.4593]  # Codex's "about 46%"
+    assert clopper_pearson(0, 6) == [0.0, 0.4593]  # "about 46%"
     assert clopper_pearson(6, 6) == [0.5407, 1.0]
     lo, hi = clopper_pearson(3, 6)
     assert abs(lo - 0.1181) < 1e-3 and abs(hi - 0.8819) < 1e-3

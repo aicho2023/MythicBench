@@ -11,14 +11,14 @@ import { CLASS_COLORS, HOSTILE, SCHOOL_COLORS, fmtNum } from '../content/display
 import { posAt, bossOf } from '../replay/engine'
 import { frameState } from '../replay/store'
 import { sceneBridge } from '../scene/Scene'
-import { ROLE_ICON, ROLE_TINT, chatText } from './bits'
+import { ROLE_ICON, chatText } from './bits'
 import { COLOR } from '../site/tokens'
 
 const MAX_TEXT = 44
 const MAX_PLATES = 16
 const MAX_BUBBLES = 3 // the newest lines only: five at once cover the fight
 const BUBBLE_MS = 4000 // a chat bubble stays up this long, fading over its last second
-/** Bubbles never rise into the top band, where the boss frame, warnings and banners sit (px). */
+/** Bubbles never rise into the top band, where the warnings and banners sit (px). */
 const BUBBLE_TOP = 150
 const ABILITY_MS = 1200 // how long an instant ability's name shows under the caster's name
 const TEXT_MS = 1100
@@ -208,7 +208,6 @@ export function WorldOverlay() {
           if (e.type === 'damage' && toPlayer && e.amount < 1500) continue
           const pos = posAt(tgt, t)
           const heal = e.type === 'heal'
-          if (heal && e.amount === 0) continue
           const text = heal ? `+${fmtNum(e.amount)}` : fmtNum(e.amount)
           const crit = e.crit
           items.push({
@@ -256,7 +255,7 @@ export function WorldOverlay() {
             <span className="inline-flex [filter:drop-shadow(0_1px_1px_#000)]">
               {Object.entries(ROLE_ICON).map(([role, Icon]) => (
                 <span key={role} data-role={role} style={{ display: 'none' }}>
-                  <Icon size={12} strokeWidth={2} style={{ color: ROLE_TINT[role] }} fill={role === 'healer' ? ROLE_TINT[role] : 'none'} />
+                  <Icon size={12} strokeWidth={2} style={{ color: COLOR.fgMuted }} fill={role === 'healer' ? COLOR.fgMuted : 'none'} />
                 </span>
               ))}
             </span>

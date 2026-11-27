@@ -1,7 +1,7 @@
 import { ChevronDown, Info, ListTree, Pause, Play, RotateCcw, SkipBack, SkipForward, X } from 'lucide-react'
 import { useEffect, useMemo, useRef } from 'react'
 import { CLASS_COLORS, fmtNum, fmtTime, GRAVE_MARK } from '../content/display'
-import { EPILOGUE_MS } from '../replay/engine'
+import { EPILOGUE_MS, type Marker } from '../replay/engine'
 import { usePlayback, useHud } from '../replay/store'
 import { SiteHeader } from '../site/Layout'
 import { COLOR } from '../site/tokens'
@@ -9,8 +9,8 @@ import { COLOR } from '../site/tokens'
 const SPEEDS = [0.5, 1, 2, 4]
 
 // Each hue is one kind of event. Adds spawn in the bone-walker class color.
-const MARKER_COLOR: Record<string, string> = {
-  death: COLOR.bad, missed: COLOR.warn, raise: CLASS_COLORS.bonewalker, kick: COLOR.info, end: COLOR.fg, pull: COLOR.fgMuted,
+const MARKER_COLOR: Record<Marker['kind'], string> = {
+  death: COLOR.bad, missed: COLOR.warn, raise: CLASS_COLORS.bonewalker, end: COLOR.fg, pull: COLOR.fgMuted,
   pool: '#c084fc', mark: GRAVE_MARK, soak: '#facc15',
 }
 
@@ -116,7 +116,7 @@ export function ReplayControls() {
             key={k}
             title={`${m.label} at ${fmtTime(m.t)}`}
             className="absolute top-1/2 h-3 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-[1px]"
-            style={{ left: `${(m.t / dur) * 100}%`, background: MARKER_COLOR[m.kind] ?? '#fff' }}
+            style={{ left: `${(m.t / dur) * 100}%`, background: MARKER_COLOR[m.kind] }}
           />
         ))}
         <div className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-fg ring-[3px] ring-surface" style={{ left: `${(t / dur) * 100}%` }} />
@@ -163,7 +163,7 @@ export function EndBanner() {
   const taken: Record<string, number> = {}
   for (const e of h.engine.replay.events) {
     if (e.type === 'damage' && e.t <= h.s.ended.t && players.some((p) => p.id === e.target)) {
-      taken[e.target] = (taken[e.target] ?? 0) + e.amount + (e.absorbed ?? 0)
+      taken[e.target] = (taken[e.target] ?? 0) + e.amount + e.absorbed
     }
   }
   const avoidable = m ? Object.values(m.avoidable_damage_taken).reduce((a, b) => a + b, 0) : 0

@@ -123,7 +123,7 @@ def test_nobody_hides_behind_the_throne():
 
 
 def test_oruth_never_stalls_behind_his_throne():
-    """Codex's case: Oruth on one side of the throne, a tank standing still on
+    """Oruth on one side of the throne, a tank standing still on
     the other. The real boss tick: he walks round, swings, and casts Soul Rend."""
     enc = _arena()
     boss, rook = enc.boss, enc.units["rook"]
@@ -141,7 +141,7 @@ def test_oruth_never_stalls_behind_his_throne():
 
 
 def test_oruth_stays_in_his_room_when_the_doorway_is_crowded():
-    """Codex's case: the tank out in the corridor, allies crowding the doorway.
+    """The tank out in the corridor, allies crowding the doorway.
     Oruth never leaves his room; he fights the nearest player he can reach."""
     class Still:
         def act(self, obs):
@@ -195,7 +195,7 @@ def test_oruth_goes_back_to_his_target_once_he_can_reach_it():
 
 
 def test_oruth_never_parks_out_of_reach_at_an_open_doorway():
-    """Codex's case: the tank out in the corridor, the doorway open, allies in
+    """The tank out in the corridor, the doorway open, allies in
     the room. The room's edge is a legal spot but out of reach of the tank, so
     Oruth turns on someone he can reach, and the agents see who that is."""
     class Still:

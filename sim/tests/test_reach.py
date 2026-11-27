@@ -22,7 +22,7 @@ def _obs(me, tgt, ground=()):
 
 
 def _standing(*prio):
-    return Standing(Order(priority=list(prio)), 0)
+    return Standing(Order(priority=list(prio)))
 
 
 def _units(obs):
@@ -184,7 +184,7 @@ def test_safe_needs_the_real_route_to_stay_clear():
 
 
 def test_safe_never_stops_in_a_pool_when_a_clear_spot_is_reachable():
-    """Codex's case: at the Ossuary's doorway, the best-looking spot is in the
+    """At the Ossuary's doorway, the best-looking spot is in the
     corridor, but the straight walk there hits the wall inside the grave. The
     sim judges every candidate as the move would really go."""
     from mythicsim.dungeon import DungeonRun

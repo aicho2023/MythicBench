@@ -1,14 +1,15 @@
 """Model runs: one folder per invocation, a registry, and the viewer catalog.
 
-A *run* is one invocation of ``mythicsim llm`` (or, later, ``progress``)::
+A *run* is one invocation of ``mythicsim llm`` or ``mythicsim progress``::
 
     runs/
       registry.jsonl                    one line per finished run (fast listing)
       cache/<model-config>.jsonl        recorded replies, shared across runs
       <run_id>/
         manifest.json                   everything that defines the run + its summary
-        seeds/seed-N.json               replay
+        seeds/seed-N.json               replay (``llm``)
         seeds/seed-N.stats.json         model call stats
+        episodes/<E>/pull-K.json        replay (``progress``), with pull-K.stats.json
 
 ``run_id`` = ``<UTC time>_<model>[@effort]_<4 hex>``, e.g.
 ``2026-11-21T1530_claude-haiku-5-5@none_a1b2``: sortable by time, readable,
@@ -33,9 +34,13 @@ from pathlib import Path
 from .llm.clients import REPO_ROOT
 
 RUNS_DIR = REPO_ROOT / "runs"
-REGISTRY = RUNS_DIR / "registry.jsonl"
 LOCAL_REPLAYS = REPO_ROOT / "web" / "public" / "replays" / "local"
 RUN_ID_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{4}_.+_[0-9a-f]{4,8}$")
+
+
+def recording_name(spec: str) -> str:
+    """The recordings file for one model configuration, e.g. ``openai_gpt-6-luna_medium.jsonl``."""
+    return spec.replace(":", "_").replace("/", "_").replace("@", "_") + ".jsonl"
 
 
 def git_commit() -> str | None:
@@ -262,7 +267,7 @@ def rescore(runs_dir: Path = RUNS_DIR) -> int:
     import math
     import statistics as st
     from .llm.progress import summarize_items
-    from .metrics import score as score_fn
+    from .metrics import SCORE_VERSION, score as score_fn
     n = 0
     for m in load_manifests(runs_dir):
         if m.get("status") not in ("done", "stopped"):
@@ -288,7 +293,7 @@ def rescore(runs_dir: Path = RUNS_DIR) -> int:
             summ.update(score_mean=round(st.mean(vals), 1),
                         score_ci95=[round(st.mean(vals) - h, 1), round(st.mean(vals) + h, 1)] if h is not None else None,
                         win_rate=round(sum(i["outcome"] == "victory" for i in items) / len(items), 3))
-        summ["score_version"] = 2
+        summ["score_version"] = SCORE_VERSION
         m["summary"] = summ
         (runs_dir / rid / "manifest.json").write_text(json.dumps(m, indent=2))
     rebuild_registry(runs_dir)

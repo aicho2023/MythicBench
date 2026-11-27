@@ -229,7 +229,6 @@ def claim_paid_lock(runs_dir: Path | None = None) -> None:
     would each check the cap without seeing the other's calls in flight.
     (Threads in one process share the guards below, so a campaign's parallel
     cells are fine.) Held until the process exits."""
-    global _PAID_LOCK
     with _PAID_LOCK_GUARD:  # threads of this process share one claim
         _claim(runs_dir)
 
@@ -253,7 +252,6 @@ def _claim(runs_dir: Path | None) -> None:
 
 PROJECT = Guard("project")  # MYTHICBENCH_TOTAL_BUDGET_USD, across everything ever spent
 CAMPAIGN = Guard("campaign")  # campaign --budget-usd, across all of a campaign's cells
-ProjectGuard = Guard  # older name
 
 
 # Tokens a request adds beyond its text (roles, message framing, the system

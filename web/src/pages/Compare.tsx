@@ -142,12 +142,12 @@ function Side({ entry, engine, t }: { entry: ReplayIndexEntry; engine: ReplayEng
   )
 }
 
+const DEFAULT_PAIR = ['/watch/claude-opus-5-5/plus10/1/1', '/watch/claude-opus-5-5/plus10/1/2']
+
 /**
  * Two replays side by side on one clock, as top-down maps: pull 1 against a
  * later pull, or two models on the same seed. /compare?a=<replay id>&b=<replay id>
  */
-const DEFAULT_PAIR = ['/watch/claude-opus-5-5/plus10/1/1', '/watch/claude-opus-5-5/plus10/1/2']
-
 export function Compare() {
   const ensureIndex = usePlayback((p) => p.ensureIndex)
   const index = usePlayback((p) => p.index)

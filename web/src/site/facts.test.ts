@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { behaviourRows, deathShare, soakRows } from './facts'
-import type { Insights } from './PullGrid'
+import type { Insights } from './insights'
 
 const read = (p: string) => readFileSync(new URL(p, import.meta.url), 'utf8')
 const data: Insights = JSON.parse(read('../../public/insights/v1.json'))
@@ -19,7 +19,7 @@ const soaks = Object.fromEntries(soakRows(data, MODELS).map((r) => [r.model, r])
 const groupsThatSoaked = (ms: string[]) => ms.reduce((a, m) => a + Number(soaks[m].groups.split(' of ')[0]), 0)
 const groupCount = (ms: string[]) => ms.reduce((a, m) => a + data.models[m].length, 0)
 
-describe('Table 5, Bone Pyre', () => {
+describe('Table 3, Bone Pyre', () => {
   it('matches the counts first published by hand', () => {
     expect(soaks['claude-opus-5-5']).toMatchObject({ groups: '6 of 6', soaked: '77 of 92', note: 'all after the first wipe' })
     expect(soaks['gpt-6.2-sol']).toMatchObject({ groups: '6 of 6', soaked: '71 of 95', note: '5 after the first wipe, 1 after the second' })
@@ -28,12 +28,12 @@ describe('Table 5, Bone Pyre', () => {
   })
 })
 
-describe('Table 7, behaviour', () => {
+describe('Table 5, behaviour', () => {
   it('matches the values first published by hand', () => {
     const b = Object.fromEntries(behaviourRows(data, MODELS).map((r) => [r.model, r]))
-    expect(b['claude-opus-5-5']).toEqual({ model: 'claude-opus-5-5', kicks: '82%', chat: 76, deaths: 4.6 })
-    expect(b['gpt-6-luna']).toEqual({ model: 'gpt-6-luna', kicks: '74%', chat: 16, deaths: 5 })
-    expect(b['grok-4.3']).toEqual({ model: 'grok-4.3', kicks: '70%', chat: 10, deaths: 5.3 })
+    expect(b['claude-opus-5-5']).toEqual({ model: 'claude-opus-5-5', chat: 76, deaths: 4.6 })
+    expect(b['gpt-6-luna']).toEqual({ model: 'gpt-6-luna', chat: 16, deaths: 5 })
+    expect(b['grok-4.3']).toEqual({ model: 'grok-4.3', chat: 10, deaths: 5.3 })
   })
 })
 

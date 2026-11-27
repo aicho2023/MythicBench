@@ -17,7 +17,7 @@ import { useSearch } from './site/router'
 /**
  * The replay viewer, full screen. `path` is the /watch address: /watch/<model>
  * opens that model's runs in the run list, /watch/<model>/<tier>/<episode>/<pull>
- * one pull. ?replay= and ?run= deep links work as before.
+ * one pull. ?replay= and ?run= deep links work too.
  */
 export default function App({ path = '/watch' }: { path?: string }) {
   const ensureIndex = usePlayback((p) => p.ensureIndex)
@@ -38,7 +38,7 @@ export default function App({ path = '/watch' }: { path?: string }) {
   // Open what the address names, on arrival and on client-side navigation to another /watch address.
   useEffect(() => {
     if (!indexed) return
-    openFromUrl({ fallback: true })
+    openFromUrl()
     if (modelOnly) setRuns(true)
   }, [path, search, indexed, openFromUrl, modelOnly])
 
@@ -50,7 +50,7 @@ export default function App({ path = '/watch' }: { path?: string }) {
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute inset-x-0 top-0"><TopBar onAbout={() => setAbout(true)} onRuns={() => setRuns(true)} /></div>
 
-        {/* Top row: party | boss (+ adds, callouts) | scorecard. See .hud-top in index.css. */}
+        {/* Top row: party | raid warnings | scorecard. See .hud-top in index.css. */}
         <div className="hud-top absolute inset-x-4 top-[72px]">
           <div className="hud-s no-phone justify-self-start [grid-area:party]"><PartyFrames /></div>
           <div className="phone-only [grid-area:party]"><CompactParty /></div>

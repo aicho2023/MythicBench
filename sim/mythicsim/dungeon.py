@@ -78,12 +78,12 @@ class DungeonRun(Encounter):
             to = self.straight_line_reach(u.pos, self.clamp(to, u.radius))
         return super().resolve_spot(u, to, foe)
 
-    def start_move(self, u, to, *, exact=False, foe=None):
+    def start_move(self, u, to, *, exact=False):
         # Walls are solid: a player's move goes in a straight line and stops at
         # the last walkable point before a wall (the "next" route never needs to).
         if u.kind == "player" and not exact:
             to = self.straight_line_reach(u.pos, self.clamp(to, u.radius))
-        super().start_move(u, to, exact=exact, foe=foe)
+        super().start_move(u, to, exact=exact)
 
     @staticmethod
     def straight_line_reach(frm, to):
@@ -192,7 +192,6 @@ class DungeonRun(Encounter):
             tgt = min(alive, key=lambda p: (dist(p.pos, a.pos), p.id))
             a.target = tgt.id
         for sid in d.spells:
-            ab = C.ABILITIES[sid]
             if a.cooldowns.get(sid, 0) > self.t:
                 continue
             if sid == "mend_bones":

@@ -66,7 +66,7 @@ export function Scorecard() {
           ))}
         </>}
         <Metric label={dungeon ? 'Oruth' : 'Boss health left'}
-          value={dungeon && !boss?.engaged ? 'asleep' : `${bossPct.toFixed(1)}% left`.replace(dungeon ? '' : ' left', '')}
+          value={dungeon && !boss?.engaged ? 'asleep' : `${bossPct.toFixed(1)}%${dungeon ? ' left' : ''}`}
           tone={bossPct === 0 ? 'good' : 'plain'} />
         <Metric label="Interrupts" value={`${s.kicks.interrupted} / ${s.kicks.casts}`}
           tone={s.kicks.casts === 0 ? 'plain' : s.kicks.interrupted === s.kicks.casts ? 'good' : 'bad'} />
@@ -203,7 +203,7 @@ export function RaidWarnings() {
     const age = t - e.t
     if (e.type === 'emote') {
       const dur = e.style === 'yell' ? 5000 : 2500
-      if (age < dur) items.push({ key: i, text: e.style === 'yell' ? e.text : e.text, style: e.style, age, dur })
+      if (age < dur) items.push({ key: i, text: e.text, style: e.style, age, dur })
     } else if (e.type === 'cast_start' && t < over && WARN_CASTS[e.ability] && s.units[e.unit]?.cast?.t0 === e.t) {
       const tgt = e.target ? s.units[e.target]?.info.name ?? '' : ''
       items.push({ key: i, text: WARN_CASTS[e.ability].replace('{target}', tgt), style: 'warning', age, dur: e.cast_ms + 10000 })
@@ -241,7 +241,6 @@ export function RaidWarnings() {
 // ---------------------------------------------------------------------------
 // Decision log: what the agents did and WHY (their stated reason)
 // ---------------------------------------------------------------------------
-/** WoW's party-chat colour, for the message text. */
 
 export function DecisionLog() {
   const h = useHud()

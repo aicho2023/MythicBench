@@ -14,7 +14,6 @@ from collections import defaultdict
 
 # Ground effects that hurt players standing in them (reported by source).
 POOL_ABILITIES = ("desecrate", "restless_grave")
-POOL_TICK_S = {"desecrate": 0.5, "restless_grave": 1.0}  # kept for older callers
 
 def _name(replay: dict, ability: str) -> str:
     a = replay["abilities"].get(ability) or replay["auras"].get(ability)
@@ -181,7 +180,7 @@ def debrief_text(replay: dict) -> str:
                    f"alive {sum(alive_for) / len(alive_for):.0f} s on average; they dealt {dealt:,} damage, "
                    f"to {', '.join(targets) or 'nobody'}.")
 
-    if meta_mode(replay) == "dungeon":
+    if replay["meta"].get("mode") == "dungeon":
         out.append("\n" + dungeon_lines(replay))
 
     if d["pool_hits"]:
@@ -190,10 +189,6 @@ def debrief_text(replay: dict) -> str:
             out.append(f"  {_name(replay, a)}: " + ", ".join(
                 f"{who(p)} {dmg:,} in {hits} hits" for p, (hits, dmg) in sorted(per.items(), key=lambda kv: -kv[1][1])) + ".")
     return "\n".join(out)
-
-
-def meta_mode(replay: dict) -> str:
-    return replay["meta"].get("mode", "boss")
 
 
 def dungeon_lines(replay: dict) -> str:

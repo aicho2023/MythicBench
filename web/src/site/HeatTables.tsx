@@ -1,11 +1,11 @@
 // Heat tables over the ranked +10 groups: a row per model, a cell per column,
-// shaded on the pull grid's ramp (dark = little, bright = a lot) with the value
+// shaded on the heat ramp (dark = little, bright = a lot) with the value
 // written in. Two views: how much of Bone Pyre each model soaked at each pull,
 // and what killed its characters.
 // Data: web/public/insights/v1.json (scripts/build_insights.py).
 import { useRef, useState, type ReactNode } from 'react'
 import { modelName } from '../content/display'
-import { heat, useInsights, type GroupFacts, type Insights } from './PullGrid'
+import { heat, useInsights, type GroupFacts, type Insights } from './insights'
 import { modelColor, type Results } from './results'
 import { Tip } from './Tooltip'
 import { COLOR } from './tokens'

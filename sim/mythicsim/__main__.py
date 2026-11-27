@@ -60,7 +60,7 @@ def simulate(seed: int, tier: str = C.DEFAULT_TIER, mode: str = "dungeon", polic
     else:
         from .llm.scripted import ScriptedCommander
         client = ScriptedCommander()
-    policies, party = make_llm_policies(client, tier=tier, mode=mode, knowledge="blind", parallel=False)
+    policies, _ = make_llm_policies(client, tier=tier, mode=mode, knowledge="blind", parallel=False)
     return make_encounter(seed, policies, f"llm:{client.spec}", tier, mode).run()
 
 
@@ -129,10 +129,9 @@ def build_client(args, n_fights: int):
         meter = spend.CostMeter(client, price, limit_usd=limit, ledger=spend.LEDGER)
         client = meter
     if not args.no_cache:
-        safe = label.replace(":", "_").replace("/", "_").replace("@", "_")
         # A campaign records into its own folder, so it never replays pilot runs.
         cache_dir = getattr(args, "cache_dir", None) or runs_mod.RUNS_DIR / "cache"
-        client = CachedClient(client, Path(cache_dir) / f"{safe}.jsonl", offline=args.offline)
+        client = CachedClient(client, Path(cache_dir) / runs_mod.recording_name(label), offline=args.offline)
     tally = spend.CostMeter(client, price)
     return tally, label, price, meter
 
@@ -495,7 +494,7 @@ def main() -> None:
     cp = sub.add_parser("campaign", help="play the official protocol: every model on every tier (resumable)")
     cp.add_argument("protocol", type=Path, help="e.g. ../protocol/v1.json")
     cp.add_argument("--only", help="only models whose spec contains this text")
-    cp.add_argument("--dry-run", action="store_true", help="list what's left to play and a worst-case cost")
+    cp.add_argument("--dry-run", action="store_true", help="list what's left to play and an estimate of its cost")
     cp.add_argument("--workers", type=int, default=3, help="episodes to play in parallel per model and tier")
     cp.add_argument("--budget-usd", type=float, help="stop the campaign after spending this much this time")
     cp.add_argument("--offline", action="store_true", help="only use recorded replies (rebuild from recordings)")

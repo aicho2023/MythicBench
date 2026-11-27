@@ -1,7 +1,7 @@
-// Tables the report used to carry as typed-in numbers, computed from the published
-// per-pull facts instead (web/public/insights/v1.json, built by scripts/build_insights.py
-// from the replays), so they can't drift from the data.
-import type { GroupFacts, Insights } from './PullGrid'
+// The report's Bone Pyre and behaviour tables, computed from the published per-pull
+// facts (web/public/insights/v1.json, built by scripts/build_insights.py from the
+// replays), so they can't drift from the data.
+import type { GroupFacts, Insights } from './insights'
 
 const ORDINAL = ['first', 'second', 'third', 'fourth']
 
@@ -38,17 +38,15 @@ function firstSoakPull(g: GroupFacts): number | null {
   return g.pulls.find((p) => p.soaked > 0)?.pull ?? null
 }
 
-export interface BehaviourRow { model: string; kicks: string; chat: number; deaths: number }
+export interface BehaviourRow { model: string; chat: number; deaths: number }
 
-/** How each party played on +10, over its memory-on groups: interruptible casts interrupted, chat lines and deaths per pull. */
+/** How each party played on +10, over its memory-on groups: chat lines and deaths per pull. */
 export function behaviourRows(data: Insights, models: string[]): BehaviourRow[] {
   return models.filter((m) => data.models[m]?.length).map((model) => {
     const pulls = data.models[model].flatMap((g) => g.pulls)
-    const [hit, all] = pulls.reduce(([h, a], p) => [h + p.kicks[0], a + p.kicks[1]], [0, 0])
     const mean = (f: (p: (typeof pulls)[number]) => number) => pulls.reduce((a, p) => a + f(p), 0) / Math.max(1, pulls.length)
     return {
       model,
-      kicks: `${Math.round((100 * hit) / Math.max(1, all))}%`,
       chat: Math.round(mean((p) => p.chat)),
       deaths: Math.round(10 * mean((p) => p.deaths)) / 10,
     }

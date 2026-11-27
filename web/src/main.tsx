@@ -1,6 +1,6 @@
 import '@fontsource/ibm-plex-sans/400.css'
 import '@fontsource/ibm-plex-sans/500.css'
-import '@fontsource/ibm-plex-sans/600.css' // floating combat text only
+import '@fontsource/ibm-plex-sans/600.css' // floating combat text, viewer headings
 import '@fontsource/ibm-plex-mono/400.css'
 import '@fontsource/ibm-plex-mono/500.css'
 import '@fontsource/inter/400.css' // the report's body text
@@ -22,7 +22,8 @@ import './index.css'
 const Watch = lazy(() => import('./App'))
 const Report = lazy(() => import('./pages/Report').then((m) => ({ default: m.Report })))
 const Compare = lazy(() => import('./pages/Compare').then((m) => ({ default: m.Compare })))
-const DevPortraits = lazy(() => import('./pages/DevPortraits'))
+// Dev only: the condition keeps the page (and its three.js imports) out of the production build.
+const DevPortraits = import.meta.env.DEV ? lazy(() => import('./pages/DevPortraits')) : null
 
 // A deploy renames the code files that pages load on demand, so a tab opened
 // before it asks for files that are gone. Load the new version instead of
@@ -74,7 +75,7 @@ function Site() {
   else if (path === '/about') page = <About />
   else if (path === '/changelog') page = <Changelog />
   else if (path === '/compare') page = <Compare />
-  else if (import.meta.env.DEV && path === '/dev/portraits') page = <DevPortraits />
+  else if (DevPortraits && path === '/dev/portraits') page = <DevPortraits />
   else page = <NotFound />
   return (
     <PageBoundary key={path}>

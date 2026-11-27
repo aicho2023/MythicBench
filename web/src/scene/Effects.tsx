@@ -311,11 +311,12 @@ function Bursts() {
 // (raid heals hit everyone, so each target gets its own beam).
 // ---------------------------------------------------------------------------
 
-const BEAM_MS = 600
+/** How long a heal's beam shows (and how long the healer keeps facing who she healed). */
+export const BEAM_MS = 600
 const MOTE_MS = 800
 const MAX_BEAMS = 8
 const MAX_MOTES = 12
-const HEAL_KINDS = new Set(['heal', 'hot', 'absorb'])
+export const HEAL_KINDS = new Set(['heal', 'hot', 'absorb'])
 const UP = new THREE.Vector3(0, 1, 0)
 
 interface Beam { from: string; to: string; k: number; color: string }

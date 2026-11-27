@@ -20,7 +20,6 @@ PROTO = {
     "models": [{"provider": "mock", "id": "basic", "name": "Mock"}],
     "controls": [{"model": "basic", "memory": False, "tiers": ["plus10"]}],
 }
-WITH_BASELINE = {**PROTO, "baselines": [{"provider": "scripted", "id": "commander", "name": "Scripted commander"}]}
 
 
 @pytest.fixture
@@ -205,7 +204,7 @@ def test_a_second_arm_doesnt_reset_the_guard():
 
 
 def test_changing_the_rules_retires_old_episodes(sandbox):
-    """GPT's repro: one-pull episodes must not count once the protocol says three."""
+    """One-pull episodes must not count once the protocol says three."""
     tmp, proto = sandbox
     short = dict(proto, max_pulls=1, controls=[])
     K.run_campaign(short)
@@ -276,7 +275,7 @@ def test_verify_replays_the_campaign_from_recordings(sandbox, capsys):
     assert "FAIL" in capsys.readouterr().out
 
 
-def _tamper_checkpoint(tmp, proto, **changes):
+def _tamper_checkpoint(tmp, **changes):
     m = next(m for m in R.load_manifests(tmp / "runs") if m.get("campaign_key"))
     mark = tmp / "runs" / m["run_id"] / "episodes" / str(m["episodes"][0]) / "episode.json"
     ck = json.loads(mark.read_text())
@@ -289,7 +288,7 @@ def test_verify_catches_a_doctored_checkpoint(sandbox, capsys, changes):
     tmp, proto = sandbox
     K.run_campaign(proto)
     assert K.verify_campaign(proto, tmp / "runs") == 0
-    _tamper_checkpoint(tmp, proto, **changes)
+    _tamper_checkpoint(tmp, **changes)
     assert K.verify_campaign(proto, tmp / "runs") == 1
     assert "the replay says" in capsys.readouterr().out
 
@@ -387,10 +386,9 @@ def test_the_verifier_never_writes_where_the_dataset_says(sandbox, tmp_path):
     for e in board["leaderboard"][0]["tiers"]["plus10"]["episode_list"]:
         e["run_id"] = evil
     (out / "leaderboard.json").write_text(json.dumps(board, indent=1) + "\n")
-    import tempfile as tf
-    before = set(Path(tf.gettempdir()).parent.glob("escaped-by-run-id*")) | set(tmp.parent.glob("escaped-by-run-id*"))
+    before = set(Path(tempfile.gettempdir()).parent.glob("escaped-by-run-id*")) | set(tmp.parent.glob("escaped-by-run-id*"))
     K.verify_results(out, replay=False)  # it may well fail; it must not write outside its sandbox
-    after = set(Path(tf.gettempdir()).parent.glob("escaped-by-run-id*")) | set(tmp.parent.glob("escaped-by-run-id*"))
+    after = set(Path(tempfile.gettempdir()).parent.glob("escaped-by-run-id*")) | set(tmp.parent.glob("escaped-by-run-id*"))
     assert after == before
 
 

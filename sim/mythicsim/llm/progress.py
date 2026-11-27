@@ -28,7 +28,6 @@ isolates what learning adds.
 
 from __future__ import annotations
 
-import json
 import math
 import statistics as st
 from dataclasses import dataclass, field
@@ -36,7 +35,7 @@ from dataclasses import dataclass, field
 from .. import content as C
 from ..engine import Encounter
 from ..metrics import score
-from .clients import ChatClient, ClientError
+from .clients import ChatClient
 from .debrief import debrief_text
 from .policy import PARTY_IDS, Agent, BrainStats, add_chat_events, make_llm_policies
 from .prompt import NOTES_HEADER, ORDER_FORMAT_MARK, clean_text, json_objects
@@ -306,20 +305,6 @@ def ci95(xs: list[float]) -> list[float] | None:
     m = st.mean(xs)
     h = t95(len(xs) - 1) * st.stdev(xs) / math.sqrt(len(xs))
     return [round(m - h, 1), round(m + h, 1)]
-
-
-def diff_ci95(a: list[float], b: list[float]) -> list[float] | None:
-    """Welch 95% interval for mean(a) - mean(b)."""
-    if len(a) < 2 or len(b) < 2:
-        return None
-    va, vb = st.variance(a) / len(a), st.variance(b) / len(b)
-    d = st.mean(a) - st.mean(b)
-    se = math.sqrt(va + vb)
-    if se == 0:
-        return [round(d, 1), round(d, 1)]
-    df = (va + vb) ** 2 / ((va * va) / (len(a) - 1) + (vb * vb) / (len(b) - 1))
-    h = t95(max(1, int(df))) * se
-    return [round(d - h, 1), round(d + h, 1)]
 
 
 def curve(ep: EpisodeResult, max_pulls: int) -> list[float]:

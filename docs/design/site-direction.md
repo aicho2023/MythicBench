@@ -1,8 +1,8 @@
 # Design direction: the public site
 
 Scope: the pages around the replay viewer (`/`, `/paper`, `/about`, and the header and
-footer shared with `/watch`). The viewer HUD went through an unslop pass already
-(`unslop-audit.md`); these pages are new, so this is a direction to build to, not an audit.
+footer shared with `/watch`). The viewer HUD went through an unslop pass already;
+these pages are new, so this is a direction to build to, not an audit.
 It extends the HUD direction rather than inventing a second one.
 
 ## Direction

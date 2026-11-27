@@ -1,5 +1,5 @@
-"""The clients for the labs added by pre-registration Amendment 3 (Google, xAI,
-DeepSeek, Alibaba): what each request asks for, and how each answer is read.
+"""The clients for Google, xAI, DeepSeek and Alibaba (v1 ran xAI and DeepSeek;
+see docs/PREREGISTRATION.md): what each request asks for, and how each answer is read.
 No network: urlopen is replaced by a fake that records the request and returns
 a response in the shape the lab's docs give."""
 
