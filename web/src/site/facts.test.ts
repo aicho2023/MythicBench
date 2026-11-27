@@ -10,7 +10,16 @@ import type { Insights } from './insights'
 
 const read = (p: string) => readFileSync(new URL(p, import.meta.url), 'utf8')
 const data: Insights = JSON.parse(read('../../public/insights/v1.json'))
+const board: Board = JSON.parse(read('../../public/results/v1/leaderboard.json'))
 const report = read('../pages/Report.tsx').replace(/\s+/g, ' ')
+
+/** The parts of leaderboard.json these checks read. */
+interface Cell { cost_usd: number; curve_mean: number[]; paired_episode_list?: { pulls: { usd: number }[] }[] }
+interface Board {
+  leaderboard: { model: string; tiers: Record<string, Cell> }[]
+  controls: Cell[]
+  configs: { tiers: Record<string, Cell> }[]
+}
 
 const LEADERS = ['claude-opus-5-5', 'gpt-6.2-sol']
 const OTHERS = Object.keys(data.models).filter((m) => !LEADERS.includes(m))
@@ -80,5 +89,21 @@ describe('numbers stated in the prose', () => {
     const [soaked, all] = soaks['gpt-6.2-sol'].soaked.split(' of ').map(Number)
     expect(Math.round((4 * soaked) / all)).toBe(3)
     expect(report).toContain('three Pyres in four')
+  })
+})
+
+describe('numbers stated from the leaderboard', () => {
+  it('what the whole run cost, the extra memory-on groups included', () => {
+    const cells = [...board.leaderboard, ...board.configs].flatMap((r) => Object.values(r.tiers)).concat(board.controls)
+    // Haiku's and Luna's memory-on groups 7 to 12 are listed apart from their ranked six.
+    const extra = cells.flatMap((c) => c.paired_episode_list ?? []).flatMap((e) => e.pulls)
+    const total = cells.reduce((a, c) => a + c.cost_usd, 0) + extra.reduce((a, p) => a + p.usd, 0)
+    const rounded = Math.round(total / 10) * 10
+    expect(report).toContain('All runs cost around $' + rounded + ' at list price')
+  })
+
+  it("Opus's curve: up on the second attempt, most of the way back by the fifth", () => {
+    const c = board.leaderboard.find((r) => r.model === 'claude-opus-5-5')!.tiers.plus10.curve_mean.map((x) => x.toFixed(1))
+    expect(report).toContain(`improves from ${c[0]} to ${c[1]} between its first and second attempt, before settling back to ${c[4]} by its fifth`)
   })
 })
