@@ -20,6 +20,12 @@ function withMeta(html: string, p: (typeof PAGES)[number]): string {
     .replace(/__IMAGE__/g, SITE_URL + OG_IMAGE)
 }
 
+/** A sitemap.xml listing each page's full address. */
+function sitemap(paths: string[]): string {
+  const urls = paths.map((p) => `  <url><loc>${esc(SITE_URL + p)}</loc></url>`).join('\n')
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`
+}
+
 /**
  * Static hosts serve /paper/index.html for /paper before falling back to the SPA
  * index, so writing one copy of index.html per page gives every page its own
@@ -46,6 +52,9 @@ function pageCopies(): Plugin {
           .split(`content="${SITE_URL}/"`).join(`content="${SITE_URL}${p.path}"`)
           .split(`href="${SITE_URL}/"`).join(`href="${SITE_URL}${p.path}"`))
       }
+      // The sitemap that robots.txt points to, from the same page list, so a new
+      // page in meta.ts is listed without a second list to keep in step.
+      writeFileSync(join(outDir, 'sitemap.xml'), sitemap(PAGES.map((p) => p.path)))
     },
   }
 }
