@@ -260,7 +260,7 @@ export function Report() {
               dungeon, of which 42 groups and 210 attempts make up the ranked evaluation. I define each try at the dungeon
               as an attempt, and a party's sequence of up to five attempts as a group. Across all attempts, no group
               cleared the dungeon. So, the core result was how the models differed in their approaches. Claude Opus 5.5
-              and GPT-6.2 Sol improved sharply after their first failed attempt, while the other five models stayed close
+              and GPT-6.2 Sol improved after their first failed attempt, while the other five models stayed close
               to a scripted baseline that never learns.
             </p>
             <p>Overall, this paper makes four contributions:</p>
@@ -439,8 +439,8 @@ export function Report() {
               Its performance sets the performance floor. The second script was the expert script, added after the run,
               written from the perspective of someone who knows the fights. It performs all intended game mechanics, like
               soaking Bone Pyre, interrupting enemy casts, avoiding ground hazards, timing defensive abilities, and healing
-              players at the right time. Across 1000 seeds, the expert script clears +10 difficulty only 4 times, with
-              about a second to spare on each run. A clear is therefore possible, but it requires near-perfect play. The +10
+              players at the right time. Across 1000 seeds, the expert script clears +10 difficulty only 3 times, with
+              a second or less to spare on each run. A clear is therefore possible, but it requires near-perfect play. The +10
               difficulty was calibrated against GPT-6.2 Sol, one of the ranked models, on an earlier version of the
               dungeon.
             </p>
@@ -449,7 +449,7 @@ export function Report() {
             <p>I had two harness faults during data collection.</p>
             <p>
               I identified the first fault during stage 1, where a floating-point edge case allowed a character to stand
-              exactly on an object's boundary and walk through it. Out of 127,071 moves, this occurred exactly once, in an
+              exactly on an object's boundary and walk through it. Out of 142,566 moves, this occurred exactly once, in an
               unranked attempt on Normal. Ultimately, this saved about a second in the total run, as it did allow the
               character to traverse through a corner faster, but this amount ultimately did not make a difference in the
               run.
@@ -484,11 +484,11 @@ export function Report() {
             <p>
               <strong>Difficulty and Calibration:</strong> I calibrated the dungeon's difficulty against GPT-6.2 Sol, which
               may have had unintended consequences on how the fight turned out. In addition, +10 might be too hard, with an
-              expert script only clearing it about 0.4% of the time across 1000 seeds.
+              expert script only clearing it about 0.3% of the time across 1000 seeds.
             </p>
             <p>
               <strong>The Memory Test Ran on Only Two Models:</strong> I tested the effects of memory on Haiku and Luna,
-              which ultimately never learned to soak. The improvement shown by Opus and Sol is therefore a before-and-after
+              which ultimately almost never learned to soak. The improvement shown by Opus and Sol is therefore a before-and-after
               comparison, not a controlled effect.
             </p>
             <p>
@@ -522,14 +522,14 @@ export function Report() {
             <ul>
               <li><strong>Diagnosis:</strong> Most of the models fail here. After the first attempt that resulted in a wipe, almost all parties had the same evidence in their debrief: the Bone Pyre had nobody inside, so everyone took massive damage. Claude Opus 5.5 and GPT-6.2 Sol concluded the circle had to be soaked, whereas the other five models soaked a Pyre at least once in only 6 of their 42 groups because their notes often said the Pyre was unavoidable or that the circle wasn't the source of the damage.</li>
               <li><strong>Agreement:</strong> Even when the party had the right idea for handling Bone Pyre, there was no guarantee they would remember it. In one GPT-6 Luna group, the party watched the soak work and then fail in the same attempt, and the lesson they took away in their notes was wrong.</li>
-              <li><strong>Execution:</strong> Even when they had a plan to handle the Bone Pyre, the agents sometimes failed to execute it. Grok 4.3 often wrote down that it needed to soak, but would only get two players inside the soak for a small number of Pyres. Even Sol, which could identify the soak mechanic, carried out the soak about 3 out of 4 times.</li>
+              <li><strong>Execution:</strong> Even when they had a plan to handle the Bone Pyre, the agents sometimes failed to execute it. Grok 4.3 sometimes wrote down that it needed to soak, but would only get two players inside the soak for a small number of Pyres. Even Sol, which could identify the soak mechanic, carried out the soak about 3 out of 4 times.</li>
             </ul>
             <p>
               Two other results are worth noting. On the first, blind attempt, every model scored between 30.6 and 37.3,
               close to the scripted bot that never learns. The gap between models only revealed itself on subsequent
               attempts, where the two leading models improved their scores compared to the rest of the pack, with Opus
               peaking on its second attempt and Sol on its fourth. Furthermore, more reasoning effort did not necessarily
-              buy more learning. Finally, higher prices did not mean better outcomes. Opus and Sol learned equally well,
+              buy more learning. Finally, higher prices did not mean better outcomes. Opus and Sol learned about equally well,
               but Opus' groups cost five times as much.
             </p>
             <p>
@@ -546,7 +546,7 @@ export function Report() {
               <li><strong>Execution:</strong> an agent that knows the fix but does not perform the fix</li>
             </ul>
             <p>
-              A benchmark that only scored the first attempt on the dungeons would not have been able to tell these models
+              A benchmark that only scored the first attempt on the dungeons would have struggled to tell these models
               apart, since on attempt 1, all the models scored within about 7 points of each other. As models improve and
               people become increasingly reliant on agents to handle processes, agents will be expected to improve
               gradually over longer stretches of work. I think measuring this learning-from-failure loop directly is as
@@ -555,7 +555,7 @@ export function Report() {
 
             <H2 id="next">Next Steps</H2>
             <ul>
-              <li><strong>Run a memory test on the models that learned:</strong> The memory-off control was only run on Claude Haiku 5.5 and GPT-6 Luna. Neither learned the soak, so the test found no effect of memory. Running it on Opus and Sol would show how much of their improvement came from debrief, talks, and notes, rather than from playing again.</li>
+              <li><strong>Run a memory test on the models that learned:</strong> The memory-off control was only run on Claude Haiku 5.5 and GPT-6 Luna. Neither reliably learned the soak, so the test found no effect of memory. Running it on Opus and Sol would show how much of their improvement came from debrief, talks, and notes, rather than from playing again.</li>
               <li><strong>Run more groups per model:</strong> Six groups were enough to separate the leading models from the rest. However, it was not enough to distinguish the other five, or to make all ten leader gaps statistically significant. Furthermore, I'm personally interested in whether more groups would reveal more variance in strategy.</li>
               <li><strong>Adding more models:</strong> I was budget-constrained for this initial run, so I had to axe some models from my test suite. I would have liked to test Claude Fable, Gemini, and more open-source models (Qwen, Inkling, Kimi, Beam). This would hopefully clarify which models can learn from failure versus those that cannot. It would also be interesting to see even more variance in strategy and results.</li>
               <li><strong>Fix the known harness faults:</strong> I found two faults that should be fixed before another run. The "safe" fault is already patched for the next harness version.</li>
@@ -680,7 +680,8 @@ function ResultsBody({ r }: { r: Results }) {
       <p>
         Every model scores between 30.6 and 37.3 on the first blind attempt, close to the scripted commander. All of
         these first attempts end in a wipe. The models then diverge on subsequent attempts (Figure 3). Claude Opus 5.5
-        improves from 36.9 to 52.5 between its first and second attempt, while Sol climbs more slowly from 37.3 on its
+        improves from 36.9 to 52.5 between its first and second attempt, before settling back to 42.2 by its fifth,
+        while Sol climbs more slowly from 37.3 on its
         first attempt to 46.7 on its fourth attempt. The remaining five models roughly have the same score across
         attempts. None improve by more than about 5 points on later attempts, and some even regress.
       </p>
@@ -749,14 +750,14 @@ function ResultsBody({ r }: { r: Results }) {
 
       <H3 id="cost" n="3.6">Cost and reasoning effort</H3>
       <p>
-        All runs cost around $440 at list price. $221 came from Claude Opus 5.5. Interestingly, Opus and GPT-6.2 Sol do
+        All runs cost around $450 at list price. $221 came from Claude Opus 5.5. Interestingly, Opus and GPT-6.2 Sol do
         not differ significantly in score, but an Opus group costs five times as much as a Sol group. Opus also writes
         about five times as many output tokens per attempt (212k compared to 44k, across five agents). A Grok 4.3 or
         DeepSeek V4.1 Flash group cost about as much as a Sol group but produced a much lower score (Table 4, Figure 7).
       </p>
       <p>
         This experiment also examined whether increasing reasoning effort would improve performance. Unfortunately, it
-        did not. For the two models tested, higher effort did not help: Haiku did worse at low effort and only slightly
+        mostly did not. For the two models tested, going above medium effort did not help: Haiku did worse at low effort and only slightly
         better at high, and Luna scored about the same at every level. Across the same three groups, Claude Haiku 5.5
         scored 25.0 on low effort, 30.2 on medium, and 31.7 on high. GPT-6 Luna scored 32.9, 32.6, and 32.5 at low,
         medium, and high effort, respectively.
@@ -810,10 +811,10 @@ function ResultsBody({ r }: { r: Results }) {
       <p>
         With all the models failing, I checked after the run whether a clear was possible using the expert script I
         created. On 1,000 practice seeds that were held out of the official runs, the expert script was able to clear
-        Normal 898 times but +10 only 4 times, each with about a second to spare. A clear is possible, but requires
+        Normal 900 times but +10 only 3 times, each with a second or less to spare. A clear is possible, but requires
         near-perfect play. The two best attempts by the models had the boss at less than 10% health when the timer ran
-        out, meaning they were close. This also leaves room for future model iterations to improve and hopefully
-        saturate this benchmark.
+        out, meaning they were close. This also leaves room for future model iterations to improve on this
+        benchmark.
       </p>
     </>
   )
