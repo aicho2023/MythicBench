@@ -1,0 +1,1558 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`citations > a citation links to its reference 1`] = `
+"<p>As shown (<span>
+<a href="#ref-reflexion" class="cite">Shinn et al., 2023</a>
+</span>).</p>"
+`;
+
+exports[`citations > the reference list, cited works only 1`] = `
+"<ol class="refs">
+<li id="ref-holm">Holm, S. (1979). A Simple Sequentially Rejective Multiple Test Procedure. Scandinavian Journal of Statistics, 6(2), 65–70. <a href="https://www.jstor.org/stable/4615733" target="_blank" rel="noopener noreferrer">www.jstor.org/stable/4615733</a>
+</li>
+<li id="ref-swebench">Jimenez, C. E., et al. (2024). SWE-bench: Can Language Models Resolve Real-World GitHub Issues? ICLR 2024. <a href="https://arxiv.org/abs/2310.06770" target="_blank" rel="noopener noreferrer">arxiv.org/abs/2310.06770</a>
+</li>
+<li id="ref-reflexion">Shinn, N., et al. (2023). Reflexion: Language Agents with Verbal Reinforcement Learning. NeurIPS 2023. <a href="https://arxiv.org/abs/2303.11366" target="_blank" rel="noopener noreferrer">arxiv.org/abs/2303.11366</a>
+</li>
+</ol>"
+`;
+
+exports[`hud bars > health, with and without a shield 1`] = `
+"<div class="relative overflow-hidden rounded-[3px] " style="height:4px;background:rgba(255,255,255,0.07)">
+<div class="absolute inset-y-0 left-0 transition-[width] duration-150 ease-out" style="width:42%;background:#4cc38a">
+</div>
+</div>"
+`;
+
+exports[`hud bars > health, with and without a shield 2`] = `
+"<div class="relative overflow-hidden rounded-[3px] mt-0.5" style="height:8px;background:transparent">
+<div class="absolute inset-y-0 left-0 transition-[width] duration-150 ease-out" style="width:42%;background:#4cc38a">
+</div>
+<div class="absolute inset-y-0" style="left:42%;width:58.00000000000001%;background:repeating-linear-gradient(135deg, rgba(255,255,255,0.55) 0 3px, rgba(255,255,255,0.2) 3px 6px)">
+</div>
+</div>"
+`;
+
+exports[`hud bars > health, with and without a shield 3`] = `
+"<div class="relative overflow-hidden rounded-[3px] " style="height:8px;background:rgba(255,255,255,0.07)">
+<div class="absolute inset-y-0 left-0 transition-[width] duration-150 ease-out" style="width:100%;background:#4cc38a">
+</div>
+</div>"
+`;
+
+exports[`the sample with its reference runs > cost chart 1`] = `
+"<figure class="m-0">
+<figcaption class="sr-only">Score against the cost of one +10 group, by model</figcaption>
+<div class="relative">
+<svg width="960" height="380" role="img" aria-label="Score against cost per group">
+<g>
+<line x1="58" x2="940" y1="326" y2="326" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="326" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">0</text>
+</g>
+<g>
+<line x1="58" x2="940" y1="20" y2="20" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="20" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">10</text>
+</g>
+<text x="58" y="346" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">$0.01</text>
+<text x="163.20523666568556" y="346" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">$0.03</text>
+<text x="278.5" y="346" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">$0.1</text>
+<text x="383.7052366656856" y="346" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">$0.3</text>
+<text x="499" y="346" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">$1</text>
+<text x="604.2052366656856" y="346" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">$3</text>
+<text x="719.5" y="346" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">$10</text>
+<text x="824.7052366656856" y="346" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">$30</text>
+<text x="940" y="346" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">$100</text>
+<g aria-hidden="true">
+<text transform="translate(11, 173) rotate(-90)" text-anchor="middle" fill="#8b8b93" font-size="12">Score</text>
+<text x="499" y="376" text-anchor="middle" fill="#8b8b93" font-size="12">Cost per group of up to five pulls, list prices (log scale)</text>
+</g>
+<g opacity="1">
+<line x1="58" x2="58" y1="283.16" y2="243.38" stroke="#3987e5" stroke-width="2" opacity="0.3" stroke-linecap="round">
+</line>
+<circle cx="58" cy="264.8" r="16" fill="transparent">
+</circle>
+<circle cx="58" cy="264.8" r="6" fill="#3987e5" stroke="#111113" stroke-width="2">
+</circle>
+<text x="69" y="268.8" text-anchor="start" fill="#ededef" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">Mock model</text>
+</g>
+</svg>
+</div>
+</figure>"
+`;
+
+exports[`the sample with its reference runs > group scores chart 1`] = `
+"<figure class="m-0">
+<figcaption class="sr-only">Each group&#x27;s score on +10, with each model&#x27;s mean and 95% interval</figcaption>
+<div>
+<svg width="960" height="98" role="img" aria-label="Group scores by model">
+<g>
+<line x1="100" x2="100" y1="8" y2="48" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="100" y="66" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">0</text>
+</g>
+<g>
+<line x1="828" x2="828" y1="8" y2="48" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="828" y="66" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">10</text>
+</g>
+<g aria-hidden="true">
+<text x="464" y="94" text-anchor="middle" fill="#8b8b93" font-size="12">Group score (mean of its pulls)</text>
+</g>
+<g>
+<text x="86" y="28" dy="0.32em" text-anchor="end" fill="#ededef" font-size="13">Mock model</text>
+<rect x="201.92" y="23" width="94.64000000000001" height="10" rx="5" fill="#3987e5" opacity="0.22">
+</rect>
+<circle cx="252.88000000000002" cy="28" r="4" fill="#3987e5" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="245.6" cy="28" r="4" fill="#3987e5" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<rect x="244.1" y="16" width="3" height="24" rx="1.5" fill="#ededef">
+</rect>
+<text x="952" y="28" dy="0.32em" text-anchor="end" font-size="12" font-family="IBM Plex Mono">
+<tspan fill="#ededef">2.0</tspan>
+<tspan fill="#8b8b93">  1.4–2.7</tspan>
+</text>
+</g>
+</svg>
+</div>
+</figure>"
+`;
+
+exports[`the sample with its reference runs > leaderboard table 1`] = `
+"<div class="overflow-x-auto">
+<table class="w-full min-w-[320px] border-collapse">
+<thead>
+<tr>
+<th class="px-3 pb-3 text-left align-bottom text-[12px] font-medium leading-4 text-fg-muted w-[210px] pb-1 pl-0">Model</th>
+<th class="px-3 pb-3 text-left align-bottom text-[12px] font-medium leading-4 text-fg-muted w-[104px] pb-1 text-right">
+<span class="block text-fg-muted">Score</span>
+<span class="block whitespace-nowrap font-normal text-fg-faint">0 to 100</span>
+</th>
+<th class="px-3 pb-3 text-left align-bottom text-[12px] font-medium leading-4 text-fg-muted hidden pb-1 pl-8 text-right sm:table-cell">
+<span class="block" style="width:160px">
+<span class="block text-fg-muted">Each group&#x27;s score</span>
+<span class="block whitespace-nowrap font-normal text-fg-faint">one dot per group of five fresh agents</span>
+</span>
+</th>
+<th class="px-3 pb-3 text-left align-bottom text-[12px] font-medium leading-4 text-fg-muted hidden w-[190px] pb-1 text-right md:table-cell">
+<span class="block text-fg-muted">Oruth&#x27;s health</span>
+<span class="block whitespace-nowrap font-normal text-fg-faint">at the end of the best pull</span>
+</th>
+<th class="px-3 pb-3 text-left align-bottom text-[12px] font-medium leading-4 text-fg-muted hidden w-[150px] pb-1 text-right lg:table-cell">
+<span class="block text-fg-muted">First pull</span>
+<span class="block whitespace-nowrap font-normal text-fg-faint">before any learning</span>
+</th>
+<th class="px-3 pb-3 text-left align-bottom text-[12px] font-medium leading-4 text-fg-muted hidden w-[112px] pb-1 pr-0 text-right sm:table-cell">
+<span class="block text-fg-muted">Cost</span>
+<span class="block whitespace-nowrap font-normal text-fg-faint">per group</span>
+</th>
+<th class="w-6" aria-hidden="true">
+</th>
+</tr>
+<tr class="border-b border-line" aria-hidden="true">
+<th class="pl-0">
+</th>
+<th>
+</th>
+<th class="hidden pb-2 pl-8 sm:table-cell">
+<div class="w-full">
+<svg width="160" height="12" class="block overflow-visible" aria-hidden="true">
+<text x="4" y="10" text-anchor="middle" fill="#8b8b93" font-size="10" font-family="IBM Plex Mono">0</text>
+<text x="156" y="10" text-anchor="middle" fill="#8b8b93" font-size="10" font-family="IBM Plex Mono">10</text>
+</svg>
+</div>
+</th>
+<th class="hidden md:table-cell">
+</th>
+<th class="hidden lg:table-cell">
+</th>
+<th class="hidden sm:table-cell">
+</th>
+<th>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr class="group border-b border-line transition-colors cursor-pointer hover:bg-white/[0.03]">
+<td class="h-14 px-3 align-middle pl-0">
+<a href="/watch/basic" class="flex items-center gap-3 rounded">
+<span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background:#3987e5" aria-hidden="true">
+</span>
+<span class="min-w-0">
+<span class="block truncate text-[15px] leading-5 text-fg">Mock model</span>
+<span class="block text-[12px] leading-4 text-fg-faint">No API (mock)</span>
+</span>
+</a>
+</td>
+<td class="h-14 px-3 align-middle text-right">
+<span class="num font-mono text-[17px] text-fg">2.0</span>
+<span class="block font-mono text-[11px] text-fg-faint sm:hidden">95% range 1.4–2.7</span>
+</td>
+<td class="h-14 px-3 align-middle hidden pl-8 sm:table-cell">
+<span title="95% interval 1.4 to 2.7">
+<svg width="160" height="18" class="block shrink-0" aria-hidden="true">
+<rect x="4" y="8" width="152" height="2" rx="1" fill="rgba(255,255,255,0.08)">
+</rect>
+<rect x="25.279999999999998" y="6" width="19.76000000000001" height="6" rx="3" fill="#3987e5" opacity="0.28">
+</rect>
+<circle cx="35.92" cy="9" r="2.6" fill="#3987e5" opacity="0.75">
+</circle>
+<circle cx="34.400000000000006" cy="9" r="2.6" fill="#3987e5" opacity="0.75">
+</circle>
+<rect x="32.900000000000006" y="1" width="3" height="16" rx="1.5" fill="#ededef">
+</rect>
+</svg>
+</span>
+</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden md:table-cell text-fg-muted">–</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden lg:table-cell text-fg-muted">2.0</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden pr-0 sm:table-cell text-fg-muted">$0</td>
+<td class="w-6 text-fg-faint transition-colors group-hover:text-fg">
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right">
+<path d="m9 18 6-6-6-6">
+</path>
+</svg>
+</td>
+</tr>
+</tbody>
+</table>
+</div>"
+`;
+
+exports[`the sample with its reference runs > learning curves 1`] = `
+"<figure class="m-0">
+<figcaption class="sr-only">Average score at each pull on +10</figcaption>
+<div class="relative">
+<svg width="960" height="364" role="img" aria-label="Average score at each pull on +10">
+<g>
+<line x1="58" x2="799.6" y1="310" y2="310" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="310" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">0</text>
+</g>
+<g>
+<line x1="58" x2="799.6" y1="240" y2="240" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="240" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">10</text>
+</g>
+<g>
+<line x1="58" x2="799.6" y1="170" y2="170" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="170" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">20</text>
+</g>
+<g>
+<line x1="58" x2="799.6" y1="100" y2="100" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="100" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">30</text>
+</g>
+<g>
+<line x1="58" x2="799.6" y1="30" y2="30" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="30" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">40</text>
+</g>
+<text x="58" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">1</text>
+<text x="428.8" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">2</text>
+<text x="799.6" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">3</text>
+<g aria-hidden="true">
+<text transform="translate(11, 165) rotate(-90)" text-anchor="middle" fill="#8b8b93" font-size="12">Average score</text>
+<text x="428.8" y="360" text-anchor="middle" fill="#8b8b93" font-size="12">Pull</text>
+</g>
+<g aria-hidden="true">
+<rect x="58" y="30" width="370.8" height="280" fill="rgba(230,211,163,0.05)">
+</rect>
+<text x="243.4" y="44" text-anchor="middle" fill="#e6d3a3" fill-opacity="0.75" font-size="11" font-family="IBM Plex Mono">the first debrief</text>
+</g>
+<g opacity="1">
+<path d="M58,93L428.8,80.4L799.6,114" fill="none" stroke="#8b8b93" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5">
+</path>
+<text x="813.6" y="114" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#8b8b93">Scripted bot</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">28.0</tspan>
+</text>
+</g>
+<g opacity="1">
+<path d="M58,296L428.8,295.3L799.6,296" fill="none" stroke="#3987e5" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+</path>
+<circle cx="58" cy="296" r="3.5" fill="#3987e5" stroke="#3987e5" stroke-width="2">
+</circle>
+<circle cx="428.8" cy="295.3" r="3.5" fill="#3987e5" stroke="#3987e5" stroke-width="2">
+</circle>
+<circle cx="799.6" cy="296" r="3.5" fill="#3987e5" stroke="#3987e5" stroke-width="2">
+</circle>
+<text x="813.6" y="296" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#ededef">Mock model</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">2.0</tspan>
+</text>
+</g>
+<rect x="58" y="30" width="741.6" height="280" fill="transparent">
+</rect>
+</svg>
+</div>
+</figure>"
+`;
+
+exports[`the sample with its reference runs > learning curves 2`] = `
+"<figure class="m-0">
+<figcaption class="sr-only">Average score at each pull on +10</figcaption>
+<div class="relative">
+<svg width="960" height="364" role="img" aria-label="Average score at each pull on +10">
+<g>
+<line x1="58" x2="815.2" y1="310" y2="310" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="310" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">0</text>
+</g>
+<g>
+<line x1="58" x2="815.2" y1="30" y2="30" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="30" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">10</text>
+</g>
+<text x="58" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">1</text>
+<text x="436.6" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">2</text>
+<text x="815.2" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">3</text>
+<g aria-hidden="true">
+<text transform="translate(11, 165) rotate(-90)" text-anchor="middle" fill="#8b8b93" font-size="12">Average score</text>
+<text x="436.6" y="360" text-anchor="middle" fill="#8b8b93" font-size="12">Pull</text>
+</g>
+<g aria-hidden="true">
+<rect x="58" y="30" width="378.6" height="280" fill="rgba(230,211,163,0.05)">
+</rect>
+<text x="247.3" y="44" text-anchor="middle" fill="#e6d3a3" fill-opacity="0.75" font-size="11" font-family="IBM Plex Mono">the first debrief</text>
+</g>
+<g opacity="1">
+<path d="M58,254L436.6,251.2L815.2,254" fill="none" stroke="#3987e5" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+</path>
+<circle cx="58" cy="254" r="3.5" fill="#3987e5" stroke="#3987e5" stroke-width="2">
+</circle>
+<circle cx="436.6" cy="251.2" r="3.5" fill="#3987e5" stroke="#3987e5" stroke-width="2">
+</circle>
+<circle cx="815.2" cy="254" r="3.5" fill="#3987e5" stroke="#3987e5" stroke-width="2">
+</circle>
+<text x="829.2" y="254" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#ededef">Mock model</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">2.0</tspan>
+</text>
+</g>
+<rect x="58" y="30" width="757.2" height="280" fill="transparent">
+</rect>
+</svg>
+</div>
+</figure>"
+`;
+
+exports[`the sample with its reference runs > learning curves 3`] = `
+"<figure class="m-0">
+<figcaption class="sr-only">Average score at each pull on +10</figcaption>
+<div class="relative">
+<svg width="960" height="364" role="img" aria-label="Average score at each pull on +10">
+<g>
+<line x1="58" x2="776.2" y1="310" y2="310" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="310" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">0</text>
+</g>
+<g>
+<line x1="58" x2="776.2" y1="30" y2="30" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="30" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">10</text>
+</g>
+<text x="58" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">1</text>
+<text x="417.1" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">2</text>
+<text x="776.2" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">3</text>
+<g aria-hidden="true">
+<text transform="translate(11, 165) rotate(-90)" text-anchor="middle" fill="#8b8b93" font-size="12">Average score, same seeds</text>
+<text x="417.1" y="360" text-anchor="middle" fill="#8b8b93" font-size="12">Pull</text>
+</g>
+<g opacity="1">
+<path d="M58,254L417.1,251.2L776.2,254" fill="none" stroke="#3987e5" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+</path>
+<circle cx="58" cy="254" r="3.5" fill="#3987e5" stroke="#3987e5" stroke-width="2">
+</circle>
+<circle cx="417.1" cy="251.2" r="3.5" fill="#3987e5" stroke="#3987e5" stroke-width="2">
+</circle>
+<circle cx="776.2" cy="254" r="3.5" fill="#3987e5" stroke="#3987e5" stroke-width="2">
+</circle>
+<text x="790.2" y="254" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#ededef">Mock model, on</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">2.0</tspan>
+</text>
+</g>
+<g opacity="1">
+<path d="M58,254L417.1,251.2L776.2,254" fill="none" stroke="#3987e5" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5">
+</path>
+<text x="790.2" y="272" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#8b8b93">Mock model, off</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">2.0</tspan>
+</text>
+</g>
+<rect x="58" y="30" width="718.2" height="280" fill="transparent">
+</rect>
+</svg>
+</div>
+</figure>"
+`;
+
+exports[`v1 as visitors see it > cost chart 1`] = `
+"<figure class="m-0">
+<figcaption class="sr-only">Score against the cost of one +10 group, by model</figcaption>
+<div class="relative">
+<svg width="960" height="380" role="img" aria-label="Score against cost per group">
+<g>
+<line x1="58" x2="940" y1="326" y2="326" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="326" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">20</text>
+</g>
+<g>
+<line x1="58" x2="940" y1="224" y2="224" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="224" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">30</text>
+</g>
+<g>
+<line x1="58" x2="940" y1="122" y2="122" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="122" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">40</text>
+</g>
+<g>
+<line x1="58" x2="940" y1="20" y2="20" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="20" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">50</text>
+</g>
+<text x="69.481187512846" y="346" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">$0.3</text>
+<text x="259.95804513763346" y="346" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">$1</text>
+<text x="433.76613759752524" y="346" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">$3</text>
+<text x="624.2429952223126" y="346" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">$10</text>
+<text x="798.0510876822044" y="346" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">$30</text>
+<g aria-hidden="true">
+<text transform="translate(11, 173) rotate(-90)" text-anchor="middle" fill="#8b8b93" font-size="12">Score</text>
+<text x="499" y="376" text-anchor="middle" fill="#8b8b93" font-size="12">Cost per group of up to five pulls, list prices (log scale)</text>
+</g>
+<g>
+<line x1="566.9420025804767" x2="830.3393030555555" y1="27.340000000000032" y2="27.340000000000032" stroke="#8b8b93" stroke-width="1">
+</line>
+<line x1="566.9420025804767" x2="566.9420025804767" y1="23.340000000000032" y2="31.340000000000032" stroke="#8b8b93">
+</line>
+<line x1="830.3393030555555" x2="830.3393030555555" y1="23.340000000000032" y2="31.340000000000032" stroke="#8b8b93">
+</line>
+<text x="698.6406528180162" y="19.340000000000032" text-anchor="middle" fill="#ededef" font-size="12" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">GPT-6.2 Sol costs 1/5 as much, no clear difference in score</text>
+</g>
+<g opacity="1">
+<line x1="830.3393030555555" x2="830.3393030555555" y1="117.92000000000002" y2="43.45999999999998" stroke="#199e70" stroke-width="2" opacity="0.3" stroke-linecap="round">
+</line>
+<circle cx="830.3393030555555" cy="80.18" r="16" fill="transparent">
+</circle>
+<circle cx="830.3393030555555" cy="80.18" r="6" fill="#199e70" stroke="#111113" stroke-width="2">
+</circle>
+<text x="819.3393030555555" y="84.18" text-anchor="end" fill="#ededef" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">Claude Opus 5.5</text>
+</g>
+<g opacity="1">
+<line x1="566.9420025804767" x2="566.9420025804767" y1="146.48" y2="37.34000000000003" stroke="#d55181" stroke-width="2" opacity="0.3" stroke-linecap="round">
+</line>
+<circle cx="566.9420025804767" cy="92.42000000000002" r="16" fill="transparent">
+</circle>
+<circle cx="566.9420025804767" cy="92.42000000000002" r="6" fill="#d55181" stroke="#111113" stroke-width="2">
+</circle>
+<text x="577.9420025804767" y="96.42000000000002" text-anchor="start" fill="#ededef" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">GPT-6.2 Sol</text>
+</g>
+<g opacity="1">
+<line x1="542.1986122398666" x2="542.1986122398666" y1="230.12" y2="149.54000000000005" stroke="#1fa3b8" stroke-width="2" opacity="0.3" stroke-linecap="round">
+</line>
+<circle cx="542.1986122398666" cy="189.32000000000002" r="16" fill="transparent">
+</circle>
+<circle cx="542.1986122398666" cy="189.32000000000002" r="6" fill="#1fa3b8" stroke="#111113" stroke-width="2">
+</circle>
+<text x="531.1986122398666" y="193.32000000000002" text-anchor="end" fill="#ededef" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">DeepSeek V4.1 Flash</text>
+</g>
+<g opacity="1">
+<line x1="167.6606969444446" x2="167.6606969444446" y1="205.64" y2="185.24000000000004" stroke="#9085e9" stroke-width="2" opacity="0.3" stroke-linecap="round">
+</line>
+<circle cx="167.6606969444446" cy="195.44000000000003" r="16" fill="transparent">
+</circle>
+<circle cx="167.6606969444446" cy="195.44000000000003" r="6" fill="#9085e9" stroke="#111113" stroke-width="2">
+</circle>
+<text x="156.6606969444446" y="199.44000000000003" text-anchor="end" fill="#ededef" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">GPT-6 Luna</text>
+</g>
+<g opacity="1">
+<line x1="596.540378999279" x2="596.540378999279" y1="237.26" y2="155.65999999999997" stroke="#d95926" stroke-width="2" opacity="0.3" stroke-linecap="round">
+</line>
+<circle cx="596.540378999279" cy="196.45999999999995" r="16" fill="transparent">
+</circle>
+<circle cx="596.540378999279" cy="196.45999999999995" r="6" fill="#d95926" stroke="#111113" stroke-width="2">
+</circle>
+<text x="607.540378999279" y="200.45999999999995" text-anchor="start" fill="#ededef" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">Claude Sonnet 5.5</text>
+</g>
+<g opacity="1">
+<line x1="601.3482858827063" x2="601.3482858827063" y1="220.94" y2="177.07999999999998" stroke="#0ca30c" stroke-width="2" opacity="0.3" stroke-linecap="round">
+</line>
+<circle cx="601.3482858827063" cy="199.52000000000004" r="16" fill="transparent">
+</circle>
+<circle cx="601.3482858827063" cy="199.52000000000004" r="6" fill="#0ca30c" stroke="#111113" stroke-width="2">
+</circle>
+<text x="568.1482858827062" y="222.52000000000004" text-anchor="start" fill="#ededef" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">Grok 4.3</text>
+</g>
+<g opacity="1">
+<line x1="245.9907585849594" x2="245.9907585849594" y1="234.2" y2="169.94000000000003" stroke="#3987e5" stroke-width="2" opacity="0.3" stroke-linecap="round">
+</line>
+<circle cx="245.9907585849594" cy="202.57999999999998" r="16" fill="transparent">
+</circle>
+<circle cx="245.9907585849594" cy="202.57999999999998" r="6" fill="#3987e5" stroke="#111113" stroke-width="2">
+</circle>
+<text x="181.5907585849594" y="187.57999999999998" text-anchor="start" fill="#ededef" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">Claude Haiku 5.5</text>
+</g>
+</svg>
+</div>
+</figure>"
+`;
+
+exports[`v1 as visitors see it > group scores chart 1`] = `
+"<figure class="m-0">
+<figcaption class="sr-only">Each group&#x27;s score on +10, with each model&#x27;s mean and 95% interval</figcaption>
+<div>
+<svg width="960" height="338" role="img" aria-label="Group scores by model">
+<g>
+<line x1="170.2" x2="170.2" y1="8" y2="288" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="170.2" y="306" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">20</text>
+</g>
+<g>
+<line x1="334.65" x2="334.65" y1="8" y2="288" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="334.65" y="306" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">30</text>
+</g>
+<g>
+<line x1="499.09999999999997" x2="499.09999999999997" y1="8" y2="288" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="499.09999999999997" y="306" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">40</text>
+</g>
+<g>
+<line x1="663.55" x2="663.55" y1="8" y2="288" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="663.55" y="306" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">50</text>
+</g>
+<g>
+<line x1="828" x2="828" y1="8" y2="288" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="828" y="306" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">60</text>
+</g>
+<g aria-hidden="true">
+<text x="499.09999999999997" y="334" text-anchor="middle" fill="#8b8b93" font-size="12">Group score (mean of its pulls)</text>
+</g>
+<g>
+<text x="156.2" y="28" dy="0.32em" text-anchor="end" fill="#ededef" font-size="13">Claude Opus 5.5</text>
+<rect x="505.678" y="23" width="120.04849999999999" height="10" rx="5" fill="#199e70" opacity="0.22">
+</rect>
+<circle cx="606.9792" cy="28" r="4" fill="#199e70" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="532.6478" cy="28" r="4" fill="#199e70" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="631.3177999999999" cy="28" r="4" fill="#199e70" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="495.8109999999999" cy="28" r="4" fill="#199e70" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="609.2815" cy="28" r="4" fill="#199e70" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="519.1628999999999" cy="28" r="4" fill="#199e70" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<rect x="565.0245" y="16" width="3" height="24" rx="1.5" fill="#ededef">
+</rect>
+<text x="952" y="28" dy="0.32em" text-anchor="end" font-size="12" font-family="IBM Plex Mono">
+<tspan fill="#ededef">44.1</tspan>
+<tspan fill="#8b8b93">  40.4–47.7</tspan>
+</text>
+</g>
+<g>
+<text x="156.2" y="68" dy="0.32em" text-anchor="end" fill="#ededef" font-size="13">GPT-6.2 Sol</text>
+<rect x="459.632" y="63" width="175.96149999999994" height="10" rx="5" fill="#d55181" opacity="0.22">
+</rect>
+<circle cx="681.3105999999999" cy="68" r="4" fill="#d55181" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="558.9597999999999" cy="68" r="4" fill="#d55181" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="438.5824" cy="68" r="4" fill="#d55181" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="584.2850999999999" cy="68" r="4" fill="#d55181" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="530.0165999999999" cy="68" r="4" fill="#d55181" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="489.8907999999999" cy="68" r="4" fill="#d55181" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<rect x="545.2905" y="56" width="3" height="24" rx="1.5" fill="#ededef">
+</rect>
+<text x="952" y="68" dy="0.32em" text-anchor="end" font-size="12" font-family="IBM Plex Mono">
+<tspan fill="#ededef">42.9</tspan>
+<tspan fill="#8b8b93">  37.6–48.3</tspan>
+</text>
+</g>
+<g>
+<text x="156.2" y="108" dy="0.32em" text-anchor="end" fill="#ededef" font-size="13">DeepSeek V4.1 Flash</text>
+<rect x="324.78299999999996" y="103" width="129.91549999999995" height="10" rx="5" fill="#1fa3b8" opacity="0.22">
+</rect>
+<circle cx="427.7286999999999" cy="108" r="4" fill="#1fa3b8" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="447.4627" cy="108" r="4" fill="#1fa3b8" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="276.7636" cy="108" r="4" fill="#1fa3b8" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="385.3005999999999" cy="108" r="4" fill="#1fa3b8" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="379.05150000000003" cy="108" r="4" fill="#1fa3b8" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="423.1241" cy="108" r="4" fill="#1fa3b8" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<rect x="389.063" y="96" width="3" height="24" rx="1.5" fill="#ededef">
+</rect>
+<text x="952" y="108" dy="0.32em" text-anchor="end" font-size="12" font-family="IBM Plex Mono">
+<tspan fill="#ededef">33.4</tspan>
+<tspan fill="#8b8b93">  29.4–37.3</tspan>
+</text>
+</g>
+<g>
+<text x="156.2" y="148" dy="0.32em" text-anchor="end" fill="#ededef" font-size="13">GPT-6 Luna</text>
+<rect x="364.251" y="143" width="32.88999999999993" height="10" rx="5" fill="#9085e9" opacity="0.22">
+</rect>
+<circle cx="397.4699" cy="148" r="4" fill="#9085e9" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="368.8555999999999" cy="148" r="4" fill="#9085e9" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="367.2111" cy="148" r="4" fill="#9085e9" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="404.04789999999997" cy="148" r="4" fill="#9085e9" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="378.3936999999999" cy="148" r="4" fill="#9085e9" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="368.1978" cy="148" r="4" fill="#9085e9" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<rect x="379.1959999999999" y="136" width="3" height="24" rx="1.5" fill="#ededef">
+</rect>
+<text x="952" y="148" dy="0.32em" text-anchor="end" font-size="12" font-family="IBM Plex Mono">
+<tspan fill="#ededef">32.8</tspan>
+<tspan fill="#8b8b93">  31.8–33.8</tspan>
+</text>
+</g>
+<g>
+<text x="156.2" y="188" dy="0.32em" text-anchor="end" fill="#ededef" font-size="13">Claude Sonnet 5.5</text>
+<rect x="313.27149999999995" y="183" width="131.56000000000006" height="10" rx="5" fill="#d95926" opacity="0.22">
+</rect>
+<circle cx="408.32359999999994" cy="188" r="4" fill="#d95926" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="424.7685999999999" cy="188" r="4" fill="#d95926" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="443.51589999999993" cy="188" r="4" fill="#d95926" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="283.67049999999995" cy="188" r="4" fill="#d95926" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="393.52309999999994" cy="188" r="4" fill="#d95926" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="323.1385" cy="188" r="4" fill="#d95926" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<rect x="377.55150000000003" y="176" width="3" height="24" rx="1.5" fill="#ededef">
+</rect>
+<text x="952" y="188" dy="0.32em" text-anchor="end" font-size="12" font-family="IBM Plex Mono">
+<tspan fill="#ededef">32.7</tspan>
+<tspan fill="#8b8b93">  28.7–36.7</tspan>
+</text>
+</g>
+<g>
+<text x="156.2" y="228" dy="0.32em" text-anchor="end" fill="#ededef" font-size="13">Grok 4.3</text>
+<rect x="339.58349999999996" y="223" width="70.71350000000007" height="10" rx="5" fill="#0ca30c" opacity="0.22">
+</rect>
+<circle cx="358.3308" cy="228" r="4" fill="#0ca30c" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="414.2438000000001" cy="228" r="4" fill="#0ca30c" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="395.4965" cy="228" r="4" fill="#0ca30c" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="358.0019" cy="228" r="4" fill="#0ca30c" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="324.12519999999995" cy="228" r="4" fill="#0ca30c" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="398.78549999999996" cy="228" r="4" fill="#0ca30c" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<rect x="372.61799999999994" y="216" width="3" height="24" rx="1.5" fill="#ededef">
+</rect>
+<text x="952" y="228" dy="0.32em" text-anchor="end" font-size="12" font-family="IBM Plex Mono">
+<tspan fill="#ededef">32.4</tspan>
+<tspan fill="#8b8b93">  30.3–34.6</tspan>
+</text>
+</g>
+<g>
+<text x="156.2" y="268" dy="0.32em" text-anchor="end" fill="#ededef" font-size="13">Claude Haiku 5.5</text>
+<rect x="318.205" y="263" width="103.6035" height="10" rx="5" fill="#3987e5" opacity="0.22">
+</rect>
+<circle cx="322.80960000000005" cy="268" r="4" fill="#3987e5" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="391.22079999999994" cy="268" r="4" fill="#3987e5" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="298.7999" cy="268" r="4" fill="#3987e5" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="434.63559999999995" cy="268" r="4" fill="#3987e5" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="379.38039999999995" cy="268" r="4" fill="#3987e5" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<circle cx="392.86529999999993" cy="268" r="4" fill="#3987e5" opacity="0.8" stroke="#111113" stroke-width="1">
+</circle>
+<rect x="367.6845" y="256" width="3" height="24" rx="1.5" fill="#ededef">
+</rect>
+<text x="952" y="268" dy="0.32em" text-anchor="end" font-size="12" font-family="IBM Plex Mono">
+<tspan fill="#ededef">32.1</tspan>
+<tspan fill="#8b8b93">  29.0–35.3</tspan>
+</text>
+</g>
+</svg>
+</div>
+</figure>"
+`;
+
+exports[`v1 as visitors see it > leaderboard table 1`] = `
+"<div class="overflow-x-auto">
+<table class="w-full min-w-[320px] border-collapse">
+<thead>
+<tr>
+<th class="px-3 pb-3 text-left align-bottom text-[12px] font-medium leading-4 text-fg-muted w-[210px] pb-1 pl-0">Model</th>
+<th class="px-3 pb-3 text-left align-bottom text-[12px] font-medium leading-4 text-fg-muted w-[104px] pb-1 text-right">
+<span class="block text-fg-muted">Score</span>
+<span class="block whitespace-nowrap font-normal text-fg-faint">0 to 100</span>
+</th>
+<th class="px-3 pb-3 text-left align-bottom text-[12px] font-medium leading-4 text-fg-muted hidden pb-1 pl-8 text-right sm:table-cell">
+<span class="block" style="width:160px">
+<span class="block text-fg-muted">Each group&#x27;s score</span>
+<span class="block whitespace-nowrap font-normal text-fg-faint">one dot per group of five fresh agents</span>
+</span>
+</th>
+<th class="px-3 pb-3 text-left align-bottom text-[12px] font-medium leading-4 text-fg-muted hidden w-[190px] pb-1 text-right md:table-cell">
+<span class="block text-fg-muted">Oruth&#x27;s health</span>
+<span class="block whitespace-nowrap font-normal text-fg-faint">at the end of the best pull</span>
+</th>
+<th class="px-3 pb-3 text-left align-bottom text-[12px] font-medium leading-4 text-fg-muted hidden w-[150px] pb-1 text-right lg:table-cell">
+<span class="block text-fg-muted">First pull</span>
+<span class="block whitespace-nowrap font-normal text-fg-faint">before any learning</span>
+</th>
+<th class="px-3 pb-3 text-left align-bottom text-[12px] font-medium leading-4 text-fg-muted hidden w-[112px] pb-1 pr-0 text-right sm:table-cell">
+<span class="block text-fg-muted">Cost</span>
+<span class="block whitespace-nowrap font-normal text-fg-faint">per group</span>
+</th>
+<th class="w-6" aria-hidden="true">
+</th>
+</tr>
+<tr class="border-b border-line" aria-hidden="true">
+<th class="pl-0">
+</th>
+<th>
+</th>
+<th class="hidden pb-2 pl-8 sm:table-cell">
+<div class="w-full">
+<svg width="160" height="12" class="block overflow-visible" aria-hidden="true">
+<text x="4" y="10" text-anchor="middle" fill="#8b8b93" font-size="10" font-family="IBM Plex Mono">20</text>
+<text x="42" y="10" text-anchor="middle" fill="#8b8b93" font-size="10" font-family="IBM Plex Mono">30</text>
+<text x="80" y="10" text-anchor="middle" fill="#8b8b93" font-size="10" font-family="IBM Plex Mono">40</text>
+<text x="118" y="10" text-anchor="middle" fill="#8b8b93" font-size="10" font-family="IBM Plex Mono">50</text>
+<text x="156" y="10" text-anchor="middle" fill="#8b8b93" font-size="10" font-family="IBM Plex Mono">60</text>
+</svg>
+</div>
+</th>
+<th class="hidden md:table-cell">
+</th>
+<th class="hidden lg:table-cell">
+</th>
+<th class="hidden sm:table-cell">
+</th>
+<th>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr class="group border-b border-line transition-colors cursor-pointer hover:bg-white/[0.03]">
+<td class="h-14 px-3 align-middle pl-0">
+<a href="/watch/claude-opus-5-5" class="flex items-center gap-3 rounded">
+<span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background:#199e70" aria-hidden="true">
+</span>
+<span class="min-w-0">
+<span class="block truncate text-[15px] leading-5 text-fg">Claude Opus 5.5</span>
+<span class="block text-[12px] leading-4 text-fg-faint">Anthropic</span>
+</span>
+</a>
+</td>
+<td class="h-14 px-3 align-middle text-right">
+<span class="num font-mono text-[17px] text-fg">44.1</span>
+<span class="block font-mono text-[11px] text-fg-faint sm:hidden">95% range 40.4–47.7</span>
+</td>
+<td class="h-14 px-3 align-middle hidden pl-8 sm:table-cell">
+<span title="95% interval 40.4 to 47.7">
+<svg width="160" height="18" class="block shrink-0" aria-hidden="true">
+<rect x="4" y="8" width="152" height="2" rx="1" fill="rgba(255,255,255,0.08)">
+</rect>
+<rect x="81.52" y="6" width="27.740000000000023" height="6" rx="3" fill="#199e70" opacity="0.28">
+</rect>
+<circle cx="104.92800000000001" cy="9" r="2.6" fill="#199e70" opacity="0.75">
+</circle>
+<circle cx="87.752" cy="9" r="2.6" fill="#199e70" opacity="0.75">
+</circle>
+<circle cx="110.55199999999999" cy="9" r="2.6" fill="#199e70" opacity="0.75">
+</circle>
+<circle cx="79.24" cy="9" r="2.6" fill="#199e70" opacity="0.75">
+</circle>
+<circle cx="105.46000000000001" cy="9" r="2.6" fill="#199e70" opacity="0.75">
+</circle>
+<circle cx="84.636" cy="9" r="2.6" fill="#199e70" opacity="0.75">
+</circle>
+<rect x="94.08000000000001" y="1" width="3" height="16" rx="1.5" fill="#ededef">
+</rect>
+</svg>
+</span>
+</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden md:table-cell text-fg-muted">–</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden lg:table-cell text-fg-muted">36.9</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden pr-0 sm:table-cell text-fg-muted">$36.79</td>
+<td class="w-6 text-fg-faint transition-colors group-hover:text-fg">
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right">
+<path d="m9 18 6-6-6-6">
+</path>
+</svg>
+</td>
+</tr>
+<tr class="group border-b border-line transition-colors cursor-pointer hover:bg-white/[0.03]">
+<td class="h-14 px-3 align-middle pl-0">
+<a href="/watch/gpt-6.2-sol" class="flex items-center gap-3 rounded">
+<span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background:#d55181" aria-hidden="true">
+</span>
+<span class="min-w-0">
+<span class="block truncate text-[15px] leading-5 text-fg">GPT-6.2 Sol</span>
+<span class="block text-[12px] leading-4 text-fg-faint">OpenAI</span>
+</span>
+</a>
+</td>
+<td class="h-14 px-3 align-middle text-right">
+<span class="num font-mono text-[17px] text-fg">42.9</span>
+<span class="block font-mono text-[11px] text-fg-faint sm:hidden">95% range 37.6–48.3</span>
+</td>
+<td class="h-14 px-3 align-middle hidden pl-8 sm:table-cell">
+<span title="95% interval 37.6 to 48.3">
+<svg width="160" height="18" class="block shrink-0" aria-hidden="true">
+<rect x="4" y="8" width="152" height="2" rx="1" fill="rgba(255,255,255,0.08)">
+</rect>
+<rect x="70.88000000000001" y="6" width="40.65999999999998" height="6" rx="3" fill="#d55181" opacity="0.28">
+</rect>
+<circle cx="122.10399999999998" cy="9" r="2.6" fill="#d55181" opacity="0.75">
+</circle>
+<circle cx="93.832" cy="9" r="2.6" fill="#d55181" opacity="0.75">
+</circle>
+<circle cx="66.016" cy="9" r="2.6" fill="#d55181" opacity="0.75">
+</circle>
+<circle cx="99.684" cy="9" r="2.6" fill="#d55181" opacity="0.75">
+</circle>
+<circle cx="87.144" cy="9" r="2.6" fill="#d55181" opacity="0.75">
+</circle>
+<circle cx="77.87199999999999" cy="9" r="2.6" fill="#d55181" opacity="0.75">
+</circle>
+<rect x="89.52" y="1" width="3" height="16" rx="1.5" fill="#ededef">
+</rect>
+</svg>
+</span>
+</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden md:table-cell text-fg-muted">–</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden lg:table-cell text-fg-muted">37.3</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden pr-0 sm:table-cell text-fg-muted">$6.96</td>
+<td class="w-6 text-fg-faint transition-colors group-hover:text-fg">
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right">
+<path d="m9 18 6-6-6-6">
+</path>
+</svg>
+</td>
+</tr>
+<tr class="group border-b border-line transition-colors cursor-pointer hover:bg-white/[0.03]">
+<td class="h-14 px-3 align-middle pl-0">
+<a href="/watch/deepseek-flash" class="flex items-center gap-3 rounded">
+<span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background:#1fa3b8" aria-hidden="true">
+</span>
+<span class="min-w-0">
+<span class="block truncate text-[15px] leading-5 text-fg">DeepSeek V4.1 Flash</span>
+<span class="block text-[12px] leading-4 text-fg-faint">DeepSeek</span>
+</span>
+</a>
+</td>
+<td class="h-14 px-3 align-middle text-right">
+<span class="num font-mono text-[17px] text-fg">33.4</span>
+<span class="block font-mono text-[11px] text-fg-faint sm:hidden">95% range 29.4–37.3</span>
+</td>
+<td class="h-14 px-3 align-middle hidden pl-8 sm:table-cell">
+<span title="95% interval 29.4 to 37.3">
+<svg width="160" height="18" class="block shrink-0" aria-hidden="true">
+<rect x="4" y="8" width="152" height="2" rx="1" fill="rgba(255,255,255,0.08)">
+</rect>
+<rect x="39.71999999999999" y="6" width="30.020000000000003" height="6" rx="3" fill="#1fa3b8" opacity="0.28">
+</rect>
+<circle cx="63.50799999999999" cy="9" r="2.6" fill="#1fa3b8" opacity="0.75">
+</circle>
+<circle cx="68.068" cy="9" r="2.6" fill="#1fa3b8" opacity="0.75">
+</circle>
+<circle cx="28.624000000000002" cy="9" r="2.6" fill="#1fa3b8" opacity="0.75">
+</circle>
+<circle cx="53.70399999999999" cy="9" r="2.6" fill="#1fa3b8" opacity="0.75">
+</circle>
+<circle cx="52.26000000000001" cy="9" r="2.6" fill="#1fa3b8" opacity="0.75">
+</circle>
+<circle cx="62.44400000000001" cy="9" r="2.6" fill="#1fa3b8" opacity="0.75">
+</circle>
+<rect x="53.419999999999995" y="1" width="3" height="16" rx="1.5" fill="#ededef">
+</rect>
+</svg>
+</span>
+</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden md:table-cell text-fg-muted">–</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden lg:table-cell text-fg-muted">31.4</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden pr-0 sm:table-cell text-fg-muted">$5.95</td>
+<td class="w-6 text-fg-faint transition-colors group-hover:text-fg">
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right">
+<path d="m9 18 6-6-6-6">
+</path>
+</svg>
+</td>
+</tr>
+<tr class="group border-b border-line transition-colors cursor-pointer hover:bg-white/[0.03]">
+<td class="h-14 px-3 align-middle pl-0">
+<a href="/watch/gpt-6-luna" class="flex items-center gap-3 rounded">
+<span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background:#9085e9" aria-hidden="true">
+</span>
+<span class="min-w-0">
+<span class="block truncate text-[15px] leading-5 text-fg">GPT-6 Luna</span>
+<span class="block text-[12px] leading-4 text-fg-faint">OpenAI</span>
+</span>
+</a>
+</td>
+<td class="h-14 px-3 align-middle text-right">
+<span class="num font-mono text-[17px] text-fg">32.8</span>
+<span class="block font-mono text-[11px] text-fg-faint sm:hidden">95% range 31.8–33.8</span>
+</td>
+<td class="h-14 px-3 align-middle hidden pl-8 sm:table-cell">
+<span title="95% interval 31.8 to 33.8">
+<svg width="160" height="18" class="block shrink-0" aria-hidden="true">
+<rect x="4" y="8" width="152" height="2" rx="1" fill="rgba(255,255,255,0.08)">
+</rect>
+<rect x="48.84" y="6" width="7.599999999999987" height="6" rx="3" fill="#9085e9" opacity="0.28">
+</rect>
+<circle cx="56.516000000000005" cy="9" r="2.6" fill="#9085e9" opacity="0.75">
+</circle>
+<circle cx="49.90399999999999" cy="9" r="2.6" fill="#9085e9" opacity="0.75">
+</circle>
+<circle cx="49.524" cy="9" r="2.6" fill="#9085e9" opacity="0.75">
+</circle>
+<circle cx="58.035999999999994" cy="9" r="2.6" fill="#9085e9" opacity="0.75">
+</circle>
+<circle cx="52.10799999999998" cy="9" r="2.6" fill="#9085e9" opacity="0.75">
+</circle>
+<circle cx="49.751999999999995" cy="9" r="2.6" fill="#9085e9" opacity="0.75">
+</circle>
+<rect x="51.13999999999999" y="1" width="3" height="16" rx="1.5" fill="#ededef">
+</rect>
+</svg>
+</span>
+</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden md:table-cell text-fg-muted">–</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden lg:table-cell text-fg-muted">31.9</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden pr-0 sm:table-cell text-fg-muted">$0.56</td>
+<td class="w-6 text-fg-faint transition-colors group-hover:text-fg">
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right">
+<path d="m9 18 6-6-6-6">
+</path>
+</svg>
+</td>
+</tr>
+<tr class="group border-b border-line transition-colors cursor-pointer hover:bg-white/[0.03]">
+<td class="h-14 px-3 align-middle pl-0">
+<a href="/watch/claude-sonnet-5-5" class="flex items-center gap-3 rounded">
+<span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background:#d95926" aria-hidden="true">
+</span>
+<span class="min-w-0">
+<span class="block truncate text-[15px] leading-5 text-fg">Claude Sonnet 5.5</span>
+<span class="block text-[12px] leading-4 text-fg-faint">Anthropic</span>
+</span>
+</a>
+</td>
+<td class="h-14 px-3 align-middle text-right">
+<span class="num font-mono text-[17px] text-fg">32.7</span>
+<span class="block font-mono text-[11px] text-fg-faint sm:hidden">95% range 28.7–36.7</span>
+</td>
+<td class="h-14 px-3 align-middle hidden pl-8 sm:table-cell">
+<span title="95% interval 28.7 to 36.7">
+<svg width="160" height="18" class="block shrink-0" aria-hidden="true">
+<rect x="4" y="8" width="152" height="2" rx="1" fill="rgba(255,255,255,0.08)">
+</rect>
+<rect x="37.059999999999995" y="6" width="30.400000000000013" height="6" rx="3" fill="#d95926" opacity="0.28">
+</rect>
+<circle cx="59.02399999999999" cy="9" r="2.6" fill="#d95926" opacity="0.75">
+</circle>
+<circle cx="62.823999999999984" cy="9" r="2.6" fill="#d95926" opacity="0.75">
+</circle>
+<circle cx="67.15599999999999" cy="9" r="2.6" fill="#d95926" opacity="0.75">
+</circle>
+<circle cx="30.219999999999995" cy="9" r="2.6" fill="#d95926" opacity="0.75">
+</circle>
+<circle cx="55.60399999999999" cy="9" r="2.6" fill="#d95926" opacity="0.75">
+</circle>
+<circle cx="39.34" cy="9" r="2.6" fill="#d95926" opacity="0.75">
+</circle>
+<rect x="50.76000000000001" y="1" width="3" height="16" rx="1.5" fill="#ededef">
+</rect>
+</svg>
+</span>
+</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden md:table-cell text-fg-muted">–</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden lg:table-cell text-fg-muted">30.6</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden pr-0 sm:table-cell text-fg-muted">$8.39</td>
+<td class="w-6 text-fg-faint transition-colors group-hover:text-fg">
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right">
+<path d="m9 18 6-6-6-6">
+</path>
+</svg>
+</td>
+</tr>
+<tr class="group border-b border-line transition-colors cursor-pointer hover:bg-white/[0.03]">
+<td class="h-14 px-3 align-middle pl-0">
+<a href="/watch/grok-4.3" class="flex items-center gap-3 rounded">
+<span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background:#0ca30c" aria-hidden="true">
+</span>
+<span class="min-w-0">
+<span class="block truncate text-[15px] leading-5 text-fg">Grok 4.3</span>
+<span class="block text-[12px] leading-4 text-fg-faint">xAI</span>
+</span>
+</a>
+</td>
+<td class="h-14 px-3 align-middle text-right">
+<span class="num font-mono text-[17px] text-fg">32.4</span>
+<span class="block font-mono text-[11px] text-fg-faint sm:hidden">95% range 30.3–34.6</span>
+</td>
+<td class="h-14 px-3 align-middle hidden pl-8 sm:table-cell">
+<span title="95% interval 30.3 to 34.6">
+<svg width="160" height="18" class="block shrink-0" aria-hidden="true">
+<rect x="4" y="8" width="152" height="2" rx="1" fill="rgba(255,255,255,0.08)">
+</rect>
+<rect x="43.14" y="6" width="16.340000000000003" height="6" rx="3" fill="#0ca30c" opacity="0.28">
+</rect>
+<circle cx="47.47200000000001" cy="9" r="2.6" fill="#0ca30c" opacity="0.75">
+</circle>
+<circle cx="60.39200000000002" cy="9" r="2.6" fill="#0ca30c" opacity="0.75">
+</circle>
+<circle cx="56.06000000000001" cy="9" r="2.6" fill="#0ca30c" opacity="0.75">
+</circle>
+<circle cx="47.39600000000001" cy="9" r="2.6" fill="#0ca30c" opacity="0.75">
+</circle>
+<circle cx="39.568" cy="9" r="2.6" fill="#0ca30c" opacity="0.75">
+</circle>
+<circle cx="56.81999999999999" cy="9" r="2.6" fill="#0ca30c" opacity="0.75">
+</circle>
+<rect x="49.61999999999999" y="1" width="3" height="16" rx="1.5" fill="#ededef">
+</rect>
+</svg>
+</span>
+</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden md:table-cell text-fg-muted">–</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden lg:table-cell text-fg-muted">34.8</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden pr-0 sm:table-cell text-fg-muted">$8.65</td>
+<td class="w-6 text-fg-faint transition-colors group-hover:text-fg">
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right">
+<path d="m9 18 6-6-6-6">
+</path>
+</svg>
+</td>
+</tr>
+<tr class="group border-b border-line transition-colors cursor-pointer hover:bg-white/[0.03]">
+<td class="h-14 px-3 align-middle pl-0">
+<a href="/watch/claude-haiku-5-5" class="flex items-center gap-3 rounded">
+<span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background:#3987e5" aria-hidden="true">
+</span>
+<span class="min-w-0">
+<span class="block truncate text-[15px] leading-5 text-fg">Claude Haiku 5.5</span>
+<span class="block text-[12px] leading-4 text-fg-faint">Anthropic</span>
+</span>
+</a>
+</td>
+<td class="h-14 px-3 align-middle text-right">
+<span class="num font-mono text-[17px] text-fg">32.1</span>
+<span class="block font-mono text-[11px] text-fg-faint sm:hidden">95% range 29.0–35.3</span>
+</td>
+<td class="h-14 px-3 align-middle hidden pl-8 sm:table-cell">
+<span title="95% interval 29.0 to 35.3">
+<svg width="160" height="18" class="block shrink-0" aria-hidden="true">
+<rect x="4" y="8" width="152" height="2" rx="1" fill="rgba(255,255,255,0.08)">
+</rect>
+<rect x="38.2" y="6" width="23.93999999999999" height="6" rx="3" fill="#3987e5" opacity="0.28">
+</rect>
+<circle cx="39.264" cy="9" r="2.6" fill="#3987e5" opacity="0.75">
+</circle>
+<circle cx="55.071999999999996" cy="9" r="2.6" fill="#3987e5" opacity="0.75">
+</circle>
+<circle cx="33.716" cy="9" r="2.6" fill="#3987e5" opacity="0.75">
+</circle>
+<circle cx="65.10399999999998" cy="9" r="2.6" fill="#3987e5" opacity="0.75">
+</circle>
+<circle cx="52.33599999999999" cy="9" r="2.6" fill="#3987e5" opacity="0.75">
+</circle>
+<circle cx="55.452" cy="9" r="2.6" fill="#3987e5" opacity="0.75">
+</circle>
+<rect x="48.480000000000004" y="1" width="3" height="16" rx="1.5" fill="#ededef">
+</rect>
+</svg>
+</span>
+</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden md:table-cell text-fg-muted">–</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden lg:table-cell text-fg-muted">33.8</td>
+<td class="h-14 px-3 align-middle num text-right font-mono text-[14px] hidden pr-0 sm:table-cell text-fg-muted">$0.92</td>
+<td class="w-6 text-fg-faint transition-colors group-hover:text-fg">
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right">
+<path d="m9 18 6-6-6-6">
+</path>
+</svg>
+</td>
+</tr>
+</tbody>
+</table>
+</div>"
+`;
+
+exports[`v1 as visitors see it > learning curves 1`] = `
+"<figure class="m-0">
+<figcaption class="sr-only">Average score at each pull on +10</figcaption>
+<div class="relative">
+<svg width="960" height="364" role="img" aria-label="Average score at each pull on +10">
+<g>
+<line x1="58" x2="745" y1="310" y2="310" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="310" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">20</text>
+</g>
+<g>
+<line x1="58" x2="745" y1="240" y2="240" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="240" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">30</text>
+</g>
+<g>
+<line x1="58" x2="745" y1="170" y2="170" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="170" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">40</text>
+</g>
+<g>
+<line x1="58" x2="745" y1="100" y2="100" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="100" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">50</text>
+</g>
+<g>
+<line x1="58" x2="745" y1="30" y2="30" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="30" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">60</text>
+</g>
+<text x="58" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">1</text>
+<text x="229.75" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">2</text>
+<text x="401.5" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">3</text>
+<text x="573.25" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">4</text>
+<text x="745" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">5</text>
+<g aria-hidden="true">
+<text transform="translate(11, 165) rotate(-90)" text-anchor="middle" fill="#8b8b93" font-size="12">Average score</text>
+<text x="401.5" y="360" text-anchor="middle" fill="#8b8b93" font-size="12">Pull</text>
+</g>
+<g aria-hidden="true">
+<rect x="58" y="30" width="171.75" height="280" fill="rgba(230,211,163,0.05)">
+</rect>
+<text x="143.875" y="44" text-anchor="middle" fill="#e6d3a3" fill-opacity="0.75" font-size="11" font-family="IBM Plex Mono">the first debrief</text>
+</g>
+<g opacity="1">
+<path d="M58,224.59999999999997L229.75,220.40000000000003L401.5,224.59999999999997L573.25,226L745,216.90000000000003" fill="none" stroke="#8b8b93" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5">
+</path>
+<text x="759" y="245.2" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#8b8b93">Scripted bot</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">33.3</tspan>
+</text>
+</g>
+<g opacity="1">
+<path d="M58,191.7L229.75,82.5L401.5,128.70000000000002L573.25,149.7L745,154.6" fill="none" stroke="#199e70" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+</path>
+<circle cx="58" cy="191.7" r="3.5" fill="#199e70" stroke="#199e70" stroke-width="2">
+</circle>
+<circle cx="229.75" cy="82.5" r="3.5" fill="#199e70" stroke="#199e70" stroke-width="2">
+</circle>
+<circle cx="401.5" cy="128.70000000000002" r="3.5" fill="#199e70" stroke="#199e70" stroke-width="2">
+</circle>
+<circle cx="573.25" cy="149.7" r="3.5" fill="#199e70" stroke="#199e70" stroke-width="2">
+</circle>
+<circle cx="745" cy="154.6" r="3.5" fill="#199e70" stroke="#199e70" stroke-width="2">
+</circle>
+<text x="759" y="171.90000000000003" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#ededef">Claude Opus 5.5</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">42.2</tspan>
+</text>
+</g>
+<g opacity="1">
+<path d="M58,188.90000000000003L229.75,142.70000000000002L401.5,139.20000000000002L573.25,123.09999999999997L745,153.90000000000003" fill="none" stroke="#d55181" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+</path>
+<circle cx="58" cy="188.90000000000003" r="3.5" fill="#d55181" stroke="#d55181" stroke-width="2">
+</circle>
+<circle cx="229.75" cy="142.70000000000002" r="3.5" fill="#d55181" stroke="#d55181" stroke-width="2">
+</circle>
+<circle cx="401.5" cy="139.20000000000002" r="3.5" fill="#d55181" stroke="#d55181" stroke-width="2">
+</circle>
+<circle cx="573.25" cy="123.09999999999997" r="3.5" fill="#d55181" stroke="#d55181" stroke-width="2">
+</circle>
+<circle cx="745" cy="153.90000000000003" r="3.5" fill="#d55181" stroke="#d55181" stroke-width="2">
+</circle>
+<text x="759" y="153.90000000000003" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#ededef">GPT-6.2 Sol</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">42.3</tspan>
+</text>
+</g>
+<g opacity="1">
+<path d="M58,230.2L229.75,210.59999999999997L401.5,208.5L573.25,214.09999999999997L745,219" fill="none" stroke="#5c5c66" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+</path>
+<circle cx="58" cy="230.2" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="229.75" cy="210.59999999999997" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="401.5" cy="208.5" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="573.25" cy="214.09999999999997" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="745" cy="219" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<text x="759" y="281.2" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#8b8b93">DeepSeek V4.1 Flash</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">33.0</tspan>
+</text>
+</g>
+<g opacity="1">
+<path d="M58,226.7L229.75,212L401.5,223.20000000000002L573.25,217.59999999999997L745,222.5" fill="none" stroke="#5c5c66" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+</path>
+<circle cx="58" cy="226.7" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="229.75" cy="212" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="401.5" cy="223.20000000000002" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="573.25" cy="217.59999999999997" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="745" cy="222.5" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<text x="759" y="299.2" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#8b8b93">GPT-6 Luna</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">32.5</tspan>
+</text>
+</g>
+<g opacity="1">
+<path d="M58,235.8L229.75,201.5L401.5,243.5L573.25,214.8L745,209.2" fill="none" stroke="#5c5c66" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+</path>
+<circle cx="58" cy="235.8" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="229.75" cy="201.5" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="401.5" cy="243.5" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="573.25" cy="214.8" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="745" cy="209.2" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<text x="759" y="209.2" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#8b8b93">Claude Sonnet 5.5</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">34.4</tspan>
+</text>
+</g>
+<g opacity="1">
+<path d="M58,206.40000000000003L229.75,228.10000000000002L401.5,253.29999999999998L573.25,212L745,214.8" fill="none" stroke="#5c5c66" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+</path>
+<circle cx="58" cy="206.40000000000003" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="229.75" cy="228.10000000000002" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="401.5" cy="253.29999999999998" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="573.25" cy="212" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="745" cy="214.8" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<text x="759" y="227.2" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#8b8b93">Grok 4.3</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">33.6</tspan>
+</text>
+</g>
+<g opacity="1">
+<path d="M58,213.40000000000003L229.75,193.79999999999998L401.5,221.79999999999998L573.25,277.8L745,218.3" fill="none" stroke="#5c5c66" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+</path>
+<circle cx="58" cy="213.40000000000003" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="229.75" cy="193.79999999999998" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="401.5" cy="221.79999999999998" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="573.25" cy="277.8" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="745" cy="218.3" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<text x="759" y="263.2" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#8b8b93">Claude Haiku 5.5</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">33.1</tspan>
+</text>
+</g>
+<rect x="58" y="30" width="687" height="280" fill="transparent">
+</rect>
+</svg>
+</div>
+</figure>"
+`;
+
+exports[`v1 as visitors see it > learning curves 2`] = `
+"<figure class="m-0">
+<figcaption class="sr-only">Average score at each pull on +10</figcaption>
+<div class="relative">
+<svg width="960" height="364" role="img" aria-label="Average score at each pull on +10">
+<g>
+<line x1="58" x2="745" y1="310" y2="310" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="310" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">20</text>
+</g>
+<g>
+<line x1="58" x2="745" y1="240" y2="240" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="240" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">30</text>
+</g>
+<g>
+<line x1="58" x2="745" y1="170" y2="170" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="170" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">40</text>
+</g>
+<g>
+<line x1="58" x2="745" y1="100" y2="100" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="100" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">50</text>
+</g>
+<g>
+<line x1="58" x2="745" y1="30" y2="30" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="30" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">60</text>
+</g>
+<text x="58" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">1</text>
+<text x="229.75" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">2</text>
+<text x="401.5" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">3</text>
+<text x="573.25" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">4</text>
+<text x="745" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">5</text>
+<g aria-hidden="true">
+<text transform="translate(11, 165) rotate(-90)" text-anchor="middle" fill="#8b8b93" font-size="12">Average score</text>
+<text x="401.5" y="360" text-anchor="middle" fill="#8b8b93" font-size="12">Pull</text>
+</g>
+<g aria-hidden="true">
+<rect x="58" y="30" width="171.75" height="280" fill="rgba(230,211,163,0.05)">
+</rect>
+<text x="143.875" y="44" text-anchor="middle" fill="#e6d3a3" fill-opacity="0.75" font-size="11" font-family="IBM Plex Mono">the first debrief</text>
+</g>
+<g opacity="1">
+<path d="M58,191.7L229.75,82.5L401.5,128.70000000000002L573.25,149.7L745,154.6" fill="none" stroke="#199e70" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+</path>
+<circle cx="58" cy="191.7" r="3.5" fill="#199e70" stroke="#199e70" stroke-width="2">
+</circle>
+<circle cx="229.75" cy="82.5" r="3.5" fill="#199e70" stroke="#199e70" stroke-width="2">
+</circle>
+<circle cx="401.5" cy="128.70000000000002" r="3.5" fill="#199e70" stroke="#199e70" stroke-width="2">
+</circle>
+<circle cx="573.25" cy="149.7" r="3.5" fill="#199e70" stroke="#199e70" stroke-width="2">
+</circle>
+<circle cx="745" cy="154.6" r="3.5" fill="#199e70" stroke="#199e70" stroke-width="2">
+</circle>
+<text x="759" y="171.90000000000003" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#ededef">Claude Opus 5.5</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">42.2</tspan>
+</text>
+</g>
+<g opacity="1">
+<path d="M58,188.90000000000003L229.75,142.70000000000002L401.5,139.20000000000002L573.25,123.09999999999997L745,153.90000000000003" fill="none" stroke="#d55181" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+</path>
+<circle cx="58" cy="188.90000000000003" r="3.5" fill="#d55181" stroke="#d55181" stroke-width="2">
+</circle>
+<circle cx="229.75" cy="142.70000000000002" r="3.5" fill="#d55181" stroke="#d55181" stroke-width="2">
+</circle>
+<circle cx="401.5" cy="139.20000000000002" r="3.5" fill="#d55181" stroke="#d55181" stroke-width="2">
+</circle>
+<circle cx="573.25" cy="123.09999999999997" r="3.5" fill="#d55181" stroke="#d55181" stroke-width="2">
+</circle>
+<circle cx="745" cy="153.90000000000003" r="3.5" fill="#d55181" stroke="#d55181" stroke-width="2">
+</circle>
+<text x="759" y="153.90000000000003" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#ededef">GPT-6.2 Sol</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">42.3</tspan>
+</text>
+</g>
+<g opacity="1">
+<path d="M58,230.2L229.75,210.59999999999997L401.5,208.5L573.25,214.09999999999997L745,219" fill="none" stroke="#5c5c66" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+</path>
+<circle cx="58" cy="230.2" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="229.75" cy="210.59999999999997" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="401.5" cy="208.5" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="573.25" cy="214.09999999999997" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="745" cy="219" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<text x="759" y="263.2" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#8b8b93">DeepSeek V4.1 Flash</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">33.0</tspan>
+</text>
+</g>
+<g opacity="1">
+<path d="M58,226.7L229.75,212L401.5,223.20000000000002L573.25,217.59999999999997L745,222.5" fill="none" stroke="#5c5c66" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+</path>
+<circle cx="58" cy="226.7" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="229.75" cy="212" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="401.5" cy="223.20000000000002" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="573.25" cy="217.59999999999997" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="745" cy="222.5" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<text x="759" y="281.2" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#8b8b93">GPT-6 Luna</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">32.5</tspan>
+</text>
+</g>
+<g opacity="1">
+<path d="M58,235.8L229.75,201.5L401.5,243.5L573.25,214.8L745,209.2" fill="none" stroke="#5c5c66" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+</path>
+<circle cx="58" cy="235.8" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="229.75" cy="201.5" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="401.5" cy="243.5" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="573.25" cy="214.8" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="745" cy="209.2" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<text x="759" y="209.2" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#8b8b93">Claude Sonnet 5.5</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">34.4</tspan>
+</text>
+</g>
+<g opacity="1">
+<path d="M58,206.40000000000003L229.75,228.10000000000002L401.5,253.29999999999998L573.25,212L745,214.8" fill="none" stroke="#5c5c66" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+</path>
+<circle cx="58" cy="206.40000000000003" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="229.75" cy="228.10000000000002" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="401.5" cy="253.29999999999998" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="573.25" cy="212" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="745" cy="214.8" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<text x="759" y="227.2" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#8b8b93">Grok 4.3</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">33.6</tspan>
+</text>
+</g>
+<g opacity="1">
+<path d="M58,213.40000000000003L229.75,193.79999999999998L401.5,221.79999999999998L573.25,277.8L745,218.3" fill="none" stroke="#5c5c66" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+</path>
+<circle cx="58" cy="213.40000000000003" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="229.75" cy="193.79999999999998" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="401.5" cy="221.79999999999998" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="573.25" cy="277.8" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<circle cx="745" cy="218.3" r="3.5" fill="#5c5c66" stroke="#5c5c66" stroke-width="2">
+</circle>
+<text x="759" y="245.2" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#8b8b93">Claude Haiku 5.5</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">33.1</tspan>
+</text>
+</g>
+<rect x="58" y="30" width="687" height="280" fill="transparent">
+</rect>
+</svg>
+</div>
+</figure>"
+`;
+
+exports[`v1 as visitors see it > learning curves 3`] = `
+"<figure class="m-0">
+<figcaption class="sr-only">Average score at each pull on +10</figcaption>
+<div class="relative">
+<svg width="960" height="364" role="img" aria-label="Average score at each pull on +10">
+<g>
+<line x1="58" x2="729.4" y1="310" y2="310" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="310" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">20</text>
+</g>
+<g>
+<line x1="58" x2="729.4" y1="170" y2="170" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="170" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">30</text>
+</g>
+<g>
+<line x1="58" x2="729.4" y1="30" y2="30" stroke="rgba(255,255,255,0.07)">
+</line>
+<text x="48" y="30" dy="0.32em" text-anchor="end" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">40</text>
+</g>
+<text x="58" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">1</text>
+<text x="225.85" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">2</text>
+<text x="393.7" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">3</text>
+<text x="561.55" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">4</text>
+<text x="729.4" y="330" text-anchor="middle" fill="#8b8b93" font-size="11" font-family="IBM Plex Mono">5</text>
+<g aria-hidden="true">
+<text transform="translate(11, 165) rotate(-90)" text-anchor="middle" fill="#8b8b93" font-size="12">Average score, same seeds</text>
+<text x="393.7" y="360" text-anchor="middle" fill="#8b8b93" font-size="12">Pull</text>
+</g>
+<g opacity="1">
+<path d="M58,133.59999999999997L225.85,130.80000000000004L393.7,188.20000000000002L561.55,172.79999999999998L729.4,123.80000000000004" fill="none" stroke="#3987e5" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+</path>
+<circle cx="58" cy="133.59999999999997" r="3.5" fill="#3987e5" stroke="#3987e5" stroke-width="2">
+</circle>
+<circle cx="225.85" cy="130.80000000000004" r="3.5" fill="#3987e5" stroke="#3987e5" stroke-width="2">
+</circle>
+<circle cx="393.7" cy="188.20000000000002" r="3.5" fill="#3987e5" stroke="#3987e5" stroke-width="2">
+</circle>
+<circle cx="561.55" cy="172.79999999999998" r="3.5" fill="#3987e5" stroke="#3987e5" stroke-width="2">
+</circle>
+<circle cx="729.4" cy="123.80000000000004" r="3.5" fill="#3987e5" stroke="#3987e5" stroke-width="2">
+</circle>
+<text x="743.4" y="152.80000000000004" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#ededef">Claude Haiku 5.5, on</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">33.3</tspan>
+</text>
+</g>
+<g opacity="1">
+<path d="M58,133.59999999999997L225.85,121L393.7,121L561.55,137.80000000000004L729.4,179.79999999999998" fill="none" stroke="#3987e5" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5">
+</path>
+<text x="743.4" y="179.79999999999998" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#8b8b93">Claude Haiku 5.5, off</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">29.3</tspan>
+</text>
+</g>
+<g opacity="1">
+<path d="M58,154.6L225.85,132.19999999999996L393.7,133.59999999999997L561.55,130.80000000000004L729.4,122.40000000000003" fill="none" stroke="#9085e9" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+</path>
+<circle cx="58" cy="154.6" r="3.5" fill="#9085e9" stroke="#9085e9" stroke-width="2">
+</circle>
+<circle cx="225.85" cy="132.19999999999996" r="3.5" fill="#9085e9" stroke="#9085e9" stroke-width="2">
+</circle>
+<circle cx="393.7" cy="133.59999999999997" r="3.5" fill="#9085e9" stroke="#9085e9" stroke-width="2">
+</circle>
+<circle cx="561.55" cy="130.80000000000004" r="3.5" fill="#9085e9" stroke="#9085e9" stroke-width="2">
+</circle>
+<circle cx="729.4" cy="122.40000000000003" r="3.5" fill="#9085e9" stroke="#9085e9" stroke-width="2">
+</circle>
+<text x="743.4" y="134.80000000000004" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#ededef">GPT-6 Luna, on</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">33.4</tspan>
+</text>
+</g>
+<g opacity="1">
+<path d="M58,154.6L225.85,121L393.7,133.59999999999997L561.55,132.19999999999996L729.4,116.80000000000004" fill="none" stroke="#9085e9" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5">
+</path>
+<text x="743.4" y="116.80000000000004" dy="0.32em" font-size="13" stroke="#111113" stroke-width="5" paint-order="stroke" stroke-linejoin="round">
+<tspan fill="#8b8b93">GPT-6 Luna, off</tspan>
+<tspan fill="#8b8b93" font-family="IBM Plex Mono" font-size="12" dx="8">33.8</tspan>
+</text>
+</g>
+<rect x="58" y="30" width="671.4" height="280" fill="transparent">
+</rect>
+</svg>
+</div>
+</figure>"
+`;

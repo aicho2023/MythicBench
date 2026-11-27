@@ -491,3 +491,25 @@ def test_models_are_compared_on_the_same_seeds(sandbox):
         lo, hi = row["tiers"]["plus10"]["clear_rate_ci95"]
         assert 0.0 <= lo <= hi <= 1.0
     assert K.verify_results(tmp / "res", replay=False) == 0
+
+
+def test_published_folders_and_recordings_keep_their_names(sandbox):
+    """Where each kind of cell lands in a dataset is part of the published format."""
+    tmp, proto = sandbox
+    proto["tiers"], proto["episodes"] = ["plus10"], 1
+    proto["baselines"] = [{"provider": "scripted", "id": "commander", "name": "Scripted commander"}]
+    K.run_campaign(proto)
+    out = tmp / "published"
+    K.build_results(proto, out, tmp / "runs")
+    folders = {p.parent.relative_to(out).as_posix() for p in out.rglob("ep*-pull*.json.gz")}
+    assert folders == {"replays/basic/plus10", "replays/basic/plus10/memory-off", "replays/commander/plus10"}
+    assert {p.name for p in (out / "recordings").iterdir()} == {"mock_basic.jsonl.gz", "scripted_commander.jsonl.gz"}
+    assert K.verify_results(out) == 0
+
+
+def test_the_published_v1_dataset_verifies():
+    """The real dataset against today's code: every replay rescored, the
+    leaderboard rebuilt. (Replaying the recordings too takes ten minutes:
+    `python -m mythicsim verify ../web/public/results/v1`.)"""
+    v1 = Path(__file__).parents[2] / "web" / "public" / "results" / "v1"
+    assert K.verify_results(v1, replay=False) == 0
