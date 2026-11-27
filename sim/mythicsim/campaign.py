@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
+import re
 import shutil
 import statistics as st
 from dataclasses import dataclass
@@ -49,6 +50,13 @@ class Combo:
     def spec(self) -> str:
         provider, mid = self.model["provider"], self.model["id"]
         return f"{provider}:{mid}" if provider in FREE_PROVIDERS else f"{provider}:{mid}@{self.model.get('effort')}"
+
+    @property
+    def subdir(self) -> str:
+        """The folder under replays/<model>/<tier>/ for this cell's pulls ("" for memory-on)."""
+        if self.role == "effort":
+            return f"effort-{self.model['effort']}"
+        return "" if self.memory else "memory-off"
 
     def key(self, proto: dict) -> str:
         # The key names everything that decides how an episode is played: the
@@ -90,7 +98,6 @@ def recordings_dir(proto: dict, runs_dir: Path | None = None) -> Path:
 def valid_episode(items: list[dict], max_pulls: int) -> bool:
     """A finished episode is pulls 1..n with no gaps, ending either in a timed
     clear (which ends the episode early) or at the full number of pulls."""
-    from .llm.progress import cleared
     pulls = sorted(i["pull"] for i in items)
     if not pulls or pulls != list(range(1, len(pulls) + 1)) or len(pulls) > max_pulls:
         return False
@@ -101,7 +108,7 @@ def valid_episode(items: list[dict], max_pulls: int) -> bool:
     return len(pulls) == max_pulls
 
 
-_SAFE_NAME = __import__("re").compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
+_SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
 
 
 def _safe_name(x, what: str, path) -> None:
@@ -278,13 +285,13 @@ def _play(proto: dict, jobs: list, cells: int, workers: int, offline: bool) -> N
         from concurrent.futures import ThreadPoolExecutor
         print(f"playing {len(jobs)} cells, {cells} at a time", flush=True)
         with ThreadPoolExecutor(max_workers=cells) as pool:
-            results = list(pool.map(lambda j: _play_cell(proto, *j, workers, None, offline), jobs))
+            results = list(pool.map(lambda j: _play_cell(proto, *j, workers, offline), jobs))
         stopped = [c.spec for (c, _), m in zip(jobs, results) if m and m.get("status") == "stopped"]
         if stopped:
             print(f"stopped at a budget: {', '.join(stopped)} (rerun to continue)")
         return
     for c, missing in jobs:
-        m = _play_cell(proto, c, missing, workers, None, offline)
+        m = _play_cell(proto, c, missing, workers, offline)
         if m is None:
             return
         if m.get("status") == "stopped":
@@ -292,16 +299,17 @@ def _play(proto: dict, jobs: list, cells: int, workers: int, offline: bool) -> N
             return
 
 
-def _play_cell(proto: dict, c: Combo, missing: list[int], workers: int, left: float | None, offline: bool) -> dict | None:
+def _play_cell(proto: dict, c: Combo, missing: list[int], workers: int, offline: bool) -> dict | None:
     from .__main__ import run_progress
     args = argparse.Namespace(
         model=c.spec, effort=None, episodes=",".join(map(str, missing)), max_pulls=proto["max_pulls"],
         mode=proto["mode"], tier=c.tier, memory="on" if c.memory else "off", knowledge=proto["knowledge"],
-        interval_ms=proto.get("interval_ms", 4000), max_calls=proto.get("max_calls", 300), workers=workers,
+        interval_ms=proto.get("interval_ms", DEFAULTS["interval_ms"]),
+        max_calls=proto.get("max_calls", DEFAULTS["max_calls"]), workers=workers,
         seed_base=proto.get("seed_base", DEFAULTS["seed_base"]),
         offline=offline, no_cache=False, name=f"{proto['name']} {c.spec} {C.tier(c.tier).name}"
         + ("" if c.memory else " (memory off)"), tag=[f"campaign:{proto['name']}"],
-        budget_usd=left if left is not None else proto.get("run_budget_usd", spend.DEFAULT_RUN_BUDGET_USD),
+        budget_usd=proto.get("run_budget_usd", spend.DEFAULT_RUN_BUDGET_USD),
         price_in=None, price_out=None, price_cached=None,
         cache_dir=recordings_dir(proto),
         extra={"campaign": proto["name"], "campaign_key": c.key(proto)})
@@ -318,8 +326,6 @@ def verify_campaign(proto: dict, runs_dir: Path | None = None, first: int | None
     and seed matches its replay; and every group replays from its recordings
     alone (no network), byte for byte apart from the run's bookkeeping.
     Returns a process exit code. (``verify_results`` checks a published dataset.)"""
-    from .llm.clients import CachedClient, NoNetwork
-    from .llm.progress import run_episode
     runs_dir = runs_dir or runs_mod.RUNS_DIR
     cache_dir = recordings_dir(proto, runs_dir)
     checked, bad = 0, []
@@ -343,14 +349,10 @@ def verify_campaign(proto: dict, runs_dir: Path | None = None, first: int | None
                     if it.get(k) != again[k]:
                         bad.append(f"{c.spec} {c.tier} episode {ep} pull {it['pull']}: checkpoint {k} "
                                    f"{it.get(k)!r}, the replay says {again[k]!r}")
-        safe = c.spec.replace(":", "_").replace("/", "_").replace("@", "_")
-        client = CachedClient(NoNetwork(c.spec), cache_dir / f"{safe}.jsonl", offline=True)
+        client = _offline_client(c, cache_dir)
         for ep, (m, items) in sorted(done.items()):
             try:
-                again = run_episode(client, ep, max_pulls=proto["max_pulls"], memory=c.memory,
-                                    knowledge=proto["knowledge"], interval_ms=proto.get("interval_ms", 4000),
-                                    max_calls=proto.get("max_calls", 300), tier=c.tier, mode=proto["mode"],
-                                    seed_base=proto.get("seed_base", DEFAULTS["seed_base"]))
+                again = _replay_episode(client, proto, c, ep)
             except Exception as err:  # noqa: BLE001 - any failure is a failed check
                 bad.append(f"{c.spec} {c.tier} memory-{'on' if c.memory else 'off'} episode {ep}: {err}")
                 continue
@@ -473,7 +475,6 @@ def verify_results(out_dir: Path, first: int | None = None, replay: bool = True,
     own temporary folder, under folder names it makes up. Returns an exit code.
     """
     import tempfile
-    from .llm.progress import cleared
     out_dir = Path(out_dir).resolve()
     proto = load_protocol(out_dir / "protocol.json")
     published = json.loads((out_dir / "leaderboard.json").read_text())
@@ -509,7 +510,7 @@ def verify_results(out_dir: Path, first: int | None = None, replay: bool = True,
 
     # Replay first (when asked): it recomputes every pull's stats and cost.
     derived: dict[str, dict] = {}
-    checked_replays = _replay_from_recordings(out_dir, proto, first, bad, derived) if replay else 0
+    checked_replays = _replay_from_recordings(out_dir, proto, bad, derived) if replay else 0
     if replay:
         for rel, (_, st_pub) in pub.items():
             got = derived.get(rel)
@@ -527,9 +528,7 @@ def verify_results(out_dir: Path, first: int | None = None, replay: bool = True,
         runs_dir = tmp / "runs"
         internal: dict[str, str] = {}  # published run id -> a folder name we made up
         for c in combos(proto):
-            sub = ("" if c.memory else "memory-off") if c.role != "effort" else f"effort-{c.model['effort']}"
-            folder = _inside(out_dir, out_dir / "replays" / c.slug / c.tier / sub) if sub else \
-                _inside(out_dir, out_dir / "replays" / c.slug / c.tier)
+            folder = _inside(out_dir, out_dir / "replays" / c.slug / c.tier / c.subdir)
             found: dict[int, dict[int, Path]] = {}
             for f in sorted(folder.glob("ep*-pull*.json.gz")) if folder.is_dir() else []:
                 try:
@@ -619,37 +618,28 @@ def _diff(a, b, path: str = "") -> list[str]:
     return [] if a == b else [path or "/"]
 
 
-def _replay_from_recordings(out_dir: Path, proto: dict, first: int | None, bad: list[str],
-                            derived: dict | None = None) -> int:
+def _replay_from_recordings(out_dir: Path, proto: dict, bad: list[str], derived: dict) -> int:
     """Play every published group again from the published recordings (no network).
     ``derived`` gets each pull's stats as the replay produced them, with its
     cost at list prices (keyed by the replay's path in the dataset)."""
-    from .llm.clients import CachedClient, NoNetwork
-    from .llm.progress import run_episode
     n = 0
     for c in combos(proto):
-        sub = ("" if c.memory else "memory-off") if c.role != "effort" else f"effort-{c.model['effort']}"
-        folder = out_dir / "replays" / c.slug / c.tier / sub
-        safe = c.spec.replace(":", "_").replace("/", "_").replace("@", "_")
-        client = CachedClient(NoNetwork(c.spec), out_dir / "recordings" / f"{safe}.jsonl", offline=True)
+        folder = out_dir / "replays" / c.slug / c.tier / c.subdir
+        client = _offline_client(c, out_dir / "recordings")
         eps = sorted({int(f.name[2:].split("-pull")[0]) for f in folder.glob("ep*-pull*.json.gz")}) if folder.exists() else []
         for ep in eps:
             try:
-                again = run_episode(client, ep, max_pulls=proto["max_pulls"], memory=c.memory,
-                                    knowledge=proto["knowledge"], interval_ms=proto.get("interval_ms", 4000),
-                                    max_calls=proto.get("max_calls", 300), tier=c.tier, mode=proto["mode"],
-                                    seed_base=proto.get("seed_base", DEFAULTS["seed_base"]))
+                again = _replay_episode(client, proto, c, ep)
             except Exception as err:  # noqa: BLE001 - any failure is a failed check
                 bad.append(f"{c.spec} {c.tier} group {ep}: can't replay from the recordings ({err})")
                 continue
             price = spend.price_for(c.spec) or spend.FREE
             for p in again.pulls:
                 f = folder / f"ep{ep}-pull{p.pull}.json.gz"
-                if derived is not None:
-                    st_ = json.loads(json.dumps(p.stats))
-                    st_["usd"] = round(price.cost(st_["input_tokens"], st_["output_tokens"],
-                                                  st_.get("cache_read_tokens", 0), st_.get("cache_write_tokens", 0)), 4)
-                    derived[f.relative_to(out_dir).as_posix()] = st_
+                st_ = json.loads(json.dumps(p.stats))
+                st_["usd"] = round(price.cost(st_["input_tokens"], st_["output_tokens"],
+                                              st_.get("cache_read_tokens", 0), st_.get("cache_write_tokens", 0)), 4)
+                derived[f.relative_to(out_dir).as_posix()] = st_
                 want = json.loads(gzip.decompress(f.read_bytes())) if f.exists() else None
                 got = json.loads(json.dumps(p.replay))
                 for r in (want, got):
@@ -676,7 +666,22 @@ def _episode_scores(items: list[dict], max_pulls: int) -> float:
     return total / max_pulls
 
 
-def _spec_of(row: dict, proto: dict) -> str:
+def _offline_client(c: Combo, recordings: Path):
+    """A client that answers only from the cell's recorded replies in ``recordings``."""
+    from .llm.clients import CachedClient, NoNetwork
+    return CachedClient(NoNetwork(c.spec), recordings / runs_mod.recording_name(c.spec), offline=True)
+
+
+def _replay_episode(client, proto: dict, c: Combo, ep: int):
+    """One group played again under the protocol's rules."""
+    from .llm.progress import run_episode
+    return run_episode(client, ep, max_pulls=proto["max_pulls"], memory=c.memory, knowledge=proto["knowledge"],
+                       interval_ms=proto.get("interval_ms", DEFAULTS["interval_ms"]),
+                       max_calls=proto.get("max_calls", DEFAULTS["max_calls"]), tier=c.tier, mode=proto["mode"],
+                       seed_base=proto.get("seed_base", DEFAULTS["seed_base"]))
+
+
+def _spec_of(row: dict) -> str:
     m = {"provider": row["provider"], "id": row["model"], "effort": row.get("effort")}
     return Combo(m, "plus10", True).spec
 
@@ -712,8 +717,7 @@ def _cell(c: Combo, done: dict, planned: set, out_dir: Path, runs_dir: Path, max
                 errors[k] += stats.get(k, 0) or 0
             errors["pulls_out_of_calls"] += bool(stats.get("budget_exhausted"))
             pulls += 1
-            sub = ("" if c.memory else "memory-off") if c.role != "effort" else f"effort-{c.model['effort']}"
-            rel = Path("replays") / c.slug / c.tier / sub / f"ep{ep}-pull{it['pull']}.json.gz"
+            rel = Path("replays") / c.slug / c.tier / c.subdir / f"ep{ep}-pull{it['pull']}.json.gz"
             dst = out_dir / rel
             dst.parent.mkdir(parents=True, exist_ok=True)
             with gzip.GzipFile(dst, "wb", mtime=0) as f:  # mtime=0: byte-identical rebuilds
@@ -807,8 +811,8 @@ def build_results(proto: dict, out_dir: Path, runs_dir: Path | None = None) -> d
     # upward because a clear carries forward). Only complete, matched pairs.
     for ctl in controls:
         on_row = rows.get(ctl["model"])
-        on = scores.get((_spec_of(on_row, proto), ctl["tier"], True)) if on_row else None
-        off = scores.get((_spec_of(on_row, proto), ctl["tier"], False)) if on_row else None
+        on = scores.get((_spec_of(on_row), ctl["tier"], True)) if on_row else None
+        off = scores.get((_spec_of(on_row), ctl["tier"], False)) if on_row else None
         if not on or not off or not ctl["complete"]:
             continue
         pairs = [{"episode": e, "on": round(on[e], 2), "off": round(off[e], 2)} for e in sorted(off) if e in on]
@@ -816,7 +820,7 @@ def build_results(proto: dict, out_dir: Path, runs_dir: Path | None = None) -> d
             continue  # the memory-on side is missing some of the control's episodes
         diffs = [p["on"] - p["off"] for p in pairs]
         # The memory-on curve over the same groups as the control (not the six ranked ones).
-        on_items = items_by[(_spec_of(on_row, proto), ctl["tier"], True)]
+        on_items = items_by[(_spec_of(on_row), ctl["tier"], True)]
         twin_items = [i for e in sorted(off) for i in on_items[e]]
         ctl["paired_on_curve_mean"] = summarize_items(twin_items, max_pulls)["curve_mean"]
         cell = on_row["tiers"].get(ctl["tier"])
@@ -830,7 +834,7 @@ def build_results(proto: dict, out_dir: Path, runs_dir: Path | None = None) -> d
     for cfg in configs:
         base_row = rows.get(cfg["model"])
         for tier, cell in cfg["tiers"].items():
-            base = scores.get((_spec_of(base_row, proto), tier, True)) if base_row else None
+            base = scores.get((_spec_of(base_row), tier, True)) if base_row else None
             same = [base[e] for e in cell["episode_ids"] if base and e in base]
             if base and len(same) == len(cell["episode_ids"]):
                 bcell = base_row["tiers"].get(tier) or {}
@@ -872,7 +876,7 @@ def build_results(proto: dict, out_dir: Path, runs_dir: Path | None = None) -> d
     # An order is claimed only where the Holm-adjusted p (over every pair) is
     # below 0.05; the leaderboard's order itself is descriptive.
     ranked_eps = set(range(proto["episodes"]))
-    heads = [(r["model"], scores.get((_spec_of(r, proto), head, True)) or {}) for r in board if r["complete"]]
+    heads = [(r["model"], scores.get((_spec_of(r), head, True)) or {}) for r in board if r["complete"]]
     pairwise = []
     for i in range(len(heads)):
         for j in range(i + 1, len(heads)):

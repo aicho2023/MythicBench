@@ -62,7 +62,6 @@ const ACTION: Record<string, string> = {
   bone_claw: 'Melee_Unarmed_Attack_Punch_A',
   grave_volley: 'Ranged_Magic_Summon', mend_bones: 'Ranged_Magic_Raise', bone_bolt: 'Ranged_Magic_Shoot',
 }
-/** What to show WHILE a cast bar is filling. */
 // Archery. Measured from the clips (bow axis in the archer's frame):
 // - Ranged_Bow_Draw opens with the bow horizontal at the shoulder, string
 //   pointing up (pulling it off the back). The bow is raised, vertical, string
@@ -74,7 +73,7 @@ const BOW_DRAW_FROM = 0.55
 const BOW_RELEASE_CUT = 0.25
 const BOW_RELEASE_HOLD_S = 0.9
 const BOW_SHOTS = new Set(['steady_arrow', 'piercing_shot', 'silencing_arrow'])
-// `from`: where in the clip the cast starts (see archery note above).
+/** What to show WHILE a cast bar is filling. `from`: where in the clip the cast starts (see the archery note above). */
 const CASTING: Record<string, { name: string; mode: 'loop' | 'progress'; from?: number }> = {
   mending_light: { name: 'Ranged_Magic_Spellcasting', mode: 'loop' },
   radiant_hymn: { name: 'Ranged_Magic_Spellcasting_Long', mode: 'loop' },

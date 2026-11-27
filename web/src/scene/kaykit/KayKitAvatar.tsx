@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
+import { BOSS_CAST_COLORS, BOSS_CAST_DEFAULT } from '../../content/display'
 import { frameState } from '../../replay/store'
 import { muzzles, weaponAnchor } from '../anchors'
 import type { UnitInfo } from '../../replay/types'
@@ -129,10 +130,6 @@ function priestTexture(src: THREE.Texture): THREE.Texture {
   out.needsUpdate = true
   priestCache.set(src, out)
   return out
-}
-
-const BOSS_CAST_COLORS: Record<string, string> = {
-  requiem_of_bones: '#c77dff', soul_rend: '#ff4d6d', raise_dead: '#9dff6b',
 }
 
 // ---------------------------------------------------------------------------
@@ -304,7 +301,7 @@ export function KayKitAvatar({ id, info, still }: { id: string; info: UnitInfo; 
     if (rig.orb) {
       rig.orb.visible = !!u.cast
       if (u.cast) {
-        const col = BOSS_CAST_COLORS[u.cast.ability] ?? '#8fe8ff'
+        const col = BOSS_CAST_COLORS[u.cast.ability] ?? BOSS_CAST_DEFAULT
         ;((rig.orb.children[0] as THREE.Mesh).material as THREE.MeshBasicMaterial).color.set(col).multiplyScalar(4)
         ;(rig.orb.children[1] as THREE.PointLight).color.set(col)
         rig.orb.scale.setScalar(0.7 + pose.k * 0.8 + Math.sin(f.t / 55) * 0.05)

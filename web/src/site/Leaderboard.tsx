@@ -6,8 +6,7 @@ import {
   type LeaderboardRow, type Results,
 } from './results'
 import { navigate } from './router'
-import { COLOR } from './tokens'
-import { useInsights } from './PullGrid'
+import { useInsights } from './insights'
 import { useWidth } from './useWidth'
 
 /** A pull's best score and, when it reached Oruth, how much of him was left (from the scoring rule). */
@@ -54,11 +53,8 @@ function BossLeft({ pct }: { pct: number }) {
 
 export function LeaderboardTable({ results }: { results: Results }) {
   const hard = headlineTier(results)
-  // Models only: the scripted bot is a reference line on the charts, not a row here.
-  const baselines: LeaderboardRow[] = []
   const rows = results.leaderboard
   const [lo, hi] = scoreDomain(rows.flatMap((r) => [...(r.tiers[hard]?.episode_scores ?? []), ...(r.mythicbench_score_ci95 ?? [])]))
-  const lead = results.leaderboard.find((r) => r.rank !== null)?.model
   // A column of "0 of 6" says nothing the page doesn't: it appears once any model clears.
   const anyClear = results.leaderboard.some((r) => (r.tiers[hard]?.clears ?? 0) > 0)
   // Oruth's health at the end of each model's best try on the ranked tier (web/public/insights).
@@ -106,23 +102,22 @@ export function LeaderboardTable({ results }: { results: Results }) {
         <tbody>
           {rows.map((row) => {
             const cell = row.tiers[hard]
-            const ref = baselines.includes(row)
-            const go = () => !ref && navigate(`/watch/${encodeURIComponent(row.model)}`)
-            const ink = ref ? 'text-fg-faint' : 'text-fg-muted'
+            const watch = `/watch/${encodeURIComponent(row.model)}`
+            const ink = 'text-fg-muted'
             return (
-              <tr key={row.model} onClick={go} className={`group border-b border-line transition-colors ${ref ? '' : 'cursor-pointer hover:bg-white/[0.03]'}`}>
+              <tr key={row.model} onClick={() => navigate(watch)} className="group border-b border-line transition-colors cursor-pointer hover:bg-white/[0.03]">
                 <td className={`${TD} pl-0`}>
-                  <a href={ref ? undefined : `/watch/${encodeURIComponent(row.model)}`} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) e.preventDefault() }}
+                  <a href={watch} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) e.preventDefault() }}
                     className="flex items-center gap-3 rounded">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: ref ? 'transparent' : modelColor(results, row.model), border: ref ? `1px solid ${COLOR.fgFaint}` : undefined }} aria-hidden />
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: modelColor(results, row.model) }} aria-hidden />
                     <span className="min-w-0">
-                      <span className={`block truncate text-[15px] leading-5 ${ref ? 'text-fg-muted' : 'text-fg'}`}>{row.provider === 'scripted' ? 'Scripted bot' : row.name || modelName(row.model)}</span>
-                      <span className="block text-[12px] leading-4 text-fg-faint">{ref ? 'Reference, not ranked' : labName(row.provider)}</span>
+                      <span className="block truncate text-[15px] leading-5 text-fg">{row.name || modelName(row.model)}</span>
+                      <span className="block text-[12px] leading-4 text-fg-faint">{labName(row.provider)}</span>
                     </span>
                   </a>
                 </td>
                 <td className={`${TD} text-right`}>
-                  <span className={`num font-mono text-[17px] ${ref ? 'text-fg-muted' : 'text-fg'}`}>{fmtScore(row.mythicbench_score)}</span>
+                  <span className="num font-mono text-[17px] text-fg">{fmtScore(row.mythicbench_score)}</span>
                   <span className="block font-mono text-[11px] text-fg-faint sm:hidden">
                     {row.mythicbench_score_ci95 ? `95% range ${fmtScore(row.mythicbench_score_ci95[0])}–${fmtScore(row.mythicbench_score_ci95[1])}` : ''}
                   </span>
@@ -130,14 +125,14 @@ export function LeaderboardTable({ results }: { results: Results }) {
                 <td className={`${TD} hidden pl-8 sm:table-cell`}>
                   <span title={row.mythicbench_score_ci95 ? `95% interval ${fmtScore(row.mythicbench_score_ci95[0])} to ${fmtScore(row.mythicbench_score_ci95[1])}` : undefined}>
                     <CIBar mean={row.mythicbench_score} ci={row.mythicbench_score_ci95} dots={episodeHeadlines(results, row)}
-                      lo={lo} hi={hi} width={STRIP} color={ref ? COLOR.fgFaint : modelColor(results, row.model)} accent={row.model === lead} />
+                      lo={lo} hi={hi} width={STRIP} color={modelColor(results, row.model)} />
                   </span>
                 </td>
-                <td className={`${TD} ${NUM} hidden md:table-cell ${ink}`}>{ref || closest(row.model) == null ? '–' : <BossLeft pct={closest(row.model)!} />}</td>
+                <td className={`${TD} ${NUM} hidden md:table-cell ${ink}`}>{closest(row.model) == null ? '–' : <BossLeft pct={closest(row.model)!} />}</td>
                 <td className={`${TD} ${NUM} hidden lg:table-cell ${ink}`}>{fmtScore(cell?.first_pull_score_mean)}</td>
                 {anyClear && <td className={`${TD} ${NUM} hidden lg:table-cell ${ink}`}>{cell ? `${cell.clears ?? 0} of ${cell.episodes}` : '–'}</td>}
-                <td className={`${TD} ${NUM} hidden pr-0 sm:table-cell ${ink}`}>{ref ? '$0' : fmtUsd(costPerRun(row, results))}</td>
-                <td className="w-6 text-fg-faint transition-colors group-hover:text-fg">{!ref && <ChevronRight size={16} />}</td>
+                <td className={`${TD} ${NUM} hidden pr-0 sm:table-cell ${ink}`}>{fmtUsd(costPerRun(row, results))}</td>
+                <td className="w-6 text-fg-faint transition-colors group-hover:text-fg"><ChevronRight size={16} /></td>
               </tr>
             )
           })}

@@ -2,6 +2,7 @@
 from itertools import combinations
 
 from mythicsim import content as C
+from mythicsim import engine as E
 from mythicsim.dungeon import DungeonRun
 from mythicsim.engine import Action, Encounter, dist
 
@@ -14,6 +15,13 @@ class GoTo:
 
     def act(self, obs):
         return [] if obs["self"]["moving"] else [Action("move", to=self.spot)]
+
+
+class Stand:
+    """Does nothing."""
+
+    def act(self, obs):
+        return []
 
 
 def settle(enc, ms=8000):
@@ -71,9 +79,6 @@ def test_enemies_do_not_stand_inside_each_other_or_the_party():
 
 
 def test_oruth_walks_after_a_target_out_of_reach():
-    class Stand:
-        def act(self, obs):
-            return []
     enc = Encounter(3, {m.id: Stand() for m in C.PARTY}, "test", "normal")
     tank = enc.units["rook"]
     tank.pos = (0.0, 10.0)  # far out of his reach
@@ -83,9 +88,6 @@ def test_oruth_walks_after_a_target_out_of_reach():
 
 
 def _walking_oruth(tier="plus10"):
-    class Stand:
-        def act(self, obs):
-            return []
     enc = Encounter(3, {m.id: Stand() for m in C.PARTY}, "test", tier)
     enc.roster = [enc.unit_json(u) for u in enc.units.values()]
     enc.boss_next = {}  # only what the test arms
@@ -162,3 +164,27 @@ def test_every_corridor_joins_its_rooms_across_its_width():
             for x in (-x_max, -x_max / 2, 0.0, x_max / 2, x_max):
                 assert DungeonRun.straight_line_reach((x, r.center[1]), (x, mid)) == (x, mid), (r.id, c, x)
                 assert DungeonRun.straight_line_reach((x, mid), (x, r.center[1])) == (x, r.center[1]), (r.id, c, x)
+
+
+def test_spot_directions_are_the_eight_compass_points():
+    """A taken spot shifts along these, in this order: both are part of every replay."""
+    d = 0.7071067811865476
+    assert E.SPOT_DIRS == ((1.0, 0.0), (d, d), (0.0, 1.0), (-d, d), (-1.0, 0.0), (-d, -d), (0.0, -1.0), (d, -d))
+    assert E.SPOT_DIRS == E.COMPASS16[::2]
+
+
+def test_in_pool_is_the_pools_reach_plus_a_margin():
+    enc = Encounter(3, {m.id: Stand() for m in C.PARTY}, "test", "normal")
+    rook = enc.units["rook"]
+    reach = 3.0 + rook.radius * 0.5 + 0.2  # the pool's radius, half a body, a margin
+    assert not enc.in_pool(rook, (0.0, 0.0))
+    enc.ground = {"p": {"id": "p", "kind": "pyre", "pos": (0.0, 0.0), "radius": 3.0}}
+    assert not enc.in_pool(rook, (0.0, 0.0))  # a Bone Pyre is not a pool to avoid
+    for kind in sorted(C.HAZARD_POOLS):
+        enc.ground = {"p": {"id": "p", "kind": "pyre", "pos": (9.0, 9.0), "radius": 3.0},
+                      "g": {"id": "g", "kind": kind, "pos": (0.0, 0.0), "radius": 3.0}}
+        assert enc.in_pool(rook, (0.0, 0.0)) and enc.in_pool(rook, (reach, 0.0))
+        assert not enc.in_pool(rook, (reach + 0.01, 0.0))
+        assert not enc.in_pool(rook, (9.0, 9.0))
+        for spot in ((0.0, 0.0), (reach, 0.0), (reach + 0.01, 0.0), (9.0, 9.0)):
+            assert enc.in_pool(rook, spot) == any(enc.pool_hits(rook, spot, g) for g in enc.ground.values())

@@ -45,9 +45,9 @@ function outcome(r: CatalogRun) {
 }
 
 /**
- * Side drawer listing every run saved on this machine (catalog.json), plus the
- * scripted commander as a reference. Built for hundreds of runs: search, filters,
- * sorting, and per-pull chips.
+ * Side drawer listing every run: the published results, any saved on this
+ * machine (catalog.json), and the reference runs when they are shown. Built for
+ * hundreds of runs: search, filters, sorting, and per-pull chips.
  */
 export function RunBrowser({ onClose, initialQuery = '' }: { onClose: () => void; initialQuery?: string }) {
   const catalog = usePlayback((p) => p.catalog)

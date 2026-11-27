@@ -1,4 +1,4 @@
-// A tiny client-side router: the site has four pages, so a dependency isn't worth it.
+// A tiny client-side router: the site has a handful of pages, so a dependency isn't worth it.
 // Works as static files because the hosts rewrite unknown paths to index.html
 // (web/vercel.json, web/public/_redirects).
 import { useEffect, useState, type AnchorHTMLAttributes, type MouseEvent } from 'react'

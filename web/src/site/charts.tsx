@@ -46,19 +46,18 @@ const textW = (s: string, px = 13) => s.length * px * 0.6
 // ---------------------------------------------------------------------------
 // A 95% CI as a bar on a score track, with a dot per group
 // ---------------------------------------------------------------------------
-export function CIBar({ mean, ci, accent = false, width = 160, dots = [], lo = 0, hi = 100, color }: {
-  mean: number | null; ci?: CI; accent?: boolean; width?: number; dots?: number[]; lo?: number; hi?: number; color?: string
+export function CIBar({ mean, ci, width = 160, dots = [], lo = 0, hi = 100, color = COLOR.fg }: {
+  mean: number | null; ci?: CI; width?: number; dots?: number[]; lo?: number; hi?: number; color?: string
 }) {
   if (mean == null) return <span className="text-fg-faint">–</span>
   const H = 18
   const x = (v: number) => (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * (width - 8) + 4
   const [a, b] = ci ?? [mean, mean]
-  const ink = color ?? (accent ? COLOR.accent : COLOR.fg)
   return (
     <svg width={width} height={H} className="block shrink-0" aria-hidden>
       <rect x={4} y={H / 2 - 1} width={width - 8} height={2} rx={1} fill="rgba(255,255,255,0.08)" />
-      <rect x={x(a)} y={H / 2 - 3} width={Math.max(2, x(b) - x(a))} height={6} rx={3} fill={ink} opacity={0.28} />
-      {dots.map((d, i) => <circle key={i} cx={x(d)} cy={H / 2} r={2.6} fill={ink} opacity={0.75} />)}
+      <rect x={x(a)} y={H / 2 - 3} width={Math.max(2, x(b) - x(a))} height={6} rx={3} fill={color} opacity={0.28} />
+      {dots.map((d, i) => <circle key={i} cx={x(d)} cy={H / 2} r={2.6} fill={color} opacity={0.75} />)}
       <rect x={x(mean) - 1.5} y={1} width={3} height={H - 2} rx={1.5} fill={COLOR.fg} />
     </svg>
   )
@@ -246,9 +245,6 @@ export function CostScatter({ results }: { results: Results }) {
   const pts = results.leaderboard
     .filter((r) => r.mythicbench_score != null)
     .map((r) => ({ key: r.model, label: modelName(r.model), color: modelColor(results, r.model), cost: costPerRun(r, results) ?? 0, score: r.mythicbench_score!, ci: r.mythicbench_score_ci95 ?? null }))
-  // The scripted bot: what fixed rules score, the level the models that didn't learn sit at.
-  // The home page shows models only: no scripted-bot reference line here.
-  const bot: number | null = null
   const paid = pts.map((p) => p.cost).filter((c) => c > 0)
   const cLo = paid.length ? Math.min(...paid) / 2 : 0.01
   const cHi = paid.length ? Math.max(...paid) * 2 : 100
@@ -256,7 +252,7 @@ export function CostScatter({ results }: { results: Results }) {
   for (let e = Math.floor(Math.log10(cLo)); e <= Math.ceil(Math.log10(cHi)); e++) {
     for (const f of [1, 3]) { const v = f * 10 ** e; if (v >= cLo && v <= cHi) xticks.push(v) }
   }
-  const [lo, hi] = scoreDomain([...pts.flatMap((p) => p.ci ? [p.ci[0], p.ci[1]] : [p.score]), ...(bot != null ? [bot] : [])], 10, 1)
+  const [lo, hi] = scoreDomain(pts.flatMap((p) => p.ci ? [p.ci[0], p.ci[1]] : [p.score]), 10, 1)
   const narrow = w < 520
   const H = narrow ? 300 : 380
   const m = { l: 58, r: 20, t: 20, b: 54 }
@@ -325,13 +321,6 @@ export function CostScatter({ results }: { results: Results }) {
               <text key={d} x={x(d)} y={m.t + ih + 20} textAnchor="middle" fill={AXIS} fontSize={11} fontFamily={MONO}>{tick(d)}</text>
             ))}
             <AxisTitles y="Score" x={narrow ? 'Cost per group (log scale)' : 'Cost per group of up to five pulls, list prices (log scale)'} ml={m.l} iw={iw} H={H} />
-            {bot != null && (
-              <g>
-                <line x1={m.l} x2={m.l + iw} y1={y(bot)} y2={y(bot)} stroke={AXIS} strokeDasharray="4 4" opacity={0.6} />
-                {/* Right end, under the line: the cheap models crowd the left end at this level. */}
-                <text x={m.l + iw - 4} y={y(bot) + 15} textAnchor="end" fill={AXIS} fontSize={12} {...HALO}>{narrow ? 'Bot' : 'Scripted bot'}, {fmtScore(bot)}</text>
-              </g>
-            )}
             {note && (
               <g>
                 <line x1={note.x1} x2={note.x2} y1={note.y} y2={note.y} stroke={AXIS} strokeWidth={1} />

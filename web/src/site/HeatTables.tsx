@@ -1,11 +1,12 @@
 // Heat tables over the ranked +10 groups: a row per model, a cell per column,
-// shaded on the pull grid's ramp (dark = little, bright = a lot) with the value
+// shaded on the heat ramp (dark = little, bright = a lot) with the value
 // written in. Two views: how much of Bone Pyre each model soaked at each pull,
 // and what killed its characters.
 // Data: web/public/insights/v1.json (scripts/build_insights.py).
 import { useRef, useState, type ReactNode } from 'react'
 import { modelName } from '../content/display'
-import { heat, useInsights, type GroupFacts, type Insights } from './PullGrid'
+import { DEATH_CAUSES, killedBy } from './facts'
+import { heat, useInsights, type GroupFacts, type Insights } from './insights'
 import { modelColor, type Results } from './results'
 import { Tip } from './Tooltip'
 import { COLOR } from './tokens'
@@ -135,36 +136,25 @@ export function SoakByPull({ results }: { results: Results }) {
 }
 
 /** What killed each model's characters, as a share of its deaths. */
-const CAUSES: { key: string; head: string; short: string; sub: string; ids: string[] }[] = [
-  { key: 'pyre', head: 'Bone Pyre', short: 'Pyre', sub: 'the circle', ids: ['bone_pyre'] },
-  { key: 'pools', head: 'Desecrate', short: 'Pools', sub: 'floor pools', ids: ['desecrate', 'restless_grave'] },
-  { key: 'boss', head: 'Oruth’s hits', short: 'Oruth', sub: 'on the tank', ids: ['hollow_strike', 'soul_rend'] },
-  { key: 'adds', head: 'Adds', short: 'Adds', sub: 'undead melee', ids: ['bone_claw'] },
-]
-
 export function DeathCauses({ results }: { results: Results }) {
   const data = useInsights()
   if (!data) return <div className="h-[300px]" />
-  const columns: Column[] = [...CAUSES.map(({ key, head, short, sub }) => ({ key, head, short, sub })), { key: 'other', head: 'Other', sub: 'everything else' }]
+  const columns: Column[] = [...DEATH_CAUSES.map(({ key, head, short, sub }) => ({ key, head, short, sub })), { key: 'other', head: 'Other', sub: 'everything else' }]
   const name = (id: string) => data.abilities?.[id] ?? id
   const rows: Row[] = ranked(results, data).map(({ model, groups }) => {
-    const by: Record<string, number> = {}
-    let pulls = 0
-    for (const g of groups) for (const p of g.pulls) {
-      pulls++
-      for (const [id, n] of Object.entries(p.killed_by ?? {})) by[id] = (by[id] ?? 0) + n
-    }
+    const by = killedBy(groups)
+    const pulls = groups.reduce((a, g) => a + g.pulls.length, 0)
     const total = Object.values(by).reduce((a, b) => a + b, 0)
-    const known = new Set(CAUSES.flatMap((c) => c.ids))
+    const known = new Set(DEATH_CAUSES.flatMap((c) => c.ids))
     const cells = [
-      ...CAUSES.map((c) => c.ids),
+      ...DEATH_CAUSES.map((c) => c.ids),
       Object.keys(by).filter((id) => !known.has(id)),
     ].map((ids, k) => {
       const n = ids.reduce((a, id) => a + (by[id] ?? 0), 0)
       const parts = ids.filter((id) => by[id]).sort((a, b) => by[b] - by[a])
       return {
         v: total ? n / total : null, text: pct(n, total),
-        tip: <><span className="font-mono text-fg">{n} of {total}</span> deaths{k === CAUSES.length && parts.length ? `: ${parts.map((id) => `${name(id)} ${by[id]}`).join(', ')}` : ''}</>,
+        tip: <><span className="font-mono text-fg">{n} of {total}</span> deaths{k === DEATH_CAUSES.length && parts.length ? `: ${parts.map((id) => `${name(id)} ${by[id]}`).join(', ')}` : ''}</>,
       }
     })
     return { model, cells, extra: (total / Math.max(1, pulls)).toFixed(1) }

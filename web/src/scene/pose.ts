@@ -15,8 +15,6 @@ export interface Pose {
   /** 0..1 flinch strength from being hit recently */
   hit: number
   t: number
-  /** school of current/last spell (for glow colors) */
-  school: string
   ability: string | null
 }
 
@@ -111,11 +109,10 @@ function gesturePose(la: NonNullable<UnitState['lastAction']>, t: number, replay
   const kind = ab?.kind
   const since = t - la.t
   const k = clamp01(since / ACTION_MS)
-  const school = ab?.school ?? 'physical'
   if (kind === 'damage' || kind === 'aoe_damage' || kind === 'interrupt' || kind === 'boss') {
-    return { ...base, mode: RANGED.has(la.ability) ? 'shoot' : 'attack', k, since, school, ability: la.ability }
+    return { ...base, mode: RANGED.has(la.ability) ? 'shoot' : 'attack', k, since, ability: la.ability }
   }
-  if (kind) return { ...base, mode: 'cast', instant: true, k: 1, since, school, ability: la.ability }
+  if (kind) return { ...base, mode: 'cast', instant: true, k: 1, since, ability: la.ability }
   return null
 }
 
@@ -124,13 +121,11 @@ export function poseOf(u: UnitState, t: number, replay: Replay): Pose {
   const base = { hit, t, instant: false }
   if (!u.alive) {
     const since = t - (u.deathT ?? t)
-    return { ...base, hit: 0, mode: 'dead', k: clamp01(since / 700), since, school: 'shadow', ability: null }
+    return { ...base, hit: 0, mode: 'dead', k: clamp01(since / 700), since, ability: null }
   }
   const la = u.lastAction
   if (u.cast) {
     const c = u.cast
-    const ab = replay.abilities[c.ability]
-    const school = ab?.school ?? 'holy'
     // Back-to-back casts (the ranger's arrows, a healer's chain): the next cast
     // bar starts on the very tick the last one resolved. Show the previous
     // release first, then let the wind-up fill the rest of the cast.
@@ -144,15 +139,15 @@ export function poseOf(u: UnitState, t: number, replay: Replay): Pose {
       start = leadEnd
     }
     const span = Math.max(1, c.t0 + c.castMs - start)
-    return { ...base, mode: 'cast', k: clamp01((t - start) / span), since: Math.max(0, t - start), school, ability: c.ability }
+    return { ...base, mode: 'cast', k: clamp01((t - start) / span), since: Math.max(0, t - start), ability: c.ability }
   }
   const walk = walkAt(u, t, replay)
   if (walk) {
-    return { ...base, mode: 'walk', k: 0, since: t - walk.t0, school: 'physical', ability: null }
+    return { ...base, mode: 'walk', k: 0, since: t - walk.t0, ability: null }
   }
   if (la && t - la.t < GESTURE_MS) {
     const g = gesturePose(la, t, replay, base)
     if (g) return g
   }
-  return { ...base, mode: 'idle', k: 0, since: t, school: 'physical', ability: null }
+  return { ...base, mode: 'idle', k: 0, since: t, ability: null }
 }

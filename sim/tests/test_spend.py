@@ -81,7 +81,6 @@ def sandbox(tmp_path, monkeypatch):
     runs_dir, out_dir = tmp_path / "runs", tmp_path / "local"
     monkeypatch.setattr(R, "RUNS_DIR", runs_dir)
     monkeypatch.setattr(R, "new_run", functools.partial(R.new_run, runs_dir=runs_dir))
-    monkeypatch.setattr(R, "finish_run", functools.partial(R.finish_run, runs_dir=runs_dir))
     monkeypatch.setattr(R, "publish", functools.partial(R.publish, runs_dir=runs_dir, out_dir=out_dir))
     monkeypatch.setattr(spend, "LEDGER", tmp_path / "spend.jsonl")
     monkeypatch.setenv("MYTHICBENCH_TOTAL_BUDGET_USD", "100")
@@ -240,14 +239,7 @@ def test_http_failures_are_counted_by_whether_they_may_be_billed(monkeypatch, tm
             raise urllib.error.HTTPError("u", code, "x", {}, io.BytesIO(b"{}"))
         return io.BytesIO(b'{"content": [{"type": "text", "text": "{}"}], "usage": {"input_tokens": 1, "output_tokens": 1}}')
 
-    class Resp(io.BytesIO):
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *a):
-            return False
-
-    monkeypatch.setattr(cl.urllib.request, "urlopen", lambda req, timeout=0: Resp(fake_urlopen(req).read()))
+    monkeypatch.setattr(cl.urllib.request, "urlopen", fake_urlopen)
     monkeypatch.setattr(cl.time, "sleep", lambda s: None)
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test")
     price = spend.Price(input=1.0, output=1.0, cached=1.0)
@@ -270,14 +262,7 @@ def test_an_unreadable_answer_counts_as_spent(monkeypatch, tmp_path):
     import io
     from mythicsim.llm import clients as cl
 
-    class Resp(io.BytesIO):
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *a):
-            return False
-
-    monkeypatch.setattr(cl.urllib.request, "urlopen", lambda req, timeout=0: Resp(b"<html>oops</html>"))
+    monkeypatch.setattr(cl.urllib.request, "urlopen", lambda req, timeout=0: io.BytesIO(b"<html>oops</html>"))
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test")
     price = spend.Price(input=1.0, output=1.0, cached=1.0)
     m = spend.CostMeter(cl.AnthropicClient("claude-haiku-5-5", effort="low"), price, limit_usd=10.0,
@@ -323,14 +308,7 @@ def test_a_malformed_answer_is_billable_not_a_free_reply(monkeypatch, tmp_path, 
     import io
     from mythicsim.llm import clients as cl
 
-    class Resp(io.BytesIO):
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *a):
-            return False
-
-    monkeypatch.setattr(cl.urllib.request, "urlopen", lambda req, timeout=0: Resp(body))
+    monkeypatch.setattr(cl.urllib.request, "urlopen", lambda req, timeout=0: io.BytesIO(body))
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test")
     price = spend.Price(input=1.0, output=1.0, cached=1.0)
     m = spend.CostMeter(cl.AnthropicClient("claude-haiku-5-5", effort="low"), price, limit_usd=10.0,
@@ -345,17 +323,10 @@ def test_openai_is_asked_for_the_priced_tier(monkeypatch):
     from mythicsim.llm import clients as cl
     sent = {}
 
-    class Resp(io.BytesIO):
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *a):
-            return False
-
     def urlopen(req, timeout=0):
         sent.update(json.loads(req.data))
-        return Resp(b'{"choices": [{"message": {"content": "{}"}, "finish_reason": "stop"}], "service_tier": "default",'
-                    b' "usage": {"prompt_tokens": 3, "completion_tokens": 2}}')
+        return io.BytesIO(b'{"choices": [{"message": {"content": "{}"}, "finish_reason": "stop"}], "service_tier": "default",'
+                          b' "usage": {"prompt_tokens": 3, "completion_tokens": 2}}')
     monkeypatch.setattr(cl.urllib.request, "urlopen", urlopen)
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     r = cl.OpenAIClient("gpt-6-luna", effort="low").complete("s", "u")
@@ -378,13 +349,7 @@ def _serve(monkeypatch, body: bytes):
     import io
     from mythicsim.llm import clients as cl
 
-    class Resp(io.BytesIO):
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *a):
-            return False
-    monkeypatch.setattr(cl.urllib.request, "urlopen", lambda req, timeout=0: Resp(body))
+    monkeypatch.setattr(cl.urllib.request, "urlopen", lambda req, timeout=0: io.BytesIO(body))
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test")
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     return cl

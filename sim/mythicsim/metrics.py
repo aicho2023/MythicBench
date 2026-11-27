@@ -83,28 +83,29 @@ def run_score(outcome: str, duration_s: float, boss_hp_pct_left: float, time_lim
     team that wins (or wipes); this keeps separating them at both ends.
     """
     if outcome == "victory":
-        left = max(0.0, time_limit_s - duration_s)
-        speed = min(1.0, left / (PAR_TIME_LEFT * time_limit_s))
-        return round(KILL_BASE + (100.0 - KILL_BASE) * speed, 1)
+        return _clear_score(duration_s, time_limit_s)
     return round(WIPE_MAX * (100.0 - boss_hp_pct_left) / 100.0, 1)
+
+
+def _clear_score(timer_s: float, time_limit_s: float) -> float:
+    left = max(0.0, time_limit_s - timer_s)
+    speed = min(1.0, left / (PAR_TIME_LEFT * time_limit_s))
+    return round(KILL_BASE + (100.0 - KILL_BASE) * speed, 1)
 
 
 def dungeon_progress(replay: dict, boss_left_pct: float) -> dict:
     """How far a dungeon run got: each pack's health removed, then the boss's."""
     from .content import PROGRESS_WEIGHTS
     hp = {u["id"]: u["max_hp"] for u in replay["units"]}
-    maxhp = dict(hp)
     for e in replay["events"]:
-        if e["type"] == "damage" and e["target"] in hp:
-            hp[e["target"]] = e["hp"]
-        elif e["type"] == "heal" and e["target"] in hp:
+        if e["type"] in ("damage", "heal") and e["target"] in hp:
             hp[e["target"]] = e["hp"]
     packs = {}
     for u in replay["units"]:
         if u.get("pack"):
             p = packs.setdefault(u["pack"], [0, 0])
-            p[0] += maxhp[u["id"]] - hp[u["id"]]
-            p[1] += maxhp[u["id"]]
+            p[0] += u["max_hp"] - hp[u["id"]]
+            p[1] += u["max_hp"]
     frac = {k: v[0] / v[1] for k, v in packs.items()}
     frac["boss"] = (100.0 - boss_left_pct) / 100.0
     progress = sum(PROGRESS_WEIGHTS[k] * frac.get(k, 0.0) for k in PROGRESS_WEIGHTS)
@@ -119,7 +120,5 @@ def dungeon_score(outcome: str, timer_s: float, progress_pct: float, time_limit_
     dungeon (each pack 15%, the boss 70%), or 70 + up to 30 for a fast clear.
     ``timer_s`` includes death penalties."""
     if outcome == "victory":
-        left = max(0.0, time_limit_s - timer_s)
-        speed = min(1.0, left / (PAR_TIME_LEFT * time_limit_s))
-        return round(KILL_BASE + (100.0 - KILL_BASE) * speed, 1)
+        return _clear_score(timer_s, time_limit_s)
     return round(WIPE_MAX * progress_pct / 100.0, 1)

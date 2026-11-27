@@ -32,8 +32,8 @@ interface Playback {
   speed: number
   /** Load the replay list once (idempotent). */
   ensureIndex: () => Promise<void>
-  /** Open what the address bar names, if anything; returns whether it named a replay. */
-  openFromUrl: (opts?: { fallback?: boolean }) => Promise<boolean>
+  /** Open what the address bar names; plain /watch opens the featured pull. */
+  openFromUrl: () => Promise<void>
   /** Opened from plain /watch onto the featured stretch: the viewer shows a one-time hint. */
   landing: boolean
   dismissLanding: () => void
@@ -136,7 +136,7 @@ export const usePlayback = create<Playback>((set, get) => ({
     })()
     return indexPromise
   },
-  openFromUrl: async ({ fallback = false } = {}) => {
+  openFromUrl: async () => {
     const { index, catalog, currentId, engine } = get()
     const want = targetFromUrl(index, catalog)
     if (want) {
@@ -149,9 +149,9 @@ export const usePlayback = create<Playback>((set, get) => ({
           set({ playing: q.get('paused') !== '1' })
         }
       }
-      return true
+      return
     }
-    if (fallback && (!engine || quietLoaded) && index.length) {
+    if ((!engine || quietLoaded) && index.length) {
       // Plain /watch: the top model's best +10 pull, at the stretch of the boss fight the home
       // clip loops (Bone Pyre soaks), not at 0:00 in the entrance corridor.
       const best = await fetchResults().then(topPull, () => null)
@@ -160,7 +160,7 @@ export const usePlayback = create<Playback>((set, get) => ({
         await get().load(featured.id, { startMs: HERO_WINDOW_S[0] * 1000 })
         // Paused under a short note on what to watch; the note goes as soon as it plays.
         set({ landing: true, playing: false })
-        return true
+        return
       }
       // Else (local runs only, no results) the first model run on +10, or with references
       // on, the first showcase. Visitors never land on a reference run.
@@ -169,7 +169,6 @@ export const usePlayback = create<Playback>((set, get) => ({
       if (top) await get().load(top.id, { deepLink: true })
       else set({ error: 'No model runs to watch.' })
     }
-    return false
   },
   load: async (id, opts = {}) => {
     const entry = get().index.find((r) => r.id === id)

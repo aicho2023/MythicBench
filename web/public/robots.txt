@@ -1,0 +1,6 @@
+# Everything on MythicBench is public, including the results data (CC BY 4.0).
+User-agent: *
+Allow: /
+
+# Written at build time from src/site/meta.ts (see pageCopies() in vite.config.ts).
+Sitemap: https://mythicbench.com/sitemap.xml

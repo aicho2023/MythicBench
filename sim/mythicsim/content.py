@@ -100,7 +100,7 @@ class ClassDef:
     name: str
     role: str  # tank | healer | dps
     max_hp: int
-    model: str  # KayKit model name the viewer will load once assets exist
+    model: str  # KayKit model name the viewer loads
     abilities: tuple[str, ...]
     interrupt: str | None = None
     auto_attack: tuple[int, int] | None = None  # (amount, swing_ms) for melee classes
@@ -280,10 +280,6 @@ PARTY: tuple[PartyMember, ...] = (
     PartyMember("kit", "Kit", "shadowblade", (1.9, -4.9)),
     PartyMember("wren", "Wren", "ranger", (5.5, 7.0)),
 )
-
-# The order in which the party takes turns interrupting. A real team agrees
-# on this before the pull; our scripted bots do the same.
-KICK_ORDER = ("brask", "kit", "wren", "rook")
 
 
 @dataclass(frozen=True)
@@ -518,7 +514,6 @@ PACKS: tuple[PackDef, ...] = (
 )
 AGGRO_RADIUS = 9.0  # a pack attacks when any player comes this close to any member
 BOSS_ENGAGE_RADIUS = 13.0  # Oruth wakes when a player is this close to him
-DUNGEON_LIMIT_MS = 270_000  # default run timer; each tier sets its own (Tier.limit_ms)
 DEATH_PENALTY_MS = 10_000  # each revive costs this much on the timer (like an M+ death)
 REVIVE_AFTER_MS = 3_000  # out of combat this long, fallen allies get back up
 REVIVE_HP_PCT = 0.5
@@ -571,32 +566,6 @@ OBSTACLES = (
 def in_obstacle(p: tuple[float, float], margin: float = 0.0) -> Obstacle | None:
     """The obstacle a body of radius ``margin`` at p would overlap, if any."""
     return next((o for o in OBSTACLES if o.gap(p) < margin), None)
-
-
-def push_out(p: tuple[float, float], margin: float) -> tuple[float, float]:
-    """Nearest spot to p where a body of radius ``margin`` overlaps no obstacle."""
-    for _ in range(4):
-        o = in_obstacle(p, margin)
-        if o is None:
-            return p
-        m = margin + 0.05
-        dx, dz = p[0] - o.center[0], p[1] - o.center[1]
-        if o.half is None:
-            d = math.sqrt(dx * dx + dz * dz)
-            ux, uz = (dx / d, dz / d) if d > 1e-9 else (0.0, 1.0)
-            p = (round(o.center[0] + ux * (o.radius + m), 2), round(o.center[1] + uz * (o.radius + m), 2))
-        else:
-            # Out through the nearest side (outside a corner: away from it).
-            ox, oz = abs(dx) - o.half[0], abs(dz) - o.half[1]
-            sx, sz = (1.0 if dx >= 0 else -1.0), (1.0 if dz >= 0 else -1.0)
-            if ox > 0 and oz > 0:
-                d = math.sqrt(ox * ox + oz * oz)
-                p = (round(p[0] + sx * ox / d * (m - d), 2), round(p[1] + sz * oz / d * (m - d), 2))
-            elif ox >= oz:
-                p = (round(o.center[0] + sx * (o.half[0] + m), 2), p[1])
-            else:
-                p = (p[0], round(o.center[1] + sz * (o.half[1] + m), 2))
-    return p
 
 
 def walkable(p: tuple[float, float], margin: float = 0.0) -> bool:

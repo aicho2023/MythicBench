@@ -8,16 +8,13 @@ import json
 import re
 from pathlib import Path
 
-import pytest
-
 from mythicsim import runs as R
 from mythicsim.engine import Encounter
 from mythicsim.llm.clients import CachedClient, MockClient, Reply
 from mythicsim.llm.debrief import debrief_data, debrief_text
 from mythicsim.llm.policy import make_llm_policies
 from mythicsim import content as C
-from mythicsim.llm.progress import (ci95, cleared, curve, diff_ci95, pull_seed, run_episode, summarize,
-                                      t95, write_notes)
+from mythicsim.llm.progress import ci95, cleared, curve, pull_seed, run_episode, summarize, t95, write_notes
 from mythicsim.llm.prompt import render_state, system_prompt
 
 REPLAYS = Path(__file__).parents[2] / "web" / "public" / "replays"
@@ -201,7 +198,6 @@ def test_intervals_use_student_t():
     xs = [60.0, 70.0, 80.0]  # mean 70, sd 10, n 3: half-width 4.303 * 10 / sqrt(3) = 24.8
     assert ci95(xs) == [45.2, 94.8]
     assert t95(2) == 4.303 and t95(500) == 1.96
-    assert diff_ci95([1.0, 1.0], [0.0, 0.0]) == [1.0, 1.0]
 
 
 def test_progression_items_publish_without_collisions(tmp_path):
@@ -215,7 +211,7 @@ def test_progression_items_publish_without_collisions(tmp_path):
             (run.dir / f).write_text(json.dumps(p.replay))
             items.append({"episode": e, "pull": p.pull, "seed": p.seed, "file": f, "outcome": "wipe",
                           "score": p.metrics["score"], "duration_s": 1})
-    R.finish_run(run, {"score_mean": 1}, items, tmp_path)
+    R.finish_run(run, {"score_mean": 1}, items)
     pub = tmp_path / "pub"
     R.publish(tmp_path, pub)
     cat = json.loads((pub / "catalog.json").read_text())

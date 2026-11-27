@@ -6,8 +6,8 @@ Design rules (these are what make the benchmark trustworthy):
    Same seed + same policies => byte-identical event log. Tests enforce this.
 2. **The event log is the only output.** Everything a viewer shows and every
    metric we score is derived from the log. Nothing hidden.
-3. **Policies only see observations.** A policy (scripted bot today, LLM
-   tomorrow) receives a plain JSON-able dict and returns plain actions. It
+3. **Policies only see observations.** A policy (a scripted bot or an LLM)
+   receives a plain JSON-able dict and returns plain actions. It
    cannot reach into engine internals, so bots and LLMs are judged by the
    same rules.
 """
@@ -58,11 +58,6 @@ def lerp(a: Vec, b: Vec, f: float) -> Vec:
     return (a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f)
 
 
-# Bodies take up space: no unit ends a move inside another. Units
-# may pass through each other while walking (as in WoW), but where they stop,
-# their bodies keep at least BODY_GAP between them. A destination that's taken
-# shifts to the nearest free spot on rings around it. Literal unit vectors, not
-# cos/sin, so every machine gets the same answer.
 # 16 compass directions as exact constants (cos and sin of k * 22.5 degrees).
 # Hard-coded rather than computed at runtime: libm trig results can differ in
 # the last bit between CPU platforms, which would make replays machine-dependent.
@@ -71,16 +66,17 @@ COMPASS16 = ((1.0, 0.0), (_C1, _C3), (_C2, _C2), (_C3, _C1), (0.0, 1.0), (-_C3, 
          (-1.0, 0.0), (-_C1, -_C3), (-_C2, -_C2), (-_C3, -_C1), (0.0, -1.0), (_C3, -_C1), (_C2, -_C2), (_C1, -_C3))
 
 
+# Bodies take up space: no unit ends a move inside another. Units may pass
+# through each other while walking (as in WoW), but where they stop, their
+# bodies keep at least BODY_GAP between them. A destination that's taken
+# shifts to the nearest free spot on rings around it.
 BODY_GAP = 0.2
 # Enemies swing when their target is this close, edge to edge (m).
 ENEMY_REACH = 1.2
 SPOT_RINGS = (0.5, 1.0, 1.5, 2.0, 2.5, 3.0)
 # How deep into melee reach a shifted spot may be (shares of MELEE_RANGE, edge to edge).
 REACH_DEPTHS = (0.2, 0.5, 0.8)
-SPOT_DIRS = ((1.0, 0.0), (0.7071067811865476, 0.7071067811865476), (0.0, 1.0),
-             (-0.7071067811865476, 0.7071067811865476), (-1.0, 0.0),
-             (-0.7071067811865476, -0.7071067811865476), (0.0, -1.0),
-             (0.7071067811865476, -0.7071067811865476))
+SPOT_DIRS = COMPASS16[::2]  # the eight main directions
 
 
 # ---------------------------------------------------------------------------
@@ -345,7 +341,7 @@ class Encounter:
         """Where a unit is headed in the end (its last leg), or where it stands."""
         return u.path[-1] if u.path else u.move.to if u.move else u.pos
 
-    def start_move(self, u: Unit, to: Vec, *, exact: bool = False, foe: Unit | None = None) -> None:
+    def start_move(self, u: Unit, to: Vec, *, exact: bool = False) -> None:
         to = self.clamp(to, u.radius)
         to = (r2(to[0]), r2(to[1]))
         if u.kind == "player" and not exact:
@@ -360,7 +356,7 @@ class Encounter:
             to = self.free_spot(u, to)
         elif not exact:
             u.asked_to = to
-            to = self.free_spot(u, to, foe)
+            to = self.free_spot(u, to)
         if u.move and dist(self.dest(u), to) < 0.05:
             return
         if not u.move and dist(u.pos, to) < 0.05:
@@ -489,8 +485,7 @@ class Encounter:
 
     def in_pool(self, u: Unit, spot: Vec) -> bool:
         """Would u standing there be hit by a pool? (Same reach as ground_tick, plus a margin.)"""
-        return any(dist(spot, g["pos"]) <= g["radius"] + u.radius * 0.5 + 0.2 for g in self.ground.values()
-                   if g["kind"] in C.HAZARD_POOLS)
+        return any(self.pool_hits(u, spot, g) for g in self.ground.values())
 
     def free_spot(self, u: Unit, to: Vec, foe: Unit | None = None) -> Vec:
         """Nearest spot to ``to`` where u's body fits: walkable, not inside
@@ -615,8 +610,7 @@ class Encounter:
         u.path = []
         u.asked_to = None
         self.emit("death", unit=u.id, killer=killer.id, ability=ability)
-        for aid in list(u.auras):
-            del u.auras[aid]
+        u.auras.clear()
         u.absorb = 0
         if u.kind == "add":
             self.on_undead_death(u)
@@ -640,7 +634,7 @@ class Encounter:
 
     # ----- casting ---------------------------------------------------------
     @staticmethod
-    def right_team(ab: C.Ability, u: Unit, tgt: Unit) -> bool:
+    def right_team(ab: C.Ability, tgt: Unit) -> bool:
         """Attacks and kicks go on enemies; heals and shields on allies."""
         if ab.kind in ("damage", "interrupt"):
             return tgt.kind != "player"
@@ -660,7 +654,7 @@ class Encounter:
         if tgt is not None:
             if not tgt.alive:
                 return False
-            if u.kind == "player" and not self.right_team(ab, u, tgt):
+            if u.kind == "player" and not self.right_team(ab, tgt):
                 return False
             if ab.kind not in ("taunt", "buff") and tgt is not u and self.edge_dist(u, tgt) > ab.range:
                 return False
@@ -717,7 +711,7 @@ class Encounter:
             else:
                 self.apply_aura(u, ab.aura, u)
         elif k == "interrupt" and tgt:
-            if ab.projectile_ms == 0 and u.cls == "ranger":
+            if u.cls == "ranger":  # an instant shot still shows an arrow
                 self.emit("projectile", source=u.id, target=tgt.id, ability=ab.id, travel_ms=250)
             if tgt.cast and C.ABILITIES[tgt.cast.ability].interruptible:
                 self.emit("cast_interrupted", unit=tgt.id, ability=tgt.cast.ability, by=u.id,
@@ -1160,7 +1154,7 @@ class Encounter:
                     ok = True
                 elif act.type == "cast" and act.ability:
                     if act.ability not in C.CLASSES[p.cls].abilities:
-                        continue  # illegal action: silently ignored (and countable later)
+                        continue  # not one of this class's abilities: ignored
                     ok = self.begin_cast(p, act.ability, act.target)
                 if ok and act.reason:
                     label = act.ability and C.ABILITIES[act.ability].name or ("Stop" if act.type == "stop" else "Move")

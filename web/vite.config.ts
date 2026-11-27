@@ -4,9 +4,7 @@ import react from '@vitejs/plugin-react'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
-import { OG_IMAGE, PAGES } from './src/site/meta'
-
-const SITE_URL = 'https://mythicbench.com'
+import { OG_IMAGE, PAGES, SITE_URL } from './src/site/meta'
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 
@@ -16,8 +14,14 @@ function withMeta(html: string, p: (typeof PAGES)[number]): string {
     .replace(/<title>.*?<\/title>/, `<title>${esc(p.title)}</title>`)
     .replace(/__TITLE__/g, esc(p.title))
     .replace(/__DESCRIPTION__/g, esc(p.description))
-    .replace(/__URL__/g, SITE_URL + (p.path === '/' ? '/' : p.path))
+    .replace(/__URL__/g, SITE_URL + p.path)
     .replace(/__IMAGE__/g, SITE_URL + OG_IMAGE)
+}
+
+/** A sitemap.xml listing each page's full address. */
+function sitemap(paths: string[]): string {
+  const urls = paths.map((p) => `  <url><loc>${esc(SITE_URL + p)}</loc></url>`).join('\n')
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`
 }
 
 /**
@@ -46,6 +50,9 @@ function pageCopies(): Plugin {
           .split(`content="${SITE_URL}/"`).join(`content="${SITE_URL}${p.path}"`)
           .split(`href="${SITE_URL}/"`).join(`href="${SITE_URL}${p.path}"`))
       }
+      // The sitemap that robots.txt points to, from the same page list, so a new
+      // page in meta.ts is listed without a second list to keep in step.
+      writeFileSync(join(outDir, 'sitemap.xml'), sitemap(PAGES.map((p) => p.path)))
     },
   }
 }

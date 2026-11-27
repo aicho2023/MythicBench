@@ -17,7 +17,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
@@ -567,8 +567,13 @@ def make_client(spec: str, effort: str | None = None) -> ChatClient:
     if provider == "mock":
         return MockClient(model)
     if provider == "scripted":
-        from .scripted import ScriptedCommander
-        return ScriptedCommander(model)
+        if model == "commander":
+            from .scripted import ScriptedCommander
+            return ScriptedCommander()
+        if model == "expert":
+            from .expert import ExpertScript
+            return ExpertScript()
+        raise ClientError(f"unknown scripted player {model!r} (use commander or expert)", fatal=True)
     raise ClientError(f"unknown provider {provider!r} (use anthropic, openai, google, xai, deepseek, alibaba, "
                       "scripted, or mock)")
 

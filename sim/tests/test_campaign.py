@@ -20,7 +20,6 @@ PROTO = {
     "models": [{"provider": "mock", "id": "basic", "name": "Mock"}],
     "controls": [{"model": "basic", "memory": False, "tiers": ["plus10"]}],
 }
-WITH_BASELINE = {**PROTO, "baselines": [{"provider": "scripted", "id": "commander", "name": "Scripted commander"}]}
 
 
 @pytest.fixture
@@ -28,7 +27,6 @@ def sandbox(tmp_path, monkeypatch):
     runs_dir = tmp_path / "runs"
     monkeypatch.setattr(R, "RUNS_DIR", runs_dir)
     monkeypatch.setattr(R, "new_run", functools.partial(R.new_run, runs_dir=runs_dir))
-    monkeypatch.setattr(R, "finish_run", functools.partial(R.finish_run, runs_dir=runs_dir))
     monkeypatch.setattr(R, "publish", functools.partial(R.publish, runs_dir=runs_dir, out_dir=tmp_path / "local"))
     monkeypatch.setattr(spend, "LEDGER", tmp_path / "spend.jsonl")
     proto = json.loads(json.dumps(PROTO))
@@ -205,7 +203,7 @@ def test_a_second_arm_doesnt_reset_the_guard():
 
 
 def test_changing_the_rules_retires_old_episodes(sandbox):
-    """GPT's repro: one-pull episodes must not count once the protocol says three."""
+    """One-pull episodes must not count once the protocol says three."""
     tmp, proto = sandbox
     short = dict(proto, max_pulls=1, controls=[])
     K.run_campaign(short)
@@ -276,7 +274,7 @@ def test_verify_replays_the_campaign_from_recordings(sandbox, capsys):
     assert "FAIL" in capsys.readouterr().out
 
 
-def _tamper_checkpoint(tmp, proto, **changes):
+def _tamper_checkpoint(tmp, **changes):
     m = next(m for m in R.load_manifests(tmp / "runs") if m.get("campaign_key"))
     mark = tmp / "runs" / m["run_id"] / "episodes" / str(m["episodes"][0]) / "episode.json"
     ck = json.loads(mark.read_text())
@@ -289,7 +287,7 @@ def test_verify_catches_a_doctored_checkpoint(sandbox, capsys, changes):
     tmp, proto = sandbox
     K.run_campaign(proto)
     assert K.verify_campaign(proto, tmp / "runs") == 0
-    _tamper_checkpoint(tmp, proto, **changes)
+    _tamper_checkpoint(tmp, **changes)
     assert K.verify_campaign(proto, tmp / "runs") == 1
     assert "the replay says" in capsys.readouterr().out
 
@@ -387,10 +385,9 @@ def test_the_verifier_never_writes_where_the_dataset_says(sandbox, tmp_path):
     for e in board["leaderboard"][0]["tiers"]["plus10"]["episode_list"]:
         e["run_id"] = evil
     (out / "leaderboard.json").write_text(json.dumps(board, indent=1) + "\n")
-    import tempfile as tf
-    before = set(Path(tf.gettempdir()).parent.glob("escaped-by-run-id*")) | set(tmp.parent.glob("escaped-by-run-id*"))
+    before = set(Path(tempfile.gettempdir()).parent.glob("escaped-by-run-id*")) | set(tmp.parent.glob("escaped-by-run-id*"))
     K.verify_results(out, replay=False)  # it may well fail; it must not write outside its sandbox
-    after = set(Path(tf.gettempdir()).parent.glob("escaped-by-run-id*")) | set(tmp.parent.glob("escaped-by-run-id*"))
+    after = set(Path(tempfile.gettempdir()).parent.glob("escaped-by-run-id*")) | set(tmp.parent.glob("escaped-by-run-id*"))
     assert after == before
 
 
@@ -491,3 +488,25 @@ def test_models_are_compared_on_the_same_seeds(sandbox):
         lo, hi = row["tiers"]["plus10"]["clear_rate_ci95"]
         assert 0.0 <= lo <= hi <= 1.0
     assert K.verify_results(tmp / "res", replay=False) == 0
+
+
+def test_published_folders_and_recordings_keep_their_names(sandbox):
+    """Where each kind of cell lands in a dataset is part of the published format."""
+    tmp, proto = sandbox
+    proto["tiers"], proto["episodes"] = ["plus10"], 1
+    proto["baselines"] = [{"provider": "scripted", "id": "commander", "name": "Scripted commander"}]
+    K.run_campaign(proto)
+    out = tmp / "published"
+    K.build_results(proto, out, tmp / "runs")
+    folders = {p.parent.relative_to(out).as_posix() for p in out.rglob("ep*-pull*.json.gz")}
+    assert folders == {"replays/basic/plus10", "replays/basic/plus10/memory-off", "replays/commander/plus10"}
+    assert {p.name for p in (out / "recordings").iterdir()} == {"mock_basic.jsonl.gz", "scripted_commander.jsonl.gz"}
+    assert K.verify_results(out) == 0
+
+
+def test_the_published_v1_dataset_verifies():
+    """The real dataset against today's code: every replay rescored, the
+    leaderboard rebuilt. (Replaying the recordings too takes ten minutes:
+    `python -m mythicsim verify ../web/public/results/v1`.)"""
+    v1 = Path(__file__).parents[2] / "web" / "public" / "results" / "v1"
+    assert K.verify_results(v1, replay=False) == 0

@@ -2,11 +2,11 @@ import { ArrowDown, ArrowRight, ChevronDown, RotateCcw } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { modelName } from '../content/display'
 import { behaviourRows, soakRows } from '../site/facts'
-import { useInsights } from '../site/PullGrid'
+import { useInsights } from '../site/insights'
 import { CostScatter, GroupScores, LearningCurves } from '../site/charts'
 import { DeathCauses, SoakByPull } from '../site/HeatTables'
 import { Cite, References } from '../site/Cite'
-import { GITHUB_URL } from '../site/config'
+import { GITHUB_URL, SITE_URL } from '../site/config'
 import { Page } from '../site/Layout'
 import { bestPull } from '../site/Leaderboard'
 import { costPerRun, fmtScore, fmtUsd, headlineTier, type Results } from '../site/results'
@@ -588,7 +588,7 @@ python -m mythicsim run --policy expert --tier +10 --seed 10043   # the expert's
   title        = {MythicBench: Can AI Agents Learn How to Defeat MMORPG Dungeons?},
   author       = {Ho, Austin},
   year         = {2026},
-  howpublished = {\\url{https://mythicbench.com/report}},
+  howpublished = {\\url{${SITE_URL}/report}},
   note         = {Version 1. Code and data: ${GITHUB_URL}}
 }`}</code></pre>
             <p>

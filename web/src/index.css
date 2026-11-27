@@ -45,7 +45,7 @@ body {
 @media (max-height: 840px), (max-width: 1380px) { :root { --hud: 0.86; } }
 .hud-s { zoom: var(--hud); }
 
-/* Top: party | boss | scorecard. Below 1024px the boss frame takes its own row. */
+/* Top: party | raid warnings (the `boss` area) | scorecard. Below 1024px the warnings take their own row. */
 .hud-top {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -89,16 +89,9 @@ body {
 .stage-in { animation: stagein 220ms cubic-bezier(0.2, 0, 0, 1); }
 @media (prefers-reduced-motion: reduce) { .stage-in { animation: none; } }
 
-/*
- * Long-form text (the paper, the about page). 16px body for reading, 20/16 headings,
- * links underlined in a hairline, code in Plex Mono on a surface step.
- */
+/* Long-form text (the about page): 16px body for reading, links underlined in a hairline. */
 .prose { font-size: 16px; line-height: 28px; color: #a1a1aa; }
 .prose > * + * { margin-top: 16px; }
-.prose h1 { font-size: 32px; line-height: 1.15; font-weight: 400; color: #ededef; margin-bottom: 8px; }
-.prose h2 { font-size: 20px; line-height: 28px; font-weight: 500; color: #ededef; margin-top: 56px; scroll-margin-top: 80px; }
-.prose h3 { font-size: 16px; line-height: 24px; font-weight: 500; color: #ededef; margin-top: 32px; }
-.prose h2 + *, .prose h3 + * { margin-top: 12px; }
 .prose strong { font-weight: 500; color: #ededef; }
 .prose a { color: #ededef; text-decoration: underline; text-decoration-color: rgba(230, 211, 163, 0.45); text-underline-offset: 4px; transition: text-decoration-color 150ms cubic-bezier(0.22, 1, 0.36, 1); }
 .prose a:hover { text-decoration-color: #e6d3a3; }
@@ -107,16 +100,9 @@ body {
 .prose ol { list-style: decimal; }
 .prose li + li { margin-top: 8px; }
 .prose li::marker { color: #8b8b93; }
-.prose code { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 14px; color: #ededef; }
-.prose :not(pre) > code { background: #1a1a1d; border-radius: 4px; padding: 2px 4px; }
-.prose pre { background: #111113; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 16px; overflow-x: auto; line-height: 22px; }
-.prose pre code { font-size: 13px; }
-.prose .lede { font-size: 18px; line-height: 30px; color: #a1a1aa; }
 .prose .not-prose { font-size: 13px; line-height: 20px; }
 /* Figures and callouts inside long-form text keep their own styles. */
 .prose .not-prose a { color: inherit; text-decoration: none; }
-.prose .not-prose ul { list-style: none; padding-left: 0; }
-.prose .not-prose li + li { margin-top: 0; }
 
 /*
  * The report as a paper: Inter body for long reading, Plex Sans headings numbered
@@ -165,7 +151,6 @@ body {
 .paper ol.refs li + li { margin-top: 10px; }
 .paper ol.refs li:target { background: rgba(230, 211, 163, 0.08); border-radius: 6px; }
 .paper ol.refs a { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13px; color: #a1a1aa; }
-.paper td.yes { color: #e6d3a3; }
 /* The heat tables (site/HeatTables.tsx) keep their own grid inside a figure. */
 .paper table.heat { border-collapse: separate; font-size: 13px; line-height: 18px; }
 .paper table.heat th, .paper table.heat td { border-bottom: 0; vertical-align: middle; }
@@ -174,7 +159,6 @@ body {
 .paper table.heat td { padding: 0; color: inherit; }
 .paper table.heat td:first-child { min-width: 0; }
 .paper figure figure { margin: 0; }
-.paper td.no { color: #5c5c63; }
 
 /* A scrolling HUD panel fades out at its bottom edge, so a clipped line reads as "more below",
    not as a layout bug. The padding keeps the last line clear of the fade once scrolled down. */

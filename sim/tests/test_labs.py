@@ -1,5 +1,5 @@
-"""The clients for the labs added by pre-registration Amendment 3 (Google, xAI,
-DeepSeek, Alibaba): what each request asks for, and how each answer is read.
+"""The clients for Google, xAI, DeepSeek and Alibaba (v1 ran xAI and DeepSeek;
+see docs/PREREGISTRATION.md): what each request asks for, and how each answer is read.
 No network: urlopen is replaced by a fake that records the request and returns
 a response in the shape the lab's docs give."""
 
@@ -14,13 +14,6 @@ from mythicsim import spend
 from mythicsim.llm import clients as cl
 
 
-class Resp(io.BytesIO):
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *a):
-        return False
-
 
 @pytest.fixture
 def fake(monkeypatch):
@@ -34,7 +27,7 @@ def fake(monkeypatch):
 
     def urlopen(req, timeout=0):
         f.sent, f.url, f.headers = json.loads(req.data), req.full_url, {k.lower(): v for k, v in req.header_items()}
-        return Resp(json.dumps(f.body).encode())
+        return io.BytesIO(json.dumps(f.body).encode())
     monkeypatch.setattr(cl.urllib.request, "urlopen", urlopen)
     for k in ("GEMINI_API_KEY", "XAI_API_KEY", "DEEPSEEK_API_KEY", "DASHSCOPE_API_KEY"):
         monkeypatch.setenv(k, "test")

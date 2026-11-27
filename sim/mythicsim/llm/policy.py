@@ -30,7 +30,7 @@ from dataclasses import dataclass, field
 from .. import content as C
 from ..engine import Action, dist, route_path
 from ..dodge import crosses_pool, find_safe_spots, hazards, unsafe, walk_check
-from .clients import ChatClient, ClientError
+from .clients import ChatClient, Reply
 from .prompt import CHAT_COOLDOWN_MS, POOL_HIT_PAD, Order, Parsed, parse_reply, render_state, system_prompt
 
 PLAYER_RADIUS = C.PLAYER_RADIUS
@@ -89,7 +89,6 @@ class BrainStats:
 @dataclass
 class Standing:
     order: Order
-    issued_t: int
     move_done: bool = False
     said: bool = False
 
@@ -305,14 +304,9 @@ class Party:
         for (a, why, user, _), reply in zip(jobs, replies):  # applied in party order: deterministic
             self.apply(obs, a, why, user, reply, ids, gone)
 
-    def apply(self, obs: dict, a: Agent, why: list[str], user: str, reply, ids: set[str], gone: set[str]) -> None:
+    def apply(self, obs: dict, a: Agent, why: list[str], user: str, reply: Reply, ids: set[str], gone: set[str]) -> None:
         rec = {"t": obs["t"], "agent": a.uid, "why": why, "prompt": user}
         self.calls.append(rec)
-        if isinstance(reply, ClientError):
-            a.stats.api_errors += 1
-            a.note(f"t={obs['t']}: {reply}")
-            rec["error"] = str(reply)[:300]
-            return
         s = a.stats
         s.input_tokens += reply.input_tokens
         s.output_tokens += reply.output_tokens
@@ -362,7 +356,7 @@ class Party:
             if order.say and order.say != old.order.say:
                 old.order.say, old.said = order.say, False
             return
-        a.orders = Standing(order, obs["t"])
+        a.orders = Standing(order)
 
 
 # How many candidates of each kind "safe" hands the sim to choose from.

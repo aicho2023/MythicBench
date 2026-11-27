@@ -32,8 +32,6 @@ export interface UnitState {
   cast: CastState | null
   /** last cast_success (used for attack animations) */
   lastAction: { ability: string; t: number; target: string | null } | null
-  /** last time the cast bar ended and how — drives the "Interrupted!" flash */
-  lastCastEnd: { ability: string; t: number; how: 'success' | 'interrupted' } | null
   lastHitT: number
   auras: Record<string, { t0: number; dur: number; source: string; stacks?: number }>
   /** ability id -> time it becomes ready again */
@@ -66,7 +64,7 @@ export interface ReplayState {
 function makeUnit(info: UnitInfo, dungeon = false): UnitState {
   return {
     info, hp: info.max_hp, absorb: 0, alive: true, deathT: null, basePos: info.pos,
-    move: null, cast: null, lastAction: null, lastCastEnd: null, lastHitT: -1e9,
+    move: null, cast: null, lastAction: null, lastHitT: -1e9,
     auras: {}, readyAt: {}, target: null,
     engaged: !(dungeon && (!!info.pack || info.kind === 'boss')),
   }
@@ -84,22 +82,18 @@ export function initialState(replay: Replay): ReplayState {
   }
 }
 
-/** Position of a unit at time t — identical formula to the Python engine. */
 /** The boss, found by role so replays from any content version work. */
 export function bossOf(s: { units: Record<string, UnitState> }): UnitState | undefined {
   for (const id in s.units) if (s.units[id].info.kind === 'boss') return s.units[id]
   return undefined
 }
 
+/** Position of a unit at time t — identical formula to the Python engine. */
 export function posAt(u: UnitState, t: number): Vec2 {
   const m = u.move
   if (!m) return u.basePos
   const f = m.dur <= 0 ? 1 : Math.min(1, Math.max(0, (t - m.t0) / m.dur))
   return [m.from[0] + (m.to[0] - m.from[0]) * f, m.from[1] + (m.to[1] - m.from[1]) * f]
-}
-
-export function isMoving(u: UnitState, t: number): boolean {
-  return !!u.move && u.alive && t < u.move.t0 + u.move.dur
 }
 
 /** Apply one event to the state, in place. */
@@ -123,10 +117,7 @@ export function applyEvent(s: ReplayState, e: ReplayEvent, replay: Replay): void
     }
     case 'cast_success': {
       const u = s.units[e.unit]
-      if (u.cast && u.cast.ability === e.ability) {
-        u.cast = null
-        u.lastCastEnd = { ability: e.ability, t: e.t, how: 'success' }
-      }
+      if (u.cast && u.cast.ability === e.ability) u.cast = null
       u.lastAction = { ability: e.ability, t: e.t, target: e.target }
       const cd = replay.abilities[e.ability]?.cooldown_ms ?? 0
       if (cd) u.readyAt[e.ability] = e.t + cd
@@ -137,7 +128,6 @@ export function applyEvent(s: ReplayState, e: ReplayEvent, replay: Replay): void
     case 'cast_interrupted': {
       const u = s.units[e.unit]
       u.cast = null
-      u.lastCastEnd = { ability: e.ability, t: e.t, how: 'interrupted' }
       if (e.reason === 'interrupt') s.kicks.interrupted++
       break
     }
@@ -280,8 +270,8 @@ export class ReplayEngine {
   }
 
   /** Interesting moments for the timeline (deaths, raises, big misses). */
-  markers(): { t: number; kind: 'death' | 'raise' | 'missed' | 'kick' | 'end' | 'pull' | 'pool' | 'mark' | 'soak'; label: string; unit?: string }[] {
-    const out: ReturnType<ReplayEngine['markers']> = []
+  markers(): Marker[] {
+    const out: Marker[] = []
     const names: Record<string, string> = Object.fromEntries(this.replay.units.map((u) => [u.id, u.name]))
     const players = new Set(this.replay.units.filter((u) => u.kind === 'player').map((u) => u.id))
     const lastPoolHit: Record<string, number> = {}
@@ -290,7 +280,7 @@ export class ReplayEngine {
       // Standing in a pool: one marker per stand (a gap of 2 s starts a new one).
       if (e.type === 'damage' && POOL_ABILITIES.has(e.ability) && players.has(e.target)) {
         if ((lastPoolHit[e.target] ?? -1e9) < e.t - 2000) {
-          out.push({ t: e.t, kind: 'pool', label: `${names[e.target]} stood in ${this.replay.abilities[e.ability]?.name ?? e.ability}`, unit: e.target })
+          out.push({ t: e.t, kind: 'pool', label: `${names[e.target]} stood in ${this.replay.abilities[e.ability]?.name ?? e.ability}` })
         }
         lastPoolHit[e.target] = e.t
         continue
@@ -313,11 +303,14 @@ export class ReplayEngine {
       }
     }
     for (const [t, [marked, ...hit]] of Object.entries(markHits)) {
-      if (hit.length) out.push({ t: Number(t), kind: 'mark', label: `Grave Mark on ${names[marked]} hit ${hit.map((u) => names[u]).join(', ')}`, unit: marked })
+      if (hit.length) out.push({ t: Number(t), kind: 'mark', label: `Grave Mark on ${names[marked]} hit ${hit.map((u) => names[u]).join(', ')}` })
     }
     return out.sort((a, b) => a.t - b.t)
   }
 }
+
+/** A moment worth a tick on the timeline. */
+export interface Marker { t: number; kind: 'death' | 'raise' | 'missed' | 'end' | 'pull' | 'pool' | 'mark' | 'soak'; label: string }
 
 /** Ground effects that hurt players standing in them. */
 const POOL_ABILITIES = new Set(['desecrate', 'restless_grave'])

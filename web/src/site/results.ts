@@ -81,10 +81,8 @@ export interface Results {
   leaderboard: LeaderboardRow[]
   /** reference players through the same interface (the scripted commander): shown, never ranked */
   baselines?: LeaderboardRow[]
-  /** The scripted bot's score, kept as a reference line when the bot's rows are hidden. */
-  bot_score?: number | null
-  /** The scripted bot's row, kept for the reference marks (leaderboard row, learning-chart line)
-   * when baselines are hidden from the run browser. */
+  /** The scripted bot's row, kept for the learning chart's reference line when baselines are
+   * hidden from the run browser. */
   bot?: LeaderboardRow | null
   /** effort sweeps: other reasoning efforts of some models, unranked */
   configs?: ConfigRow[]
@@ -118,7 +116,6 @@ export function modelsOnly(r: Results): Results {
     leaderboard: r.leaderboard.filter((row) => models.has(row.model)),
     controls: r.controls.filter((c) => models.has(c.model)),
     baselines: [],
-    bot_score: r.baselines?.find((b) => b.mythicbench_score != null)?.mythicbench_score ?? null,
     bot: botRow(r),
     configs: (r.configs ?? []).filter((c) => models.has(c.model)),
   }
@@ -194,10 +191,9 @@ export function modelColor(r: Results, model: string): string {
 export const tierIds = (r: Results) => Object.keys(r.tiers)
 export const tierName = (r: Results, tier: string) => r.tiers[tier]?.name ?? tier
 
-/** What one blind episode on every tier costs at list prices (one "run" of the benchmark). */
 /** What one episode on the headline tier (+10) costs at list prices: the cost next to the score. */
-export function costPerRun(row: LeaderboardRow, r?: Results): number | null {
-  const cell = r ? row.tiers[headlineTier(r)] : Object.values(row.tiers)[0]
+export function costPerRun(row: LeaderboardRow, r: Results): number | null {
+  const cell = row.tiers[headlineTier(r)]
   if (!cell) return null
   return cell.usd_per_episode ?? cell.cost_usd / Math.max(1, cell.episodes)
 }
@@ -213,7 +209,6 @@ export function fmtUsd(x: number | null | undefined): string {
   return `$${Math.round(x).toLocaleString('en-US')}`
 }
 export const fmtScore = (x: number | null | undefined) => (x == null ? '–' : x.toFixed(1))
-export const fmtPct = (x: number | null | undefined) => (x == null ? '–' : `${Math.round(x * 100)}%`)
 
 // ---------------------------------------------------------------------------
 // Replay addresses: /watch/<model>/<tier>/[memory-off/]<episode>/<pull>
@@ -244,17 +239,4 @@ export function parseWatchPath(path: string): (Partial<PullAddress> & { model: s
 /** A model's per-episode headline scores: its episodes on the headline tier. */
 export function episodeHeadlines(r: Results, row: LeaderboardRow): number[] {
   return row.tiers[headlineTier(r)]?.episode_scores ?? []
-}
-
-/** Calls that gave no usable answer (refused, or nothing readable), as a share of calls. Replies cut off at
- * the token limit are shown separately: their complete orders, if any, were still used. */
-export function replyProblems(cell: TierCell | undefined): { text: string; title: string } {
-  if (!cell?.calls) return { text: '–', title: 'Not recorded' }
-  const none = (cell.refusals ?? 0) + (cell.unusable_replies ?? 0)
-  return {
-    text: `${((100 * none) / cell.calls).toFixed(1)}%`,
-    title: `${cell.calls.toLocaleString()} calls: ${none} gave no usable answer (${cell.refusals ?? 0} refused, `
-      + `${cell.unusable_replies ?? 0} unreadable). Separately, ${cell.truncated_replies ?? 0} were cut off at the token limit, `
-      + `and ${cell.invalid_entries ?? 0} entries were dropped from usable replies`,
-  }
 }

@@ -53,7 +53,7 @@ done
 case "$MODE" in
   test) PROTOCOL="sample"; DATA_BRANCH="run-data/cloud-test" ;;
   1|2|check) DATA_BRANCH="run-data/$PROTOCOL" ;;
-  *) sed -n '2,12p' "$0"; exit 2 ;;
+  *) sed -n '2,13p' "$0"; exit 2 ;;
 esac
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

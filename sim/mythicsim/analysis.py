@@ -104,7 +104,7 @@ def from_runs(runs_dir: Path, select: list[str] | None = None, tag: str | None =
     refs: list[dict] = []
     max_pulls = 1
     for m in load_manifests(runs_dir):
-        if select and not any(m["run_id"].startswith(s) or s in m["run_id"] for s in select):
+        if select and not any(s in m["run_id"] for s in select):
             continue
         if tag and tag not in (m.get("tags") or []):
             continue
@@ -539,7 +539,7 @@ def export(refs: list[dict], max_pulls: int, out: Path, source: str, prompts: bo
                ].append(p)
         p.rep = None  # the replay itself is no longer needed: keep memory flat
     group_rows = []
-    for key, ps in groups.items():
+    for ps in groups.values():
         ps.sort(key=lambda p: p.ref["pull"])
         items = [{"pull": p.ref["pull"], "score": p.m.get("score") or 0.0, "outcome": p.m.get("outcome")} for p in ps]
         cleared = next((p.ref["pull"] for p in ps if p.m.get("in_time")), None)

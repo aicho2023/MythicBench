@@ -1,7 +1,7 @@
-// Site-wide settings. Switching the site to the official run is one line:
-// set RESULTS_DIR to 'results/v1' (or build with VITE_RESULTS_DIR=results/v1).
+// Site-wide settings.
 
-/** Folder under web/public holding `python -m mythicsim results <protocol> --out <dir>`. */
+/** Folder under web/public holding `python -m mythicsim results <protocol> --out <dir>`
+ * (build with VITE_RESULTS_DIR to show another dataset). */
 export const RESULTS_DIR: string = import.meta.env.VITE_RESULTS_DIR ?? 'results/v1'
 
 /** URL of a file inside the results dataset. */
@@ -18,13 +18,13 @@ export const SHOW_REFERENCE_RUNS: boolean = import.meta.env.VITE_SHOW_REFERENCE 
 export const REFERENCE_PROVIDERS = ['mock', 'scripted']
 
 export const GITHUB_URL = 'https://github.com/aicho2023/MythicBench'
-export const SITE_URL = 'https://mythicbench.com'
+export { SITE_URL } from './meta'
 /** Donations fund runs on more and stronger models. */
 export const VENMO_HANDLE = 'ach1492'
 export const VENMO_URL = `https://venmo.com/u/${VENMO_HANDLE}`
 
 /**
- * The home clip once results exist, and where plain /watch opens: the top model's
+ * The home clip, and where plain /watch opens: the top model's
  * best +10 pull (Claude Opus 5.5, group 2, pull 2), over a stretch of the boss
  * fight with a Bone Pyre soaked by the whole party. Seconds into the pull.
  */

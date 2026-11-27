@@ -229,7 +229,6 @@ def claim_paid_lock(runs_dir: Path | None = None) -> None:
     would each check the cap without seeing the other's calls in flight.
     (Threads in one process share the guards below, so a campaign's parallel
     cells are fine.) Held until the process exits."""
-    global _PAID_LOCK
     with _PAID_LOCK_GUARD:  # threads of this process share one claim
         _claim(runs_dir)
 
@@ -253,7 +252,6 @@ def _claim(runs_dir: Path | None) -> None:
 
 PROJECT = Guard("project")  # MYTHICBENCH_TOTAL_BUDGET_USD, across everything ever spent
 CAMPAIGN = Guard("campaign")  # campaign --budget-usd, across all of a campaign's cells
-ProjectGuard = Guard  # older name
 
 
 # Tokens a request adds beyond its text (roles, message framing, the system
@@ -443,43 +441,7 @@ def estimate_fight_usd(price: Price, mode: str, label: str, path: Path | None = 
     return per_call * calls, "from a default token profile (no history for this model yet; thinking models cost more)"
 
 
-# ---------------------------------------------------------------------------
-# Runs made before the ledger existed
-# ---------------------------------------------------------------------------
-
-def stats_cost(price: Price, st: dict, fresh_only: bool = False) -> float:
-    """Cost of one fight from its saved stats. ``fresh_only``: count only the
-    share of calls that really went to the API (not served from the recording)."""
-    usd = price.cost(st.get("input_tokens", 0), st.get("output_tokens", 0),
-                     st.get("cache_read_tokens", 0), st.get("cache_write_tokens", 0))
-    if fresh_only and st.get("calls"):
-        usd *= max(0, st["calls"] - st.get("cached_calls", 0)) / st["calls"]
-    return usd
-
-
-def backfill(runs_dir: Path | None = None, path: Path | None = None) -> list[tuple[str, float]]:
-    """Add an estimated ledger line for each saved run that has none, so money
-    spent before the guard existed still counts against the cap. Estimates come
-    from each fight's token counts (reflection calls weren't recorded, so they
-    run slightly low)."""
-    runs_dir, path = runs_dir or RUNS_DIR, path or LEDGER
-    known = {r.get("run_id") for r in read_ledger(path)}
-    added = []
-    for mf in sorted(runs_dir.glob("*/manifest.json")):
-        m = json.loads(mf.read_text())
-        rid = m.get("run_id")
-        if rid in known or m.get("offline"):
-            continue
-        price = price_for(m.get("label") or "")
-        if price is None or price is FREE:
-            continue
-        usd = sum(stats_cost(price, json.loads(p.read_text()), fresh_only=True)
-                  for p in mf.parent.rglob("*.stats.json"))
-        if usd <= 0:
-            continue
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("a") as f:
-            f.write(json.dumps({"t": m.get("created"), "run_id": rid, "spec": m.get("label"),
-                                "usd": round(usd, 6), "estimated": True}) + "\n")
-        added.append((rid, usd))
-    return added
+def stats_cost(price: Price, st: dict) -> float:
+    """List-price cost of one fight from its saved stats."""
+    return price.cost(st.get("input_tokens", 0), st.get("output_tokens", 0),
+                      st.get("cache_read_tokens", 0), st.get("cache_write_tokens", 0))
